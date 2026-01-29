@@ -1,14 +1,17 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { doc, setDoc, Timestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
+import { Capacitor } from '@capacitor/core';
+import { PushNotifications } from '@capacitor/push-notifications';
+import { Geolocation } from '@capacitor/geolocation';
 import { db } from '@/lib/firebase';
 import { useAuthedUser } from '@/hooks/useAuthedUser';
 
 interface PushNotificationState {
   isSupported: boolean;
   isSubscribed: boolean;
-  permission: NotificationPermission | 'default';
+  permission: 'granted' | 'denied' | 'default';
   loading: boolean;
 }
 
@@ -21,79 +24,134 @@ export function usePushNotifications() {
     loading: true,
   });
 
-  // Check if push notifications are supported
   useEffect(() => {
     if (typeof window === 'undefined') {
       setState(prev => ({ ...prev, loading: false }));
       return;
     }
 
-    const isSupported = 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
-    
-    setState(prev => ({
-      ...prev,
-      isSupported,
-      permission: isSupported ? Notification.permission : 'default',
-      loading: false,
-    }));
+    const checkSupport = async () => {
+      if (Capacitor.isNativePlatform()) {
+        setState(prev => ({
+          ...prev,
+          isSupported: true,
+          loading: false,
+        }));
+      } else {
+        setState(prev => ({
+          ...prev,
+          isSupported: false,
+          loading: false,
+        }));
+      }
+    };
 
-    // Check if already subscribed
-    if (isSupported && Notification.permission === 'granted') {
-      checkSubscription();
-    }
+    checkSupport();
   }, []);
+
+  useEffect(() => {
+    if (!state.isSupported || !uid) return;
+    checkSubscription();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [uid, state.isSupported]);
 
   const checkSubscription = async () => {
     try {
-      const registration = await navigator.serviceWorker.ready;
-      const subscription = await registration.pushManager.getSubscription();
-      setState(prev => ({ ...prev, isSubscribed: !!subscription }));
+      if (!uid || !db) return;
+      const snap = await getDoc(doc(db, 'pushSubscriptions', uid));
+      const token = snap.exists() ? (snap.data() as any)?.fcmToken : null;
+      setState(prev => ({ ...prev, isSubscribed: !!token }));
     } catch (error) {
       console.error('Error checking push subscription:', error);
     }
   };
 
-  // Request permission and subscribe
   const subscribe = useCallback(async () => {
-    if (!state.isSupported || !uid) {
+    if (!state.isSupported || !uid || !db) {
       return { success: false, error: 'Push notifications not supported' };
+    }
+
+    if (!Capacitor.isNativePlatform()) {
+      return { success: false, error: 'Native push only supported on mobile' };
     }
 
     setState(prev => ({ ...prev, loading: true }));
 
     try {
-      // Request notification permission
-      const permission = await Notification.requestPermission();
-      setState(prev => ({ ...prev, permission }));
+      let permStatus = await PushNotifications.checkPermissions();
 
-      if (permission !== 'granted') {
-        setState(prev => ({ ...prev, loading: false }));
+      if (permStatus.receive === 'prompt') {
+        permStatus = await PushNotifications.requestPermissions();
+      }
+
+      if (permStatus.receive !== 'granted') {
+        setState(prev => ({ ...prev, loading: false, permission: 'denied' }));
         return { success: false, error: 'Permission denied' };
       }
 
-      // Get service worker registration
-      const registration = await navigator.serviceWorker.ready;
+      setState(prev => ({ ...prev, permission: 'granted' }));
 
-      // Subscribe to push notifications
-      // Note: In production, you would use your VAPID public key here
-      // For now, we'll use a placeholder that works for local testing
-      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 
-        'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U';
-      
-      const subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: vapidKey,
+      await PushNotifications.register();
+
+      const tokenListener = await PushNotifications.addListener('registration', async (token) => {
+        console.log('Push registration success, token:', token.value);
+
+        try {
+          const platform = Capacitor.getPlatform();
+
+          const existing = await getDoc(doc(db, 'pushSubscriptions', uid));
+          
+          if (existing.exists()) {
+            await setDoc(doc(db, 'pushSubscriptions', uid), {
+              fcmToken: token.value,
+              platform,
+              updatedAt: serverTimestamp(),
+            }, { merge: true });
+          } else {
+            await setDoc(doc(db, 'pushSubscriptions', uid), {
+              uid,
+              fcmToken: token.value,
+              platform,
+              location: null,
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+            });
+          }
+
+          const perm = await Geolocation.requestPermissions();
+          if (perm.location !== 'granted' && perm.coarseLocation !== 'granted') {
+            throw new Error('Location permission not granted');
+          }
+
+          const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true });
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+
+          await setDoc(
+            doc(db, 'pushSubscriptions', uid),
+            {
+              location: { lat, lng },
+              locationUpdatedAt: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+            },
+            { merge: true }
+          );
+
+          console.log('Location updated for push notifications');
+          setState(prev => ({ ...prev, isSubscribed: true, loading: false }));
+          tokenListener.remove();
+        } catch (err) {
+          console.error('Failed to complete push subscription setup:', err);
+          setState(prev => ({ ...prev, loading: false }));
+          tokenListener.remove();
+        }
       });
 
-      // Save subscription to Firestore
-      await setDoc(doc(db, 'pushSubscriptions', uid), {
-        uid,
-        subscription: JSON.parse(JSON.stringify(subscription)),
-        createdAt: Timestamp.now(),
-        updatedAt: Timestamp.now(),
+      await PushNotifications.addListener('registrationError', (error) => {
+        console.error('Push registration error:', error);
+        setState(prev => ({ ...prev, loading: false }));
       });
 
-      setState(prev => ({ ...prev, isSubscribed: true, loading: false }));
       return { success: true };
 
     } catch (error) {
@@ -103,21 +161,19 @@ export function usePushNotifications() {
     }
   }, [state.isSupported, uid]);
 
-  // Unsubscribe from push notifications
   const unsubscribe = useCallback(async () => {
-    if (!state.isSupported) {
+    if (!state.isSupported || !db) {
       return { success: false, error: 'Push notifications not supported' };
     }
 
     setState(prev => ({ ...prev, loading: true }));
 
     try {
-      const registration = await navigator.serviceWorker.ready;
-      const subscription = await registration.pushManager.getSubscription();
-
-      if (subscription) {
-        await subscription.unsubscribe();
+      if (uid) {
+        await deleteDoc(doc(db, 'pushSubscriptions', uid));
       }
+
+      await PushNotifications.removeAllListeners();
 
       setState(prev => ({ ...prev, isSubscribed: false, loading: false }));
       return { success: true };
@@ -127,27 +183,11 @@ export function usePushNotifications() {
       setState(prev => ({ ...prev, loading: false }));
       return { success: false, error: 'Failed to unsubscribe' };
     }
-  }, [state.isSupported]);
+  }, [state.isSupported, uid]);
 
-  // Send a test notification (local only)
   const sendTestNotification = useCallback(async () => {
-    if (!state.isSupported || state.permission !== 'granted') {
-      return { success: false, error: 'Notifications not enabled' };
-    }
-
-    try {
-      const registration = await navigator.serviceWorker.ready;
-      await registration.showNotification('WakaGuard Test', {
-        body: 'Push notifications are working!',
-        icon: '/icons/icon-192x192.png',
-        badge: '/icons/icon-72x72.png',
-      });
-      return { success: true };
-    } catch (error) {
-      console.error('Error sending test notification:', error);
-      return { success: false, error: 'Failed to send notification' };
-    }
-  }, [state.isSupported, state.permission]);
+    return { success: false, error: 'Test notifications not implemented for native' };
+  }, []);
 
   return {
     ...state,

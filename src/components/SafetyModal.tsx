@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { X, Shield, MapPin, Clock, Users, AlertTriangle, Copy, Check } from 'lucide-react';
-import { collection, addDoc, updateDoc, doc, serverTimestamp, setDoc, getDoc } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, doc, serverTimestamp, setDoc, getDocs, query, where, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuthedUser } from '@/hooks/useAuthedUser';
 import { Trip, TripStatus, Alert, AlertType, CheckIn } from '@/lib/types';
@@ -30,19 +30,22 @@ export function SafetyModal({ isOpen, onClose, userLocation }: SafetyModalProps)
     if (!uid || !isOpen) return;
 
     const checkActiveTrip = async () => {
-      // Check user's active trip reference (stored in user doc)
-      const userDoc = await getDoc(doc(db, 'users', uid));
-      const activeTripToken = userDoc.data()?.activeTripToken;
-      
-      if (activeTripToken) {
-        const tripDoc = await getDoc(doc(db, 'trips', activeTripToken));
-        if (tripDoc.exists()) {
-          const tripData = tripDoc.data() as Trip;
-          if (tripData.status === TripStatus.ACTIVE && !isTripExpired(tripData.expiresAt)) {
-            setActiveTrip({ ...tripData, id: tripDoc.id } as Trip & { id: string });
-          }
+      const qTrips = query(
+        collection(db, 'users', uid, 'trips'),
+        where('status', '==', TripStatus.ACTIVE)
+      );
+
+      const snap = await getDocs(qTrips);
+      if (!snap.empty) {
+        const tripDoc = snap.docs[0];
+        const tripData = tripDoc.data() as Trip;
+        if (tripData.status === TripStatus.ACTIVE && !isTripExpired(tripData.expiresAt)) {
+          setActiveTrip({ ...tripData, id: tripDoc.id } as Trip & { id: string });
+          return;
         }
       }
+
+      setActiveTrip(null);
     };
 
     checkActiveTrip();
@@ -55,7 +58,7 @@ export function SafetyModal({ isOpen, onClose, userLocation }: SafetyModalProps)
     const updateInterval = setInterval(async () => {
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(async (position) => {
-          const tripRef = doc(db, 'trips', activeTrip.id);
+          const tripRef = doc(db, 'users', uid!, 'trips', activeTrip.id);
           await updateDoc(tripRef, {
             lastLocation: {
               lat: position.coords.latitude,
@@ -64,12 +67,24 @@ export function SafetyModal({ isOpen, onClose, userLocation }: SafetyModalProps)
             },
             lastUpdate: serverTimestamp(),
           });
+
+          try {
+            await updateDoc(doc(db, 'sharedTrips', activeTrip.id), {
+              lastLocation: {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude,
+                accuracy: position.coords.accuracy,
+              },
+              lastUpdate: serverTimestamp(),
+            });
+          } catch (e) {
+          }
         });
       }
     }, 30000); // Update every 30 seconds
 
     return () => clearInterval(updateInterval);
-  }, [activeTrip, userLocation]);
+  }, [activeTrip, userLocation, uid]);
 
   const handleStartTrip = async () => {
     if (!uid) {
@@ -96,7 +111,7 @@ export function SafetyModal({ isOpen, onClose, userLocation }: SafetyModalProps)
         shareToken,
         status: TripStatus.ACTIVE,
         startTime: serverTimestamp() as any,
-        expiresAt: calculateTripExpiry(24) as any,
+        expiresAt: Timestamp.fromDate(calculateTripExpiry(24)),
         lastLocation: {
           lat: userLocation.lat,
           lng: userLocation.lng,
@@ -106,13 +121,20 @@ export function SafetyModal({ isOpen, onClose, userLocation }: SafetyModalProps)
         createdAt: serverTimestamp() as any,
       };
 
-      // CRITICAL: Use token as docId for secure get-only access
-      await setDoc(doc(db, 'trips', shareToken), tripData);
-      
-      // Store active trip reference in user doc
-      await updateDoc(doc(db, 'users', uid), {
-        activeTripToken: shareToken,
-      });
+      await setDoc(doc(db, 'users', uid, 'trips', shareToken), tripData);
+      await setDoc(doc(db, 'sharedTrips', shareToken), {
+        uid,
+        tripId: shareToken,
+        status: TripStatus.ACTIVE,
+        expiresAt: Timestamp.fromDate(calculateTripExpiry(24)),
+        lastLocation: {
+          lat: userLocation.lat,
+          lng: userLocation.lng,
+        },
+        lastUpdate: serverTimestamp(),
+        destination: null,
+        createdAt: serverTimestamp(),
+      }, { merge: true });
 
       setActiveTrip({ ...tripData, id: shareToken } as Trip & { id: string });
       setToast({ type: 'success', message: 'Trip sharing started!' });
@@ -129,17 +151,17 @@ export function SafetyModal({ isOpen, onClose, userLocation }: SafetyModalProps)
 
     setLoading(true);
     try {
-      const tripRef = doc(db, 'trips', activeTrip.id);
+      const tripRef = doc(db, 'users', uid!, 'trips', activeTrip.id);
       await updateDoc(tripRef, {
         status: TripStatus.COMPLETED,
         endTime: serverTimestamp(),
       });
-      
-      // Remove active trip reference from user doc
-      if (uid) {
-        await updateDoc(doc(db, 'users', uid), {
-          activeTripToken: null,
+
+      try {
+        await updateDoc(doc(db, 'sharedTrips', activeTrip.id), {
+          status: TripStatus.COMPLETED,
         });
+      } catch (e) {
       }
 
       setActiveTrip(null);
@@ -177,7 +199,6 @@ export function SafetyModal({ isOpen, onClose, userLocation }: SafetyModalProps)
     setLoading(true);
     try {
       const timerData = {
-        uid,
         duration: timerMinutes,
         startTime: serverTimestamp(),
         expiresAt: calculateTimerExpiry(timerMinutes),
@@ -186,7 +207,7 @@ export function SafetyModal({ isOpen, onClose, userLocation }: SafetyModalProps)
         createdAt: serverTimestamp(),
       };
 
-      await addDoc(collection(db, 'safetyTimers'), timerData);
+      await addDoc(collection(db, 'users', uid, 'safetyTimers'), timerData);
       setToast({ type: 'success', message: `Safety timer set for ${timerMinutes} minutes` });
     } catch (error) {
       console.error('Error starting timer:', error);
@@ -218,7 +239,7 @@ export function SafetyModal({ isOpen, onClose, userLocation }: SafetyModalProps)
         createdAt: serverTimestamp() as any,
       };
 
-      await addDoc(collection(db, 'checkIns'), checkInData);
+      await addDoc(collection(db, 'users', uid, 'checkIns'), checkInData);
       setToast({ type: 'success', message: 'Check-in sent to trusted contacts!' });
     } catch (error) {
       console.error('Error sending check-in:', error);
@@ -274,15 +295,22 @@ export function SafetyModal({ isOpen, onClose, userLocation }: SafetyModalProps)
         createdAt: serverTimestamp() as any,
       };
 
-      await addDoc(collection(db, 'alerts'), alertData);
+      await addDoc(collection(db, 'users', uid, 'alerts'), alertData);
 
       // Update trip status if active
       if (activeTrip) {
-        const tripRef = doc(db, 'trips', activeTrip.id);
+        const tripRef = doc(db, 'users', uid, 'trips', activeTrip.id);
         await updateDoc(tripRef, {
           status: TripStatus.EMERGENCY,
         });
         setActiveTrip({ ...activeTrip, status: TripStatus.EMERGENCY });
+
+        try {
+          await updateDoc(doc(db, 'sharedTrips', activeTrip.id), {
+            status: TripStatus.EMERGENCY,
+          });
+        } catch (e) {
+        }
       }
 
       setToast({ type: 'success', message: 'SOS alert sent to emergency contacts!' });

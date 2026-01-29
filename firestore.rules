@@ -2,208 +2,356 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Helper function to check if user is admin via Firebase Custom Claims
+
+    // -------------------------------------------------------------------------
+    // Helpers
+    // -------------------------------------------------------------------------
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Non-anonymous only
+    function isAuthenticated() {
+      return request.auth != null
+        && request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
+
     function isAdmin() {
       return request.auth != null && request.auth.token.admin == true;
     }
-    
-    // Helper function to check if user is authenticated (not anonymous)
-    function isAuthenticated() {
-      return request.auth != null 
-        && request.auth.token.firebase.sign_in_provider != 'anonymous';
+
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
     }
-    
-    // Reports collection
+
+    function isValidReportType(t) {
+      return t in ['pothole','traffic','accident','roadwork','hazard','closure','checkpoint','other'];
+    }
+
+    function isValidSeverity(s) {
+      return s in ['low','medium','high','critical'];
+    }
+
+    function isValidReportStatus(s) {
+      return s in ['active','resolved','expired','flagged'];
+    }
+
+    function isValidVerification(v) {
+      return v in ['pending','verified','dismissed'];
+    }
+
+    function isValidCheckpointType(c) {
+      return c in ['police','frsc','lastma','vio','army','customs','task_force','other'];
+    }
+
+    function isValidCheckpointCheck(x) {
+      return x in ['license','vehicle_papers','insurance','road_worthiness','tinted_glass','expired_tags','random_search','particulars'];
+    }
+
+    function isValidWaitTime(w) {
+      return w in ['5min','15min','30min','1hr+'];
+    }
+
+    function isValidLatLng(loc) {
+      return loc.lat is number
+        && loc.lng is number
+        && loc.lat >= -90 && loc.lat <= 90
+        && loc.lng >= -180 && loc.lng <= 180;
+    }
+
+    function isValidLocation(loc) {
+      return loc is map
+        && isValidLatLng(loc)
+        && loc.keys().hasOnly(['lat','lng','address'])
+        && (!('address' in loc) || loc.address is string);
+    }
+
+    function isValidLatLngMap(loc) {
+      return loc is map
+        && loc.lat is number
+        && loc.lng is number
+        && loc.lat >= -90 && loc.lat <= 90
+        && loc.lng >= -180 && loc.lng <= 180
+        && loc.keys().hasOnly(['lat','lng']);
+    }
+
+    function isValidAlertMode(m) {
+      return m in ['gps','zones','both'];
+    }
+
+    function isValidRadiusKm(r) {
+      return r in [2,5,10,25,50];
+    }
+
+    function isValidZone(z) {
+      return z is map
+        && z.keys().hasOnly(['label','center','radiusKm','state'])
+        && z.label is string
+        && z.label.size() > 0
+        && z.label.size() <= 40
+        && isValidLatLngMap(z.center)
+        && isValidRadiusKm(z.radiusKm)
+        && (!('state' in z) || z.state is string);
+    }
+
+    function isValidZones(zones) {
+      return zones is list
+        && zones.size() <= 5
+        && zones.hasOnly(z => isValidZone(z));
+    }
+
+    function isValidStates(states) {
+      return states is list
+        && states.size() <= 10
+        && states.hasOnly(s => s is string && s.size() > 0 && s.size() <= 40);
+    }
+
+    // -------------------------------------------------------------------------
+    // Public civic data
+    // -------------------------------------------------------------------------
+
     match /reports/{reportId} {
-      // Allow public read for active reports (civic data should be publicly accessible)
       allow read: if true;
-      
-      // Allow create if authenticated (not anonymous) with proper fields
+
       allow create: if isAuthenticated()
         && request.resource.data.uid == request.auth.uid
+        && isValidReportType(request.resource.data.type)
+        && isValidSeverity(request.resource.data.severity)
         && request.resource.data.status == 'active'
-        && request.resource.data.state is string;
-      
-      // Allow update for voting (authenticated users can vote)
-      // Allow owner to update description/photos
-      // Allow anyone to update confirmations
-      allow update: if isAuthenticated();
-      
-      // Allow delete only by owner
-      allow delete: if request.auth != null 
-        && resource.data.uid == request.auth.uid;
+        && request.resource.data.state is string
+        && request.resource.data.verification == 'pending'
+        && isValidLocation(request.resource.data.location)
+        && request.resource.data.description is string
+        && request.resource.data.description.size() > 0
+        && request.resource.data.expiresAt is timestamp
+        && request.resource.data.upvotes == 0
+        && request.resource.data.downvotes == 0
+        && request.resource.data.commentCount == 0
+        && request.resource.data.flagCount == 0
+        && request.resource.data.photoUrls is list;
+
+      // Owner can only edit specific safe fields.
+      // Admin can update anything (moderation).
+      allow update: if isAdmin() || (
+        isAuthenticated()
+        && resource.data.uid == request.auth.uid
+
+        // immutable fields
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.type == resource.data.type
+        && request.resource.data.severity == resource.data.severity
+        && request.resource.data.state == resource.data.state
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.expiresAt == resource.data.expiresAt
+        && request.resource.data.location.lat == resource.data.location.lat
+        && request.resource.data.location.lng == resource.data.location.lng
+
+        // counts server-managed
+        && request.resource.data.upvotes == resource.data.upvotes
+        && request.resource.data.downvotes == resource.data.downvotes
+        && request.resource.data.commentCount == resource.data.commentCount
+        && request.resource.data.flagCount == resource.data.flagCount
+
+        // status + verification owner cannot change
+        && request.resource.data.status == resource.data.status
+        && request.resource.data.verification == resource.data.verification
+
+        // allowed edits
+        && request.resource.data.description is string
+        && request.resource.data.description.size() > 0
+        && request.resource.data.photoUrls is list
+        && isValidLocation(request.resource.data.location)
+      );
+
+      allow delete: if isSignedIn() && resource.data.uid == request.auth.uid;
     }
-    
-    // Comments collection
+
     match /comments/{commentId} {
-      // Allow read for all (active comments are public)
       allow read: if true;
-      
-      // Allow create if authenticated (not anonymous)
+
       allow create: if isAuthenticated()
-        && request.resource.data.uid == request.auth.uid;
-      
-      // Allow update only by owner
-      allow update: if request.auth != null 
-        && resource.data.uid == request.auth.uid;
-      
-      // Allow delete only by owner
-      allow delete: if request.auth != null 
-        && resource.data.uid == request.auth.uid;
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.reportId is string
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 0
+        && request.resource.data.text.size() <= 500
+        && request.resource.data.status in ['active','removed']
+        ;
+
+      // Owner can only edit text/status; cannot change linkage/identity/timestamps.
+      // (If you do not need comment editing, set this to false and rely on delete.)
+      allow update: if isAuthenticated()
+        && resource.data.uid == request.auth.uid
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.reportId == resource.data.reportId
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 0
+        && request.resource.data.text.size() <= 500
+        && request.resource.data.status in ['active','removed'];
+
+      allow delete: if isSignedIn() && resource.data.uid == request.auth.uid;
     }
-    
-    // Votes collection - deterministic doc IDs prevent duplicates
-    // Format: votes/{userId}_{reportId}
+
+    // votes/{uid}_{reportId}
     match /votes/{voteId} {
-      // Allow read for all authenticated users
       allow read: if isAuthenticated();
-      
-      // Strict write validation: doc ID must match userId_reportId pattern
-      allow write: if isAuthenticated() 
-        && voteId.matches('^' + request.auth.uid + '_[a-zA-Z0-9]+$')
-        && (request.resource == null || (
-          request.resource.data.userId == request.auth.uid
-          && request.resource.data.voteType in ['up', 'down']
-        ));
+
+      allow create: if isAuthenticated()
+        && voteId.matches('^' + request.auth.uid + '_[A-Za-z0-9]+$')
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.reportId is string
+        && request.resource.data.value in [1, -1]
+        ;
+
+      // Client updates disabled. Cloud Functions (Admin SDK) bypass rules.
+      allow update, delete: if false;
     }
-    
-    // Flags collection
+
     match /flags/{flagId} {
-      // Allow read for authenticated users (for moderation)
       allow read: if isAuthenticated();
-      
-      // Allow create if authenticated (not anonymous) and user is the reporter
+
       allow create: if isAuthenticated()
         && request.resource.data.reporterId == request.auth.uid
         && request.resource.data.status == 'pending'
-        && request.resource.data.reason in ['spam', 'inappropriate', 'incorrect', 'duplicate', 'other']
-        && request.resource.data.targetType in ['report', 'comment'];
-      
-      // Only admins can update flags (resolve/dismiss)
+        && request.resource.data.reason in ['spam','inappropriate','incorrect','duplicate','other']
+        && request.resource.data.targetType in ['report','comment']
+        && request.resource.data.targetId is string
+        && request.resource.data.details is string
+        ;
+
       allow update: if isAdmin()
         && request.resource.data.reporterId == resource.data.reporterId
         && request.resource.data.targetId == resource.data.targetId
-        && request.resource.data.reason == resource.data.reason;
+        && request.resource.data.reason == resource.data.reason
+        && request.resource.data.targetType == resource.data.targetType;
+
+      allow delete: if false;
     }
-    
-    // Users collection
+
+    // -------------------------------------------------------------------------
+    // Users (private)
+    // -------------------------------------------------------------------------
+
     match /users/{userId} {
-      // Allow read/write only by owner
-      allow read, write: if request.auth != null 
-        && request.auth.uid == userId;
+      allow read, write: if isOwner(userId);
     }
-    
-    // Usernames collection - for unique username reservation
+
     match /usernames/{usernameLower} {
-      // Allow anyone to check if username exists
-      allow read: if request.auth != null;
-      
-      // Allow create only if user is setting their own username
-      allow create: if request.auth != null
+      allow read: if isSignedIn();
+
+      allow create: if isSignedIn()
         && request.resource.data.uid == request.auth.uid
-        && request.resource.data.usernameLower == usernameLower;
-      
-      // No updates or deletes (usernames are permanent for now)
+        && request.resource.data.usernameLower == usernameLower
+        ;
+
       allow update, delete: if false;
     }
-    
-    // === SAFETY FEATURES ===
-    
-    // Trips collection - CRITICAL SECURITY
-    // Token is used as docId for secure public access
-    match /trips/{tripToken} {
-      // PUBLIC GET for active trips (for share links)
-      // Owner can always read their own trips
-      allow get: if (resource.data.status == 'active' && resource.data.expiresAt > request.time)
-        || (request.auth != null && resource.data.uid == request.auth.uid);
-      
-      // Owner can list their own trips (needed for useSafety hook queries)
-      allow list: if request.auth != null 
-        && request.auth.uid != null;
-      
-      // Only owner can create trip
-      allow create: if request.auth != null
-        && request.resource.data.uid == request.auth.uid
-        && request.resource.data.status == 'active'
-        && request.resource.data.shareToken == tripToken
-        && request.resource.data.expiresAt > request.time
-        && request.resource.data.expiresAt < request.time + duration.value(24, 'h');
-      
-      // Only owner can update trip
-      allow update: if request.auth != null
-        && resource.data.uid == request.auth.uid
-        && (request.resource.data.status in ['active', 'completed', 'cancelled', 'emergency'])
+
+    // -------------------------------------------------------------------------
+    // Private per-user subcollections
+    // -------------------------------------------------------------------------
+
+    match /users/{userId}/trustedContacts/{contactId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    match /users/{userId}/safetyTimers/{timerId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    match /users/{userId}/alerts/{alertId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    match /users/{userId}/checkIns/{checkInId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    match /users/{userId}/trips/{tripId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // -------------------------------------------------------------------------
+    // Public share docs (minimal, token-based)
+    // -------------------------------------------------------------------------
+    match /sharedTrips/{token} {
+      // public get only when active/emergency and not expired
+      allow get: if resource.data.expiresAt > request.time
+        && resource.data.status in ['active','emergency'];
+
+      allow list: if false;
+
+      function isValidSharedTrip(d) {
+        return d.keys().hasOnly([
+          'uid','tripId','status','expiresAt','lastLocation','lastUpdate','destination','createdAt'
+        ])
+        && d.uid is string
+        && d.tripId is string
+        && d.tripId == token
+        && d.status in ['active','emergency','completed','cancelled']
+        && d.expiresAt is timestamp
+        && (!('destination' in d) || d.destination == null || d.destination is string)
+        && (!('lastLocation' in d) || d.lastLocation == null || (
+          d.lastLocation is map
+          && d.lastLocation.keys().hasOnly(['lat','lng','accuracy'])
+          && d.lastLocation.lat is number
+          && d.lastLocation.lng is number
+          && d.lastLocation.lat >= -90 && d.lastLocation.lat <= 90
+          && d.lastLocation.lng >= -180 && d.lastLocation.lng <= 180
+          && (!('accuracy' in d.lastLocation) || d.lastLocation.accuracy is number)
+        ));
+      }
+
+      allow create: if isSignedIn()
+        && request.auth.uid == request.resource.data.uid
+        && isValidSharedTrip(request.resource.data);
+
+      allow update: if isSignedIn()
+        && request.auth.uid == resource.data.uid
         && request.resource.data.uid == resource.data.uid
-        && request.resource.data.shareToken == resource.data.shareToken;
-      
-      // Only owner can delete trip
-      allow delete: if request.auth != null
-        && resource.data.uid == request.auth.uid;
+        && isValidSharedTrip(request.resource.data);
+
+      allow delete: if isSignedIn()
+        && request.auth.uid == resource.data.uid;
     }
-    
-    // Trusted Contacts - private to user
-    match /trustedContacts/{contactId} {
-      // Only owner can read/write
-      allow read, write: if request.auth != null
-        && request.resource.data.uid == request.auth.uid;
-    }
-    
-    // Safety Timers - private to user
-    match /safetyTimers/{timerId} {
-      // Owner can read and list their own timers
-      allow read: if request.auth != null;
-      allow list: if request.auth != null;
-      
-      // Only owner can create
-      allow create: if request.auth != null
-        && request.resource.data.uid == request.auth.uid
-        && request.resource.data.acknowledged == false
-        && request.resource.data.duration > 0
-        && request.resource.data.duration <= 240; // Max 4 hours
-      
-      // Only owner can update (to acknowledge)
-      allow update: if request.auth != null
-        && resource.data.uid == request.auth.uid;
-      
-      // Only owner can delete
-      allow delete: if request.auth != null
-        && resource.data.uid == request.auth.uid;
-    }
-    
-    // Alerts - private to user
-    match /alerts/{alertId} {
-      // Only owner can read
-      allow read: if request.auth != null
-        && resource.data.uid == request.auth.uid;
-      
-      // Only owner can create
-      allow create: if request.auth != null
-        && request.resource.data.uid == request.auth.uid
-        && request.resource.data.type in ['sos', 'timer_expired', 'check_in_missed', 'checkpoint_stop']
-        && request.resource.data.acknowledged == false;
-      
-      // Only owner can update (to acknowledge)
-      allow update: if request.auth != null
-        && resource.data.uid == request.auth.uid;
-      
-      // Only owner can delete
-      allow delete: if request.auth != null
-        && resource.data.uid == request.auth.uid;
-    }
-    
-    // Check-ins - private to user
-    match /checkIns/{checkInId} {
-      // Only owner can read
-      allow read: if request.auth != null
-        && resource.data.uid == request.auth.uid;
-      
-      // Only owner can create
-      allow create: if request.auth != null
-        && request.resource.data.uid == request.auth.uid;
-      
-      // Only owner can delete
-      allow delete: if request.auth != null
+
+    // -------------------------------------------------------------------------
+    // Push subscriptions (private)
+    // -------------------------------------------------------------------------
+    match /pushSubscriptions/{subscriptionId} {
+      allow read: if false;
+
+      function isValidPushSub(data) {
+        return data is map
+          && data.keys().hasOnly([
+            'uid','fcmToken','platform','location','alertMode','zones','states','createdAt','updatedAt','locationUpdatedAt'
+          ])
+          && data.uid == request.auth.uid
+          && data.fcmToken is string
+          && data.fcmToken.size() > 0
+          && data.platform in ['android','ios','web']
+          && (!('alertMode' in data) || isValidAlertMode(data.alertMode))
+          && (!('location' in data) || data.location == null || isValidLatLngMap(data.location))
+          && (!('zones' in data) || data.zones == null || isValidZones(data.zones))
+          && (!('states' in data) || data.states == null || isValidStates(data.states))
+          && data.createdAt is timestamp
+          && data.updatedAt is timestamp
+          && (!('locationUpdatedAt' in data) || data.locationUpdatedAt is timestamp);
+      }
+
+      allow create: if isAuthenticated()
+        && subscriptionId == request.auth.uid
+        && isValidPushSub(request.resource.data);
+
+      allow update: if isAuthenticated()
+        && subscriptionId == request.auth.uid
+        && resource.data.uid == request.auth.uid
+        && request.resource.data.uid == resource.data.uid
+        && isValidPushSub(request.resource.data);
+
+      allow delete: if isAuthenticated()
+        && subscriptionId == request.auth.uid
         && resource.data.uid == request.auth.uid;
     }
   }

@@ -2,9 +2,9 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { Trip, TripStatus } from '@/lib/types';
+import { SharedTrip, TripStatus } from '@/lib/types';
 import { MapPin, Clock, AlertTriangle, CheckCircle, Shield } from 'lucide-react';
 import { formatTimeRemaining, isTripExpired } from '@/lib/safety';
 import { lazy } from 'react';
@@ -16,7 +16,7 @@ function SharedTripContent() {
   // Read token from query param instead of path param
   const token = searchParams.get('token') || '';
   
-  const [trip, setTrip] = useState<Trip | null>(null);
+  const [trip, setTrip] = useState<SharedTrip | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdateAgo, setLastUpdateAgo] = useState<string>('');
@@ -27,18 +27,19 @@ function SharedTripContent() {
       return;
     }
 
-    const fetchTrip = async () => {
-      try {
-        const tripDoc = await getDoc(doc(db, 'trips', token));
+    const unsubscribe = onSnapshot(
+      doc(db, 'sharedTrips', token),
+      (snapshot) => {
+        setLoading(false);
         
-        if (!tripDoc.exists()) {
+        if (!snapshot.exists()) {
           setError('Trip not found or has ended');
           return;
         }
 
-        const tripData = tripDoc.data() as Trip;
+        const tripData = snapshot.data() as SharedTrip;
 
-        if (tripData.status !== TripStatus.ACTIVE) {
+        if (tripData.status !== TripStatus.ACTIVE && tripData.status !== TripStatus.EMERGENCY) {
           setError('This trip has ended');
           return;
         }
@@ -49,17 +50,16 @@ function SharedTripContent() {
         }
 
         setTrip(tripData);
-      } catch (err) {
+        setError(null);
+      },
+      (err) => {
         console.error('Error fetching trip:', err);
         setError('Failed to load trip information');
-      } finally {
         setLoading(false);
       }
-    };
+    );
 
-    fetchTrip();
-    const interval = setInterval(fetchTrip, 30000);
-    return () => clearInterval(interval);
+    return () => unsubscribe();
   }, [token]);
 
   useEffect(() => {
@@ -216,7 +216,7 @@ function SharedTripContent() {
               <h3 className="text-sm font-semibold text-blue-900 mb-2">About This Share</h3>
               <p className="text-xs text-blue-700 leading-relaxed">
                 Someone you know has shared their live location with you using WakaGuard Safety. 
-                This page updates automatically every 30 seconds.
+                This page updates in real-time.
               </p>
             </div>
 

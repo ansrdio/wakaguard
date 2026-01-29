@@ -20,7 +20,7 @@ export function computeExpiry(type: ReportType): number {
 }
 
 export function makeVoteId(reportId: string, uid: string): string {
-  return `${reportId}_${uid}`;
+  return `${uid}_${reportId}`;
 }
 
 export function makeFlagId(targetType: string, targetId: string, uid: string): string {

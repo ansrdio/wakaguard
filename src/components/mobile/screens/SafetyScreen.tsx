@@ -15,7 +15,7 @@ import {
   isNightTime 
 } from '@/lib/safety';
 import { useAuthedUser } from '@/hooks/useAuthedUser';
-import { doc, updateDoc, arrayUnion, arrayRemove, getDoc } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDoc, getDocs, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Capacitor } from '@capacitor/core';
 import { shareSafeTripLink } from '@/lib/share';
@@ -114,7 +114,7 @@ export function SafetyScreen() {
   const [destination, setDestination] = useState('');
   
   // Trusted contacts
-  const [trustedContacts, setTrustedContacts] = useState<{ name: string; phone: string }[]>([]);
+  const [trustedContacts, setTrustedContacts] = useState<{ id: string; name: string; phone: string; email?: string }[]>([]);
   const [newContactName, setNewContactName] = useState('');
   const [newContactPhone, setNewContactPhone] = useState('');
   const [phoneContacts, setPhoneContacts] = useState<{ name: string; phone: string }[]>([]);
@@ -134,9 +134,12 @@ export function SafetyScreen() {
     const loadContacts = async () => {
       const userDoc = await getDoc(doc(db, 'users', uid));
       if (userDoc.exists()) {
-        setTrustedContacts(userDoc.data().trustedContacts || []);
         setCheckedItems(userDoc.data().safetyChecklist || []);
       }
+
+      const contactsSnap = await getDocs(collection(db, 'users', uid, 'trustedContacts'));
+      const contacts = contactsSnap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
+      setTrustedContacts(contacts);
     };
     loadContacts();
   }, [uid]);
@@ -179,7 +182,7 @@ export function SafetyScreen() {
     const result = await startSafeTrip({
       expectedDurationMinutes: selectedDuration > 0 ? selectedDuration : undefined,
       destinationLabel: destination || undefined,
-      trustedContactIds: trustedContacts.map(c => c.phone),
+      trustedContactIds: trustedContacts.map(c => c.id),
     });
     setProcessing(false);
     if (result.success && result.shareUrl) {
@@ -388,11 +391,24 @@ export function SafetyScreen() {
     
     setProcessing(true);
     try {
-      const newContact = { name: newContactName.trim(), phone: newContactPhone.trim() };
-      await updateDoc(doc(db, 'users', uid), {
-        trustedContacts: arrayUnion(newContact)
+      const name = newContactName.trim();
+      const phone = newContactPhone.trim();
+      const contactIdBase = phone.replace(/[^0-9]/g, '');
+      const contactId = contactIdBase.length > 0 ? contactIdBase : String(Date.now());
+
+      await setDoc(doc(db, 'users', uid, 'trustedContacts', contactId), {
+        name,
+        phone,
+        createdAt: serverTimestamp(),
+      }, { merge: true });
+
+      setTrustedContacts((prev) => {
+        const existing = prev.find((c) => c.id === contactId);
+        if (existing) {
+          return prev.map((c) => (c.id === contactId ? { ...c, name, phone } : c));
+        }
+        return [...prev, { id: contactId, name, phone }];
       });
-      setTrustedContacts([...trustedContacts, newContact]);
       setNewContactName('');
       setNewContactPhone('');
       showToast('Contact added', 'success');
@@ -404,15 +420,13 @@ export function SafetyScreen() {
   };
 
   // Remove trusted contact
-  const handleRemoveContact = async (contact: { name: string; phone: string }) => {
+  const handleRemoveContact = async (contact: { id: string; name: string; phone: string }) => {
     if (!uid) return;
     
     setProcessing(true);
     try {
-      await updateDoc(doc(db, 'users', uid), {
-        trustedContacts: arrayRemove(contact)
-      });
-      setTrustedContacts(trustedContacts.filter(c => c.phone !== contact.phone));
+      await deleteDoc(doc(db, 'users', uid, 'trustedContacts', contact.id));
+      setTrustedContacts((prev) => prev.filter((c) => c.id !== contact.id));
       showToast('Contact removed', 'success');
     } catch (error) {
       showToast('Failed to remove contact', 'error');

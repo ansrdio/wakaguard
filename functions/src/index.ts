@@ -1,6 +1,8 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 
+export { migrateLegacyData } from './migrateLegacyData';
+
 admin.initializeApp();
 
 const db = admin.firestore();
@@ -20,7 +22,11 @@ function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: numbe
 
 /**
  * Cloud Function triggered when a new report is created.
- * Sends push notifications to users within a certain radius.
+ * Sends push notifications to users based on:
+ * - GPS location (subscription.location) and/or
+ * - user-defined alert zones (subscription.zones)
+ *
+ * Includes a cheap pre-filter by state to avoid distance checks for irrelevant subscriptions.
  */
 export const onReportCreate = functions.firestore
   .document('reports/{reportId}')
@@ -34,74 +40,146 @@ export const onReportCreate = functions.firestore
     }
 
     const { location, type, state, severity } = reportData;
-    const NOTIFICATION_RADIUS_KM = 10; // Notify users within 10km
 
-    try {
-      // Get all push subscriptions
-      const subscriptionsSnapshot = await db.collection('pushSubscriptions').get();
-      
-      const notifications: Promise<string>[] = [];
-      
-      for (const doc of subscriptionsSnapshot.docs) {
-        const subscription = doc.data();
-        
-        // Check if user has location and is within radius
-        if (subscription.location && subscription.fcmToken) {
-          const distance = calculateDistance(
-            location.lat,
-            location.lng,
-            subscription.location.lat,
-            subscription.location.lng
-          );
-          
-          if (distance <= NOTIFICATION_RADIUS_KM) {
-            // Send notification
-            const message: admin.messaging.Message = {
-              token: subscription.fcmToken,
-              notification: {
-                title: `New ${type} Report Nearby`,
-                body: `A ${severity} ${type} was reported ${distance.toFixed(1)}km from you in ${state}`,
-              },
-              webpush: {
-                fcmOptions: {
-                  link: `https://roadpulse.app/r/${reportId}`,
-                },
-                notification: {
-                  icon: '/icons/icon-192x192.svg',
-                  badge: '/icons/icon-72x72.png',
-                  tag: `report-${reportId}`,
-                  requireInteraction: true,
-                },
-              },
-              data: {
-                reportId,
-                type,
-                state,
-                lat: String(location.lat),
-                lng: String(location.lng),
-              },
-            };
-            
-            notifications.push(
-              messaging.send(message)
-                .then(() => `Sent to ${doc.id}`)
-                .catch((err) => {
-                  console.error(`Failed to send to ${doc.id}:`, err);
-                  // If token is invalid, remove the subscription
-                  if (err.code === 'messaging/invalid-registration-token' ||
-                      err.code === 'messaging/registration-token-not-registered') {
-                    db.collection('pushSubscriptions').doc(doc.id).delete();
-                  }
-                  return `Failed: ${doc.id}`;
-                })
-            );
-          }
+    // Default notification radius for GPS mode (km)
+    const DEFAULT_RADIUS_KM = 10;
+
+    // For zones, allow per-zone radius; if missing use this
+    const DEFAULT_ZONE_RADIUS_KM = 10;
+
+    // Safety cap to protect function runtime
+    const MAX_ZONES_TO_CHECK = 5;
+
+    // Helpers
+    const isValidLatLng = (loc: any) =>
+      loc && typeof loc.lat === 'number' && typeof loc.lng === 'number';
+
+    const normalizeState = (s: any) =>
+      typeof s === 'string' ? s.trim().toLowerCase() : null;
+
+    const reportState = normalizeState(state);
+
+    // Decide if a subscription should be notified
+    const shouldNotify = (sub: any): boolean => {
+      if (!sub || !sub.fcmToken) return false;
+
+      const alertMode: 'gps' | 'zones' | 'both' =
+        sub.alertMode === 'zones' || sub.alertMode === 'both' ? sub.alertMode : 'gps';
+
+      // ---------
+      // State pre-filter (cheap)
+      // ---------
+      // Prefer explicit subscription.states, else derive from zones[].state
+      const subStates: string[] = Array.isArray(sub.states)
+        ? sub.states.map(normalizeState).filter(Boolean)
+        : Array.isArray(sub.zones)
+          ? sub.zones
+              .map((z: any) => normalizeState(z?.state))
+              .filter(Boolean)
+          : [];
+
+      // If we have a reportState AND the subscription has states AND reportState not included => skip
+      if (reportState && subStates.length > 0 && !subStates.includes(reportState)) {
+        return false;
+      }
+
+      // ---------
+      // GPS mode check
+      // ---------
+      if ((alertMode === 'gps' || alertMode === 'both') && isValidLatLng(sub.location)) {
+        const d = calculateDistance(location.lat, location.lng, sub.location.lat, sub.location.lng);
+        if (d <= DEFAULT_RADIUS_KM) return true;
+      }
+
+      // ---------
+      // Zones mode check
+      // ---------
+      if (alertMode === 'zones' || alertMode === 'both') {
+        const zones = Array.isArray(sub.zones) ? sub.zones.slice(0, MAX_ZONES_TO_CHECK) : [];
+        for (const z of zones) {
+          if (!z || !isValidLatLng(z.center)) continue;
+
+          const radiusKm =
+            typeof z.radiusKm === 'number' && z.radiusKm > 0 ? z.radiusKm : DEFAULT_ZONE_RADIUS_KM;
+
+          const d = calculateDistance(location.lat, location.lng, z.center.lat, z.center.lng);
+          if (d <= radiusKm) return true;
         }
       }
-      
+
+      return false;
+    };
+
+    try {
+      const subscriptionsSnapshot = await db.collection('pushSubscriptions').get();
+
+      const notifications: Promise<string>[] = [];
+
+      for (const docSnap of subscriptionsSnapshot.docs) {
+        const sub = docSnap.data();
+
+        if (!shouldNotify(sub)) continue;
+
+        // Optional: compute a "closest distance" for the notification body (best effort)
+        let distanceKm: number | null = null;
+
+        if (sub.location && typeof sub.location.lat === 'number' && typeof sub.location.lng === 'number') {
+          distanceKm = calculateDistance(location.lat, location.lng, sub.location.lat, sub.location.lng);
+        } else if (Array.isArray(sub.zones) && sub.zones.length > 0) {
+          let best: number | null = null;
+          for (const z of sub.zones.slice(0, MAX_ZONES_TO_CHECK)) {
+            if (z?.center?.lat == null || z?.center?.lng == null) continue;
+            const d = calculateDistance(location.lat, location.lng, z.center.lat, z.center.lng);
+            if (best == null || d < best) best = d;
+          }
+          distanceKm = best;
+        }
+
+        const distanceText =
+          typeof distanceKm === 'number' ? `${distanceKm.toFixed(1)}km` : `near you`;
+
+        const message: admin.messaging.Message = {
+          token: sub.fcmToken,
+          notification: {
+            title: `New ${type} Report Nearby`,
+            body: `A ${severity} ${type} was reported ${distanceText} in ${state}`,
+          },
+          webpush: {
+            fcmOptions: { link: `https://wakaguard.com/r/${reportId}` },
+            notification: {
+              icon: '/icons/icon-192x192.svg',
+              badge: '/icons/icon-72x72.png',
+              tag: `report-${reportId}`,
+              requireInteraction: true,
+            },
+          },
+          data: {
+            reportId,
+            type,
+            state: String(state ?? ''),
+            lat: String(location.lat),
+            lng: String(location.lng),
+          },
+        };
+
+        notifications.push(
+          messaging.send(message)
+            .then(() => `Sent to ${docSnap.id}`)
+            .catch((err) => {
+              console.error(`Failed to send to ${docSnap.id}:`, err);
+              if (
+                err.code === 'messaging/invalid-registration-token' ||
+                err.code === 'messaging/registration-token-not-registered'
+              ) {
+                db.collection('pushSubscriptions').doc(docSnap.id).delete();
+              }
+              return `Failed: ${docSnap.id}`;
+            })
+        );
+      }
+
       const results = await Promise.all(notifications);
       console.log(`Sent ${results.length} notifications for report ${reportId}`);
-      
       return { sent: results.length };
     } catch (error) {
       console.error(`Error sending notifications for report ${reportId}:`, error);
@@ -456,7 +534,7 @@ export const cleanupExpiredTrips = functions.pubsub
     try {
       // Query for expired active trips
       const expiredTrips = await db
-        .collection('trips')
+        .collectionGroup('trips')
         .where('status', '==', 'active')
         .where('expiresAt', '<', now)
         .limit(500)
@@ -470,8 +548,8 @@ export const cleanupExpiredTrips = functions.pubsub
       const batch = db.batch();
       let count = 0;
 
-      expiredTrips.forEach((doc) => {
-        batch.update(doc.ref, {
+      expiredTrips.forEach((tripDoc) => {
+        batch.update(tripDoc.ref, {
           status: 'cancelled',
           endTime: now,
           cancellationReason: 'auto_expired',
@@ -480,6 +558,14 @@ export const cleanupExpiredTrips = functions.pubsub
       });
 
       await batch.commit();
+
+      const shareBatch = db.batch();
+      expiredTrips.forEach((tripDoc) => {
+        const token = tripDoc.id;
+        shareBatch.set(db.collection('sharedTrips').doc(token), { status: 'cancelled' }, { merge: true });
+      });
+
+      await shareBatch.commit();
       console.log(`Cancelled ${count} expired trips`);
       
       return { cleaned: count };
@@ -498,11 +584,12 @@ export const cleanupExpiredTrips = functions.pubsub
  * Placeholder for future SMS/WhatsApp notification integration
  */
 export const onTimerExpired = functions.firestore
-  .document('safetyTimers/{timerId}')
+  .document('users/{uid}/safetyTimers/{timerId}')
   .onUpdate(async (change, context) => {
     const before = change.before.data();
     const after = change.after.data();
     const timerId = context.params.timerId;
+    const uid = context.params.uid;
 
     // Check if timer just expired (was not acknowledged and time passed)
     const wasActive = !before.acknowledged;
@@ -518,8 +605,7 @@ export const onTimerExpired = functions.firestore
       // - Log notification in alerts collection
       
       // For now, just log the alert
-      await db.collection('alerts').add({
-        uid: after.uid,
+      await db.collection('users').doc(uid).collection('alerts').add({
         type: 'timer_expired',
         timerId,
         tripId: after.tripId || null,
@@ -529,7 +615,7 @@ export const onTimerExpired = functions.firestore
         message: 'Safety timer expired without check-in',
       });
       
-      console.log(`Created timer_expired alert for user ${after.uid}`);
+      console.log(`Created timer_expired alert for user ${uid}`);
     }
     
     return null;
@@ -540,16 +626,17 @@ export const onTimerExpired = functions.firestore
  * Placeholder for future emergency notification integration
  */
 export const onSOSAlert = functions.firestore
-  .document('alerts/{alertId}')
+  .document('users/{uid}/alerts/{alertId}')
   .onCreate(async (snapshot, context) => {
     const alertData = snapshot.data();
     const alertId = context.params.alertId;
+    const uid = context.params.uid;
 
     if (alertData.type !== 'sos') {
       return null;
     }
 
-    console.log(`SOS Alert ${alertId} created for user ${alertData.uid}`);
+    console.log(`SOS Alert ${alertId} created for user ${uid}`);
     
     // TODO: Implement emergency notification
     // - Fetch trusted contacts for user

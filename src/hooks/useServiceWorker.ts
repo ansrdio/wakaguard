@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Capacitor } from '@capacitor/core';
 
 export function useServiceWorker() {
   const [isInstalled, setIsInstalled] = useState(false);
@@ -9,6 +10,10 @@ export function useServiceWorker() {
 
   useEffect(() => {
     if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
+      return;
+    }
+
+    if (Capacitor.isNativePlatform()) {
       return;
     }
 

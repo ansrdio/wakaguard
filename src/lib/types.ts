@@ -216,6 +216,16 @@ export interface SafetyTimer {
   /** Timestamp of last notification sent */
   lastContactNotificationAt?: Timestamp | null;
 }
+export interface SharedTrip {
+  uid: string;
+  tripId: string;
+  status: TripStatus;
+  expiresAt: Timestamp;
+  lastLocation?: { lat: number; lng: number; accuracy?: number };
+  lastUpdate?: Timestamp;
+  destination?: string;
+  createdAt: Timestamp;
+}
 
 export enum FlagTargetType {
   REPORT = 'report',
@@ -317,6 +327,8 @@ export interface Trip {
   shouldNotifyContacts?: boolean;
   /** Timestamp of last notification sent */
   lastContactNotificationAt?: Timestamp | null;
+
+  cancellationReason?: string;
 }
 
 /**
@@ -376,6 +388,7 @@ export interface UserProfile {
   blockedUids: string[];
   /** When username was last changed */
   usernameUpdatedAt?: Timestamp;
+  safetyChecklist?: string[];
 }
 
 /**

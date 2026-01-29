@@ -1,14 +1,21 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
+const capServerUrl = process.env.CAP_SERVER_URL;
+
 const config: CapacitorConfig = {
   appId: 'com.wakaguard.app',
   appName: 'WakaGuard',
   webDir: 'out',
-  server: {
-    // Uses local assets from webDir for native plugin support
-    androidScheme: 'https',
-    iosScheme: 'https',
-  },
+  server: capServerUrl
+    ? {
+        url: capServerUrl,
+        cleartext: true,
+      }
+    : {
+        // Uses local assets from webDir for native plugin support
+        androidScheme: 'https',
+        iosScheme: 'https',
+      },
   plugins: {
     StatusBar: {
       overlaysWebView: false,

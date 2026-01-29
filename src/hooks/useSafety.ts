@@ -17,7 +17,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { collection, doc, setDoc, getDoc, updateDoc, query, where, onSnapshot, Timestamp, addDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, updateDoc, query, where, onSnapshot, Timestamp, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuthedUser } from '@/hooks/useAuthedUser';
 import { generateShareToken, calculateTripExpiry, calculateTimerExpiry, calculateTripEnd } from '@/lib/safety';
@@ -114,10 +114,9 @@ export function useSafety(): UseSafetyReturn {
       return;
     }
 
-    const tripsRef = collection(db, 'trips');
+    const tripsRef = collection(db, 'users', uid, 'trips');
     const q = query(
       tripsRef,
-      where('uid', '==', uid),
       where('status', '==', 'active')
     );
 
@@ -138,10 +137,9 @@ export function useSafety(): UseSafetyReturn {
   useEffect(() => {
     if (!uid || typeof window === 'undefined') return;
 
-    const timersRef = collection(db, 'safetyTimers');
+    const timersRef = collection(db, 'users', uid, 'safetyTimers');
     const q = query(
       timersRef,
-      where('uid', '==', uid),
       where('acknowledged', '==', false)
     );
 
@@ -186,17 +184,26 @@ export function useSafety(): UseSafetyReturn {
         uid,
         shareToken,
         status: TripStatus.ACTIVE,
-        startTime: Timestamp.now(),
+        startTime: serverTimestamp() as any,
         expiresAt: Timestamp.fromDate(expiresAt),
         destination,
         lastLocation,
-        lastUpdate: Timestamp.now(),
+        lastUpdate: serverTimestamp() as any,
         notifiedContacts: [],
-        createdAt: Timestamp.now(),
+        createdAt: serverTimestamp() as any,
       };
 
-      // CRITICAL: Use shareToken as document ID so share link can fetch it directly
-      await setDoc(doc(db, 'trips', shareToken), tripData);
+      await setDoc(doc(db, 'users', uid, 'trips', shareToken), tripData);
+      await setDoc(doc(db, 'sharedTrips', shareToken), {
+        uid,
+        tripId: shareToken,
+        status: TripStatus.ACTIVE,
+        expiresAt: Timestamp.fromDate(expiresAt),
+        lastLocation: lastLocation ? { lat: lastLocation.lat, lng: lastLocation.lng } : null,
+        lastUpdate: serverTimestamp(),
+        destination: destination ?? null,
+        createdAt: serverTimestamp(),
+      }, { merge: true });
 
       const shareUrl = `https://wakaguard.com/s?token=${shareToken}`;
       return { success: true, shareUrl };
@@ -211,10 +218,18 @@ export function useSafety(): UseSafetyReturn {
     if (!uid || !activeTrip) return { success: false, error: 'No active trip' };
 
     try {
-      await updateDoc(doc(db, 'trips', activeTrip.id), {
+      await updateDoc(doc(db, 'users', uid, 'trips', activeTrip.id), {
         status: TripStatus.COMPLETED,
-        endTime: Timestamp.now(),
+        endTime: serverTimestamp(),
       });
+
+      try {
+        await updateDoc(doc(db, 'sharedTrips', activeTrip.id), {
+          status: TripStatus.COMPLETED,
+        });
+      } catch (e) {
+      }
+
       return { success: true };
     } catch (error) {
       console.error('Error ending trip:', error);
@@ -227,14 +242,23 @@ export function useSafety(): UseSafetyReturn {
     if (!activeTrip) return;
 
     try {
-      await updateDoc(doc(db, 'trips', activeTrip.id), {
-        lastLocation: { lat, lng },
-        lastUpdate: Timestamp.now(),
+      if (!uid) return;
+      await updateDoc(doc(db, 'users', uid, 'trips', activeTrip.id), {
+        lastLocation: { lat, lng, updatedAt: serverTimestamp() },
+        lastUpdate: serverTimestamp(),
       });
+
+      try {
+        await updateDoc(doc(db, 'sharedTrips', activeTrip.id), {
+          lastLocation: { lat, lng },
+          lastUpdate: serverTimestamp(),
+        });
+      } catch (e) {
+      }
     } catch (error) {
       console.error('Error updating trip location:', error);
     }
-  }, [activeTrip]);
+  }, [activeTrip, uid]);
 
   // Start a safety timer
   const startTimer = useCallback(async (minutes: number) => {
@@ -247,14 +271,15 @@ export function useSafety(): UseSafetyReturn {
       const timerData: Omit<SafetyTimer, 'id'> = {
         uid,
         duration: minutes,
-        startTime: Timestamp.now(),
+        startTime: serverTimestamp() as any,
         expiresAt: Timestamp.fromDate(expiresAt),
         acknowledged: false,
         notifiedContacts: [],
-        createdAt: Timestamp.now(),
+        createdAt: serverTimestamp() as any,
+        shouldNotifyContacts: true,
       };
 
-      await setDoc(doc(db, 'safetyTimers', timerId), timerData);
+      await setDoc(doc(db, 'users', uid, 'safetyTimers', timerId), timerData);
       return { success: true };
     } catch (error) {
       console.error('Error starting timer:', error);
@@ -267,16 +292,17 @@ export function useSafety(): UseSafetyReturn {
     if (!activeTimer) return { success: false, error: 'No active timer' };
 
     try {
-      await updateDoc(doc(db, 'safetyTimers', activeTimer.id), {
+      if (!uid) return { success: false, error: 'Not authenticated' };
+      await updateDoc(doc(db, 'users', uid, 'safetyTimers', activeTimer.id), {
         acknowledged: true,
-        acknowledgedAt: Timestamp.now(),
+        acknowledgedAt: serverTimestamp(),
       });
       return { success: true };
     } catch (error) {
       console.error('Error canceling timer:', error);
       return { success: false, error: 'Failed to cancel timer' };
     }
-  }, [activeTimer]);
+  }, [activeTimer, uid]);
 
   // Acknowledge timer (check-in)
   const acknowledgeTimer = useCallback(async () => {
@@ -298,7 +324,6 @@ export function useSafety(): UseSafetyReturn {
 
       const alertId = `sos_${uid}_${Date.now()}`;
       const alertData = {
-        uid,
         type: AlertType.SOS,
         location: {
           lat: position.coords.latitude,
@@ -307,10 +332,25 @@ export function useSafety(): UseSafetyReturn {
         tripId: activeTrip?.id || null,
         acknowledged: false,
         notifiedContacts: [],
-        createdAt: Timestamp.now(),
+        createdAt: serverTimestamp(),
       };
 
-      await setDoc(doc(db, 'alerts', alertId), alertData);
+      await setDoc(doc(db, 'users', uid, 'alerts', alertId), alertData);
+
+      if (activeTrip) {
+        try {
+          await updateDoc(doc(db, 'users', uid, 'trips', activeTrip.id), {
+            status: TripStatus.EMERGENCY,
+          });
+        } catch (e) {
+        }
+        try {
+          await updateDoc(doc(db, 'sharedTrips', activeTrip.id), {
+            status: TripStatus.EMERGENCY,
+          });
+        } catch (e) {
+        }
+      }
 
       // Also open phone dialer as fallback
       window.location.href = 'tel:112'; // Nigeria emergency number
@@ -371,13 +411,13 @@ export function useSafety(): UseSafetyReturn {
         uid,
         shareToken,
         status: TripStatus.ACTIVE,
-        startTime: Timestamp.now(),
+        startTime: serverTimestamp(),
         expiresAt: Timestamp.fromDate(expiresAt),
         destination: options.destinationLabel ?? null,
         lastLocation,
-        lastUpdate: Timestamp.now(),
+        lastUpdate: serverTimestamp(),
         notifiedContacts: [],
-        createdAt: Timestamp.now(),
+        createdAt: serverTimestamp(),
         // Safe Trip specific fields
         expectedDurationMinutes: options.expectedDurationMinutes ?? null,
         endsAt: endsAt ? Timestamp.fromDate(endsAt) : null,
@@ -385,10 +425,17 @@ export function useSafety(): UseSafetyReturn {
         shouldNotifyContacts: true,
       };
 
-      // Use shareToken as document ID for secure share link access
-      console.log('Writing trip to Firestore:', shareToken);
-      await setDoc(doc(db, 'trips', shareToken), tripData);
-      console.log('Trip written successfully');
+      await setDoc(doc(db, 'users', uid, 'trips', shareToken), tripData);
+      await setDoc(doc(db, 'sharedTrips', shareToken), {
+        uid,
+        tripId: shareToken,
+        status: TripStatus.ACTIVE,
+        expiresAt: Timestamp.fromDate(expiresAt),
+        lastLocation: lastLocation ? { lat: lastLocation.lat, lng: lastLocation.lng, accuracy: (lastLocation as any).accuracy } : null,
+        lastUpdate: serverTimestamp(),
+        destination: options.destinationLabel ?? null,
+        createdAt: serverTimestamp(),
+      }, { merge: true });
 
       // If duration is set, also create a linked safety timer
       if (options.expectedDurationMinutes && options.expectedDurationMinutes > 0) {
@@ -398,17 +445,17 @@ export function useSafety(): UseSafetyReturn {
         const timerData: Omit<SafetyTimer, 'id'> = {
           uid,
           duration: options.expectedDurationMinutes,
-          startTime: Timestamp.now(),
+          startTime: serverTimestamp() as any,
           expiresAt: Timestamp.fromDate(timerExpiresAt),
           acknowledged: false,
           notifiedContacts: [],
-          createdAt: Timestamp.now(),
+          createdAt: serverTimestamp() as any,
           // Link to trip
           tripId: shareToken,
           shouldNotifyContacts: true,
         };
 
-        await setDoc(doc(db, 'safetyTimers', timerId), timerData);
+        await setDoc(doc(db, 'users', uid, 'safetyTimers', timerId), timerData);
       }
 
       const shareUrl = `https://wakaguard.com/s?token=${shareToken}`;
@@ -426,16 +473,23 @@ export function useSafety(): UseSafetyReturn {
 
     try {
       // End the trip
-      await updateDoc(doc(db, 'trips', activeTrip.id), {
+      await updateDoc(doc(db, 'users', uid, 'trips', activeTrip.id), {
         status: TripStatus.COMPLETED,
-        endTime: Timestamp.now(),
+        endTime: serverTimestamp(),
       });
+
+      try {
+        await updateDoc(doc(db, 'sharedTrips', activeTrip.id), {
+          status: TripStatus.COMPLETED,
+        });
+      } catch (e) {
+      }
 
       // Also acknowledge any linked timer
       if (activeTimer?.tripId === activeTrip.id) {
-        await updateDoc(doc(db, 'safetyTimers', activeTimer.id), {
+        await updateDoc(doc(db, 'users', uid, 'safetyTimers', activeTimer.id), {
           acknowledged: true,
-          acknowledgedAt: Timestamp.now(),
+          acknowledgedAt: serverTimestamp(),
         });
       }
 
@@ -451,16 +505,17 @@ export function useSafety(): UseSafetyReturn {
     if (!activeTimer) return { success: false, error: 'No active timer' };
 
     try {
-      await updateDoc(doc(db, 'safetyTimers', activeTimer.id), {
+      if (!uid) return { success: false, error: 'Not authenticated' };
+      await updateDoc(doc(db, 'users', uid, 'safetyTimers', activeTimer.id), {
         acknowledged: true,
-        acknowledgedAt: Timestamp.now(),
+        acknowledgedAt: serverTimestamp(),
       });
       return { success: true };
     } catch (error) {
       console.error('Error acknowledging timer:', error);
       return { success: false, error: 'Failed to check in' };
     }
-  }, [activeTimer]);
+  }, [activeTimer, uid]);
 
   // Send a quick check-in
   const sendQuickCheckIn = useCallback(async (message?: string) => {
@@ -489,16 +544,16 @@ export function useSafety(): UseSafetyReturn {
         tripId: activeTrip?.id || null,
         location,
         message: message || 'Quick check-in: I am safe',
-        createdAt: Timestamp.now(),
+        createdAt: serverTimestamp(),
       };
 
-      await addDoc(collection(db, 'checkIns'), checkInData);
+      await addDoc(collection(db, 'users', uid, 'checkIns'), checkInData);
 
       // If there's an active timer, acknowledge it
       if (activeTimer) {
-        await updateDoc(doc(db, 'safetyTimers', activeTimer.id), {
+        await updateDoc(doc(db, 'users', uid, 'safetyTimers', activeTimer.id), {
           acknowledged: true,
-          acknowledgedAt: Timestamp.now(),
+          acknowledgedAt: serverTimestamp(),
         });
       }
 
@@ -533,19 +588,18 @@ export function useSafety(): UseSafetyReturn {
 
       const alertId = `checkpoint_${uid}_${Date.now()}`;
       const alertData = {
-        uid,
         type: AlertType.CHECKPOINT_STOP,
         tripId: activeTrip?.id || null,
         location,
         message: 'Stopped at a checkpoint',
         acknowledged: false,
         notifiedContacts: [],
-        createdAt: Timestamp.now(),
+        createdAt: serverTimestamp(),
         // Flag for future backend notification
         shouldNotifyContacts: true,
       };
 
-      await setDoc(doc(db, 'alerts', alertId), alertData);
+      await setDoc(doc(db, 'users', uid, 'alerts', alertId), alertData);
 
       return { success: true };
     } catch (error) {

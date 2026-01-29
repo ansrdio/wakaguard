@@ -139,7 +139,7 @@ export function useUserStats(uid: string | null) {
       await addDoc(historyRef, {
         action,
         points: totalPoints,
-        referenceId,
+        ...(referenceId ? { referenceId } : {}),
         createdAt: serverTimestamp(),
       });
 

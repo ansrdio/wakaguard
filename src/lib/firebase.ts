@@ -61,4 +61,4 @@ if (typeof window !== 'undefined') {
   });
 }
 
-export { auth, db, storage };
+export { app, auth, db, storage };
