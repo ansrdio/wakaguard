@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6"/>
+      <stop offset="100%" style="stop-color:#1e40af"/>
+    </linearGradient>
+    <linearGradient id="innerGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#60a5fa"/>
+      <stop offset="100%" style="stop-color:#2563eb"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Background circle -->
+  <circle cx="512" cy="512" r="480" fill="#1e293b"/>
+  
+  <!-- Shield shape -->
+  <path d="M512 120 L820 220 L820 480 C820 700 512 900 512 900 C512 900 204 700 204 480 L204 220 Z" 
+        fill="url(#shieldGrad)" 
+        stroke="#60a5fa" 
+        stroke-width="8"/>
+  
+  <!-- Inner shield highlight -->
+  <path d="M512 180 L760 260 L760 470 C760 650 512 820 512 820 C512 820 264 650 264 470 L264 260 Z" 
+        fill="url(#innerGrad)" 
+        opacity="0.3"/>
+  
+  <!-- Letter W -->
+  <text x="512" y="620" 
+        font-family="Arial, Helvetica, sans-serif" 
+        font-size="380" 
+        font-weight="bold" 
+        fill="white" 
+        text-anchor="middle">W</text>
+  
+  <!-- Small checkmark accent -->
+  <path d="M680 340 L720 380 L780 300" 
+        stroke="#22c55e" 
+        stroke-width="24" 
+        stroke-linecap="round" 
+        stroke-linejoin="round"
+        fill="none"/>
+</svg>

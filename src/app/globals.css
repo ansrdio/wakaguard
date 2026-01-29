@@ -1,0 +1,59 @@
+@import "tailwindcss";
+
+/* Light mode defaults */
+:root { 
+  color-scheme: light; 
+}
+
+/* Dark mode */
+.dark {
+  color-scheme: dark;
+}
+
+/* Safe area for native apps (iOS/Android) */
+html {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+body { 
+  @apply bg-slate-50 text-slate-900 transition-colors duration-200; 
+}
+
+/* Dark mode - applied when html has .dark class */
+html.dark body,
+body.dark-mode {
+  @apply bg-slate-900 text-slate-100;
+}
+
+/* Fix scrolling in native WebView (Capacitor) */
+* {
+  -webkit-overflow-scrolling: touch;
+}
+
+.overflow-y-auto,
+.overflow-y-scroll,
+.overflow-auto,
+.overflow-scroll {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Ensure scrollable containers work in iOS WebView */
+[class*="overflow-y-auto"],
+[class*="overflow-auto"] {
+  -webkit-overflow-scrolling: touch;
+  overflow-y: auto !important;
+}
+
+/* Adjust Leaflet zoom controls for mobile header */
+.leaflet-top.leaflet-left {
+  top: 160px !important;
+  left: 10px !important;
+}
+
+.leaflet-control-zoom {
+  margin-top: 0 !important;
+}

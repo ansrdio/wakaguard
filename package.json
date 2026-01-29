@@ -1,0 +1,50 @@
+{
+  "name": "roadpulse",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "build:cap": "next build && npx cap copy",
+    "build:android": "next build && npx cap copy android && cd android && ./gradlew assembleDebug",
+    "build:ios": "next build && npx cap copy ios"
+  },
+  "dependencies": {
+    "@capacitor-community/contacts": "^7.1.0",
+    "@capacitor/share": "^8.0.0",
+    "@codetrix-studio/capacitor-google-auth": "^3.4.0-rc.4",
+    "firebase": "^12.7.0",
+    "leaflet": "^1.9.4",
+    "lucide-react": "^0.562.0",
+    "next": "16.1.1",
+    "nodemailer": "^7.0.13",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-leaflet": "^5.0.0",
+    "react-leaflet-cluster": "^4.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/android": "^8.0.0",
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.0.0",
+    "@capacitor/core": "^8.0.0",
+    "@capacitor/ios": "^8.0.0",
+    "@capacitor/splash-screen": "^8.0.0",
+    "@capacitor/status-bar": "^8.0.0",
+    "@tailwindcss/postcss": "^4",
+    "@types/leaflet": "^1.9.21",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.1.1",
+    "sharp": "^0.34.5",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  },
+  "optionalDependencies": {
+    "@next/swc-darwin-arm64": "^16.1.6"
+  }
+}

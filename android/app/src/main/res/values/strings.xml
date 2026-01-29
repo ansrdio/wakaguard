@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">WakaGuard</string>
+    <string name="title_activity_main">WakaGuard</string>
+    <string name="package_name">com.wakaguard.app</string>
+    <string name="custom_url_scheme">com.wakaguard.app</string>
+    <string name="server_client_id">1023994839910-mtbl6jmpa2l2anbjhp4d9sis43p848ci.apps.googleusercontent.com</string>
+</resources>
