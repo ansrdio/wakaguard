@@ -1,15 +1,6 @@
-import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 
-const db = admin.firestore();
-
-function requireAdmin(context: functions.https.CallableContext) {
-  const isAuthed = !!context.auth;
-  const isAdmin = !!context.auth?.token?.admin;
-  if (!isAuthed || !isAdmin) {
-    throw new functions.https.HttpsError('permission-denied', 'Admin only');
-  }
-}
+type FirestoreDb = FirebaseFirestore.Firestore;
 
 function asNumber(value: unknown, fallback: number) {
   return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
@@ -21,13 +12,19 @@ function normalizeContactId(phone: unknown) {
   return digits.length > 0 ? digits : null;
 }
 
-export const migrateLegacyData = functions.https.onCall(async (data, context) => {
-  requireAdmin(context);
+export interface MigrateOptions {
+  collection: string;
+  dryRun?: boolean;
+  limit?: number;
+  cursor?: string | null;
+}
 
-  const collection = typeof data?.collection === 'string' ? data.collection : '';
-  const dryRun = !!data?.dryRun;
-  const limit = Math.min(500, Math.max(1, asNumber(data?.limit, 200)));
-  const cursor = typeof data?.cursor === 'string' && data.cursor.length > 0 ? data.cursor : null;
+export async function migrateLegacyData(
+  db: FirestoreDb,
+  options: MigrateOptions
+): Promise<{ ok: boolean; collection: string; processed?: number; usersProcessed?: number; contactsCreated?: number; nextCursor: string | null }> {
+  const { collection, dryRun = false, limit: rawLimit = 200, cursor = null } = options;
+  const limit = Math.min(500, Math.max(1, asNumber(rawLimit, 200)));
 
   if (collection === 'trips') {
     let q: FirebaseFirestore.Query = db.collection('trips').orderBy(admin.firestore.FieldPath.documentId()).limit(limit);
@@ -137,5 +134,5 @@ export const migrateLegacyData = functions.https.onCall(async (data, context) =>
     return { ok: true, collection, usersProcessed, contactsCreated, nextCursor };
   }
 
-  throw new functions.https.HttpsError('invalid-argument', 'Unknown collection');
-});
+  throw new Error('Unknown collection');
+}

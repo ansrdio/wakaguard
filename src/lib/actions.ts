@@ -13,6 +13,7 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { FlagTargetType, FlagReason } from './types';
+import { makeVoteId } from './rules';
 
 // Voting System
 export async function voteOnReport(
@@ -20,65 +21,22 @@ export async function voteOnReport(
   userId: string, 
   voteType: 'up' | 'down'
 ) {
-  const reportRef = doc(db, 'reports', reportId);
-  const voteRef = doc(db, 'votes', `${userId}_${reportId}`);
+  const voteRef = doc(db, 'votes', makeVoteId(reportId, userId));
+  const value = voteType === 'up' ? 1 : -1;
 
   try {
     await runTransaction(db, async (transaction) => {
-      const reportDoc = await transaction.get(reportRef);
       const voteDoc = await transaction.get(voteRef);
 
-      if (!reportDoc.exists()) {
-        throw new Error('Report not found');
+      if (voteDoc.exists()) {
+        throw new Error('Vote already exists');
       }
 
-      const reportData = reportDoc.data();
-      const existingVote = voteDoc.exists() ? voteDoc.data()?.voteType : null;
-
-      let upvoteDelta = 0;
-      let downvoteDelta = 0;
-
-      if (existingVote === voteType) {
-        // Remove vote (toggle off)
-        transaction.delete(voteRef);
-        if (voteType === 'up') {
-          upvoteDelta = -1;
-        } else {
-          downvoteDelta = -1;
-        }
-      } else if (existingVote) {
-        // Change vote
-        transaction.set(voteRef, {
-          userId,
-          reportId,
-          voteType,
-          createdAt: serverTimestamp(),
-        });
-        if (voteType === 'up') {
-          upvoteDelta = 1;
-          downvoteDelta = -1;
-        } else {
-          upvoteDelta = -1;
-          downvoteDelta = 1;
-        }
-      } else {
-        // New vote
-        transaction.set(voteRef, {
-          userId,
-          reportId,
-          voteType,
-          createdAt: serverTimestamp(),
-        });
-        if (voteType === 'up') {
-          upvoteDelta = 1;
-        } else {
-          downvoteDelta = 1;
-        }
-      }
-
-      transaction.update(reportRef, {
-        upvotes: (reportData.upvotes || 0) + upvoteDelta,
-        downvotes: (reportData.downvotes || 0) + downvoteDelta,
+      transaction.set(voteRef, {
+        uid: userId,
+        reportId,
+        value,
+        createdAt: serverTimestamp(),
       });
     });
 

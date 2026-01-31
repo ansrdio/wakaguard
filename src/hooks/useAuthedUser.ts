@@ -1,8 +1,8 @@
 /**
  * @fileoverview Authentication hook for WakaGuard
  * 
- * Manages Firebase Authentication state. Users must sign in with
- * Google or email/password - anonymous sign-in is disabled.
+ * Manages Firebase Authentication state.
+ * Anonymous is used for view-only access; writes require a non-anonymous account.
  * 
  * @module useAuthedUser
  */
@@ -21,7 +21,7 @@ import { auth, db } from '@/lib/firebase';
  * - State tracking: Monitors auth state changes in real-time
  * - User document: Ensures Firestore user document exists
  * - Username: Fetches and tracks username from Firestore
- * - No anonymous: Users must explicitly sign in
+ * - Anonymous is view-only; actions require a signed-in account
  * 
  * @returns Authentication state object
  */
@@ -39,25 +39,41 @@ export function useAuthedUser() {
     if (typeof window === 'undefined') return;
 
     let userDocUnsubscribe: (() => void) | null = null;
+    let authResolved = false;
+
+    // Timeout fallback - if auth doesn't resolve in 5 seconds, mark as ready anyway
+    const timeout = setTimeout(() => {
+      if (!authResolved) {
+        console.warn('Auth state timeout - proceeding without auth');
+        setReady(true);
+      }
+    }, 5000);
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      authResolved = true;
+      clearTimeout(timeout);
       // Clean up previous user doc listener
       if (userDocUnsubscribe) {
         userDocUnsubscribe();
         userDocUnsubscribe = null;
       }
 
-      if (firebaseUser && !firebaseUser.isAnonymous) {
+      if (firebaseUser) {
         setUid(firebaseUser.uid);
-        setIsAnonymous(false);
-        setEmail(firebaseUser.email);
-        setEmailVerified(firebaseUser.emailVerified);
-        setDisplayName(firebaseUser.displayName);
-        
-        // Ensure user document exists and listen for changes
+        setIsAnonymous(firebaseUser.isAnonymous);
+        setEmail(firebaseUser.isAnonymous ? null : firebaseUser.email);
+        setEmailVerified(firebaseUser.isAnonymous ? false : firebaseUser.emailVerified);
+        setDisplayName(firebaseUser.isAnonymous ? null : firebaseUser.displayName);
+
+        if (firebaseUser.isAnonymous) {
+          setUsername(null);
+          setNeedsUsername(false);
+          setReady(true);
+          return;
+        }
+
         await ensureUserDocument(firebaseUser.uid);
-        
-        // Listen to user document for username changes
+
         const userRef = doc(db, 'users', firebaseUser.uid);
         userDocUnsubscribe = onSnapshot(userRef, (snap) => {
           if (snap.exists()) {
@@ -73,19 +89,21 @@ export function useAuthedUser() {
           console.error('Error listening to user doc:', error);
           setReady(true);
         });
-      } else {
-        setUid(null);
-        setIsAnonymous(false);
-        setEmail(null);
-        setEmailVerified(false);
-        setDisplayName(null);
-        setUsername(null);
-        setNeedsUsername(false);
-        setReady(true);
+        return;
       }
+
+      setUid(null);
+      setIsAnonymous(false);
+      setEmail(null);
+      setEmailVerified(false);
+      setDisplayName(null);
+      setUsername(null);
+      setNeedsUsername(false);
+      setReady(true);
     });
 
     return () => {
+      clearTimeout(timeout);
       unsubscribe();
       if (userDocUnsubscribe) userDocUnsubscribe();
     };

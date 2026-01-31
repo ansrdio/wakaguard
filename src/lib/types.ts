@@ -263,10 +263,18 @@ export interface TrustedContact {
   uid: string;
   /** Contact's display name */
   name: string;
-  /** Contact's phone number (Nigerian format) */
-  phone: string;
+  /** Contact's phone number (Nigerian format) - deprecated, use phoneE164 */
+  phone?: string;
+  /** Contact's phone number in E.164 format (e.g., +2348012345678) */
+  phoneE164: string;
   /** Optional email address */
   email?: string;
+  /** Notify on SOS alerts (default: true) */
+  notifyOnSOS?: boolean;
+  /** Notify on check-ins (default: true) */
+  notifyOnCheckIn?: boolean;
+  /** Notify on trip shares (default: true) */
+  notifyOnTripShare?: boolean;
   createdAt: Timestamp;
 }
 

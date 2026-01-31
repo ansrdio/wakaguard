@@ -17,7 +17,9 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return request.auth != null && request.auth.token.admin == true;
+      return request.auth != null
+        && ('admin' in request.auth.token)
+        && request.auth.token.admin == true;
     }
 
     function isOwner(uid) {
@@ -96,14 +98,14 @@ service cloud.firestore {
 
     function isValidZones(zones) {
       return zones is list
-        && zones.size() <= 5
-        && zones.hasOnly(z => isValidZone(z));
+        && zones.size() >= 0
+        && zones.size() <= 5;
     }
 
     function isValidStates(states) {
       return states is list
-        && states.size() <= 10
-        && states.hasOnly(s => s is string && s.size() > 0 && s.size() <= 40);
+        && states.size() >= 0
+        && states.size() <= 10;
     }
 
     // -------------------------------------------------------------------------
@@ -128,7 +130,8 @@ service cloud.firestore {
         && request.resource.data.downvotes == 0
         && request.resource.data.commentCount == 0
         && request.resource.data.flagCount == 0
-        && request.resource.data.photoUrls is list;
+        && request.resource.data.photoUrls is list
+        && request.resource.data.photoUrls.size() <= 5;
 
       // Owner can only edit specific safe fields.
       // Admin can update anything (moderation).
@@ -143,6 +146,10 @@ service cloud.firestore {
         && request.resource.data.state == resource.data.state
         && request.resource.data.createdAt == resource.data.createdAt
         && request.resource.data.expiresAt == resource.data.expiresAt
+        && ('location' in request.resource.data)
+        && ('location' in resource.data)
+        && request.resource.data.location is map
+        && resource.data.location is map
         && request.resource.data.location.lat == resource.data.location.lat
         && request.resource.data.location.lng == resource.data.location.lng
 
@@ -160,27 +167,56 @@ service cloud.firestore {
         && request.resource.data.description is string
         && request.resource.data.description.size() > 0
         && request.resource.data.photoUrls is list
+        && request.resource.data.photoUrls.size() <= 5
         && isValidLocation(request.resource.data.location)
       );
 
-      allow delete: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow delete: if isAuthenticated() && resource.data.uid == request.auth.uid;
+    }
+
+    match /reports/{reportId}/resolutionVotes/{voteId} {
+      allow read: if isAuthenticated();
+
+      allow create: if isAuthenticated()
+        && voteId == request.auth.uid
+        && request.resource.data.keys().hasOnly(['uid','voteType','createdAt'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.voteType in ['still_there','resolved']
+        && request.resource.data.createdAt is timestamp;
+
+      allow update: if isAuthenticated()
+        && voteId == request.auth.uid
+        && request.resource.data.keys().hasOnly(['uid','voteType','createdAt'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.voteType in ['still_there','resolved']
+        && request.resource.data.createdAt is timestamp;
+
+      allow delete: if false;
+    }
+
+    match /resolutionLogs/{logId} {
+      allow read, write: if false;
     }
 
     match /comments/{commentId} {
       allow read: if true;
 
       allow create: if isAuthenticated()
+        && request.resource.data.keys().hasOnly(['uid','reportId','text','status','createdAt'])
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.reportId is string
         && request.resource.data.text is string
         && request.resource.data.text.size() > 0
         && request.resource.data.text.size() <= 500
         && request.resource.data.status in ['active','removed']
+        && request.resource.data.createdAt is timestamp
         ;
 
       // Owner can only edit text/status; cannot change linkage/identity/timestamps.
       // (If you do not need comment editing, set this to false and rely on delete.)
-      allow update: if isAuthenticated()
+      allow update: if isAdmin() || (
+        isAuthenticated()
+        && request.resource.data.keys().hasOnly(['uid','reportId','text','status','createdAt'])
         && resource.data.uid == request.auth.uid
         && request.resource.data.uid == resource.data.uid
         && request.resource.data.reportId == resource.data.reportId
@@ -188,9 +224,10 @@ service cloud.firestore {
         && request.resource.data.text is string
         && request.resource.data.text.size() > 0
         && request.resource.data.text.size() <= 500
-        && request.resource.data.status in ['active','removed'];
+        && request.resource.data.status in ['active','removed']
+      );
 
-      allow delete: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow delete: if isAuthenticated() && resource.data.uid == request.auth.uid;
     }
 
     // votes/{uid}_{reportId}
@@ -198,10 +235,12 @@ service cloud.firestore {
       allow read: if isAuthenticated();
 
       allow create: if isAuthenticated()
-        && voteId.matches('^' + request.auth.uid + '_[A-Za-z0-9]+$')
+        && request.resource.data.keys().hasOnly(['uid','reportId','value','createdAt'])
+        && voteId.matches('^' + request.auth.uid + '_[A-Za-z0-9_-]+$')
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.reportId is string
         && request.resource.data.value in [1, -1]
+        && request.resource.data.createdAt is timestamp
         ;
 
       // Client updates disabled. Cloud Functions (Admin SDK) bypass rules.
@@ -234,13 +273,29 @@ service cloud.firestore {
     // -------------------------------------------------------------------------
 
     match /users/{userId} {
-      allow read, write: if isOwner(userId);
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId) && isAuthenticated();
+    }
+
+    match /users/{userId}/pointHistory/{historyId} {
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId)
+        && isAuthenticated()
+        && (
+          request.resource.data.keys().hasOnly(['action','points','createdAt'])
+          || request.resource.data.keys().hasOnly(['action','points','referenceId','createdAt'])
+        )
+        && request.resource.data.action is string
+        && request.resource.data.points is number
+        && request.resource.data.points >= 0
+        && (!('referenceId' in request.resource.data) || request.resource.data.referenceId is string)
+        && request.resource.data.createdAt is timestamp;
     }
 
     match /usernames/{usernameLower} {
-      allow read: if isSignedIn();
+      allow read: if isAuthenticated();
 
-      allow create: if isSignedIn()
+      allow create: if isAuthenticated()
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.usernameLower == usernameLower
         ;
@@ -253,23 +308,28 @@ service cloud.firestore {
     // -------------------------------------------------------------------------
 
     match /users/{userId}/trustedContacts/{contactId} {
-      allow read, write: if isOwner(userId);
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId) && isAuthenticated();
     }
 
     match /users/{userId}/safetyTimers/{timerId} {
-      allow read, write: if isOwner(userId);
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId) && isAuthenticated();
     }
 
     match /users/{userId}/alerts/{alertId} {
-      allow read, write: if isOwner(userId);
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId) && isAuthenticated();
     }
 
     match /users/{userId}/checkIns/{checkInId} {
-      allow read, write: if isOwner(userId);
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId) && isAuthenticated();
     }
 
     match /users/{userId}/trips/{tripId} {
-      allow read, write: if isOwner(userId);
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId) && isAuthenticated();
     }
 
     // -------------------------------------------------------------------------
@@ -291,6 +351,8 @@ service cloud.firestore {
         && d.tripId == token
         && d.status in ['active','emergency','completed','cancelled']
         && d.expiresAt is timestamp
+        && d.lastUpdate is timestamp
+        && d.createdAt is timestamp
         && (!('destination' in d) || d.destination == null || d.destination is string)
         && (!('lastLocation' in d) || d.lastLocation == null || (
           d.lastLocation is map
@@ -303,16 +365,18 @@ service cloud.firestore {
         ));
       }
 
-      allow create: if isSignedIn()
+      allow create: if isAuthenticated()
         && request.auth.uid == request.resource.data.uid
         && isValidSharedTrip(request.resource.data);
 
-      allow update: if isSignedIn()
+      allow update: if isAuthenticated()
+        && ('uid' in resource.data)
+        && resource.data.uid is string
         && request.auth.uid == resource.data.uid
         && request.resource.data.uid == resource.data.uid
         && isValidSharedTrip(request.resource.data);
 
-      allow delete: if isSignedIn()
+      allow delete: if isAuthenticated()
         && request.auth.uid == resource.data.uid;
     }
 
@@ -320,7 +384,8 @@ service cloud.firestore {
     // Push subscriptions (private)
     // -------------------------------------------------------------------------
     match /pushSubscriptions/{subscriptionId} {
-      allow read: if false;
+      allow get: if isOwner(subscriptionId) && isAuthenticated();
+      allow list: if false;
 
       function isValidPushSub(data) {
         return data is map
@@ -353,6 +418,23 @@ service cloud.firestore {
       allow delete: if isAuthenticated()
         && subscriptionId == request.auth.uid
         && resource.data.uid == request.auth.uid;
+    }
+
+    // -------------------------------------------------------------------------
+    // Safety Message Logs (server-written, owner-read)
+    // -------------------------------------------------------------------------
+    match /safetyMessageLogs/{logId} {
+      allow read: if isAuthenticated()
+        && resource.data.uid == request.auth.uid;
+      allow write: if false;
+    }
+
+    // -------------------------------------------------------------------------
+    // Rate Limits (server-written, owner-read)
+    // -------------------------------------------------------------------------
+    match /users/{userId}/rateLimits/{docId} {
+      allow read: if isOwner(userId) && isAuthenticated();
+      allow write: if false;
     }
   }
 }

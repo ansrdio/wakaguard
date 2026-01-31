@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { collection, addDoc, Timestamp } from 'firebase/firestore';
+import { collection, doc, setDoc, Timestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '@/lib/firebase';
 import { useAuthedUser } from '@/hooks/useAuthedUser';
@@ -100,6 +100,9 @@ export function useOfflineDrafts() {
 
     for (const draft of unsyncedDrafts) {
       try {
+        const reportRef = doc(collection(db, 'reports'));
+        const reportId = reportRef.id;
+
         // Upload photos if any
         const photoUrls: string[] = [];
         if (draft.photos && draft.photos.length > 0) {
@@ -108,9 +111,12 @@ export function useOfflineDrafts() {
             // Convert base64 to blob
             const response = await fetch(base64);
             const blob = await response.blob();
-            
-            const photoRef = ref(storage, `reports/${uid}/${Date.now()}_${i}.jpg`);
-            await uploadBytes(photoRef, blob);
+
+            const filename = `photo_${Date.now()}_${i}.jpg`;
+            const photoRef = ref(storage, `report_photos/${uid}/${reportId}/${filename}`);
+            await uploadBytes(photoRef, blob, {
+              contentType: blob.type || 'image/jpeg',
+            });
             const url = await getDownloadURL(photoRef);
             photoUrls.push(url);
           }
@@ -118,25 +124,31 @@ export function useOfflineDrafts() {
 
         // Create the report in Firestore
         const now = Timestamp.now();
-        const expiresAt = computeExpiry(draft.type);
+        const expiresAt = Timestamp.fromMillis(computeExpiry(draft.type));
+        const location = {
+          lat: draft.location.lat,
+          lng: draft.location.lng,
+          ...(typeof draft.location.address === 'string' && draft.location.address.trim()
+            ? { address: draft.location.address.trim() }
+            : {}),
+        };
 
-        await addDoc(collection(db, 'reports'), {
+        await setDoc(reportRef, {
           uid,
           type: draft.type,
           severity: draft.severity,
           status: ReportStatus.ACTIVE,
           state: draft.state,
           verification: VerificationStatus.PENDING,
-          location: draft.location,
+          location,
           description: draft.description,
-          photoUrls: photoUrls.length > 0 ? photoUrls : undefined,
-          imageUrl: photoUrls[0] || undefined,
+          photoUrls,
           createdAt: now,
           expiresAt,
           upvotes: 0,
           downvotes: 0,
           commentCount: 0,
-          offlineDraftId: draft.id,
+          flagCount: 0,
         });
 
         // Mark as synced

@@ -14,11 +14,25 @@ import {
   SAFE_TRIP_DURATION_PRESETS,
   isNightTime 
 } from '@/lib/safety';
+import { 
+  isValidE164, 
+  formatToE164,
+  sendSosSms,
+  sendCheckinSms,
+  sendTripShareSms,
+  buildSosShareText,
+  buildCheckinShareText,
+  buildTripShareText,
+  openWhatsAppShare,
+  openWhatsAppChat,
+} from '@/lib/safetyMessaging';
 import { useAuthedUser } from '@/hooks/useAuthedUser';
+import { useRequireAccount } from '@/hooks/useRequireAccount';
 import { collection, deleteDoc, doc, getDoc, getDocs, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Capacitor } from '@capacitor/core';
 import { shareSafeTripLink } from '@/lib/share';
+import { AuthModal } from '@/components/AuthModal';
 
 type ModalType = 'sos' | 'safetrip' | 'contacts' | 'emergency' | null;
 
@@ -91,7 +105,8 @@ const SAFETY_CHECKLIST = [
 ];
 
 export function SafetyScreen() {
-  const { uid } = useAuthedUser();
+  const { uid, isAnonymous } = useAuthedUser();
+  const { requireAccount, showAuthModal, openAuthModal, closeAuthModal } = useRequireAccount({ uid, isAnonymous });
   const {
     activeTrip,
     activeTimer,
@@ -114,7 +129,7 @@ export function SafetyScreen() {
   const [destination, setDestination] = useState('');
   
   // Trusted contacts
-  const [trustedContacts, setTrustedContacts] = useState<{ id: string; name: string; phone: string; email?: string }[]>([]);
+  const [trustedContacts, setTrustedContacts] = useState<{ id: string; name: string; phone?: string; phoneE164: string; email?: string }[]>([]);
   const [newContactName, setNewContactName] = useState('');
   const [newContactPhone, setNewContactPhone] = useState('');
   const [phoneContacts, setPhoneContacts] = useState<{ name: string; phone: string }[]>([]);
@@ -130,7 +145,7 @@ export function SafetyScreen() {
   
   // Load trusted contacts
   useEffect(() => {
-    if (!uid) return;
+    if (!uid || isAnonymous) return;
     const loadContacts = async () => {
       const userDoc = await getDoc(doc(db, 'users', uid));
       if (userDoc.exists()) {
@@ -165,7 +180,21 @@ export function SafetyScreen() {
     setTimeout(() => setToast(null), 3000);
   };
 
+  // Get current location for SMS/WhatsApp
+  const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number } | null>(null);
+  
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => setCurrentLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        () => console.warn('Could not get location for safety messaging')
+      );
+    }
+  }, []);
+
   const handleSOS = async () => {
+    if (!requireAccount('sos')) return;
+    if (!uid || isAnonymous) return;
     setProcessing(true);
     const result = await triggerSOS();
     setProcessing(false);
@@ -177,7 +206,125 @@ export function SafetyScreen() {
     }
   };
 
+  // Send SOS SMS to trusted contacts
+  const handleSosSms = async () => {
+    if (!requireAccount('send SOS SMS')) return;
+    if (!uid || isAnonymous) return;
+    if (trustedContacts.length === 0) {
+      showToast('No trusted contacts. Add contacts first.', 'error');
+      return;
+    }
+    if (!currentLocation) {
+      showToast('Location unavailable. Please enable location.', 'error');
+      return;
+    }
+    
+    setProcessing(true);
+    try {
+      const result = await sendSosSms(currentLocation.lat, currentLocation.lng) as any;
+      if (result.success) {
+        showToast(`SOS SMS sent to ${result.sent} contact(s)`, 'success');
+      } else if (result.status === 'blocked') {
+        showToast(result.message || 'SMS not available yet. Use WhatsApp instead.', 'error');
+      } else {
+        showToast('Failed to send SOS SMS', 'error');
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Failed to send SOS SMS', 'error');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  // Send check-in SMS to trusted contacts
+  const handleCheckinSms = async () => {
+    if (!requireAccount('send check-in SMS')) return;
+    if (!uid || isAnonymous) return;
+    if (trustedContacts.length === 0) {
+      showToast('No trusted contacts. Add contacts first.', 'error');
+      return;
+    }
+    
+    setProcessing(true);
+    try {
+      const result = await sendCheckinSms("I'm checking in safely.", currentLocation?.lat, currentLocation?.lng) as any;
+      if (result.success) {
+        showToast(`Check-in SMS sent to ${result.sent} contact(s)`, 'success');
+      } else if (result.status === 'blocked') {
+        showToast(result.message || 'SMS not available yet. Use WhatsApp instead.', 'error');
+      } else {
+        showToast('Failed to send check-in SMS', 'error');
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Failed to send check-in SMS', 'error');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  // Send trip share SMS to trusted contacts
+  const handleTripShareSms = async () => {
+    if (!requireAccount('send trip share SMS')) return;
+    if (!uid || isAnonymous) return;
+    if (!shareUrl) {
+      showToast('Start a Safe Trip first.', 'error');
+      return;
+    }
+    if (trustedContacts.length === 0) {
+      showToast('No trusted contacts. Add contacts first.', 'error');
+      return;
+    }
+    
+    // Extract token from shareUrl
+    const token = shareUrl.split('/').pop() || '';
+    
+    setProcessing(true);
+    try {
+      const result = await sendTripShareSms(token, currentLocation?.lat, currentLocation?.lng) as any;
+      if (result.success) {
+        showToast(`Trip share SMS sent to ${result.sent} contact(s)`, 'success');
+      } else if (result.status === 'blocked') {
+        showToast(result.message || 'SMS not available yet. Use WhatsApp instead.', 'error');
+      } else {
+        showToast('Failed to send trip share SMS', 'error');
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Failed to send trip share SMS', 'error');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  // Share via WhatsApp (SOS)
+  const handleSosWhatsApp = () => {
+    if (!currentLocation) {
+      showToast('Location unavailable. Please enable location.', 'error');
+      return;
+    }
+    const text = buildSosShareText(currentLocation.lat, currentLocation.lng);
+    openWhatsAppShare(text);
+  };
+
+  // Share via WhatsApp (Check-in)
+  const handleCheckinWhatsApp = () => {
+    const text = buildCheckinShareText("I'm checking in safely.", currentLocation?.lat, currentLocation?.lng);
+    openWhatsAppShare(text);
+  };
+
+  // Share via WhatsApp (Trip)
+  const handleTripWhatsApp = () => {
+    if (!shareUrl) {
+      showToast('Start a Safe Trip first.', 'error');
+      return;
+    }
+    const token = shareUrl.split('/').pop() || '';
+    const text = buildTripShareText(token);
+    openWhatsAppShare(text);
+  };
+
   const handleStartSafeTrip = async () => {
+    if (!requireAccount('start safe trip')) return;
+    if (!uid || isAnonymous) return;
     setProcessing(true);
     const result = await startSafeTrip({
       expectedDurationMinutes: selectedDuration > 0 ? selectedDuration : undefined,
@@ -196,6 +343,8 @@ export function SafetyScreen() {
   };
 
   const handleEndSafeTrip = async () => {
+    if (!requireAccount('end safe trip')) return;
+    if (!uid || isAnonymous) return;
     const currentShareUrl = shareUrl;
     const currentDestination = activeTrip?.destination;
     
@@ -221,6 +370,8 @@ export function SafetyScreen() {
   };
 
   const handleCheckIn = async () => {
+    if (!requireAccount('check in')) return;
+    if (!uid || isAnonymous) return;
     setProcessing(true);
     const result = await acknowledgeSafeTripTimer();
     setProcessing(false);
@@ -232,6 +383,8 @@ export function SafetyScreen() {
   };
 
   const handleQuickCheckIn = async () => {
+    if (!requireAccount('quick check-in')) return;
+    if (!uid || isAnonymous) return;
     if (!shareUrl) {
       showToast('Start a Safe Trip first.', 'error');
       return;
@@ -262,6 +415,8 @@ export function SafetyScreen() {
   };
 
   const handleCheckpointStop = async () => {
+    if (!requireAccount('checkpoint stop')) return;
+    if (!uid || isAnonymous) return;
     setProcessing(true);
     const result = await logCheckpointStop();
     setProcessing(false);
@@ -384,7 +539,8 @@ export function SafetyScreen() {
 
   // Add trusted contact
   const handleAddContact = async () => {
-    if (!uid || !newContactName.trim() || !newContactPhone.trim()) {
+    if (!requireAccount('add trusted contact')) return;
+    if (!uid || isAnonymous || !newContactName.trim() || !newContactPhone.trim()) {
       showToast('Please enter name and phone number', 'error');
       return;
     }
@@ -392,22 +548,37 @@ export function SafetyScreen() {
     setProcessing(true);
     try {
       const name = newContactName.trim();
-      const phone = newContactPhone.trim();
-      const contactIdBase = phone.replace(/[^0-9]/g, '');
+      const rawPhone = newContactPhone.trim();
+      
+      // Convert to E.164 format (default Nigeria +234)
+      const phoneE164 = formatToE164(rawPhone, '+234');
+      
+      // Validate E.164 format
+      if (!isValidE164(phoneE164)) {
+        showToast('Invalid phone format. Use +234... or 0...', 'error');
+        setProcessing(false);
+        return;
+      }
+      
+      const contactIdBase = phoneE164.replace(/[^0-9]/g, '');
       const contactId = contactIdBase.length > 0 ? contactIdBase : String(Date.now());
 
       await setDoc(doc(db, 'users', uid, 'trustedContacts', contactId), {
         name,
-        phone,
+        phone: rawPhone,
+        phoneE164,
+        notifyOnSOS: true,
+        notifyOnCheckIn: true,
+        notifyOnTripShare: true,
         createdAt: serverTimestamp(),
       }, { merge: true });
 
       setTrustedContacts((prev) => {
         const existing = prev.find((c) => c.id === contactId);
         if (existing) {
-          return prev.map((c) => (c.id === contactId ? { ...c, name, phone } : c));
+          return prev.map((c) => (c.id === contactId ? { ...c, name, phone: rawPhone, phoneE164 } : c));
         }
-        return [...prev, { id: contactId, name, phone }];
+        return [...prev, { id: contactId, name, phone: rawPhone, phoneE164 }];
       });
       setNewContactName('');
       setNewContactPhone('');
@@ -420,8 +591,9 @@ export function SafetyScreen() {
   };
 
   // Remove trusted contact
-  const handleRemoveContact = async (contact: { id: string; name: string; phone: string }) => {
-    if (!uid) return;
+  const handleRemoveContact = async (contact: { id: string; name: string; phone?: string; phoneE164: string }) => {
+    if (!requireAccount('remove trusted contact')) return;
+    if (!uid || isAnonymous) return;
     
     setProcessing(true);
     try {
@@ -437,7 +609,8 @@ export function SafetyScreen() {
 
   // Toggle checklist item
   const handleToggleChecklist = async (itemId: string) => {
-    if (!uid) return;
+    if (!requireAccount('update checklist')) return;
+    if (!uid || isAnonymous) return;
     
     const newChecked = checkedItems.includes(itemId)
       ? checkedItems.filter(id => id !== itemId)
@@ -456,7 +629,8 @@ export function SafetyScreen() {
 
   // Reset checklist
   const handleResetChecklist = async () => {
-    if (!uid) return;
+    if (!requireAccount('reset checklist')) return;
+    if (!uid || isAnonymous) return;
     setCheckedItems([]);
     try {
       await updateDoc(doc(db, 'users', uid), {
@@ -472,12 +646,13 @@ export function SafetyScreen() {
     return (
       <div className="absolute inset-0 flex items-center justify-center bg-slate-50">
         <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+        <AuthModal isOpen={showAuthModal} onClose={closeAuthModal} />
       </div>
     );
   }
 
   // Show login prompt for guests
-  if (!uid) {
+  if (!uid || isAnonymous) {
     return (
       <div className="absolute inset-0 overflow-y-auto px-4 pt-20 pb-28 bg-slate-50 dark:bg-slate-900" style={{ marginTop: 'calc(env(safe-area-inset-top, 0px) + 56px)' }}>
         <div className="text-center py-12">
@@ -487,7 +662,7 @@ export function SafetyScreen() {
             Sign in to access safety features like trip sharing, safety timers, and emergency contacts.
           </p>
           <button
-            onClick={() => window.location.href = '/'}
+            onClick={openAuthModal}
             className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors"
           >
             Sign In to Continue
@@ -580,7 +755,7 @@ export function SafetyScreen() {
           {shareUrl && (
             <div className="bg-white/60 rounded-xl p-3 mb-4">
               <p className="text-xs text-slate-500 mb-2">Send this link to your trusted contacts:</p>
-              <div className="flex gap-2">
+              <div className="flex gap-2 mb-2">
                 <button
                   onClick={handleShareLink}
                   className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 flex items-center justify-center gap-2"
@@ -596,6 +771,21 @@ export function SafetyScreen() {
                   className="py-2.5 px-4 bg-slate-200 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-300 flex items-center justify-center"
                 >
                   Copy
+                </button>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleTripShareSms}
+                  disabled={processing || trustedContacts.length === 0}
+                  className="flex-1 py-2 bg-indigo-600 text-white rounded-lg text-xs font-medium hover:bg-indigo-700 disabled:opacity-50 flex items-center justify-center gap-1"
+                >
+                  📱 SMS Contacts
+                </button>
+                <button
+                  onClick={handleTripWhatsApp}
+                  className="flex-1 py-2 bg-green-600 text-white rounded-lg text-xs font-medium hover:bg-green-700 flex items-center justify-center gap-1"
+                >
+                  💬 WhatsApp
                 </button>
               </div>
             </div>
@@ -620,6 +810,23 @@ export function SafetyScreen() {
             >
               {processing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
               End Trip
+            </button>
+          </div>
+          
+          {/* Quick Check-in Notifications */}
+          <div className="mt-3 flex gap-2">
+            <button
+              onClick={handleCheckinSms}
+              disabled={processing || trustedContacts.length === 0}
+              className="flex-1 py-2 bg-white/80 text-indigo-700 rounded-lg text-xs font-medium hover:bg-white disabled:opacity-50 flex items-center justify-center gap-1"
+            >
+              📱 Check-in SMS
+            </button>
+            <button
+              onClick={handleCheckinWhatsApp}
+              className="flex-1 py-2 bg-white/80 text-green-700 rounded-lg text-xs font-medium hover:bg-white flex items-center justify-center gap-1"
+            >
+              💬 Check-in WhatsApp
             </button>
           </div>
         </div>
@@ -825,6 +1032,29 @@ export function SafetyScreen() {
               {processing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Phone className="w-5 h-5" />}
               Call 112 Now
             </button>
+            
+            <div className="border-t border-slate-200 pt-4 mt-4">
+              <p className="text-xs text-slate-500 mb-3 text-center">Or notify your trusted contacts:</p>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleSosSms}
+                  disabled={processing || trustedContacts.length === 0}
+                  className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  📱 SMS
+                </button>
+                <button
+                  onClick={handleSosWhatsApp}
+                  disabled={!currentLocation}
+                  className="flex-1 py-3 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  💬 WhatsApp
+                </button>
+              </div>
+              {trustedContacts.length === 0 && (
+                <p className="text-xs text-amber-600 mt-2 text-center">Add trusted contacts to enable SMS alerts</p>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -1023,7 +1253,7 @@ export function SafetyScreen() {
                         </div>
                         <div>
                           <p className="font-medium text-slate-900">{contact.name}</p>
-                          <p className="text-xs text-slate-500">{contact.phone}</p>
+                          <p className="text-xs text-slate-500">{contact.phoneE164 || contact.phone}</p>
                         </div>
                       </div>
                       <button
@@ -1102,6 +1332,7 @@ export function SafetyScreen() {
           </div>
         </div>
       )}
+      <AuthModal isOpen={showAuthModal} onClose={closeAuthModal} />
     </div>
   );
 }

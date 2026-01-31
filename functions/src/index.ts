@@ -1,12 +1,17 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
-
-export { migrateLegacyData } from './migrateLegacyData';
+import { migrateLegacyData } from './migrateLegacyData';
+import { sendSmsBatch, SendSmsResult } from './twilio';
+import { checkAndIncrementRateLimit } from './rateLimit';
+import { buildMessageForType, MessagePayload } from './templates';
 
 admin.initializeApp();
 
 const db = admin.firestore();
 const messaging = admin.messaging();
+
+const RESOLUTION_THRESHOLD = 3;
+const STILL_THERE_EXTENSION_HOURS = 24;
 
 // Helper to calculate distance between two coordinates (in km)
 function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
@@ -185,6 +190,68 @@ export const onReportCreate = functions.firestore
       console.error(`Error sending notifications for report ${reportId}:`, error);
       return null;
     }
+  });
+
+/**
+ * Aggregate resolution votes and update report confirmations/status.
+ * Each user writes to reports/{reportId}/resolutionVotes/{uid}.
+ */
+export const onResolutionVoteWrite = functions.firestore
+  .document('reports/{reportId}/resolutionVotes/{uid}')
+  .onWrite(async (change, context) => {
+    if (!change.after.exists) {
+      return null;
+    }
+
+    const { reportId } = context.params;
+    const afterData = change.after.data();
+    const beforeData = change.before.exists ? change.before.data() : null;
+
+    if (!afterData || !afterData.voteType) {
+      return null;
+    }
+
+    const reportRef = db.collection('reports').doc(reportId);
+    const votesSnap = await reportRef.collection('resolutionVotes').get();
+
+    let resolvedCount = 0;
+    let stillThereCount = 0;
+
+    votesSnap.forEach((doc) => {
+      const vote = doc.data();
+      if (vote.voteType === 'resolved') {
+        resolvedCount += 1;
+      } else if (vote.voteType === 'still_there') {
+        stillThereCount += 1;
+      }
+    });
+
+    const updates: Record<string, any> = {
+      confirmations: {
+        resolved: resolvedCount,
+        still_there: stillThereCount,
+      },
+      lastConfirmedAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+
+    if (resolvedCount >= RESOLUTION_THRESHOLD) {
+      updates.status = 'resolved';
+      updates.resolvedAt = admin.firestore.FieldValue.serverTimestamp();
+    }
+
+    if (afterData.voteType === 'still_there' && (!beforeData || beforeData.voteType !== 'still_there')) {
+      const reportSnap = await reportRef.get();
+      const reportData = reportSnap.data();
+      const expiresAt = reportData?.expiresAt?.toDate ? reportData.expiresAt.toDate() : null;
+
+      if (expiresAt) {
+        const extended = new Date(expiresAt.getTime() + STILL_THERE_EXTENSION_HOURS * 60 * 60 * 1000);
+        updates.expiresAt = admin.firestore.Timestamp.fromDate(extended);
+      }
+    }
+
+    await reportRef.update(updates);
+    return null;
   });
 
 /**
@@ -649,3 +716,228 @@ export const onSOSAlert = functions.firestore
     
     return null;
   });
+
+// -------------------------------------------------------------------------
+// Safety SMS Messaging
+// -------------------------------------------------------------------------
+
+type SafetySmsRequest =
+  | { type: 'sos'; lat: number; lng: number; address?: string; token?: string }
+  | { type: 'checkin'; message?: string; lat?: number; lng?: number }
+  | { type: 'trip_share'; token: string; lat?: number; lng?: number }
+  | { type: 'one_time'; phoneE164: string; message: string };
+
+interface TrustedContact {
+  name: string;
+  phoneE164: string;
+  notifyOnSOS?: boolean;
+  notifyOnCheckIn?: boolean;
+  notifyOnTripShare?: boolean;
+}
+
+function isValidE164(phone: string): boolean {
+  return /^\+[1-9]\d{6,14}$/.test(phone);
+}
+
+/**
+ * Callable function to send safety SMS messages.
+ * - SOS/checkin/trip_share: sends to user's trusted contacts
+ * - one_time: sends to a single phone number provided by user
+ */
+export const sendSafetySms = functions.https.onCall(async (data: SafetySmsRequest, context) => {
+  // 1. Auth check
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'Must be authenticated');
+  }
+
+  const uid = context.auth.uid;
+  const signInProvider = context.auth.token.firebase?.sign_in_provider;
+
+  if (signInProvider === 'anonymous') {
+    throw new functions.https.HttpsError('permission-denied', 'Anonymous users cannot send SMS');
+  }
+
+  // 2. Validate request type
+  const validTypes = ['sos', 'checkin', 'trip_share', 'one_time'];
+  if (!data || !validTypes.includes(data.type)) {
+    throw new functions.https.HttpsError('invalid-argument', 'Invalid message type');
+  }
+
+  // 3. Rate limit check
+  const rateLimitResult = await checkAndIncrementRateLimit(uid, data.type);
+  if (!rateLimitResult.allowed) {
+    throw new functions.https.HttpsError('resource-exhausted', rateLimitResult.error || 'Rate limit exceeded');
+  }
+
+  // 4. Build recipients list
+  let recipients: Array<{ name?: string; phoneE164: string }> = [];
+
+  if (data.type === 'one_time') {
+    // Validate phone number
+    if (!data.phoneE164 || !isValidE164(data.phoneE164)) {
+      throw new functions.https.HttpsError('invalid-argument', 'Invalid phone number format. Use E.164 (e.g., +2348012345678)');
+    }
+    if (!data.message || data.message.trim().length === 0) {
+      throw new functions.https.HttpsError('invalid-argument', 'Message is required');
+    }
+    recipients = [{ phoneE164: data.phoneE164 }];
+  } else {
+    // Fetch trusted contacts
+    const contactsSnap = await db.collection(`users/${uid}/trustedContacts`).get();
+
+    if (contactsSnap.empty) {
+      throw new functions.https.HttpsError('failed-precondition', 'No trusted contacts');
+    }
+
+    const contacts: TrustedContact[] = [];
+    contactsSnap.forEach((doc) => {
+      const c = doc.data() as TrustedContact;
+      if (c.phoneE164 && isValidE164(c.phoneE164)) {
+        contacts.push(c);
+      }
+    });
+
+    if (contacts.length === 0) {
+      throw new functions.https.HttpsError('failed-precondition', 'No trusted contacts with valid phone numbers');
+    }
+
+    // Filter by notification preferences
+    recipients = contacts
+      .filter((c) => {
+        if (data.type === 'sos') return c.notifyOnSOS !== false;
+        if (data.type === 'checkin') return c.notifyOnCheckIn !== false;
+        if (data.type === 'trip_share') return c.notifyOnTripShare !== false;
+        return true;
+      })
+      .map((c) => ({ name: c.name, phoneE164: c.phoneE164 }));
+
+    if (recipients.length === 0) {
+      throw new functions.https.HttpsError('failed-precondition', 'No contacts enabled for this notification type');
+    }
+  }
+
+  // 5. Build message payload
+  const payload: MessagePayload = {
+    type: data.type,
+    lat: 'lat' in data ? data.lat : undefined,
+    lng: 'lng' in data ? data.lng : undefined,
+    address: 'address' in data ? data.address : undefined,
+    token: 'token' in data ? data.token : undefined,
+    message: 'message' in data ? data.message : undefined,
+  };
+
+  const messageBody = buildMessageForType(payload);
+
+  // 6. Check if SMS is enabled (for beta/Twilio verification pending)
+  const smsEnabled = process.env.SMS_ENABLED !== 'false' && 
+    functions.config().sms?.enabled !== 'false';
+
+  let providerResults: SendSmsResult[] = [];
+  let status: 'sent' | 'partial' | 'failed' | 'blocked';
+  let successCount = 0;
+  let failCount = 0;
+
+  if (!smsEnabled) {
+    // Mock mode: log but don't send
+    console.log(`Safety SMS [${data.type}] BLOCKED (SMS disabled) for ${uid}: ${recipients.length} recipients`);
+    
+    providerResults = recipients.map((r) => ({
+      phoneE164: r.phoneE164,
+      error: 'SMS sending is not yet available. Twilio verification pending.',
+    }));
+    
+    status = 'blocked';
+    failCount = recipients.length;
+  } else {
+    // Real mode: send via Twilio
+    const smsRequests = recipients.map((r) => ({
+      phoneE164: r.phoneE164,
+      body: messageBody,
+    }));
+
+    providerResults = await sendSmsBatch(smsRequests);
+
+    // Determine overall status
+    successCount = providerResults.filter((r) => r.sid && !r.error).length;
+    failCount = providerResults.filter((r) => r.error).length;
+
+    if (successCount === recipients.length) {
+      status = 'sent';
+    } else if (successCount > 0) {
+      status = 'partial';
+    } else {
+      status = 'failed';
+    }
+  }
+
+  // 7. Write message log
+  const logRef = db.collection('safetyMessageLogs').doc();
+  await logRef.set({
+    uid,
+    type: data.type,
+    recipients: recipients.map((r) => ({ name: r.name || null, phoneE164: r.phoneE164 })),
+    payload: {
+      lat: payload.lat ?? null,
+      lng: payload.lng ?? null,
+      address: payload.address ?? null,
+      token: payload.token ?? null,
+      message: payload.message ?? null,
+    },
+    messageBody,
+    status,
+    provider: smsEnabled ? 'twilio' : 'blocked',
+    providerResult: providerResults.map((r) => ({
+      phoneE164: r.phoneE164,
+      sid: r.sid ?? null,
+      error: r.error ?? null,
+    })),
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+
+  console.log(`Safety SMS [${data.type}] by ${uid}: status=${status}, sent=${successCount}/${recipients.length}`);
+
+  // Return appropriate response
+  if (status === 'blocked') {
+    return {
+      success: false,
+      status: 'blocked',
+      sent: 0,
+      failed: recipients.length,
+      logId: logRef.id,
+      message: 'SMS sending is not yet available. Your message was prepared - you can share via WhatsApp instead.',
+    };
+  }
+
+  return {
+    success: status !== 'failed',
+    status,
+    sent: successCount,
+    failed: failCount,
+    logId: logRef.id,
+  };
+});
+
+/**
+ * Cloud Function to run data migration (admin only)
+ */
+export const runMigration = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'Must be authenticated');
+  }
+
+  if (context.auth.token.admin !== true) {
+    throw new functions.https.HttpsError('permission-denied', 'Admin only');
+  }
+
+  const collection = typeof data?.collection === 'string' ? data.collection : '';
+  const dryRun = !!data?.dryRun;
+  const limit = typeof data?.limit === 'number' ? data.limit : 200;
+  const cursor = typeof data?.cursor === 'string' ? data.cursor : null;
+
+  try {
+    const result = await migrateLegacyData(db, { collection, dryRun, limit, cursor });
+    return result;
+  } catch (error: any) {
+    throw new functions.https.HttpsError('invalid-argument', error.message || 'Migration failed');
+  }
+});

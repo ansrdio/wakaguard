@@ -4,10 +4,12 @@ import { useState } from 'react';
 import { X, Navigation, Share2, ThumbsUp, ThumbsDown, Flag, MessageCircle, CheckCircle, XCircle, Send } from 'lucide-react';
 import { Report, FlagReason } from '@/lib/types';
 import { useAuthedUser } from '@/hooks/useAuthedUser';
+import { useRequireAccount } from '@/hooks/useRequireAccount';
+import { AuthModal } from '@/components/AuthModal';
 import { useComments } from '@/hooks/useComments';
-import { voteOnReport, flagReport } from '@/lib/actions';
-import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { flagReport } from '@/lib/actions';
+import { useVote } from '@/hooks/useVote';
+import { useReportResolution } from '@/hooks/useReportResolution';
 
 interface ReportDetailsSheetProps {
   report: Report | null;
@@ -16,14 +18,15 @@ interface ReportDetailsSheetProps {
 }
 
 export function ReportDetailsSheet({ report, onClose, onShowToast }: ReportDetailsSheetProps) {
-  const { uid } = useAuthedUser();
-  const [voting, setVoting] = useState(false);
+  const { uid, isAnonymous } = useAuthedUser();
+  const { requireAccount, showAuthModal, closeAuthModal } = useRequireAccount({ uid, isAnonymous });
   const [flagging, setFlagging] = useState(false);
-  const [confirming, setConfirming] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [showComments, setShowComments] = useState(false);
 
   const { comments, loading: commentsLoading, submitting: commentSubmitting, addComment } = useComments(report?.id || '');
+  const { submitVote, submitting: voteSubmitting } = useVote(report?.id || '');
+  const { voteResolution, loading: resolutionLoading } = useReportResolution(report?.id || '');
 
   if (!report) return null;
 
@@ -68,20 +71,19 @@ export function ReportDetailsSheet({ report, onClose, onShowToast }: ReportDetai
   };
 
   const handleVote = async (value: 'up' | 'down') => {
-    if (!uid || voting) return;
-    
-    setVoting(true);
-    try {
-      await voteOnReport(report.id, uid, value);
+    if (!requireAccount('vote')) return;
+    if (!uid || voteSubmitting) return;
+
+    const result = await submitVote(value === 'up' ? 1 : -1);
+    if (result.success) {
       onShowToast(value === 'up' ? 'Upvoted' : 'Downvoted', 'success');
-    } catch (error) {
-      onShowToast('Failed to vote', 'error');
-    } finally {
-      setVoting(false);
+    } else {
+      onShowToast(result.error || 'Failed to vote', 'error');
     }
   };
 
   const handleFlag = async () => {
+    if (!requireAccount('flag report')) return;
     if (!uid || flagging) return;
     
     setFlagging(true);
@@ -96,24 +98,19 @@ export function ReportDetailsSheet({ report, onClose, onShowToast }: ReportDetai
   };
 
   const handleConfirmStatus = async (status: 'resolved' | 'still_there') => {
-    if (!uid || confirming) return;
-    
-    setConfirming(true);
-    try {
-      const reportRef = doc(db, 'reports', report.id);
-      await updateDoc(reportRef, {
-        [`confirmations.${status}`]: ((report as any).confirmations?.[status] || 0) + 1,
-        lastConfirmedAt: serverTimestamp(),
-      });
-      onShowToast(status === 'resolved' ? 'Marked as resolved' : 'Confirmed still there', 'success');
-    } catch (error) {
-      onShowToast('Failed to update status', 'error');
-    } finally {
-      setConfirming(false);
+    if (!requireAccount('confirm status')) return;
+    if (!uid || resolutionLoading) return;
+
+    const result = await voteResolution(status);
+    if (result.success) {
+      onShowToast(status === 'resolved' ? 'Thanks! Your vote has been recorded.' : 'Thanks for confirming!', 'success');
+    } else {
+      onShowToast(result.error || 'Failed to confirm status', 'error');
     }
   };
 
   const handleAddComment = async () => {
+    if (!requireAccount('add comment')) return;
     if (!commentText.trim() || commentSubmitting) return;
     
     const result = await addComment(commentText);
@@ -208,7 +205,7 @@ export function ReportDetailsSheet({ report, onClose, onShowToast }: ReportDetai
             <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => handleConfirmStatus('resolved')}
-                disabled={confirming || !uid}
+                disabled={resolutionLoading || !uid}
                 className="flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50"
               >
                 <CheckCircle className="w-4 h-4" />
@@ -216,7 +213,7 @@ export function ReportDetailsSheet({ report, onClose, onShowToast }: ReportDetai
               </button>
               <button
                 onClick={() => handleConfirmStatus('still_there')}
-                disabled={confirming || !uid}
+                disabled={resolutionLoading || !uid}
                 className="flex items-center justify-center gap-2 px-4 py-2.5 bg-orange-600 text-white rounded-xl font-medium hover:bg-orange-700 transition-colors disabled:opacity-50"
               >
                 <XCircle className="w-4 h-4" />
@@ -229,7 +226,7 @@ export function ReportDetailsSheet({ report, onClose, onShowToast }: ReportDetai
           <div className="grid grid-cols-3 gap-2">
             <button
               onClick={() => handleVote('up')}
-              disabled={voting || !uid}
+              disabled={voteSubmitting || !uid}
               className="flex flex-col items-center gap-1 p-3 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors disabled:opacity-50"
             >
               <ThumbsUp className="w-4 h-4 text-slate-700" />
@@ -237,7 +234,7 @@ export function ReportDetailsSheet({ report, onClose, onShowToast }: ReportDetai
             </button>
             <button
               onClick={() => handleVote('down')}
-              disabled={voting || !uid}
+              disabled={voteSubmitting || !uid}
               className="flex flex-col items-center gap-1 p-3 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors disabled:opacity-50"
             >
               <ThumbsDown className="w-4 h-4 text-slate-700" />
@@ -321,6 +318,7 @@ export function ReportDetailsSheet({ report, onClose, onShowToast }: ReportDetai
           </button>
         </div>
       </div>
+      <AuthModal isOpen={showAuthModal} onClose={closeAuthModal} />
     </>
   );
 }

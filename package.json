@@ -1,5 +1,5 @@
 {
-  "name": "roadpulse",
+  "name": "wakaguard",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -9,7 +9,10 @@
     "lint": "eslint",
     "build:cap": "next build && npx cap copy",
     "build:android": "next build && npx cap copy android && cd android && ./gradlew assembleDebug",
-    "build:ios": "next build && npx cap copy ios"
+    "build:ios": "next build && npx cap copy ios",
+    "emulators": "firebase emulators:start --only auth,firestore,storage",
+    "test:smoke:run": "tsx tests/smoke.test.ts",
+    "test:smoke": "firebase emulators:exec --only auth,firestore,storage \"npm run test:smoke:run\""
   },
   "dependencies": {
     "@capacitor-community/contacts": "^7.1.0",
@@ -42,8 +45,10 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.1.1",
+    "firebase-tools": "^13.19.0",
     "sharp": "^0.34.5",
     "tailwindcss": "^4",
+    "tsx": "^4.21.0",
     "typescript": "^5"
   },
   "optionalDependencies": {

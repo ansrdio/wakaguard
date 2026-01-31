@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { User, LogOut, Settings, HelpCircle, Shield, FileText, ChevronRight, MapPin, ThumbsUp, MessageCircle, Loader2, ExternalLink, Bell, Moon, X, Sun, LogIn } from 'lucide-react';
 import { useAuthedUser } from '@/hooks/useAuthedUser';
+import { useRequireAccount } from '@/hooks/useRequireAccount';
 import { useMyReports } from '@/hooks/useMyReports';
 import { useUserStats } from '@/hooks/useUserStats';
 import { USER_LEVELS, BADGES } from '@/lib/types';
@@ -17,12 +18,12 @@ type ModalType = 'myReports' | 'settings' | 'help' | null;
 
 export function ProfileScreen() {
   const { uid, isAnonymous, email, displayName, username } = useAuthedUser();
+  const { requireAccount, showAuthModal, openAuthModal, closeAuthModal } = useRequireAccount({ uid, isAnonymous });
   const { reports: myReports, loading: reportsLoading, count: reportCount } = useMyReports();
   const { stats, getLevelTitle } = useUserStats(uid);
   const { isSupported: pushSupported, isSubscribed, permission, subscribe, unsubscribe, loading: pushLoading } = usePushNotifications();
   const { theme, toggleTheme, isDark } = useTheme();
   const [activeModal, setActiveModal] = useState<ModalType>(null);
-  const [showAuthModal, setShowAuthModal] = useState(false);
   
   const handleSignOut = async () => {
     try {
@@ -54,16 +55,16 @@ export function ProfileScreen() {
           <User className="w-10 h-10 text-white" />
         </div>
         <h1 className="text-xl font-bold text-slate-900 dark:text-white mb-1">
-          {!uid ? 'Guest User' : (username || displayName || 'Road Guardian')}
+          {!uid || isAnonymous ? 'Guest User' : (username || displayName || 'Road Guardian')}
         </h1>
         <p className="text-sm text-slate-500 dark:text-slate-400">
-          {!uid ? 'Sign in to save your reports' : (username ? `@${username}` : email || 'Set up your username')}
+          {!uid || isAnonymous ? 'Sign in to save your reports' : (username ? `@${username}` : email || 'Set up your username')}
         </p>
         
         {/* Sign In Button for Guests */}
-        {!uid && (
+        {(!uid || isAnonymous) && (
           <button
-            onClick={() => setShowAuthModal(true)}
+            onClick={openAuthModal}
             className="mt-4 flex items-center justify-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-medium mx-auto"
           >
             <LogIn className="w-4 h-4" />
@@ -73,7 +74,7 @@ export function ProfileScreen() {
       </div>
 
       {/* Level & Points Card */}
-      {uid && stats && (
+      {uid && !isAnonymous && stats && (
         <div className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl p-4 text-white">
           <div className="flex items-center justify-between mb-3">
             <div>
@@ -106,7 +107,7 @@ export function ProfileScreen() {
       )}
 
       {/* Stats Cards */}
-      {uid && (
+      {uid && !isAnonymous && (
         <div className="grid grid-cols-3 gap-3">
           <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 text-center border border-slate-200 dark:border-slate-700">
             <p className="text-2xl font-bold text-blue-600">{reportCount}</p>
@@ -254,7 +255,14 @@ export function ProfileScreen() {
                   </div>
                 </div>
                 <button
-                  onClick={() => isSubscribed ? unsubscribe() : subscribe()}
+                  onClick={() => {
+                    if (!requireAccount('push notifications')) return;
+                    if (isSubscribed) {
+                      unsubscribe();
+                    } else {
+                      subscribe();
+                    }
+                  }}
                   disabled={!pushSupported || permission === 'denied' || pushLoading}
                   className={`w-12 h-7 rounded-full transition-colors disabled:opacity-50 ${isSubscribed ? 'bg-blue-600' : 'bg-slate-300'}`}
                 >
@@ -320,7 +328,7 @@ export function ProfileScreen() {
       )}
 
       {/* Auth Modal */}
-      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
+      <AuthModal isOpen={showAuthModal} onClose={closeAuthModal} />
     </div>
   );
 }

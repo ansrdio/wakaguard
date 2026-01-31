@@ -21,7 +21,7 @@ export default function PrivacyPage() {
           </div>
 
           <p className="text-gray-600 mb-8">
-            Last Updated: December 31, 2025
+            Last Updated: January 31, 2026
           </p>
 
           <section className="mb-8">
@@ -87,6 +87,89 @@ export default function PrivacyPage() {
               <li>Flags for inappropriate content</li>
               <li>Blocked user lists (stored privately)</li>
             </ul>
+
+            <h3 className="text-xl font-semibold text-gray-800 mb-3">Trusted Contacts & Phone Numbers</h3>
+            <p className="text-gray-700 leading-relaxed mb-4">
+              When you use our Safety features, we collect:
+            </p>
+            <ul className="list-disc list-inside text-gray-700 mb-6 space-y-2">
+              <li>Names and phone numbers of trusted contacts you add</li>
+              <li>Phone numbers you enter for one-time SMS notifications</li>
+              <li>Your notification preferences for each contact</li>
+            </ul>
+            <p className="text-gray-700 leading-relaxed mb-6">
+              <strong>Important:</strong> You must have consent from individuals before adding them as trusted contacts. 
+              Phone numbers are stored securely and used only for safety notifications you initiate.
+            </p>
+          </section>
+
+          <section className="mb-8 bg-blue-50 p-6 rounded-lg border border-blue-200">
+            <h2 className="text-2xl font-semibold text-gray-900 mb-4">📱 SMS Messaging Service</h2>
+            <p className="text-gray-700 leading-relaxed mb-4">
+              WakaGuard provides SMS messaging features for safety notifications. By using these features, you agree to the following:
+            </p>
+
+            <h3 className="text-xl font-semibold text-gray-800 mb-3">How SMS Works</h3>
+            <ul className="list-disc list-inside text-gray-700 mb-4 space-y-2">
+              <li><strong>SOS Alerts:</strong> Send emergency location to your trusted contacts</li>
+              <li><strong>Check-in Messages:</strong> Let contacts know you are safe</li>
+              <li><strong>Trip Sharing:</strong> Share live trip tracking links</li>
+              <li><strong>One-Time Messages:</strong> Send safety messages to any phone number</li>
+            </ul>
+
+            <h3 className="text-xl font-semibold text-gray-800 mb-3">Consent & Opt-In</h3>
+            <p className="text-gray-700 leading-relaxed mb-4">
+              By adding trusted contacts or sending SMS messages through WakaGuard:
+            </p>
+            <ul className="list-disc list-inside text-gray-700 mb-4 space-y-2">
+              <li>You confirm you have obtained consent from recipients to receive safety-related SMS messages from you via WakaGuard</li>
+              <li>You understand that message and data rates may apply to recipients</li>
+              <li>You agree not to use SMS features for spam, marketing, or non-safety purposes</li>
+              <li>You acknowledge that SMS delivery is not guaranteed and should not be relied upon as the sole means of emergency communication</li>
+            </ul>
+
+            <h3 className="text-xl font-semibold text-gray-800 mb-3">Message Frequency & Content</h3>
+            <ul className="list-disc list-inside text-gray-700 mb-4 space-y-2">
+              <li>SMS messages are sent only when you explicitly trigger them (SOS, check-in, trip share)</li>
+              <li>We limit messages to 10 per hour per user to prevent abuse</li>
+              <li>Messages contain your location, safety status, and/or trip tracking links</li>
+              <li>Messages are prefixed with "WakaGuard" for identification</li>
+            </ul>
+
+            <h3 className="text-xl font-semibold text-gray-800 mb-3">Opting Out</h3>
+            <p className="text-gray-700 leading-relaxed mb-4">
+              Recipients of SMS messages can:
+            </p>
+            <ul className="list-disc list-inside text-gray-700 mb-4 space-y-2">
+              <li>Ask you to remove them from your trusted contacts list</li>
+              <li>Block the sending number on their device</li>
+              <li>Contact us at <a href="mailto:support@wakaguard.com" className="text-blue-600 hover:underline">support@wakaguard.com</a> to request removal</li>
+            </ul>
+
+            <h3 className="text-xl font-semibold text-gray-800 mb-3">SMS Service Provider</h3>
+            <p className="text-gray-700 leading-relaxed mb-4">
+              We use Twilio, a third-party service provider, to deliver SMS messages. By using our SMS features:
+            </p>
+            <ul className="list-disc list-inside text-gray-700 mb-4 space-y-2">
+              <li>Phone numbers and message content are transmitted to Twilio for delivery</li>
+              <li>Twilio may retain message logs for delivery confirmation and troubleshooting</li>
+              <li>Twilio's privacy policy applies: <a href="https://www.twilio.com/legal/privacy" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">https://www.twilio.com/legal/privacy</a></li>
+            </ul>
+
+            <h3 className="text-xl font-semibold text-gray-800 mb-3">Message Logs</h3>
+            <p className="text-gray-700 leading-relaxed mb-4">
+              We maintain logs of SMS messages sent through our service, including:
+            </p>
+            <ul className="list-disc list-inside text-gray-700 mb-4 space-y-2">
+              <li>Sender user ID (your anonymous ID)</li>
+              <li>Recipient phone numbers</li>
+              <li>Message type (SOS, check-in, trip share, one-time)</li>
+              <li>Delivery status (sent, failed, partial)</li>
+              <li>Timestamp</li>
+            </ul>
+            <p className="text-gray-700 leading-relaxed">
+              These logs are retained for 90 days for troubleshooting and abuse prevention, then automatically deleted.
+            </p>
           </section>
 
           <section className="mb-8">
@@ -98,8 +181,9 @@ export default function PrivacyPage() {
               <li>Provide and maintain the WakaGuard service</li>
               <li>Display reports on the map and in lists</li>
               <li>Enable community voting and commenting</li>
+              <li>Send SMS safety notifications to your trusted contacts when you request</li>
               <li>Moderate content and enforce community guidelines</li>
-              <li>Prevent abuse and spam</li>
+              <li>Prevent abuse and spam (including SMS rate limiting)</li>
               <li>Improve the app based on usage patterns</li>
             </ul>
           </section>
@@ -151,7 +235,8 @@ export default function PrivacyPage() {
             </p>
             <ul className="list-disc list-inside text-gray-700 mb-4 space-y-2">
               <li><strong>Public Display:</strong> Reports, comments, and photos are publicly visible to all users</li>
-              <li><strong>Service Providers:</strong> We use Firebase (Google) for backend services</li>
+              <li><strong>Service Providers:</strong> We use Firebase (Google) for backend services and Twilio for SMS delivery</li>
+              <li><strong>SMS Recipients:</strong> When you send SMS notifications, your location and safety status are shared with the phone numbers you specify</li>
               <li><strong>Legal Requirements:</strong> We may disclose data if required by law or to protect rights and safety</li>
               <li><strong>Moderation:</strong> Flagged content is reviewed by administrators</li>
             </ul>
@@ -164,6 +249,8 @@ export default function PrivacyPage() {
             </p>
             <ul className="list-disc list-inside text-gray-700 mb-4 space-y-2">
               <li>Choose whether to share location data by not creating reports</li>
+              <li>Add, edit, or remove trusted contacts at any time</li>
+              <li>Control which contacts receive which types of notifications (SOS, check-in, trip share)</li>
               <li>Block users to hide their content from your view</li>
               <li>Flag inappropriate content for review</li>
               <li>Delete the app to remove your anonymous authentication</li>

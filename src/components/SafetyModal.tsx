@@ -5,9 +5,11 @@ import { X, Shield, MapPin, Clock, Users, AlertTriangle, Copy, Check } from 'luc
 import { collection, addDoc, updateDoc, doc, serverTimestamp, setDoc, getDocs, query, where, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuthedUser } from '@/hooks/useAuthedUser';
+import { useRequireAccount } from '@/hooks/useRequireAccount';
 import { Trip, TripStatus, Alert, AlertType, CheckIn } from '@/lib/types';
 import { generateShareToken, calculateTripExpiry, calculateTimerExpiry, checkRateLimit, formatTimeRemaining, isTripExpired } from '@/lib/safety';
 import { Toast } from '@/components/ui/Toast';
+import { AuthModal } from '@/components/AuthModal';
 
 interface SafetyModalProps {
   isOpen: boolean;
@@ -16,7 +18,8 @@ interface SafetyModalProps {
 }
 
 export function SafetyModal({ isOpen, onClose, userLocation }: SafetyModalProps) {
-  const { uid } = useAuthedUser();
+  const { uid, isAnonymous } = useAuthedUser();
+  const { requireAccount, showAuthModal, openAuthModal, closeAuthModal } = useRequireAccount({ uid, isAnonymous });
   const [activeTrip, setActiveTrip] = useState<(Trip & { id: string }) | null>(null);
   const [loading, setLoading] = useState(false);
   const [sosHoldProgress, setSosHoldProgress] = useState(0);
@@ -27,7 +30,7 @@ export function SafetyModal({ isOpen, onClose, userLocation }: SafetyModalProps)
 
   // Check for active trip on mount
   useEffect(() => {
-    if (!uid || !isOpen) return;
+    if (!uid || isAnonymous) return;
 
     const checkActiveTrip = async () => {
       const qTrips = query(
@@ -49,11 +52,11 @@ export function SafetyModal({ isOpen, onClose, userLocation }: SafetyModalProps)
     };
 
     checkActiveTrip();
-  }, [uid, isOpen]);
+  }, [uid, isAnonymous, isOpen]);
 
   // Update trip location periodically
   useEffect(() => {
-    if (!activeTrip || !userLocation) return;
+    if (!activeTrip || !userLocation || !uid || isAnonymous) return;
 
     const updateInterval = setInterval(async () => {
       if (navigator.geolocation) {
@@ -84,11 +87,14 @@ export function SafetyModal({ isOpen, onClose, userLocation }: SafetyModalProps)
     }, 30000); // Update every 30 seconds
 
     return () => clearInterval(updateInterval);
-  }, [activeTrip, userLocation, uid]);
+  }, [activeTrip, userLocation, uid, isAnonymous]);
 
   const handleStartTrip = async () => {
-    if (!uid) {
-      setToast({ type: 'error', message: 'Please sign in to use safety features' });
+    if (!requireAccount('start trip')) {
+      return;
+    }
+
+    if (!uid || isAnonymous) {
       return;
     }
 
@@ -148,6 +154,8 @@ export function SafetyModal({ isOpen, onClose, userLocation }: SafetyModalProps)
 
   const handleStopTrip = async () => {
     if (!activeTrip) return;
+    if (!requireAccount('stop trip')) return;
+    if (!uid || isAnonymous) return;
 
     setLoading(true);
     try {
@@ -185,8 +193,11 @@ export function SafetyModal({ isOpen, onClose, userLocation }: SafetyModalProps)
   };
 
   const handleStartTimer = async () => {
-    if (!uid) {
-      setToast({ type: 'error', message: 'Please sign in to use safety features' });
+    if (!requireAccount('start timer')) {
+      return;
+    }
+
+    if (!uid || isAnonymous) {
       return;
     }
 
@@ -218,8 +229,11 @@ export function SafetyModal({ isOpen, onClose, userLocation }: SafetyModalProps)
   };
 
   const handleQuickCheckIn = async () => {
-    if (!uid) {
-      setToast({ type: 'error', message: 'Please sign in to use safety features' });
+    if (!requireAccount('check in')) {
+      return;
+    }
+
+    if (!uid || isAnonymous) {
       return;
     }
 
@@ -233,10 +247,10 @@ export function SafetyModal({ isOpen, onClose, userLocation }: SafetyModalProps)
     try {
       const checkInData: Omit<CheckIn, 'id'> = {
         uid,
-        tripId: activeTrip?.id,
-        location: userLocation || undefined,
         message: 'Quick check-in',
         createdAt: serverTimestamp() as any,
+        ...(activeTrip?.id ? { tripId: activeTrip.id } : {}),
+        ...(userLocation ? { location: userLocation } : {}),
       };
 
       await addDoc(collection(db, 'users', uid, 'checkIns'), checkInData);
@@ -275,7 +289,8 @@ export function SafetyModal({ isOpen, onClose, userLocation }: SafetyModalProps)
   };
 
   const triggerSOS = async () => {
-    if (!uid) return;
+    if (!requireAccount('sos')) return;
+    if (!uid || isAnonymous) return;
 
     const rateLimit = checkRateLimit('sos');
     if (!rateLimit.allowed) {
@@ -287,12 +302,12 @@ export function SafetyModal({ isOpen, onClose, userLocation }: SafetyModalProps)
       const alertData: Omit<Alert, 'id'> = {
         uid,
         type: AlertType.SOS,
-        tripId: activeTrip?.id,
-        location: userLocation || undefined,
         message: 'Emergency SOS alert triggered',
         acknowledged: false,
         notifiedContacts: [],
         createdAt: serverTimestamp() as any,
+        ...(activeTrip?.id ? { tripId: activeTrip.id } : {}),
+        ...(userLocation ? { location: userLocation } : {}),
       };
 
       await addDoc(collection(db, 'users', uid, 'alerts'), alertData);
@@ -323,7 +338,7 @@ export function SafetyModal({ isOpen, onClose, userLocation }: SafetyModalProps)
   if (!isOpen) return null;
 
   // Show login prompt for guests
-  if (!uid) {
+  if (!uid || isAnonymous) {
     return (
       <>
         <div 
@@ -339,7 +354,7 @@ export function SafetyModal({ isOpen, onClose, userLocation }: SafetyModalProps)
                 Sign in to access trip sharing, safety timers, and emergency features.
               </p>
               <button
-                onClick={onClose}
+                onClick={openAuthModal}
                 className="px-6 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors"
               >
                 Sign In to Continue
@@ -347,6 +362,7 @@ export function SafetyModal({ isOpen, onClose, userLocation }: SafetyModalProps)
             </div>
           </div>
         </div>
+        <AuthModal isOpen={showAuthModal} onClose={closeAuthModal} />
       </>
     );
   }
@@ -555,6 +571,7 @@ export function SafetyModal({ isOpen, onClose, userLocation }: SafetyModalProps)
           onClose={() => setToast(null)}
         />
       )}
+      <AuthModal isOpen={showAuthModal} onClose={closeAuthModal} />
     </>
   );
 }

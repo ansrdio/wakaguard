@@ -10,6 +10,7 @@ import {
   sendPasswordResetEmail,
   sendEmailVerification
 } from 'firebase/auth';
+import { Capacitor } from '@capacitor/core';
 import { auth } from '@/lib/firebase';
 
 type OnboardingStep = 'tutorial' | 'notifications' | 'auth';
@@ -23,6 +24,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   const [step, setStep] = useState<OnboardingStep>('tutorial');
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
   const [requestingPermission, setRequestingPermission] = useState(false);
+  const isNative = Capacitor.isNativePlatform();
   
   // Auth state
   const [authMode, setAuthMode] = useState<AuthMode>('signup');
@@ -45,6 +47,11 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   };
 
   const requestNotificationPermission = async () => {
+    if (!isNative) {
+      setStep('auth');
+      return;
+    }
+
     if (!('Notification' in window)) {
       // If notifications not supported, skip to auth
       setStep('auth');
@@ -167,60 +174,79 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
           <h1 className="text-2xl font-bold text-white mb-3">Enable Notifications</h1>
 
           {/* Description */}
-          <p className="text-base text-white/80 leading-relaxed mb-8">
-            Get real-time alerts about road hazards, checkpoints, and safety updates near you. Stay informed and stay safe!
-          </p>
+          {isNative ? (
+            <>
+              <p className="text-base text-white/80 leading-relaxed mb-8">
+                Get real-time alerts about road hazards, checkpoints, and safety updates near you. Stay informed and stay safe!
+              </p>
 
-          {/* Benefits */}
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 mb-8">
-            <ul className="space-y-3 text-left">
-              <li className="flex items-center gap-3 text-white/90 text-sm">
-                <span className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
-                  ✓
-                </span>
-                Hazard alerts on your route
-              </li>
-              <li className="flex items-center gap-3 text-white/90 text-sm">
-                <span className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
-                  ✓
-                </span>
-                Checkpoint notifications nearby
-              </li>
-              <li className="flex items-center gap-3 text-white/90 text-sm">
-                <span className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
-                  ✓
-                </span>
-                Safety timer reminders
-              </li>
-            </ul>
-          </div>
+              {/* Benefits */}
+              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 mb-8">
+                <ul className="space-y-3 text-left">
+                  <li className="flex items-center gap-3 text-white/90 text-sm">
+                    <span className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
+                      ✓
+                    </span>
+                    Hazard alerts on your route
+                  </li>
+                  <li className="flex items-center gap-3 text-white/90 text-sm">
+                    <span className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
+                      ✓
+                    </span>
+                    Checkpoint notifications nearby
+                  </li>
+                  <li className="flex items-center gap-3 text-white/90 text-sm">
+                    <span className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
+                      ✓
+                    </span>
+                    Safety timer reminders
+                  </li>
+                </ul>
+              </div>
+            </>
+          ) : (
+            <p className="text-base text-white/80 leading-relaxed mb-8">
+              Push notifications are available in the native app.
+            </p>
+          )}
 
           {/* Enable button */}
-          <button
-            onClick={requestNotificationPermission}
-            disabled={requestingPermission}
-            className="w-full flex items-center justify-center gap-2 px-8 py-4 bg-white text-blue-600 rounded-xl font-semibold hover:bg-white/90 transition-all shadow-lg disabled:opacity-50"
-          >
-            {requestingPermission ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                Requesting...
-              </>
-            ) : (
-              <>
-                <Bell className="w-5 h-5" />
-                Enable Notifications
-              </>
-            )}
-          </button>
+          {isNative ? (
+            <button
+              onClick={requestNotificationPermission}
+              disabled={requestingPermission}
+              className="w-full flex items-center justify-center gap-2 px-8 py-4 bg-white text-blue-600 rounded-xl font-semibold hover:bg-white/90 transition-all shadow-lg disabled:opacity-50"
+            >
+              {requestingPermission ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Requesting...
+                </>
+              ) : (
+                <>
+                  <Bell className="w-5 h-5" />
+                  Enable Notifications
+                </>
+              )}
+            </button>
+          ) : (
+            <button
+              onClick={() => setStep('auth')}
+              className="w-full flex items-center justify-center gap-2 px-8 py-4 bg-white text-blue-600 rounded-xl font-semibold hover:bg-white/90 transition-all shadow-lg"
+            >
+              Continue
+            </button>
+          )}
 
           {/* Skip option */}
-          <button
-            onClick={() => setStep('auth')}
-            className="mt-4 text-white/60 hover:text-white text-sm transition-colors"
-          >
-            Skip for now
-          </button>
+          {isNative && (
+            <button
+              onClick={() => setStep('auth')}
+              className="mt-4 text-white/60 hover:text-white text-sm transition-colors"
+            >
+              Skip for now
+            </button>
+          )}
         </div>
       </div>
     );

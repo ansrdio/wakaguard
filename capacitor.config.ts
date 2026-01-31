@@ -3,7 +3,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 const capServerUrl = process.env.CAP_SERVER_URL;
 
 const config: CapacitorConfig = {
-  appId: 'com.wakaguard.app',
+  appId: 'com.ansrdlabs.wakaguard',
   appName: 'WakaGuard',
   webDir: 'out',
   server: capServerUrl
@@ -12,9 +12,9 @@ const config: CapacitorConfig = {
         cleartext: true,
       }
     : {
-        // Uses local assets from webDir for native plugin support
-        androidScheme: 'https',
-        iosScheme: 'https',
+        // Load from Firebase Hosting for proper Firebase Auth support on iOS
+        url: 'https://routepulse-5701f.web.app',
+        cleartext: false,
       },
   plugins: {
     StatusBar: {

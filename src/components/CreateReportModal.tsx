@@ -6,7 +6,9 @@ import { collection, addDoc, serverTimestamp, Timestamp, doc, updateDoc } from '
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '@/lib/firebase';
 import { useAuthedUser } from '@/hooks/useAuthedUser';
+import { useRequireAccount } from '@/hooks/useRequireAccount';
 import { useUserStats } from '@/hooks/useUserStats';
+import { AuthModal } from '@/components/AuthModal';
 import { ReportType, Severity, ReportStatus, VerificationStatus, CheckpointType, CheckpointCheck, WaitTime, PointAction } from '@/lib/types';
 import { NigerianState, STATE_CENTERS } from '@/lib/nigerianStates';
 import { computeExpiry } from '@/lib/rules';
@@ -33,7 +35,10 @@ interface CreateReportModalProps {
 }
 
 export function CreateReportModal({ isOpen, onClose, defaultState, initialLocation }: CreateReportModalProps) {
-  const { uid } = useAuthedUser();
+  const MAX_PHOTOS = 5;
+  const MAX_PHOTO_MB = 5;
+  const { uid, isAnonymous } = useAuthedUser();
+  const { requireAccount, showAuthModal, closeAuthModal } = useRequireAccount({ uid, isAnonymous });
   const { awardPoints } = useUserStats(uid);
   const [submitting, setSubmitting] = useState(false);
   const [useGPS, setUseGPS] = useState(false);
@@ -166,6 +171,9 @@ export function CreateReportModal({ isOpen, onClose, defaultState, initialLocati
 
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
+    if (files.length === 0) {
+      return;
+    }
     
     const validFiles: File[] = [];
     for (const file of files) {
@@ -177,8 +185,15 @@ export function CreateReportModal({ isOpen, onClose, defaultState, initialLocati
       validFiles.push(file);
     }
 
-    if (selectedPhotos.length + validFiles.length > 5) {
-      setToast({ type: 'error', message: 'Maximum 5 photos allowed per report' });
+    if (selectedPhotos.length + validFiles.length > MAX_PHOTOS) {
+      setToast({
+        type: 'error',
+        message: `Maximum ${MAX_PHOTOS} photos allowed per report`
+      });
+      return;
+    }
+
+    if (validFiles.length === 0) {
       return;
     }
 
@@ -188,6 +203,8 @@ export function CreateReportModal({ isOpen, onClose, defaultState, initialLocati
       const previewUrl = URL.createObjectURL(file);
       setPhotoPreviewUrls(prev => [...prev, previewUrl]);
     });
+
+    e.target.value = '';
   };
 
   const handleRemovePhoto = (index: number) => {
@@ -199,8 +216,11 @@ export function CreateReportModal({ isOpen, onClose, defaultState, initialLocati
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!requireAccount('create report')) {
+      return;
+    }
+
     if (!uid) {
-      setToast({ type: 'error', message: 'Please wait for authentication to complete' });
       return;
     }
 
@@ -273,9 +293,7 @@ export function CreateReportModal({ isOpen, onClose, defaultState, initialLocati
       const reportDoc = await addDoc(collection(db, 'reports'), reportData);
 
       // Award points for creating a report
-      if (uid) {
-        awardPoints(PointAction.CREATE_REPORT, reportDoc.id);
-      }
+      awardPoints(PointAction.CREATE_REPORT, reportDoc.id);
 
       // Reset form and close immediately (optimistic UI)
       setFormData({
@@ -306,34 +324,83 @@ export function CreateReportModal({ isOpen, onClose, defaultState, initialLocati
     }
   };
 
-  const uploadPhotosInBackground = async (photos: File[], reportId: string, userId: string) => {
+  const uploadPhotosInBackground = async (
+    photos: File[],
+    reportId: string,
+    userId: string
+  ) => {
+    if (!requireAccount('upload photos')) {
+      return;
+    }
+
+    const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
+
     try {
+      const { safeToken } = await import('@/lib/safeToken');
       const photoUrls: string[] = [];
+      let failedCount = 0;
 
       for (let i = 0; i < photos.length; i++) {
-        const compressedBlob = await compressImage(photos[i], {
-          maxWidth: 1600,
-          targetSizeKB: 600,
-        });
+        setUploadProgress(`Uploading ${i + 1} of ${photos.length}...`);
+        try {
+          const compressedBlob = await compressImage(photos[i], {
+            maxWidth: 1600,
+            targetSizeKB: 600,
+          });
 
-        const { safeToken } = await import('@/lib/safeToken');
-        const uuid = safeToken();
-        const storagePath = `report_photos/${userId}/${reportId}/${uuid}.jpg`;
-        const storageRef = ref(storage, storagePath);
+          if (compressedBlob.size > MAX_UPLOAD_BYTES) {
+            failedCount += 1;
+            setToast({
+              type: 'error',
+              message: 'One photo is still over 5MB after compression. It was skipped.',
+            });
+            continue;
+          }
 
-        await uploadBytes(storageRef, compressedBlob, {
-          contentType: 'image/jpeg',
-        });
+          const uuid = safeToken();
+          const storagePath = `report_photos/${userId}/${reportId}/${uuid}.jpg`;
+          const storageRef = ref(storage, storagePath);
 
-        const downloadUrl = await getDownloadURL(storageRef);
-        photoUrls.push(downloadUrl);
+          await uploadBytes(storageRef, compressedBlob, {
+            contentType: 'image/jpeg',
+          });
+
+          const downloadUrl = await getDownloadURL(storageRef);
+          photoUrls.push(downloadUrl);
+
+          await updateDoc(doc(db, 'reports', reportId), {
+            photoUrls,
+          });
+        } catch (innerError) {
+          failedCount += 1;
+          console.error('Error uploading one photo:', innerError);
+        }
       }
 
-      await updateDoc(doc(db, 'reports', reportId), {
-        photoUrls,
-      });
+      if (photoUrls.length > 0 && failedCount > 0) {
+        setToast({
+          type: 'error',
+          message: `${photoUrls.length} photo(s) uploaded, ${failedCount} failed.`,
+        });
+      } else if (photoUrls.length > 0) {
+        setToast({
+          type: 'success',
+          message: `${photoUrls.length} photo(s) uploaded successfully.`,
+        });
+      } else if (failedCount > 0) {
+        setToast({
+          type: 'error',
+          message: 'All photo uploads failed. Please try smaller photos.',
+        });
+      }
+      setUploadProgress('');
     } catch (error) {
       console.error('Error uploading photos in background:', error);
+      setUploadProgress('');
+      setToast({
+        type: 'error',
+        message: 'Photo upload failed. Please try again.',
+      });
     }
   };
 
@@ -571,7 +638,7 @@ export function CreateReportModal({ isOpen, onClose, defaultState, initialLocati
           {/* Photo Upload */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Photos (Optional - Max 5)
+              Photos (Optional - Max {MAX_PHOTOS})
             </label>
             
             {photoPreviewUrls.length > 0 && (
@@ -596,25 +663,39 @@ export function CreateReportModal({ isOpen, onClose, defaultState, initialLocati
               </div>
             )}
 
-            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors">
-              <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                <Upload className="w-8 h-8 text-gray-400 mb-2" />
-                <p className="text-sm text-gray-600">
-                  <span className="font-semibold">Click to upload</span> or drag and drop
-                </p>
-                <p className="text-xs text-gray-500">
-                  JPEG, PNG, WebP (Max 10MB each)
-                </p>
-              </div>
-              <input
-                type="file"
-                accept="image/jpeg,image/jpg,image/png,image/webp"
-                multiple
-                onChange={handlePhotoSelect}
-                disabled={submitting || selectedPhotos.length >= 5}
-                className="hidden"
-              />
-            </label>
+            <div className="flex flex-col gap-3">
+              <label className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:border-blue-400 hover:text-blue-600 transition-colors cursor-pointer">
+                <ImageIcon className="h-4 w-4" />
+                Take photo
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={handlePhotoSelect}
+                  disabled={submitting || selectedPhotos.length >= MAX_PHOTOS}
+                  className="hidden"
+                />
+              </label>
+              <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors">
+                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                  <Upload className="w-8 h-8 text-gray-400 mb-2" />
+                  <p className="text-sm text-gray-600">
+                    <span className="font-semibold">Click to upload</span> or drag and drop
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    JPEG, PNG, WebP (Max {MAX_PHOTO_MB}MB each)
+                  </p>
+                </div>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png,image/webp"
+                  multiple
+                  onChange={handlePhotoSelect}
+                  disabled={submitting || selectedPhotos.length >= MAX_PHOTOS}
+                  className="hidden"
+                />
+              </label>
+            </div>
             <p className="text-xs text-gray-500 mt-2">
               Photos will be compressed to ≤600KB and resized to max 1600px width
             </p>
@@ -723,6 +804,7 @@ export function CreateReportModal({ isOpen, onClose, defaultState, initialLocati
         </form>
       </div>
     </div>
+      <AuthModal isOpen={showAuthModal} onClose={closeAuthModal} />
     </>
   );
 }

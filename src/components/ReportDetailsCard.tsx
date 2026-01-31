@@ -4,11 +4,12 @@ import { useState } from 'react';
 import { Report, FlagReason } from '@/lib/types';
 import { X, MapPin, Calendar, ThumbsUp, ThumbsDown, MessageCircle, Flag, AlertCircle, Share2, Navigation, CheckCircle, XCircle, Send, Users } from 'lucide-react';
 import { useAuthedUser } from '@/hooks/useAuthedUser';
-import { voteOnReport, flagReport } from '@/lib/actions';
-import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { useRequireAccount } from '@/hooks/useRequireAccount';
+import { AuthModal } from '@/components/AuthModal';
+import { flagReport } from '@/lib/actions';
 import { useComments } from '@/hooks/useComments';
 import { useReportResolution } from '@/hooks/useReportResolution';
+import { useVote } from '@/hooks/useVote';
 
 interface ReportDetailsCardProps {
   report: Report | null;
@@ -16,8 +17,8 @@ interface ReportDetailsCardProps {
 }
 
 export function ReportDetailsCard({ report, onClose }: ReportDetailsCardProps) {
-  const { uid } = useAuthedUser();
-  const [voting, setVoting] = useState(false);
+  const { uid, isAnonymous } = useAuthedUser();
+  const { requireAccount, showAuthModal, closeAuthModal } = useRequireAccount({ uid, isAnonymous });
   const [flagging, setFlagging] = useState(false);
   const [showFlagModal, setShowFlagModal] = useState(false);
   const [flagReason, setFlagReason] = useState<FlagReason>(FlagReason.SPAM);
@@ -26,17 +27,18 @@ export function ReportDetailsCard({ report, onClose }: ReportDetailsCardProps) {
   const [notice, setNotice] = useState<{type: 'success' | 'error', message: string} | null>(null);
   const [optimisticVotes, setOptimisticVotes] = useState<{upvotes: number, downvotes: number} | null>(null);
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
-  const [confirming, setConfirming] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [showComments, setShowComments] = useState(false);
   
   const { comments, loading: commentsLoading, submitting: commentSubmitting, addComment } = useComments(report?.id || '');
   const { voteResolution, loading: resolutionLoading } = useReportResolution(report?.id || '');
+  const { submitVote, submitting: voteSubmitting } = useVote(report?.id || '');
 
   if (!report) return null;
 
   const handleVote = async (voteType: 'up' | 'down') => {
-    if (!uid || voting) return;
+    if (!requireAccount('vote')) return;
+    if (!uid || voteSubmitting) return;
     
     // Optimistic update
     const currentUpvotes = optimisticVotes?.upvotes ?? report.upvotes;
@@ -47,8 +49,7 @@ export function ReportDetailsCard({ report, onClose }: ReportDetailsCardProps) {
       downvotes: voteType === 'down' ? currentDownvotes + 1 : currentDownvotes,
     });
     
-    setVoting(true);
-    const result = await voteOnReport(report.id, uid, voteType);
+    const result = await submitVote(voteType === 'up' ? 1 : -1);
     
     if (!result.success) {
       // Revert optimistic update
@@ -60,10 +61,10 @@ export function ReportDetailsCard({ report, onClose }: ReportDetailsCardProps) {
       setTimeout(() => setNotice(null), 2000);
     }
     
-    setVoting(false);
   };
 
   const handleFlag = async () => {
+    if (!requireAccount('flag report')) return;
     if (!uid || flagging) return;
     
     setFlagging(true);
@@ -102,32 +103,8 @@ export function ReportDetailsCard({ report, onClose }: ReportDetailsCardProps) {
     window.open(url, '_blank');
   };
 
-  const handleConfirmStatus = async (status: 'resolved' | 'still_there') => {
-    if (!uid || confirming) return;
-    
-    setConfirming(true);
-    try {
-      const reportRef = doc(db, 'reports', report.id);
-      await updateDoc(reportRef, {
-        [`confirmations.${status}`]: (report as any).confirmations?.[status] || 0 + 1,
-        lastConfirmedAt: serverTimestamp(),
-      });
-      
-      setNotice({ 
-        type: 'success', 
-        message: status === 'resolved' ? 'Marked as resolved' : 'Confirmed still there' 
-      });
-      setTimeout(() => setNotice(null), 2000);
-    } catch (error) {
-      console.error('Error updating confirmation:', error);
-      setNotice({ type: 'error', message: 'Failed to update status' });
-      setTimeout(() => setNotice(null), 3000);
-    } finally {
-      setConfirming(false);
-    }
-  };
-
   const handleAddComment = async () => {
+    if (!requireAccount('add comment')) return;
     if (!commentText.trim() || commentSubmitting) return;
     
     const result = await addComment(commentText);
@@ -171,39 +148,22 @@ export function ReportDetailsCard({ report, onClose }: ReportDetailsCardProps) {
     return ageHours >= 24 && ageHours <= 72;
   };
 
-  const handleConfirmStillThere = async () => {
+  const handleConfirmStatus = async (status: 'resolved' | 'still_there') => {
+    if (!requireAccount('confirm status')) return;
     if (!uid || resolutionLoading) return;
-    
-    const result = await voteResolution('still_there');
+
+    const result = await voteResolution(status);
     if (result.success) {
-      // Also extend expiry by 24 hours when confirmed still there
-      try {
-        const reportRef = doc(db, 'reports', report.id);
-        const newExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
-        await updateDoc(reportRef, {
-          expiresAt: newExpiry,
-        });
-      } catch (err) {
-        console.error('Failed to extend expiry:', err);
-      }
-      setNotice({ type: 'success', message: 'Thanks for confirming! Report expiry extended.' });
+      setNotice({
+        type: 'success',
+        message: status === 'resolved' ? 'Thanks! Your vote has been recorded.' : 'Thanks for confirming!'
+      });
     } else {
       setNotice({ type: 'error', message: result.error || 'Failed to confirm status' });
     }
     setTimeout(() => setNotice(null), 3000);
   };
 
-  const handleConfirmResolved = async () => {
-    if (!uid || resolutionLoading) return;
-    
-    const result = await voteResolution('resolved');
-    if (result.success) {
-      setNotice({ type: 'success', message: 'Thanks! Your vote has been recorded.' });
-    } else {
-      setNotice({ type: 'error', message: result.error || 'Failed to mark as resolved' });
-    }
-    setTimeout(() => setNotice(null), 3000);
-  };
 
   const formatDate = (timestamp: any) => {
     if (!timestamp?.toDate) return 'Unknown';
@@ -268,13 +228,13 @@ export function ReportDetailsCard({ report, onClose }: ReportDetailsCardProps) {
                 </p>
                 <div className="flex gap-2">
                   <button
-                    onClick={handleConfirmStillThere}
+                    onClick={() => handleConfirmStatus('still_there')}
                     className="flex-1 px-3 py-2 bg-amber-600 text-white rounded-xl hover:bg-amber-700 transition-colors text-sm font-medium"
                   >
                     Yes, still there
                   </button>
                   <button
-                    onClick={handleConfirmResolved}
+                    onClick={() => handleConfirmStatus('resolved')}
                     className="flex-1 px-3 py-2 bg-white text-amber-900 border border-amber-300 rounded-xl hover:bg-amber-50 transition-colors text-sm font-medium"
                   >
                     Resolved
@@ -525,19 +485,19 @@ export function ReportDetailsCard({ report, onClose }: ReportDetailsCardProps) {
         <div className="grid grid-cols-2 gap-3 mb-3">
           <button 
             onClick={() => handleVote('up')}
-            disabled={voting || !uid}
+            disabled={voteSubmitting || !uid}
             className="flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded-2xl hover:bg-green-700 transition-colors text-sm font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <ThumbsUp className="w-4 h-4" />
-            {voting ? 'Voting...' : 'Upvote'}
+            {voteSubmitting ? 'Voting...' : 'Upvote'}
           </button>
           <button 
             onClick={() => handleVote('down')}
-            disabled={voting || !uid}
+            disabled={voteSubmitting || !uid}
             className="flex items-center justify-center gap-2 px-4 py-2.5 bg-red-600 text-white rounded-2xl hover:bg-red-700 transition-colors text-sm font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <ThumbsDown className="w-4 h-4" />
-            {voting ? 'Voting...' : 'Downvote'}
+            {voteSubmitting ? 'Voting...' : 'Downvote'}
           </button>
         </div>
         
@@ -563,7 +523,7 @@ export function ReportDetailsCard({ report, onClose }: ReportDetailsCardProps) {
           <div className="grid grid-cols-2 gap-2">
             <button 
               onClick={() => handleConfirmStatus('resolved')}
-              disabled={confirming || !uid}
+              disabled={resolutionLoading || !uid}
               className="flex items-center justify-center gap-2 px-3 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors text-sm font-medium disabled:opacity-50"
               aria-label="Mark as resolved"
             >
@@ -572,7 +532,7 @@ export function ReportDetailsCard({ report, onClose }: ReportDetailsCardProps) {
             </button>
             <button 
               onClick={() => handleConfirmStatus('still_there')}
-              disabled={confirming || !uid}
+              disabled={resolutionLoading || !uid}
               className="flex items-center justify-center gap-2 px-3 py-2 bg-orange-600 text-white rounded-xl hover:bg-orange-700 transition-colors text-sm font-medium disabled:opacity-50"
               aria-label="Confirm still there"
             >
@@ -592,7 +552,11 @@ export function ReportDetailsCard({ report, onClose }: ReportDetailsCardProps) {
         </div>
         
         <button 
-          onClick={() => setShowFlagModal(true)}
+          onClick={() => {
+            if (requireAccount('flag report')) {
+              setShowFlagModal(true);
+            }
+          }}
           disabled={!uid}
           className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-100 text-slate-700 rounded-2xl hover:bg-slate-200 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
         >
@@ -622,6 +586,8 @@ export function ReportDetailsCard({ report, onClose }: ReportDetailsCardProps) {
         />
       </div>
     )}
+
+    <AuthModal isOpen={showAuthModal} onClose={closeAuthModal} />
 
     {/* Flag Modal */}
     {showFlagModal && (

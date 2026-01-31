@@ -2,44 +2,45 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-    
-    // Helper functions
+
     function isAuthenticated() {
-      return request.auth != null;
+      return request.auth != null
+        && request.auth.token.firebase.sign_in_provider != 'anonymous';
     }
-    
+
     function isOwner(uid) {
       return request.auth.uid == uid;
     }
-    
-    function isValidImage() {
-      return request.resource.contentType.matches('image/.*');
+
+    function isAllowedImageType() {
+      return request.resource.contentType in [
+        'image/jpeg',
+        'image/png',
+        'image/webp'
+      ];
     }
-    
+
     function isUnderSizeLimit() {
-      return request.resource.size < 5 * 1024 * 1024; // 5MB
+      return request.resource.size <= 5 * 1024 * 1024;
     }
-    
-    // Report photos: upload restricted to authenticated owner, reads public
+
+    function hasSafeFilename(filename) {
+      return filename.matches('^[A-Za-z0-9_-]+\\.(jpg|jpeg|png|webp)$');
+    }
+
     match /report_photos/{uid}/{reportId}/{filename} {
-      // Allow read to anyone (public reads)
       allow read: if true;
-      
-      // Allow write only if:
-      // 1. User is authenticated
-      // 2. User owns this path (uid matches)
-      // 3. File is an image
-      // 4. File size is under 5MB
-      allow write: if isAuthenticated()
-                   && isOwner(uid)
-                   && isValidImage()
-                   && isUnderSizeLimit();
-      
-      // Allow delete only to the owner
+
+      allow create: if isAuthenticated()
+                    && isOwner(uid)
+                    && isAllowedImageType()
+                    && isUnderSizeLimit()
+                    && hasSafeFilename(filename);
+
+      allow update: if false;
       allow delete: if isAuthenticated() && isOwner(uid);
     }
-    
-    // Deny all other paths by default
+
     match /{allPaths=**} {
       allow read, write: if false;
     }

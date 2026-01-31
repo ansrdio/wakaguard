@@ -7,6 +7,9 @@ import { useVote } from '@/hooks/useVote';
 import { useComments } from '@/hooks/useComments';
 import { useFlag } from '@/hooks/useFlag';
 import { useBlockedUsers } from '@/hooks/useBlockedUsers';
+import { useAuthedUser } from '@/hooks/useAuthedUser';
+import { useRequireAccount } from '@/hooks/useRequireAccount';
+import { AuthModal } from '@/components/AuthModal';
 import { PhotoCarousel } from '@/components/PhotoCarousel';
 import { CommentList } from '@/components/CommentList';
 import { FlagModal } from '@/components/FlagModal';
@@ -25,6 +28,8 @@ function ReportDetailContent() {
   const reportId = searchParams.get('id') || '';
   
   const { report, loading, error } = useReport(reportId);
+  const { uid, isAnonymous } = useAuthedUser();
+  const { requireAccount, showAuthModal, closeAuthModal } = useRequireAccount({ uid, isAnonymous });
   const { existingVote, loading: voteLoading, submitting, submitVote, hasVoted } = useVote(reportId);
   const { comments, loading: commentsLoading, submitting: commentSubmitting, addComment } = useComments(reportId);
   const { existingFlag: reportFlagged, submitFlag: submitReportFlag } = useFlag(FlagTargetType.REPORT, reportId);
@@ -77,6 +82,7 @@ function ReportDetailContent() {
 
   const handleVote = async (value: 1 | -1) => {
     setVoteMessage(null);
+    if (!requireAccount('vote')) return;
     const result = await submitVote(value);
     
     if (result.success) {
@@ -91,6 +97,8 @@ function ReportDetailContent() {
   const handleAddComment = async (e: React.FormEvent) => {
     e.preventDefault();
     setCommentMessage(null);
+
+    if (!requireAccount('add comment')) return;
 
     if (!commentText.trim()) {
       setCommentMessage('Please enter a comment');
@@ -111,6 +119,9 @@ function ReportDetailContent() {
   };
 
   const handleFlagReport = async (reason: string) => {
+    if (!requireAccount('flag report')) {
+      return { success: false, error: 'Sign in required' };
+    }
     const result = await submitReportFlag(reason);
     
     if (result.success) {
@@ -126,6 +137,8 @@ function ReportDetailContent() {
 
   const handleBlockUser = async () => {
     if (!report) return;
+
+    if (!requireAccount('block user')) return;
 
     if (window.confirm('Block this user? You will no longer see their reports or comments.')) {
       const result = await blockUser(report.uid);
@@ -236,6 +249,7 @@ function ReportDetailContent() {
   }
 
   return (
+    <>
     <div className="min-h-screen bg-gray-50">
       <header className="sticky top-0 z-10 bg-white shadow-sm">
         <div className="container mx-auto px-4 py-4">
@@ -535,15 +549,17 @@ function ReportDetailContent() {
           targetType="report"
         />
       </main>
-      
-      {toast && (
-        <Toast
-          type={toast.type}
-          message={toast.message}
-          onClose={() => setToast(null)}
-        />
-      )}
     </div>
+      
+    {toast && (
+      <Toast
+        type={toast.type}
+        message={toast.message}
+        onClose={() => setToast(null)}
+      />
+    )}
+    <AuthModal isOpen={showAuthModal} onClose={closeAuthModal} />
+    </>
   );
 }
 

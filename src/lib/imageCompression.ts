@@ -16,6 +16,9 @@ export async function compressImage(
     targetSizeKB = 600,
   } = options;
 
+  const MAX_BYTES = 5 * 1024 * 1024; // 5 MiB hard ceiling
+  const MIN_QUALITY = 0.1;
+
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
 
@@ -24,7 +27,21 @@ export async function compressImage(
 
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        let { width, height } = img;
+
+        const drawResized = (width: number, height: number) => {
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            reject(new Error('Failed to get canvas context'));
+            return false;
+          }
+          ctx.drawImage(img, 0, 0, width, height);
+          return true;
+        };
+
+        let width = img.width;
+        let height = img.height;
 
         if (width > maxWidth) {
           height = (height * maxWidth) / width;
@@ -35,41 +52,73 @@ export async function compressImage(
           height = maxHeight;
         }
 
-        canvas.width = width;
-        canvas.height = height;
+        width = Math.round(width);
+        height = Math.round(height);
 
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          reject(new Error('Failed to get canvas context'));
-          return;
-        }
+        if (!drawResized(width, height)) return;
 
-        ctx.drawImage(img, 0, 0, width, height);
+        const compressCanvas = (
+          startQuality: number,
+          done: (blob: Blob) => void,
+          onFail: (err: Error) => void
+        ) => {
+          let currentQuality = startQuality;
 
-        let currentQuality = quality;
-        const tryCompress = () => {
-          canvas.toBlob(
-            (blob) => {
-              if (!blob) {
-                reject(new Error('Failed to compress image'));
-                return;
-              }
+          const tryCompress = () => {
+            canvas.toBlob(
+              (blob) => {
+                if (!blob) {
+                  onFail(new Error('Failed to compress image'));
+                  return;
+                }
 
-              const sizeKB = blob.size / 1024;
+                if (blob.size > MAX_BYTES && currentQuality <= MIN_QUALITY) {
+                  onFail(
+                    new Error(
+                      'Photo is still above 5MB after compression. Please choose a smaller image.'
+                    )
+                  );
+                  return;
+                }
 
-              if (sizeKB > targetSizeKB && currentQuality > 0.1) {
-                currentQuality -= 0.05;
-                tryCompress();
-              } else {
-                resolve(blob);
-              }
-            },
-            'image/jpeg',
-            currentQuality
-          );
+                const sizeKB = blob.size / 1024;
+                if (sizeKB > targetSizeKB && currentQuality > MIN_QUALITY) {
+                  currentQuality = Math.max(MIN_QUALITY, currentQuality - 0.05);
+                  tryCompress();
+                  return;
+                }
+
+                if (blob.size <= MAX_BYTES) {
+                  done(blob);
+                } else {
+                  onFail(
+                    new Error(
+                      'Photo is still above 5MB after compression. Please choose a smaller image.'
+                    )
+                  );
+                }
+              },
+              'image/jpeg',
+              currentQuality
+            );
+          };
+
+          tryCompress();
         };
 
-        tryCompress();
+        compressCanvas(
+          quality,
+          (blob) => resolve(blob),
+          () => {
+            const fallbackScale = 0.75;
+            const fallbackWidth = Math.max(640, Math.round(width * fallbackScale));
+            const fallbackHeight = Math.max(640, Math.round(height * fallbackScale));
+
+            if (!drawResized(fallbackWidth, fallbackHeight)) return;
+
+            compressCanvas(0.8, (blob) => resolve(blob), (err) => reject(err));
+          }
+        );
       };
 
       img.onerror = () => reject(new Error('Failed to load image'));
@@ -82,8 +131,15 @@ export async function compressImage(
 }
 
 export function validateImageFile(file: File): { valid: boolean; error?: string } {
-  const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-  
+  const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+
+  if (!file.type) {
+    return {
+      valid: false,
+      error: 'Photo type could not be detected. Please choose a JPEG, PNG, or WebP image.',
+    };
+  }
+
   if (!validTypes.includes(file.type)) {
     return {
       valid: false,
@@ -91,11 +147,11 @@ export function validateImageFile(file: File): { valid: boolean; error?: string 
     };
   }
 
-  const maxSizeMB = 10;
-  if (file.size > maxSizeMB * 1024 * 1024) {
+  const MAX_BYTES = 5 * 1024 * 1024; // 5 MiB
+  if (file.size > MAX_BYTES) {
     return {
       valid: false,
-      error: `File size must be less than ${maxSizeMB}MB`,
+      error: 'Photo must be 5MB or less.',
     };
   }
 

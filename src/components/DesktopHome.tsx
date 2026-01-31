@@ -18,6 +18,7 @@ import { AppShell } from '@/components/layout/AppShell';
 import { NigerianState } from '@/lib/nigerianStates';
 import MapView from '@/components/MapView';
 import { useAuthedUser } from '@/hooks/useAuthedUser';
+import { useRequireAccount } from '@/hooks/useRequireAccount';
 import { useMyReports } from '@/hooks/useMyReports';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -64,9 +65,9 @@ export function DesktopHome({
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showMyReportsModal, setShowMyReportsModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
-  const [showAuthModal, setShowAuthModal] = useState(false);
 
-  const { uid } = useAuthedUser();
+  const { uid, isAnonymous } = useAuthedUser();
+  const { requireAccount, showAuthModal, openAuthModal, closeAuthModal } = useRequireAccount({ uid, isAnonymous });
   const { reports: myReports, loading: myReportsLoading, count: reportCount } = useMyReports();
   const { isSupported: pushSupported, isSubscribed, permission, subscribe, unsubscribe, loading: pushLoading } = usePushNotifications();
   const { isDark, toggleTheme } = useTheme();
@@ -247,7 +248,7 @@ export function DesktopHome({
                     {!uid && (
                       <div className="p-3 border-b border-slate-100 dark:border-slate-700">
                         <button
-                          onClick={() => { setShowAuthModal(true); setShowUserMenu(false); }}
+                          onClick={() => { openAuthModal(); setShowUserMenu(false); }}
                           className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
                         >
                           <LogOut className="w-4 h-4 rotate-180" />
@@ -685,7 +686,14 @@ export function DesktopHome({
                   </div>
                 </div>
                 <button
-                  onClick={() => isSubscribed ? unsubscribe() : subscribe()}
+                  onClick={() => {
+                    if (!requireAccount('push notifications')) return;
+                    if (isSubscribed) {
+                      unsubscribe();
+                    } else {
+                      subscribe();
+                    }
+                  }}
                   disabled={!pushSupported || permission === 'denied' || pushLoading}
                   className={`w-12 h-7 rounded-full transition-colors disabled:opacity-50 ${isSubscribed ? 'bg-blue-600' : 'bg-slate-300'}`}
                 >
@@ -726,7 +734,7 @@ export function DesktopHome({
       )}
 
       {/* Auth Modal */}
-      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
+      <AuthModal isOpen={showAuthModal} onClose={closeAuthModal} />
     </>
   );
 }

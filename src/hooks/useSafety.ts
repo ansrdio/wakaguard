@@ -180,17 +180,18 @@ export function useSafety(): UseSafetyReturn {
         console.warn('Could not get location for trip');
       }
 
+      const destinationValue = destination?.trim();
       const tripData: Omit<Trip, 'id'> = {
         uid,
         shareToken,
         status: TripStatus.ACTIVE,
         startTime: serverTimestamp() as any,
         expiresAt: Timestamp.fromDate(expiresAt),
-        destination,
-        lastLocation,
         lastUpdate: serverTimestamp() as any,
         notifiedContacts: [],
         createdAt: serverTimestamp() as any,
+        ...(destinationValue ? { destination: destinationValue } : {}),
+        ...(lastLocation ? { lastLocation } : {}),
       };
 
       await setDoc(doc(db, 'users', uid, 'trips', shareToken), tripData);
@@ -201,7 +202,7 @@ export function useSafety(): UseSafetyReturn {
         expiresAt: Timestamp.fromDate(expiresAt),
         lastLocation: lastLocation ? { lat: lastLocation.lat, lng: lastLocation.lng } : null,
         lastUpdate: serverTimestamp(),
-        destination: destination ?? null,
+        destination: destinationValue ?? null,
         createdAt: serverTimestamp(),
       }, { merge: true });
 
@@ -389,7 +390,7 @@ export function useSafety(): UseSafetyReturn {
         : null;
 
       // Get current location - use null instead of undefined (Firestore rejects undefined)
-      let lastLocation: { lat: number; lng: number; updatedAt: Timestamp } | null = null;
+      let lastLocation: { lat: number; lng: number; accuracy: number; updatedAt: Timestamp } | null = null;
       try {
         const position = await new Promise<GeolocationPosition>((resolve, reject) => {
           navigator.geolocation.getCurrentPosition(resolve, reject, {
@@ -400,6 +401,7 @@ export function useSafety(): UseSafetyReturn {
         lastLocation = {
           lat: position.coords.latitude,
           lng: position.coords.longitude,
+          accuracy: position.coords.accuracy,
           updatedAt: Timestamp.now(),
         };
       } catch (e) {
@@ -431,7 +433,9 @@ export function useSafety(): UseSafetyReturn {
         tripId: shareToken,
         status: TripStatus.ACTIVE,
         expiresAt: Timestamp.fromDate(expiresAt),
-        lastLocation: lastLocation ? { lat: lastLocation.lat, lng: lastLocation.lng, accuracy: (lastLocation as any).accuracy } : null,
+        lastLocation: lastLocation
+          ? { lat: lastLocation.lat, lng: lastLocation.lng, accuracy: lastLocation.accuracy }
+          : null,
         lastUpdate: serverTimestamp(),
         destination: options.destinationLabel ?? null,
         createdAt: serverTimestamp(),
@@ -542,9 +546,9 @@ export function useSafety(): UseSafetyReturn {
       const checkInData = {
         uid,
         tripId: activeTrip?.id || null,
-        location,
-        message: message || 'Quick check-in: I am safe',
+        message: message?.trim() || 'Quick check-in: I am safe',
         createdAt: serverTimestamp(),
+        ...(location ? { location } : {}),
       };
 
       await addDoc(collection(db, 'users', uid, 'checkIns'), checkInData);
@@ -590,13 +594,13 @@ export function useSafety(): UseSafetyReturn {
       const alertData = {
         type: AlertType.CHECKPOINT_STOP,
         tripId: activeTrip?.id || null,
-        location,
         message: 'Stopped at a checkpoint',
         acknowledged: false,
         notifiedContacts: [],
         createdAt: serverTimestamp(),
         // Flag for future backend notification
         shouldNotifyContacts: true,
+        ...(location ? { location } : {}),
       };
 
       await setDoc(doc(db, 'users', uid, 'alerts', alertId), alertData);
