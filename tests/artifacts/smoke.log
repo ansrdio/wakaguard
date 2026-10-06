@@ -1,33 +1,33 @@
-[WARN] [2026-01-31T03:10:09.720Z]  @firebase/firestore: Firestore (12.6.0): GrpcConnection RPC 'Write' stream 0x6ec775f8 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+[WARN] [2026-10-06T02:35:33.304Z]  @firebase/firestore: Firestore (12.8.0): GrpcConnection RPC 'Write' stream 0x284e29d7 error. Code: 7 Message: 7 PERMISSION_DENIED: 
 false for 'create' @ L118, false for 'update' @ L138
 [LOG] PASS: Guest: create report denied
 [LOG] PASS: Guest: upload photo denied
-[WARN] [2026-01-31T03:10:09.823Z]  @firebase/firestore: Firestore (12.6.0): GrpcConnection RPC 'Write' stream 0x6ec775f9 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+[WARN] [2026-10-06T02:35:33.383Z]  @firebase/firestore: Firestore (12.8.0): GrpcConnection RPC 'Write' stream 0x284e29d8 error. Code: 7 Message: 7 PERMISSION_DENIED: 
 false for 'create' @ L204, false for 'update' @ L217
 [LOG] PASS: Guest: create comment denied
-[WARN] [2026-01-31T03:10:09.833Z]  @firebase/firestore: Firestore (12.6.0): GrpcConnection RPC 'Write' stream 0x6ec775fa error. Code: 7 Message: 7 PERMISSION_DENIED: 
+[WARN] [2026-10-06T02:35:33.390Z]  @firebase/firestore: Firestore (12.8.0): GrpcConnection RPC 'Write' stream 0x284e29d9 error. Code: 7 Message: 7 PERMISSION_DENIED: 
 false for 'create' @ L237, false for 'update' @ L247
 [LOG] PASS: Guest: create vote denied
-[WARN] [2026-01-31T03:10:09.841Z]  @firebase/firestore: Firestore (12.6.0): GrpcConnection RPC 'Write' stream 0x6ec775fb error. Code: 7 Message: 7 PERMISSION_DENIED: 
+[WARN] [2026-10-06T02:35:33.397Z]  @firebase/firestore: Firestore (12.8.0): GrpcConnection RPC 'Write' stream 0x284e29da error. Code: 7 Message: 7 PERMISSION_DENIED: 
 false for 'create' @ L253, false for 'update' @ L262
 [LOG] PASS: Guest: create flag denied
-[WARN] [2026-01-31T03:10:09.852Z]  @firebase/firestore: Firestore (12.6.0): GrpcConnection RPC 'Write' stream 0x6ec775fc error. Code: 7 Message: 7 PERMISSION_DENIED: 
+[WARN] [2026-10-06T02:35:33.404Z]  @firebase/firestore: Firestore (12.8.0): GrpcConnection RPC 'Write' stream 0x284e29db error. Code: 7 Message: 7 PERMISSION_DENIED: 
 false for 'create' @ L332, false for 'update' @ L332
 [LOG] PASS: Guest: safety trip write denied
-[WARN] [2026-01-31T03:10:09.862Z]  @firebase/firestore: Firestore (12.6.0): GrpcConnection RPC 'Write' stream 0x6ec775fd error. Code: 7 Message: 7 PERMISSION_DENIED: 
+[WARN] [2026-10-06T02:35:33.412Z]  @firebase/firestore: Firestore (12.8.0): GrpcConnection RPC 'Write' stream 0x284e29dc error. Code: 7 Message: 7 PERMISSION_DENIED: 
 false for 'create' @ L332, false for 'update' @ L332
 [LOG] PASS: Guest: safety trip update denied
-[WARN] [2026-01-31T03:10:09.869Z]  @firebase/firestore: Firestore (12.6.0): GrpcConnection RPC 'Write' stream 0x6ec775fe error. Code: 7 Message: 7 PERMISSION_DENIED: 
+[WARN] [2026-10-06T02:35:33.418Z]  @firebase/firestore: Firestore (12.8.0): GrpcConnection RPC 'Write' stream 0x284e29dd error. Code: 7 Message: 7 PERMISSION_DENIED: 
 false for 'create' @ L322, false for 'update' @ L322
 [LOG] PASS: Guest: safety SOS denied
-[WARN] [2026-01-31T03:10:09.876Z]  @firebase/firestore: Firestore (12.6.0): GrpcConnection RPC 'Write' stream 0x6ec775ff error. Code: 7 Message: 7 PERMISSION_DENIED: 
+[WARN] [2026-10-06T02:35:33.424Z]  @firebase/firestore: Firestore (12.8.0): GrpcConnection RPC 'Write' stream 0x284e29de error. Code: 7 Message: 7 PERMISSION_DENIED: 
 false for 'create' @ L327, false for 'update' @ L327
 [LOG] PASS: Guest: check-in denied
-[WARN] [2026-01-31T03:10:09.885Z]  @firebase/firestore: Firestore (12.6.0): GrpcConnection RPC 'Write' stream 0x6ec77600 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+[WARN] [2026-10-06T02:35:33.431Z]  @firebase/firestore: Firestore (12.8.0): GrpcConnection RPC 'Write' stream 0x284e29df error. Code: 7 Message: 7 PERMISSION_DENIED: 
 false for 'create' @ L312, false for 'update' @ L312
 [LOG] PASS: Guest: trusted contact denied
-[WARN] [2026-01-31T03:10:09.891Z]  @firebase/firestore: Firestore (12.6.0): GrpcConnection RPC 'Write' stream 0x6ec77601 error. Code: 7 Message: 7 PERMISSION_DENIED: 
-false for 'create' @ L408, false for 'update' @ L412
+[WARN] [2026-10-06T02:35:33.437Z]  @firebase/firestore: Firestore (12.8.0): GrpcConnection RPC 'Write' stream 0x284e29e0 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+false for 'create' @ L411, false for 'update' @ L415
 [LOG] PASS: Guest: push subscription denied
 [LOG] PASS: Guest: push subscription update denied
 [LOG] PASS: Guest: read other user doc denied
@@ -36,21 +36,21 @@ false for 'create' @ L408, false for 'update' @ L412
 [LOG] PASS: User: upload photo
 [LOG] PASS: User: upload non-image denied
 [LOG] PASS: User: update report photoUrls
-[WARN] [2026-01-31T03:10:10.023Z]  @firebase/firestore: Firestore (12.6.0): GrpcConnection RPC 'Write' stream 0x6ec77604 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+[WARN] [2026-10-06T02:35:33.567Z]  @firebase/firestore: Firestore (12.8.0): GrpcConnection RPC 'Write' stream 0x284e29e3 error. Code: 7 Message: 7 PERMISSION_DENIED: 
 false for 'create' @ L118, evaluation error at L138:24 for 'update' @ L138, false for 'update' @ L138
 [LOG] PASS: User: report update forbidden field denied
-[WARN] [2026-01-31T03:10:10.034Z]  @firebase/firestore: Firestore (12.6.0): GrpcConnection RPC 'Write' stream 0x6ec77605 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+[WARN] [2026-10-06T02:35:33.577Z]  @firebase/firestore: Firestore (12.8.0): GrpcConnection RPC 'Write' stream 0x284e29e4 error. Code: 7 Message: 7 PERMISSION_DENIED: 
 false for 'create' @ L118, false for 'update' @ L138
 [LOG] PASS: User: report update >5 photos denied
 [LOG] PASS: User: create comment
 [LOG] PASS: User: create vote
-[WARN] [2026-01-31T03:10:10.050Z]  @firebase/firestore: Firestore (12.6.0): GrpcConnection RPC 'Write' stream 0x6ec77606 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+[WARN] [2026-10-06T02:35:33.591Z]  @firebase/firestore: Firestore (12.8.0): GrpcConnection RPC 'Write' stream 0x284e29e5 error. Code: 7 Message: 7 PERMISSION_DENIED: 
 false for 'create' @ L237, false for 'update' @ L247, false for 'update' @ L247
 [LOG] PASS: User: second vote denied
-[WARN] [2026-01-31T03:10:10.056Z]  @firebase/firestore: Firestore (12.6.0): GrpcConnection RPC 'Write' stream 0x6ec77607 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+[WARN] [2026-10-06T02:35:33.596Z]  @firebase/firestore: Firestore (12.8.0): GrpcConnection RPC 'Write' stream 0x284e29e6 error. Code: 7 Message: 7 PERMISSION_DENIED: 
 false for 'create' @ L237, false for 'update' @ L247
 [LOG] PASS: User: vote bad id denied
-[WARN] [2026-01-31T03:10:10.062Z]  @firebase/firestore: Firestore (12.6.0): GrpcConnection RPC 'Write' stream 0x6ec77608 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+[WARN] [2026-10-06T02:35:33.602Z]  @firebase/firestore: Firestore (12.8.0): GrpcConnection RPC 'Write' stream 0x284e29e7 error. Code: 7 Message: 7 PERMISSION_DENIED: 
 false for 'create' @ L237, false for 'update' @ L247
 [LOG] PASS: User: vote bad value denied
 [LOG] PASS: User: create flag
@@ -58,6 +58,10 @@ false for 'create' @ L237, false for 'update' @ L247
 [LOG] PASS: User: update trip location
 [LOG] PASS: User: create shared trip
 [LOG] PASS: User: update shared trip
+[LOG] PASS: User: update shared trip with endsAt/overdueAt
+[WARN] [2026-10-06T02:35:33.648Z]  @firebase/firestore: Firestore (12.8.0): GrpcConnection RPC 'Write' stream 0x284e29e8 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+false for 'create' @ L371, false for 'update' @ L375
+[LOG] PASS: User: shared trip with non-timestamp endsAt denied
 [LOG] PASS: User: shared trip set completed
 [LOG] PASS: Guest: public get completed shared trip denied
 [LOG] PASS: User: create expired shared trip
@@ -72,10 +76,10 @@ false for 'create' @ L237, false for 'update' @ L247
 [LOG] PASS: Read: guest can read report
 [LOG] PASS: Read: guest can read comment
 [LOG] PASS: Read: list pushSubscriptions denied
-[WARN] [2026-01-31T03:10:10.349Z]  @firebase/firestore: Firestore (12.6.0): GrpcConnection RPC 'Write' stream 0x6ec7760b error. Code: 7 Message: 7 PERMISSION_DENIED: 
+[WARN] [2026-10-06T02:35:33.729Z]  @firebase/firestore: Firestore (12.8.0): GrpcConnection RPC 'Write' stream 0x284e29eb error. Code: 7 Message: 7 PERMISSION_DENIED: 
 false for 'create' @ L118, evaluation error at L138:24 for 'update' @ L138, false for 'update' @ L138
 [LOG] PASS: User2: cannot update user1 report denied
-[WARN] [2026-01-31T03:10:10.359Z]  @firebase/firestore: Firestore (12.6.0): GrpcConnection RPC 'Write' stream 0x6ec7760c error. Code: 7 Message: 7 PERMISSION_DENIED: 
+[WARN] [2026-10-06T02:35:33.734Z]  @firebase/firestore: Firestore (12.8.0): GrpcConnection RPC 'Write' stream 0x284e29ec error. Code: 7 Message: 7 PERMISSION_DENIED: 
 false for 'create' @ L332, false for 'update' @ L332
 [LOG] PASS: User2: cannot write to user1 trips denied
 [LOG] PASS: User2: can vote on user1 report
@@ -83,9 +87,9 @@ false for 'create' @ L332, false for 'update' @ L332
 [LOG] PASS: User2: can read public comments
 [LOG] PASS: User: upload >5MB denied
 [LOG] PASS: User2: upload to user1 photo path denied
-[WARN] [2026-01-31T03:10:10.481Z]  @firebase/firestore: Firestore (12.6.0): GrpcConnection RPC 'Write' stream 0x6ec77609 error. Code: 7 Message: 7 PERMISSION_DENIED: 
-false for 'create' @ L368, evaluation error at L372:24 for 'update' @ L372, false for 'create' @ L368
+[WARN] [2026-10-06T02:35:33.807Z]  @firebase/firestore: Firestore (12.8.0): GrpcConnection RPC 'Write' stream 0x284e29e9 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+false for 'create' @ L371, evaluation error at L375:24 for 'update' @ L375, false for 'create' @ L371
 [LOG] PASS: User: sharedTrip create wrong owner denied
-[WARN] [2026-01-31T03:10:10.488Z]  @firebase/firestore: Firestore (12.6.0): GrpcConnection RPC 'Write' stream 0x6ec7760e error. Code: 7 Message: 7 PERMISSION_DENIED: 
-false for 'create' @ L368, false for 'update' @ L372
+[WARN] [2026-10-06T02:35:33.814Z]  @firebase/firestore: Firestore (12.8.0): GrpcConnection RPC 'Write' stream 0x284e29ee error. Code: 7 Message: 7 PERMISSION_DENIED: 
+false for 'create' @ L371, false for 'update' @ L375
 [LOG] PASS: User: sharedTrip create bad lat/lng denied

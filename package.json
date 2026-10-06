@@ -12,7 +12,10 @@
     "build:ios": "next build && npx cap copy ios",
     "emulators": "firebase emulators:start --only auth,firestore,storage",
     "test:smoke:run": "tsx tests/smoke.test.ts",
-    "test:smoke": "firebase emulators:exec --only auth,firestore,storage \"npm run test:smoke:run\""
+    "test:smoke": "firebase emulators:exec --only auth,firestore,storage \"npm run test:smoke:run\"",
+    "test:functions": "tsx --test functions/test/*.test.ts",
+    "test:monitor:run": "tsx --test functions/test/emulator/*.test.ts",
+    "test:monitor": "firebase emulators:exec --only firestore --project demo-wakaguard \"npm run test:monitor:run\""
   },
   "dependencies": {
     "@capacitor-community/contacts": "^7.1.0",

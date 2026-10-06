@@ -16,6 +16,7 @@ import MapView from '@/components/MapView';
 import { CreateReportModal } from '@/components/CreateReportModal';
 import NigerianStateSelector from '@/components/NigerianStateSelector';
 import { useSafety } from '@/hooks/useSafety';
+import { useTripLocationSync } from '@/hooks/useTripLocationSync';
 import { useEffect } from 'react';
 
 interface MobileHomeProps {
@@ -52,6 +53,8 @@ export function MobileHome({
   // Safety status for badge
   const { activeTrip, activeTimer } = useSafety();
   const hasSafetyActivity = !!(activeTrip || activeTimer);
+  // Runs here because MobileHome stays mounted across tabs
+  useTripLocationSync(activeTrip);
   
   // First-time user hint
   const [showWelcomeHint, setShowWelcomeHint] = useState(() => {

@@ -1,0 +1,449 @@
+/**
+ * Server-side safety monitor.
+ *
+ * The server, not the traveller's phone, decides when a trip or safety timer is
+ * overdue. This keeps the alarm working when the phone is off, out of coverage
+ * or out of battery.
+ *
+ * - checkOverdueTrips: runs every minute, warns the traveller at the deadline and
+ *   alerts trusted contacts after the grace period.
+ * - onTripUpdated / onSafetyTimerUpdated: tell contacts when an overdue person
+ *   checks in, extends or ends the trip.
+ * - onSOSAlert: sends SOS messages to trusted contacts.
+ */
+
+import * as functions from 'firebase-functions';
+import * as admin from 'firebase-admin';
+import { checkAndIncrementRateLimit } from './rateLimit';
+import { deliverSafetySms, getDisplayName, getTrustedContacts, Recipient } from './safetyDelivery';
+import { buildAllClearMessage, buildOverdueMessage, buildSosMessage } from './templates';
+import {
+  decideOverdueAction,
+  OverdueAlertState,
+  OverdueSubject,
+  OVERDUE_GRACE_MS,
+  OVERDUE_MAX_AGE_MS,
+  wasAlertDelivered,
+} from './overdueLogic';
+
+type DocRef = FirebaseFirestore.DocumentReference;
+type DocData = FirebaseFirestore.DocumentData;
+type Kind = 'trip' | 'timer';
+
+const BATCH_LIMIT = 200;
+
+/** Once contacts are alerted, keep the share link readable for this long. */
+const OVERDUE_LINK_MS = 72 * 60 * 60 * 1000;
+
+const toMillis = (v: any): number | null =>
+  v && typeof v.toMillis === 'function' ? v.toMillis() : null;
+
+function deadlineField(kind: Kind): 'endsAt' | 'expiresAt' {
+  return kind === 'trip' ? 'endsAt' : 'expiresAt';
+}
+
+function isStillActive(kind: Kind, data: DocData): boolean {
+  if (kind === 'trip') return data.status === 'active';
+  // Timers linked to a trip are covered by the trip's own deadline
+  return data.acknowledged === false && !data.tripId;
+}
+
+function toSubject(kind: Kind, data: DocData): OverdueSubject {
+  return {
+    deadlineMs: toMillis(data[deadlineField(kind)]) ?? NaN,
+    shouldNotifyContacts: data.shouldNotifyContacts,
+    overdueWarnedAtMs: toMillis(data.overdueWarnedAt),
+    overdueAlertState: data.overdueAlertState ?? null,
+    overdueAlertAttempts: data.overdueAlertAttempts ?? 0,
+    overdueAlertClaimedAtMs: toMillis(data.overdueAlertClaimedAt),
+  };
+}
+
+/** uid is the parent of the subcollection: users/{uid}/trips/{id} */
+function uidFromRef(ref: DocRef): string {
+  return ref.parent.parent!.id;
+}
+
+// -----------------------------------------------------------------------------
+// Scheduled monitor
+// -----------------------------------------------------------------------------
+
+export const checkOverdueTrips = functions.pubsub
+  .schedule('every 1 minutes')
+  .onRun(async () => {
+    const db = admin.firestore();
+    const nowMs = Date.now();
+    const now = admin.firestore.Timestamp.fromMillis(nowMs);
+    const oldest = admin.firestore.Timestamp.fromMillis(nowMs - OVERDUE_MAX_AGE_MS);
+
+    const [trips, timers] = await Promise.all([
+      db.collectionGroup('trips')
+        .where('status', '==', 'active')
+        .where('endsAt', '<=', now)
+        .where('endsAt', '>=', oldest)
+        .limit(BATCH_LIMIT)
+        .get(),
+      db.collectionGroup('safetyTimers')
+        .where('acknowledged', '==', false)
+        .where('expiresAt', '<=', now)
+        .where('expiresAt', '>=', oldest)
+        .limit(BATCH_LIMIT)
+        .get(),
+    ]);
+
+    const work: Array<Promise<void>> = [];
+    const queue = (kind: Kind, snap: FirebaseFirestore.QuerySnapshot) => {
+      snap.forEach((doc) => {
+        const data = doc.data();
+        if (!isStillActive(kind, data)) return;
+
+        const action = decideOverdueAction(toSubject(kind, data), nowMs);
+        if (action === 'warn') work.push(safely(() => warnTraveller(doc.ref, kind)));
+        if (action === 'alert') work.push(safely(() => alertContacts(doc.ref, kind)));
+      });
+    };
+
+    queue('trip', trips);
+    queue('timer', timers);
+
+    await Promise.all(work);
+    if (work.length > 0) {
+      console.log(`Overdue monitor handled ${work.length} item(s)`);
+    }
+    return null;
+  });
+
+/** One failing trip must not stop the others from being processed. */
+async function safely(fn: () => Promise<void>): Promise<void> {
+  try {
+    await fn();
+  } catch (err) {
+    console.error('Overdue monitor item failed:', err);
+  }
+}
+
+/**
+ * Deadline reached: push a reminder to the traveller so they can check in or
+ * add time before contacts are alerted.
+ */
+async function warnTraveller(ref: DocRef, kind: Kind): Promise<void> {
+  const db = admin.firestore();
+  const uid = uidFromRef(ref);
+
+  const claimed = await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const data = snap.data();
+    if (!data || !isStillActive(kind, data)) return false;
+    if (decideOverdueAction(toSubject(kind, data), Date.now()) !== 'warn') return false;
+    tx.update(ref, { overdueWarnedAt: admin.firestore.FieldValue.serverTimestamp() });
+    return true;
+  });
+  if (!claimed) return;
+
+  const subSnap = await db.doc(`pushSubscriptions/${uid}`).get();
+  const fcmToken = subSnap.data()?.fcmToken;
+  if (!fcmToken) return;
+
+  const graceMinutes = Math.round(OVERDUE_GRACE_MS / 60000);
+  try {
+    await admin.messaging().send({
+      token: fcmToken,
+      notification: {
+        title: 'Are you okay?',
+        body: `Check in or add time. Your contacts will be alerted in ${graceMinutes} minutes.`,
+      },
+      data: { type: 'overdue_warning', kind, id: ref.id },
+    });
+  } catch (err) {
+    console.warn(`Overdue warning push failed for ${uid}:`, err);
+  }
+}
+
+/**
+ * Grace period passed: alert trusted contacts by SMS and mark the trip overdue.
+ * The 'sending' claim is taken in a transaction so overlapping runs cannot
+ * both send.
+ */
+async function alertContacts(ref: DocRef, kind: Kind): Promise<void> {
+  const db = admin.firestore();
+  const uid = uidFromRef(ref);
+  const field = deadlineField(kind);
+
+  const claimed = await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const data = snap.data();
+    if (!data || !isStillActive(kind, data)) return null;
+    if (decideOverdueAction(toSubject(kind, data), Date.now()) !== 'alert') return null;
+
+    tx.update(ref, {
+      overdueAlertState: 'sending',
+      overdueAlertClaimedAt: admin.firestore.FieldValue.serverTimestamp(),
+      overdueAlertAttempts: admin.firestore.FieldValue.increment(1),
+      overdueAt: data.overdueAt ?? admin.firestore.FieldValue.serverTimestamp(),
+    });
+    return data;
+  });
+  if (!claimed) return;
+
+  const deadlineMs = toMillis(claimed[field])!;
+  const keepUntil = admin.firestore.Timestamp.fromMillis(Date.now() + OVERDUE_LINK_MS);
+
+  // Show the overdue state on the public page straight away, and keep the link
+  // alive: contacts need it most after the trip would normally have expired.
+  if (kind === 'trip') {
+    await Promise.all([
+      ref.update({ expiresAt: keepUntil }),
+      db.doc(`sharedTrips/${ref.id}`).set(
+        { overdueAt: admin.firestore.FieldValue.serverTimestamp(), expiresAt: keepUntil },
+        { merge: true }
+      ),
+    ]);
+  }
+
+  const contacts = await getTrustedContacts(uid, kind === 'trip' ? claimed.trustedContactIds : null);
+  let state: OverdueAlertState;
+  let notified: string[] = [];
+
+  if (contacts.length === 0) {
+    state = 'no_contacts';
+  } else {
+    const rate = await checkAndIncrementRateLimit(uid, 'overdue');
+    if (!rate.allowed) {
+      console.warn(`Overdue alert rate limited for ${uid}`);
+      state = 'failed';
+    } else {
+      const userName = await getDisplayName(uid);
+      const messageBody = buildOverdueMessage({
+        userName,
+        kind,
+        deadlineMs,
+        destination: claimed.destination ?? null,
+        lat: claimed.lastLocation?.lat ?? null,
+        lng: claimed.lastLocation?.lng ?? null,
+        lastUpdateMs: toMillis(claimed.lastUpdate),
+        token: kind === 'trip' ? ref.id : null,
+      });
+
+      const recipients: Recipient[] = contacts.map((c) => ({
+        id: c.id,
+        name: c.name,
+        phoneE164: c.phoneE164,
+      }));
+      const delivery = await deliverSafetySms({
+        uid,
+        type: 'overdue',
+        recipients,
+        messageBody,
+        payload: { kind, id: ref.id, deadlineMs },
+      });
+      state = delivery.status;
+      if (delivery.sent > 0) notified = contacts.map((c) => c.id);
+    }
+  }
+
+  // Only record the outcome if the deadline has not moved while we were sending.
+  // If the traveller extended in the meantime, onTripUpdated has already reset
+  // the overdue fields and they must stay reset.
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const data = snap.data();
+    if (!data || toMillis(data[field]) !== deadlineMs) return;
+    tx.update(ref, {
+      overdueAlertState: state,
+      lastContactNotificationAt: admin.firestore.FieldValue.serverTimestamp(),
+      ...(notified.length > 0 ? { notifiedContacts: notified } : {}),
+    });
+  });
+
+  await db.collection(`users/${uid}/alerts`).add({
+    type: kind === 'trip' ? 'check_in_missed' : 'timer_expired',
+    tripId: kind === 'trip' ? ref.id : null,
+    timerId: kind === 'timer' ? ref.id : null,
+    acknowledged: false,
+    notifiedContacts: notified,
+    deliveryState: state,
+    message: kind === 'trip'
+      ? 'Trip passed its expected arrival time without a check-in'
+      : 'Safety timer expired without check-in',
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+}
+
+// -----------------------------------------------------------------------------
+// All-clear messages
+// -----------------------------------------------------------------------------
+
+const OVERDUE_RESET = () => ({
+  overdueAt: admin.firestore.FieldValue.delete(),
+  overdueWarnedAt: admin.firestore.FieldValue.delete(),
+  overdueAlertState: admin.firestore.FieldValue.delete(),
+  overdueAlertAttempts: admin.firestore.FieldValue.delete(),
+  overdueAlertClaimedAt: admin.firestore.FieldValue.delete(),
+});
+
+async function sendAllClear(
+  ref: DocRef,
+  contactIds: string[] | null,
+  reason: 'ended' | 'extended' | 'checked_in',
+  newDeadlineMs?: number | null
+): Promise<void> {
+  const uid = uidFromRef(ref);
+  const contacts = await getTrustedContacts(uid, contactIds);
+  if (contacts.length === 0) return;
+
+  const userName = await getDisplayName(uid);
+  await deliverSafetySms({
+    uid,
+    type: 'all_clear',
+    recipients: contacts.map((c) => ({ id: c.id, name: c.name, phoneE164: c.phoneE164 })),
+    messageBody: buildAllClearMessage({ userName, reason, newDeadlineMs }),
+    payload: { id: ref.id, reason },
+  });
+}
+
+/**
+ * Contacts who were told someone is overdue must also be told when that
+ * person turns up. Fires when an overdue trip is ended or extended.
+ */
+export const onTripUpdated = functions.firestore
+  .document('users/{uid}/trips/{tripId}')
+  .onUpdate(async (change) => {
+    const before = change.before.data();
+    const after = change.after.data();
+    const ref = change.after.ref;
+    const db = admin.firestore();
+
+    if (before.status !== 'active') return null;
+
+    const beforeEnds = toMillis(before.endsAt);
+    const afterEnds = toMillis(after.endsAt);
+    const wasFlagged = !!(before.overdueAt || before.overdueWarnedAt);
+    const contactsWereTold = wasAlertDelivered(before.overdueAlertState);
+    const contactIds: string[] | null = after.trustedContactIds ?? null;
+
+    // Traveller added time after the deadline: re-arm the alarm
+    const extended = after.status === 'active'
+      && beforeEnds != null && afterEnds != null && afterEnds > beforeEnds;
+    if (extended && wasFlagged) {
+      await Promise.all([
+        ref.update(OVERDUE_RESET()),
+        db.doc(`sharedTrips/${ref.id}`).set(
+          { overdueAt: admin.firestore.FieldValue.delete() },
+          { merge: true }
+        ),
+      ]);
+      if (contactsWereTold) await sendAllClear(ref, contactIds, 'extended', afterEnds);
+      return null;
+    }
+
+    // Traveller ended the trip themselves (not the hourly auto-expiry)
+    const endedByUser = after.status === 'completed'
+      || (after.status === 'cancelled' && after.cancellationReason !== 'auto_expired');
+    if (endedByUser && contactsWereTold) {
+      const first = await db.runTransaction(async (tx) => {
+        const snap = await tx.get(ref);
+        if (snap.data()?.allClearSentAt) return false;
+        tx.update(ref, { allClearSentAt: admin.firestore.FieldValue.serverTimestamp() });
+        return true;
+      });
+      if (first) await sendAllClear(ref, contactIds, 'ended');
+    }
+
+    return null;
+  });
+
+/** Standalone safety timer acknowledged after contacts were alerted. */
+export const onSafetyTimerUpdated = functions.firestore
+  .document('users/{uid}/safetyTimers/{timerId}')
+  .onUpdate(async (change) => {
+    const before = change.before.data();
+    const after = change.after.data();
+
+    if (before.acknowledged !== false || after.acknowledged !== true) return null;
+    if (after.tripId || !wasAlertDelivered(before.overdueAlertState)) return null;
+
+    await sendAllClear(change.after.ref, null, 'checked_in');
+    return null;
+  });
+
+// -----------------------------------------------------------------------------
+// SOS
+// -----------------------------------------------------------------------------
+
+/**
+ * SOS alert created: message trusted contacts with the best known location.
+ * Runs on the server so it still goes out if the app is closed right after
+ * the button is pressed.
+ */
+export const onSOSAlert = functions.firestore
+  .document('users/{uid}/alerts/{alertId}')
+  .onCreate(async (snapshot, context) => {
+    const alertData = snapshot.data();
+    if (alertData.type !== 'sos') return null;
+
+    const db = admin.firestore();
+    const uid = context.params.uid as string;
+    const ref = snapshot.ref;
+
+    const claimed = await db.runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      if (!snap.exists || snap.data()?.smsState) return false;
+      tx.update(ref, { smsState: 'sending' });
+      return true;
+    });
+    if (!claimed) return null;
+
+    const tripId: string | null = alertData.tripId || null;
+    let lat: number | null = alertData.location?.lat ?? null;
+    let lng: number | null = alertData.location?.lng ?? null;
+
+    if (tripId) {
+      const tripRef = db.doc(`users/${uid}/trips/${tripId}`);
+      const keepUntil = admin.firestore.Timestamp.fromMillis(Date.now() + OVERDUE_LINK_MS);
+      const tripSnap = await tripRef.get();
+      if (tripSnap.exists) {
+        // Fall back to the trip's last known position if the phone had no fix
+        if (lat == null || lng == null) {
+          lat = tripSnap.data()?.lastLocation?.lat ?? null;
+          lng = tripSnap.data()?.lastLocation?.lng ?? null;
+        }
+        await Promise.all([
+          tripRef.update({ expiresAt: keepUntil }),
+          db.doc(`sharedTrips/${tripId}`).set({ expiresAt: keepUntil }, { merge: true }),
+        ]);
+      }
+    }
+
+    const contacts = (await getTrustedContacts(uid)).filter((c) => c.notifyOnSOS !== false);
+    if (contacts.length === 0) {
+      await ref.update({ smsState: 'no_contacts' });
+      return null;
+    }
+
+    const rate = await checkAndIncrementRateLimit(uid, 'sos');
+    if (!rate.allowed) {
+      await ref.update({ smsState: 'failed', smsError: 'rate_limited' });
+      return null;
+    }
+
+    const userName = await getDisplayName(uid);
+    const delivery = await deliverSafetySms({
+      uid,
+      type: 'sos',
+      recipients: contacts.map((c) => ({ id: c.id, name: c.name, phoneE164: c.phoneE164 })),
+      messageBody: buildSosMessage({
+        type: 'sos',
+        userName,
+        lat: lat ?? undefined,
+        lng: lng ?? undefined,
+        token: tripId ?? undefined,
+      }),
+      payload: { alertId: ref.id, tripId, lat, lng },
+    });
+
+    await ref.update({
+      smsState: delivery.status,
+      notifiedContacts: delivery.sent > 0 ? contacts.map((c) => c.id) : [],
+    });
+    return null;
+  });

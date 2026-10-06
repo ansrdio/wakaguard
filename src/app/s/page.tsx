@@ -5,11 +5,14 @@ import { useSearchParams } from 'next/navigation';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { SharedTrip, TripStatus } from '@/lib/types';
-import { MapPin, Clock, AlertTriangle, CheckCircle, Shield } from 'lucide-react';
+import { MapPin, Clock, AlertTriangle, CheckCircle, Shield, Phone, Navigation } from 'lucide-react';
 import { formatTimeRemaining, isTripExpired } from '@/lib/safety';
 import { lazy } from 'react';
 
 const MapView = lazy(() => import('@/components/MapView'));
+
+/** After this long without an update, say so plainly instead of implying live tracking */
+const STALE_AFTER_MS = 10 * 60 * 1000;
 
 function SharedTripContent() {
   const searchParams = useSearchParams();
@@ -20,6 +23,7 @@ function SharedTripContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdateAgo, setLastUpdateAgo] = useState<string>('');
+  const [nowMs, setNowMs] = useState(() => Date.now());
 
   useEffect(() => {
     if (!token) {
@@ -67,6 +71,7 @@ function SharedTripContent() {
 
     const updateTimestamp = () => {
       const now = Date.now();
+      setNowMs(now);
       const diff = now - trip.lastUpdate!.toMillis();
       const minutes = Math.floor(diff / 60000);
       
@@ -133,6 +138,19 @@ function SharedTripContent() {
 
   const isEmergency = trip.status === TripStatus.EMERGENCY;
 
+  // The server sets overdueAt once contacts are alerted; before that, a passed
+  // endsAt means the traveller is late but still inside the grace period.
+  const endsAtMs = trip.endsAt?.toMillis() ?? null;
+  const isOverdue = !isEmergency && (!!trip.overdueAt || (endsAtMs !== null && nowMs > endsAtMs));
+  const lastUpdateMs = trip.lastUpdate?.toMillis() ?? null;
+  // Updates normally arrive at least every 2 minutes while the app is open
+  const isStale = lastUpdateMs !== null && nowMs - lastUpdateMs > STALE_AFTER_MS;
+  const formatClock = (ms: number) =>
+    new Date(ms).toLocaleString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' });
+  const mapsUrl = trip.lastLocation
+    ? `https://maps.google.com/?q=${trip.lastLocation.lat},${trip.lastLocation.lng}`
+    : null;
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
@@ -158,22 +176,42 @@ function SharedTripContent() {
         </div>
       )}
 
+      {isOverdue && (
+        <div className="bg-red-600 text-white px-4 py-3">
+          <div className="max-w-7xl mx-auto flex items-start gap-2">
+            <AlertTriangle className="w-5 h-5 mt-0.5 shrink-0" />
+            <span className="font-semibold">
+              Overdue: this person has not checked in
+              {endsAtMs !== null ? `. They expected to arrive by ${formatClock(endsAtMs)}` : ''}. Try calling them.
+            </span>
+          </div>
+        </div>
+      )}
+
       <main className="flex-1 p-4">
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div className="lg:col-span-1 space-y-4">
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
               <div className="flex items-center gap-2 mb-4">
-                <div className={`w-3 h-3 rounded-full ${isEmergency ? 'bg-red-600 animate-pulse' : 'bg-green-600 animate-pulse'}`} />
-                <span className={`text-sm font-semibold ${isEmergency ? 'text-red-900' : 'text-green-900'}`}>
-                  {isEmergency ? 'Emergency Alert' : 'Trip Active'}
+                <div className={`w-3 h-3 rounded-full ${isEmergency || isOverdue ? 'bg-red-600 animate-pulse' : isStale ? 'bg-amber-500' : 'bg-green-600 animate-pulse'}`} />
+                <span className={`text-sm font-semibold ${isEmergency || isOverdue ? 'text-red-900' : isStale ? 'text-amber-900' : 'text-green-900'}`}>
+                  {isEmergency ? 'Emergency Alert' : isOverdue ? 'Overdue' : isStale ? 'No recent updates' : 'Trip Active'}
                 </span>
               </div>
 
               <div className="flex items-start gap-3 mb-4 pb-4 border-b border-slate-200">
                 <Clock className="w-5 h-5 text-slate-400 mt-0.5" />
                 <div>
-                  <p className="text-xs text-slate-500 mb-1">Last updated</p>
-                  <p className="text-sm font-medium text-slate-900">{lastUpdateAgo}</p>
+                  <p className="text-xs text-slate-500 mb-1">Last location received</p>
+                  <p className="text-sm font-medium text-slate-900">
+                    {lastUpdateAgo}
+                    {lastUpdateMs !== null && isStale ? ` (${formatClock(lastUpdateMs)})` : ''}
+                  </p>
+                  {isStale && (
+                    <p className="text-xs text-amber-700 mt-1">
+                      Their phone may be off, out of coverage, or the app may be closed. The map shows where they were, not where they are now.
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -181,7 +219,7 @@ function SharedTripContent() {
                 <div className="flex items-start gap-3 mb-4">
                   <MapPin className="w-5 h-5 text-blue-600 mt-0.5" />
                   <div>
-                    <p className="text-xs text-slate-500 mb-1">Current location</p>
+                    <p className="text-xs text-slate-500 mb-1">{isStale ? 'Last known location' : 'Current location'}</p>
                     <p className="text-sm font-medium text-slate-900">
                       {trip.lastLocation.lat.toFixed(6)}, {trip.lastLocation.lng.toFixed(6)}
                     </p>
@@ -204,6 +242,43 @@ function SharedTripContent() {
                 </div>
               )}
 
+              {endsAtMs !== null && (
+                <div className="flex items-start gap-3 mb-4">
+                  <Clock className={`w-5 h-5 mt-0.5 ${isOverdue ? 'text-red-600' : 'text-slate-400'}`} />
+                  <div>
+                    <p className="text-xs text-slate-500 mb-1">Expected arrival</p>
+                    <p className={`text-sm font-medium ${isOverdue ? 'text-red-700' : 'text-slate-900'}`}>
+                      {formatClock(endsAtMs)}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {(mapsUrl || isOverdue || isEmergency) && (
+                <div className="flex gap-2 mb-2">
+                  {mapsUrl && (
+                    <a
+                      href={mapsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 flex items-center justify-center gap-2"
+                    >
+                      <Navigation className="w-4 h-4" />
+                      Open in Maps
+                    </a>
+                  )}
+                  {(isOverdue || isEmergency) && (
+                    <a
+                      href="tel:112"
+                      className="flex-1 py-2.5 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 flex items-center justify-center gap-2"
+                    >
+                      <Phone className="w-4 h-4" />
+                      Call 112
+                    </a>
+                  )}
+                </div>
+              )}
+
               <div className="mt-4 pt-4 border-t border-slate-200">
                 <p className="text-xs text-slate-500 mb-1">Share expires</p>
                 <p className="text-sm font-medium text-slate-700">
@@ -216,7 +291,7 @@ function SharedTripContent() {
               <h3 className="text-sm font-semibold text-blue-900 mb-2">About This Share</h3>
               <p className="text-xs text-blue-700 leading-relaxed">
                 Someone you know has shared their live location with you using WakaGuard Safety. 
-                This page updates in real-time.
+                This page updates while their app is open and has signal.
               </p>
             </div>
 

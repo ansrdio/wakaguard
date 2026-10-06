@@ -66,6 +66,8 @@ interface UseSafetyReturn {
   startSafeTrip: (options: SafeTripOptions) => Promise<{ success: boolean; shareUrl?: string; error?: string }>;
   /** End the Safe Trip and associated timer */
   endSafeTrip: () => Promise<{ success: boolean; error?: string }>;
+  /** Push back the expected arrival time (also clears an overdue state on the server) */
+  extendSafeTrip: (minutes: number) => Promise<{ success: boolean; error?: string }>;
   /** Acknowledge the Safe Trip timer (check-in without ending trip) */
   acknowledgeSafeTripTimer: () => Promise<{ success: boolean; error?: string }>;
   
@@ -115,9 +117,11 @@ export function useSafety(): UseSafetyReturn {
     }
 
     const tripsRef = collection(db, 'users', uid, 'trips');
+    // An SOS moves the trip to 'emergency'; it must stay visible so tracking
+    // continues and the traveller can still end it.
     const q = query(
       tripsRef,
-      where('status', '==', 'active')
+      where('status', 'in', [TripStatus.ACTIVE, TripStatus.EMERGENCY])
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -315,21 +319,25 @@ export function useSafety(): UseSafetyReturn {
     if (!uid) return { success: false, error: 'Not authenticated' };
 
     try {
-      // Get current location
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 10000,
+      // Location is best effort: the alert must go out even without a GPS fix.
+      // The server falls back to the trip's last known position.
+      let location: { lat: number; lng: number } | null = null;
+      try {
+        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 10000,
+          });
         });
-      });
+        location = { lat: position.coords.latitude, lng: position.coords.longitude };
+      } catch (e) {
+        console.warn('Could not get location for SOS');
+      }
 
       const alertId = `sos_${uid}_${Date.now()}`;
       const alertData = {
         type: AlertType.SOS,
-        location: {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-        },
+        location,
         tripId: activeTrip?.id || null,
         acknowledged: false,
         notifiedContacts: [],
@@ -358,7 +366,7 @@ export function useSafety(): UseSafetyReturn {
 
       return { success: true };
     } catch (error) {
-      // If location fails, still try to create alert and call
+      // Even if the alert could not be saved, still open the dialer
       console.error('Error triggering SOS:', error);
       window.location.href = 'tel:112';
       return { success: true }; // Still consider it success since we're calling emergency
@@ -439,28 +447,11 @@ export function useSafety(): UseSafetyReturn {
         lastUpdate: serverTimestamp(),
         destination: options.destinationLabel ?? null,
         createdAt: serverTimestamp(),
+        endsAt: endsAt ? Timestamp.fromDate(endsAt) : null,
       }, { merge: true });
 
-      // If duration is set, also create a linked safety timer
-      if (options.expectedDurationMinutes && options.expectedDurationMinutes > 0) {
-        const timerId = `timer_${uid}_${Date.now()}`;
-        const timerExpiresAt = calculateTimerExpiry(options.expectedDurationMinutes);
-
-        const timerData: Omit<SafetyTimer, 'id'> = {
-          uid,
-          duration: options.expectedDurationMinutes,
-          startTime: serverTimestamp() as any,
-          expiresAt: Timestamp.fromDate(timerExpiresAt),
-          acknowledged: false,
-          notifiedContacts: [],
-          createdAt: serverTimestamp() as any,
-          // Link to trip
-          tripId: shareToken,
-          shouldNotifyContacts: true,
-        };
-
-        await setDoc(doc(db, 'users', uid, 'safetyTimers', timerId), timerData);
-      }
+      // The trip's endsAt is the single deadline. The server watches it and alerts
+      // contacts if the trip is still active afterwards, so no linked timer is needed.
 
       const shareUrl = `https://wakaguard.com/s?token=${shareToken}`;
       return { success: true, shareUrl };
@@ -503,6 +494,29 @@ export function useSafety(): UseSafetyReturn {
       return { success: false, error: 'Failed to end Safe Trip' };
     }
   }, [uid, activeTrip, activeTimer]);
+
+  // Push back the expected arrival time
+  const extendSafeTrip = useCallback(async (minutes: number) => {
+    if (!uid || !activeTrip) return { success: false, error: 'No active trip' };
+    if (!(minutes > 0)) return { success: false, error: 'Invalid duration' };
+
+    try {
+      // Extend from now if already past the deadline, otherwise from the deadline
+      const baseMs = Math.max(Date.now(), activeTrip.endsAt?.toMillis() ?? 0);
+      const endsAt = Timestamp.fromMillis(baseMs + minutes * 60 * 1000);
+
+      await updateDoc(doc(db, 'users', uid, 'trips', activeTrip.id), { endsAt });
+      try {
+        await updateDoc(doc(db, 'sharedTrips', activeTrip.id), { endsAt });
+      } catch (e) {
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error('Error extending Safe Trip:', error);
+      return { success: false, error: 'Failed to add time' };
+    }
+  }, [uid, activeTrip]);
 
   // Acknowledge Safe Trip timer (check-in without ending trip)
   const acknowledgeSafeTripTimer = useCallback(async () => {
@@ -628,6 +642,7 @@ export function useSafety(): UseSafetyReturn {
     // Safe Trip unified API
     startSafeTrip,
     endSafeTrip,
+    extendSafeTrip,
     acknowledgeSafeTripTimer,
     // Quick actions
     sendQuickCheckIn,

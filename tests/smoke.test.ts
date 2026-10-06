@@ -424,8 +424,28 @@ async function sharedTripCreate(ctx: AppContext, uid: string, token: string) {
     lastLocation: { lat: 6.5, lng: 3.4, accuracy: 12 },
     lastUpdate: Timestamp.now(),
     destination: 'Ikeja',
-    createdAt: Timestamp.now()
+    createdAt: Timestamp.now(),
+    endsAt: Timestamp.fromDate(new Date(Date.now() + 45 * 60 * 1000))
   });
+}
+
+// The server adds overdueAt; the owner's location updates must still pass rules afterwards
+async function sharedTripUpdateWhileOverdue(ctx: AppContext, token: string) {
+  const sharedRef = doc(ctx.db, 'sharedTrips', token);
+  const snapshot = await getDoc(sharedRef);
+  await setDoc(sharedRef, {
+    ...snapshot.data(),
+    overdueAt: Timestamp.now(),
+    endsAt: Timestamp.fromDate(new Date(Date.now() + 75 * 60 * 1000)),
+    lastLocation: { lat: 6.52, lng: 3.42, accuracy: 9 },
+    lastUpdate: Timestamp.now()
+  });
+}
+
+async function sharedTripUpdateBadEndsAt(ctx: AppContext, token: string) {
+  const sharedRef = doc(ctx.db, 'sharedTrips', token);
+  const snapshot = await getDoc(sharedRef);
+  await setDoc(sharedRef, { ...snapshot.data(), endsAt: 'soon' });
 }
 
 async function sharedTripUpdate(ctx: AppContext, uid: string, token: string) {
@@ -717,6 +737,12 @@ async function run() {
     );
     await runStep('User: create shared trip', () => sharedTripCreate(user, userUid, ids.tripId));
     await runStep('User: update shared trip', () => sharedTripUpdate(user, userUid, ids.tripId));
+    await runStep('User: update shared trip with endsAt/overdueAt', () =>
+      sharedTripUpdateWhileOverdue(user, ids.tripId)
+    );
+    await runStep('User: shared trip with non-timestamp endsAt denied', () =>
+      sharedTripUpdateBadEndsAt(user, ids.tripId), true
+    );
     await runStep('User: shared trip set completed', () =>
       sharedTripUpdateToCompleted(user, ids.tripId)
     );

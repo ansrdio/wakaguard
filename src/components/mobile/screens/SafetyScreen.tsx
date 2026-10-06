@@ -112,6 +112,7 @@ export function SafetyScreen() {
     activeTimer,
     startSafeTrip,
     endSafeTrip,
+    extendSafeTrip,
     acknowledgeSafeTripTimer,
     sendQuickCheckIn,
     triggerSOS,
@@ -366,6 +367,18 @@ export function SafetyScreen() {
       }
     } else {
       showToast(result.error || 'Failed to end trip', 'error');
+    }
+  };
+
+  const handleExtendTrip = async (minutes: number) => {
+    if (!uid || isAnonymous) return;
+    setProcessing(true);
+    const result = await extendSafeTrip(minutes);
+    setProcessing(false);
+    if (result.success) {
+      showToast(`Added ${minutes} minutes`, 'success');
+    } else {
+      showToast(result.error || 'Failed to add time', 'error');
     }
   };
 
@@ -791,8 +804,26 @@ export function SafetyScreen() {
             </div>
           )}
 
+          {/* Overdue / deadline notice */}
+          {activeTrip.endsAt && tripTimeStatus === 'expired' && (
+            <div className="bg-red-100 border border-red-300 rounded-xl p-3 mb-4 text-sm text-red-800">
+              {activeTrip.overdueAt
+                ? 'Your contacts have been alerted that you are overdue. Add time or end the trip to let them know you are okay.'
+                : 'Your expected arrival time has passed. Add time or end the trip, or your contacts will be alerted.'}
+            </div>
+          )}
+
           {/* Action Buttons */}
           <div className="flex gap-3">
+            {activeTrip.endsAt && (
+              <button
+                onClick={() => handleExtendTrip(30)}
+                disabled={processing}
+                className="flex-1 py-3 bg-white text-slate-800 border border-slate-300 rounded-xl font-semibold hover:bg-slate-50 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                +30 min
+              </button>
+            )}
             {activeTimer && (
               <button
                 onClick={handleCheckIn}
@@ -806,7 +837,7 @@ export function SafetyScreen() {
             <button
               onClick={handleEndSafeTrip}
               disabled={processing}
-              className={`${activeTimer ? 'flex-1' : 'w-full'} py-3 bg-emerald-600 text-white rounded-xl font-semibold hover:bg-emerald-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2`}
+              className={`${activeTimer || activeTrip.endsAt ? 'flex-1' : 'w-full'} py-3 bg-emerald-600 text-white rounded-xl font-semibold hover:bg-emerald-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2`}
             >
               {processing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
               End Trip
@@ -1106,7 +1137,7 @@ export function SafetyScreen() {
               </div>
               <p className="text-xs text-slate-500 mt-2">
                 {selectedDuration > 0 
-                  ? `You'll be prompted to check in after ${selectedDuration} minutes.`
+                  ? `If you haven't ended the trip ${selectedDuration} minutes from now, your contacts are alerted 5 minutes later, even if your phone is off.`
                   : 'No timer will be set.'}
               </p>
             </div>

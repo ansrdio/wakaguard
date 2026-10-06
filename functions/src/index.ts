@@ -1,9 +1,16 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import { migrateLegacyData } from './migrateLegacyData';
-import { sendSmsBatch, SendSmsResult } from './twilio';
 import { checkAndIncrementRateLimit } from './rateLimit';
 import { buildMessageForType, MessagePayload } from './templates';
+import { deliverSafetySms, isValidE164, TrustedContactDoc } from './safetyDelivery';
+
+export {
+  checkOverdueTrips,
+  onTripUpdated,
+  onSafetyTimerUpdated,
+  onSOSAlert,
+} from './tripMonitor';
 
 admin.initializeApp();
 
@@ -642,81 +649,6 @@ export const cleanupExpiredTrips = functions.pubsub
     }
   });
 
-// =============================================================================
-// SAFETY NOTIFICATION STUBS
-// =============================================================================
-
-/**
- * Cloud Function triggered when a safety timer expires
- * Placeholder for future SMS/WhatsApp notification integration
- */
-export const onTimerExpired = functions.firestore
-  .document('users/{uid}/safetyTimers/{timerId}')
-  .onUpdate(async (change, context) => {
-    const before = change.before.data();
-    const after = change.after.data();
-    const timerId = context.params.timerId;
-    const uid = context.params.uid;
-
-    // Check if timer just expired (was not acknowledged and time passed)
-    const wasActive = !before.acknowledged;
-    const isExpired = after.expiresAt.toMillis() < Date.now() && !after.acknowledged;
-    
-    if (wasActive && isExpired && after.shouldNotifyContacts) {
-      console.log(`Timer ${timerId} expired - notification would be sent here`);
-      
-      // TODO: Implement actual notification sending
-      // - Fetch trusted contacts for user
-      // - Send SMS via Twilio/Africa's Talking
-      // - Send WhatsApp via Twilio/WhatsApp Business API
-      // - Log notification in alerts collection
-      
-      // For now, just log the alert
-      await db.collection('users').doc(uid).collection('alerts').add({
-        type: 'timer_expired',
-        timerId,
-        tripId: after.tripId || null,
-        acknowledged: false,
-        notifiedContacts: [],
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        message: 'Safety timer expired without check-in',
-      });
-      
-      console.log(`Created timer_expired alert for user ${uid}`);
-    }
-    
-    return null;
-  });
-
-/**
- * Cloud Function triggered when an SOS alert is created
- * Placeholder for future emergency notification integration
- */
-export const onSOSAlert = functions.firestore
-  .document('users/{uid}/alerts/{alertId}')
-  .onCreate(async (snapshot, context) => {
-    const alertData = snapshot.data();
-    const alertId = context.params.alertId;
-    const uid = context.params.uid;
-
-    if (alertData.type !== 'sos') {
-      return null;
-    }
-
-    console.log(`SOS Alert ${alertId} created for user ${uid}`);
-    
-    // TODO: Implement emergency notification
-    // - Fetch trusted contacts for user
-    // - Send SMS with location link
-    // - Send WhatsApp message
-    // - Potentially notify emergency services API
-    
-    // For now, just log
-    console.log(`SOS location: ${alertData.location?.lat}, ${alertData.location?.lng}`);
-    
-    return null;
-  });
-
 // -------------------------------------------------------------------------
 // Safety SMS Messaging
 // -------------------------------------------------------------------------
@@ -727,17 +659,7 @@ type SafetySmsRequest =
   | { type: 'trip_share'; token: string; lat?: number; lng?: number }
   | { type: 'one_time'; phoneE164: string; message: string };
 
-interface TrustedContact {
-  name: string;
-  phoneE164: string;
-  notifyOnSOS?: boolean;
-  notifyOnCheckIn?: boolean;
-  notifyOnTripShare?: boolean;
-}
-
-function isValidE164(phone: string): boolean {
-  return /^\+[1-9]\d{6,14}$/.test(phone);
-}
+type TrustedContact = TrustedContactDoc;
 
 /**
  * Callable function to send safety SMS messages.
@@ -828,54 +750,12 @@ export const sendSafetySms = functions.https.onCall(async (data: SafetySmsReques
 
   const messageBody = buildMessageForType(payload);
 
-  // 6. Check if SMS is enabled (for beta/Twilio verification pending)
-  const smsEnabled = process.env.SMS_ENABLED !== 'false' && 
-    functions.config().sms?.enabled !== 'false';
-
-  let providerResults: SendSmsResult[] = [];
-  let status: 'sent' | 'partial' | 'failed' | 'blocked';
-  let successCount = 0;
-  let failCount = 0;
-
-  if (!smsEnabled) {
-    // Mock mode: log but don't send
-    console.log(`Safety SMS [${data.type}] BLOCKED (SMS disabled) for ${uid}: ${recipients.length} recipients`);
-    
-    providerResults = recipients.map((r) => ({
-      phoneE164: r.phoneE164,
-      error: 'SMS sending is not yet available. Twilio verification pending.',
-    }));
-    
-    status = 'blocked';
-    failCount = recipients.length;
-  } else {
-    // Real mode: send via Twilio
-    const smsRequests = recipients.map((r) => ({
-      phoneE164: r.phoneE164,
-      body: messageBody,
-    }));
-
-    providerResults = await sendSmsBatch(smsRequests);
-
-    // Determine overall status
-    successCount = providerResults.filter((r) => r.sid && !r.error).length;
-    failCount = providerResults.filter((r) => r.error).length;
-
-    if (successCount === recipients.length) {
-      status = 'sent';
-    } else if (successCount > 0) {
-      status = 'partial';
-    } else {
-      status = 'failed';
-    }
-  }
-
-  // 7. Write message log
-  const logRef = db.collection('safetyMessageLogs').doc();
-  await logRef.set({
+  // 6. Send and log
+  const delivery = await deliverSafetySms({
     uid,
     type: data.type,
-    recipients: recipients.map((r) => ({ name: r.name || null, phoneE164: r.phoneE164 })),
+    recipients,
+    messageBody,
     payload: {
       lat: payload.lat ?? null,
       lng: payload.lng ?? null,
@@ -883,18 +763,8 @@ export const sendSafetySms = functions.https.onCall(async (data: SafetySmsReques
       token: payload.token ?? null,
       message: payload.message ?? null,
     },
-    messageBody,
-    status,
-    provider: smsEnabled ? 'twilio' : 'blocked',
-    providerResult: providerResults.map((r) => ({
-      phoneE164: r.phoneE164,
-      sid: r.sid ?? null,
-      error: r.error ?? null,
-    })),
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
   });
-
-  console.log(`Safety SMS [${data.type}] by ${uid}: status=${status}, sent=${successCount}/${recipients.length}`);
+  const status = delivery.status;
 
   // Return appropriate response
   if (status === 'blocked') {
@@ -903,7 +773,7 @@ export const sendSafetySms = functions.https.onCall(async (data: SafetySmsReques
       status: 'blocked',
       sent: 0,
       failed: recipients.length,
-      logId: logRef.id,
+      logId: delivery.logId,
       message: 'SMS sending is not yet available. Your message was prepared - you can share via WhatsApp instead.',
     };
   }
@@ -911,9 +781,9 @@ export const sendSafetySms = functions.https.onCall(async (data: SafetySmsReques
   return {
     success: status !== 'failed',
     status,
-    sent: successCount,
-    failed: failCount,
-    logId: logRef.id,
+    sent: delivery.sent,
+    failed: delivery.failed,
+    logId: delivery.logId,
   };
 });
 

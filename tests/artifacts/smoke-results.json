@@ -1,9 +1,9 @@
 {
-  "startedAt": "2026-01-31T03:10:08.933Z",
-  "finishedAt": "2026-01-31T03:10:10.491Z",
-  "durationMs": 1558,
-  "total": 53,
-  "passed": 53,
+  "startedAt": "2026-10-06T02:35:32.526Z",
+  "finishedAt": "2026-10-06T02:35:33.815Z",
+  "durationMs": 1289,
+  "total": 55,
+  "passed": 55,
   "failed": 0,
   "results": [
     {
@@ -124,6 +124,14 @@
     },
     {
       "name": "User: update shared trip",
+      "status": "PASS"
+    },
+    {
+      "name": "User: update shared trip with endsAt/overdueAt",
+      "status": "PASS"
+    },
+    {
+      "name": "User: shared trip with non-timestamp endsAt denied",
       "status": "PASS"
     },
     {

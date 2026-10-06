@@ -225,6 +225,10 @@ export interface SharedTrip {
   lastUpdate?: Timestamp;
   destination?: string;
   createdAt: Timestamp;
+  /** Expected arrival time; the server alerts contacts if the trip is still active after this */
+  endsAt?: Timestamp | null;
+  /** Set by the server when the trip passed endsAt without a check-in */
+  overdueAt?: Timestamp | null;
 }
 
 export enum FlagTargetType {
@@ -335,6 +339,10 @@ export interface Trip {
   shouldNotifyContacts?: boolean;
   /** Timestamp of last notification sent */
   lastContactNotificationAt?: Timestamp | null;
+  /** Set by the server when the trip passed endsAt without a check-in */
+  overdueAt?: Timestamp | null;
+  /** Server-managed delivery state of the overdue alert */
+  overdueAlertState?: 'sending' | 'sent' | 'partial' | 'failed' | 'blocked' | 'no_contacts';
 
   cancellationReason?: string;
 }
