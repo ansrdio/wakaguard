@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useMemo, memo, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { MAP_TILES } from '@/lib/mapTiles';
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import L from 'leaflet';
 import { Crosshair, MapPin } from 'lucide-react';
@@ -303,8 +304,9 @@ const MapView = memo(function MapView({ reports, selectedReportId, onMarkerClick
         ref={leafletMapRef}
       >
       <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-        url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+        attribution={MAP_TILES.attribution}
+        url={MAP_TILES.url}
+        maxZoom={MAP_TILES.maxZoom}
       />
       
       <MapController 
