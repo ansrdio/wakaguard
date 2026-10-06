@@ -5,6 +5,7 @@ import { checkAndIncrementRateLimit } from './rateLimit';
 import { buildMessageForType, MessagePayload } from './templates';
 import { deliverSafetySms, isValidE164, TrustedContactDoc } from './safetyDelivery';
 
+export { tripLocation } from './tripLocation';
 export {
   checkOverdueTrips,
   onTripUpdated,

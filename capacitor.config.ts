@@ -44,6 +44,8 @@ const config: CapacitorConfig = {
   },
   android: {
     backgroundColor: '#1e293b',
+    // Stops background location updates halting after 5 minutes
+    useLegacyBridge: true,
     allowMixedContent: true,
   },
 };

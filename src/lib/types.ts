@@ -339,6 +339,8 @@ export interface Trip {
   shouldNotifyContacts?: boolean;
   /** Timestamp of last notification sent */
   lastContactNotificationAt?: Timestamp | null;
+  /** Secret that lets the native app post location for this trip without an auth token */
+  locationKey?: string;
   /** Set by the server when the trip passed endsAt without a check-in */
   overdueAt?: Timestamp | null;
   /** Server-managed delivery state of the overdue alert */

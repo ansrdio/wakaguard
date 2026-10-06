@@ -433,6 +433,8 @@ export function useSafety(): UseSafetyReturn {
         endsAt: endsAt ? Timestamp.fromDate(endsAt) : null,
         trustedContactIds: options.trustedContactIds ?? [],
         shouldNotifyContacts: true,
+        // Private to the owner; never copied to the public sharedTrips doc
+        locationKey: generateShareToken(),
       };
 
       await setDoc(doc(db, 'users', uid, 'trips', shareToken), tripData);

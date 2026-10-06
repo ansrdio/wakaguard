@@ -54,7 +54,14 @@ export function MobileHome({
   const { activeTrip, activeTimer } = useSafety();
   const hasSafetyActivity = !!(activeTrip || activeTimer);
   // Runs here because MobileHome stays mounted across tabs
-  useTripLocationSync(activeTrip);
+  useTripLocationSync(activeTrip, (problem) => {
+    setToast({
+      message: problem === 'permission_denied'
+        ? 'Location permission is off. Your contacts cannot see where you are. Turn it on in Settings.'
+        : 'Location is unavailable. Your contacts cannot see where you are.',
+      type: 'error',
+    });
+  });
   
   // First-time user hint
   const [showWelcomeHint, setShowWelcomeHint] = useState(() => {

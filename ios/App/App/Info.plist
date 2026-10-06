@@ -50,6 +50,14 @@
 		<key>NSAllowsArbitraryLoads</key>
 		<true/>
 	</dict>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>WakaGuard uses your location to show nearby road reports and to share your position with your trusted contacts during a Safe Trip.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>WakaGuard keeps sharing your location with your trusted contacts during a Safe Trip, including when your phone is locked. Tracking stops when the trip ends.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+	</array>
 	<key>NSContactsUsageDescription</key>
 	<string>WakaGuard needs access to your contacts to add trusted contacts for safety features.</string>
 	<key>UILaunchStoryboardName</key>

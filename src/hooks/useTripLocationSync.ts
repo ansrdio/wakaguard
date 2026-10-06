@@ -1,13 +1,14 @@
 /**
  * @fileoverview Keeps an active Safe Trip's location up to date
  *
- * Watches the device position while a trip is active and writes it to the
- * private trip document and the public share document. Writes are throttled
- * to limit battery, data and Firestore usage, with a heartbeat so contacts can
- * tell a stationary traveller from a phone that has gone quiet.
+ * Two location sources, same throttling:
+ * - Native app: a background location watcher that keeps running with the
+ *   screen locked. Updates are posted with native HTTP to the tripLocation
+ *   function, because Android throttles WebView requests in the background.
+ * - Browser: the web Geolocation API, written straight to Firestore. This
+ *   only works while the page is open and visible.
  *
- * Mount this once, high in the tree. It only runs while the app is in the
- * foreground; background tracking needs a native plugin.
+ * Mount this once, high in the tree.
  *
  * @module useTripLocationSync
  */
@@ -15,77 +16,161 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { Capacitor, CapacitorHttp, registerPlugin } from '@capacitor/core';
+import type { BackgroundGeolocationPlugin } from '@capacitor-community/background-geolocation';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuthedUser } from '@/hooks/useAuthedUser';
 import { calculateDistance } from '@/lib/geo';
+import { HEARTBEAT_MS, LocationFix, SentFix, shouldSendFix, tripLocationEndpoint } from '@/lib/tripLocation';
 import { Trip } from '@/lib/types';
 
-/** Never write more often than this */
-const MIN_INTERVAL_MS = 30 * 1000;
-/** Always write at least this often, even when not moving */
-const HEARTBEAT_MS = 2 * 60 * 1000;
-/** Movement that justifies a write before the heartbeat */
-const MIN_MOVE_METERS = 50;
+const BackgroundGeolocation = registerPlugin<BackgroundGeolocationPlugin>('BackgroundGeolocation');
 
-export function useTripLocationSync(activeTrip: Trip | null) {
+export type TripLocationProblem = 'permission_denied' | 'unavailable';
+
+const distance = (a: LocationFix, b: LocationFix) => calculateDistance(a.lat, a.lng, b.lat, b.lng);
+
+async function writeViaFirestore(uid: string, tripId: string, fix: LocationFix) {
+  const lastLocation = { lat: fix.lat, lng: fix.lng, ...(fix.accuracy != null ? { accuracy: fix.accuracy } : {}) };
+  await Promise.all([
+    updateDoc(doc(db, 'users', uid, 'trips', tripId), { lastLocation, lastUpdate: serverTimestamp() }),
+    updateDoc(doc(db, 'sharedTrips', tripId), { lastLocation, lastUpdate: serverTimestamp() }),
+  ]);
+}
+
+async function writeViaNativeHttp(uid: string, tripId: string, key: string, fix: LocationFix) {
+  const url = tripLocationEndpoint();
+  if (!url) throw new Error('tripLocation endpoint not configured');
+
+  const response = await CapacitorHttp.post({
+    url,
+    headers: { 'Content-Type': 'application/json' },
+    data: { uid, tripId, key, lat: fix.lat, lng: fix.lng, accuracy: fix.accuracy ?? null },
+    connectTimeout: 15000,
+    readTimeout: 15000,
+  });
+  if (response.status >= 400) throw new Error(`tripLocation responded ${response.status}`);
+}
+
+/**
+ * @param activeTrip The trip to track, or null
+ * @param onProblem Called once per trip if location cannot be read
+ */
+export function useTripLocationSync(
+  activeTrip: Trip | null,
+  onProblem?: (problem: TripLocationProblem) => void
+) {
   const { uid } = useAuthedUser();
   const tripId = activeTrip?.id ?? null;
-  const lastSent = useRef<{ at: number; lat: number; lng: number } | null>(null);
+  const locationKey = activeTrip?.locationKey ?? null;
+  const onProblemRef = useRef(onProblem);
+  useEffect(() => {
+    onProblemRef.current = onProblem;
+  });
 
   useEffect(() => {
     if (!uid || !tripId) return;
-    if (typeof navigator === 'undefined' || !navigator.geolocation) return;
 
-    lastSent.current = null;
+    const isNative = Capacitor.isNativePlatform();
+    let lastSent: SentFix | null = null;
+    let latest: LocationFix | null = null;
+    let problemReported = false;
+    let stopped = false;
 
-    const send = async (position: GeolocationPosition) => {
-      const { latitude: lat, longitude: lng, accuracy } = position.coords;
+    const reportProblem = (problem: TripLocationProblem) => {
+      if (problemReported) return;
+      problemReported = true;
+      onProblemRef.current?.(problem);
+    };
+
+    const offer = async (fix: LocationFix) => {
+      if (stopped) return;
+      latest = fix;
       const now = Date.now();
-      const prev = lastSent.current;
+      if (!shouldSendFix(lastSent, fix, now, distance)) return;
 
-      if (prev) {
-        const elapsed = now - prev.at;
-        if (elapsed < MIN_INTERVAL_MS) return;
-        const moved = calculateDistance(prev.lat, prev.lng, lat, lng) >= MIN_MOVE_METERS;
-        if (!moved && elapsed < HEARTBEAT_MS) return;
-      }
-      lastSent.current = { at: now, lat, lng };
-
+      const previous = lastSent;
+      lastSent = { ...fix, at: now };
       try {
-        await Promise.all([
-          updateDoc(doc(db, 'users', uid, 'trips', tripId), {
-            lastLocation: { lat, lng, accuracy },
-            lastUpdate: serverTimestamp(),
-          }),
-          updateDoc(doc(db, 'sharedTrips', tripId), {
-            lastLocation: { lat, lng, accuracy },
-            lastUpdate: serverTimestamp(),
-          }),
-        ]);
+        if (isNative && locationKey) {
+          await writeViaNativeHttp(uid, tripId, locationKey, fix);
+        } else {
+          await writeViaFirestore(uid, tripId, fix);
+        }
       } catch (error) {
+        // Let the next fix retry instead of waiting out the throttle
+        lastSent = previous;
         console.error('Error syncing trip location:', error);
       }
     };
 
+    // ---- Native: background-capable watcher --------------------------------
+    if (isNative) {
+      let watcherId: string | null = null;
+
+      BackgroundGeolocation.addWatcher(
+        {
+          backgroundTitle: 'Safe Trip active',
+          backgroundMessage: 'Sharing your location with your trusted contacts.',
+          requestPermissions: true,
+          stale: false,
+          // No distance filter: fixes while stationary provide the heartbeat
+          distanceFilter: 0,
+        },
+        (position, error) => {
+          if (error) {
+            reportProblem(error.code === 'NOT_AUTHORIZED' ? 'permission_denied' : 'unavailable');
+            return;
+          }
+          if (position) {
+            offer({ lat: position.latitude, lng: position.longitude, accuracy: position.accuracy });
+          }
+        }
+      )
+        .then((id) => {
+          watcherId = id;
+          // The trip ended while the watcher was still being created
+          if (stopped) BackgroundGeolocation.removeWatcher({ id });
+        })
+        .catch((error) => {
+          console.error('Could not start background location:', error);
+          reportProblem('unavailable');
+        });
+
+      return () => {
+        stopped = true;
+        if (watcherId) BackgroundGeolocation.removeWatcher({ id: watcherId });
+      };
+    }
+
+    // ---- Browser: foreground only -----------------------------------------
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      reportProblem('unavailable');
+      return;
+    }
+
+    const fromPosition = (p: GeolocationPosition) =>
+      offer({ lat: p.coords.latitude, lng: p.coords.longitude, accuracy: p.coords.accuracy });
+
     const watchId = navigator.geolocation.watchPosition(
-      send,
-      (error) => console.warn('Trip location unavailable:', error.message),
+      fromPosition,
+      (error) => {
+        console.warn('Trip location unavailable:', error.message);
+        if (error.code === error.PERMISSION_DENIED) reportProblem('permission_denied');
+      },
       { enableHighAccuracy: true, maximumAge: 15000, timeout: 30000 }
     );
 
-    // watchPosition only fires on movement, so poll for the stationary heartbeat
+    // watchPosition only fires on movement, so re-offer the latest fix for the heartbeat
     const heartbeat = setInterval(() => {
-      navigator.geolocation.getCurrentPosition(send, () => {}, {
-        enableHighAccuracy: false,
-        maximumAge: 60000,
-        timeout: 20000,
-      });
-    }, HEARTBEAT_MS);
+      if (latest) offer(latest);
+    }, HEARTBEAT_MS / 2);
 
     return () => {
+      stopped = true;
       navigator.geolocation.clearWatch(watchId);
       clearInterval(heartbeat);
     };
-  }, [uid, tripId]);
+  }, [uid, tripId, locationKey]);
 }
