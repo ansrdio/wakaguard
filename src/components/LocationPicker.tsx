@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import { MAP_TILES } from '@/lib/mapTiles';
 import L from 'leaflet';
 
 const icon = L.icon({
@@ -54,8 +55,9 @@ export default function LocationPicker({ location, onLocationSelect }: LocationP
         className="cursor-crosshair"
       >
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution={MAP_TILES.attribution}
+          url={MAP_TILES.url}
+          maxZoom={MAP_TILES.maxZoom}
         />
         <LocationMarker location={location} onLocationSelect={onLocationSelect} />
       </MapContainer>
