@@ -2,6 +2,7 @@
  * @fileoverview Firebase initialization and configuration
  * 
  * This module initializes Firebase services for the WakaGuard application:
+ * - App Check (optional, when a site key is configured)
  * - Firebase Authentication (anonymous + Google sign-in)
  * - Cloud Firestore (NoSQL database)
  * - Firebase Storage (image uploads)
@@ -13,6 +14,7 @@
  */
 
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
+import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
 import { getAuth, Auth } from 'firebase/auth';
 import { getFirestore, Firestore, enableIndexedDbPersistence } from 'firebase/firestore';
 import { getStorage, FirebaseStorage } from 'firebase/storage';
@@ -43,7 +45,30 @@ let storage: FirebaseStorage;
 // Initialize Firebase only on client-side (not during SSR)
 if (typeof window !== 'undefined') {
   // Prevent re-initialization if already initialized (hot reload safety)
-  app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+  const isFirstInit = getApps().length === 0;
+  app = isFirstInit ? initializeApp(firebaseConfig) : getApps()[0];
+
+  // App Check lets Firebase tell this app's requests from scripted ones. It is
+  // off until a reCAPTCHA v3 site key is configured, and must be set up before
+  // the other services are used. See docs/SAFETY-ALERTS-SETUP.md.
+  const appCheckSiteKey = process.env.NEXT_PUBLIC_FIREBASE_APPCHECK_SITE_KEY;
+  if (isFirstInit && appCheckSiteKey) {
+    const debugToken = process.env.NEXT_PUBLIC_FIREBASE_APPCHECK_DEBUG_TOKEN;
+    if (debugToken) {
+      // For local development only: 'true' prints a token to register in the console
+      (self as unknown as { FIREBASE_APPCHECK_DEBUG_TOKEN?: string | boolean })
+        .FIREBASE_APPCHECK_DEBUG_TOKEN = debugToken === 'true' ? true : debugToken;
+    }
+    try {
+      initializeAppCheck(app, {
+        provider: new ReCaptchaV3Provider(appCheckSiteKey),
+        isTokenAutoRefreshEnabled: true,
+      });
+    } catch (err) {
+      console.warn('App Check could not be initialised:', err);
+    }
+  }
+
   auth = getAuth(app);
   db = getFirestore(app);
   storage = getStorage(app);

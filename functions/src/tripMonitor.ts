@@ -15,8 +15,9 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import { checkAndIncrementRateLimit } from './rateLimit';
-import { deliverSafetySms, getDisplayName, getTrustedContacts, Recipient } from './safetyDelivery';
-import { buildAllClearMessage, buildOverdueMessage, buildSosMessage } from './templates';
+import { getNumberSetting } from './config';
+import { deliverSafetySms, DeliveryResult, getSenderProfile, getTrustedContacts, Recipient } from './safetyDelivery';
+import { AllClearReason, buildAllClearMessage, buildOverdueMessage, buildSosMessage } from './templates';
 import {
   decideOverdueAction,
   OverdueAlertState,
@@ -201,20 +202,24 @@ async function alertContacts(ref: DocRef, kind: Kind): Promise<void> {
   }
 
   const contacts = await getTrustedContacts(uid, kind === 'trip' ? claimed.trustedContactIds : null);
+  const sender = await getSenderProfile(uid);
   let state: OverdueAlertState;
   let notified: string[] = [];
 
   if (contacts.length === 0) {
     state = 'no_contacts';
+  } else if (!sender.canSend) {
+    console.warn(`Overdue alert not sent for ${uid}: ${sender.blockReason}`);
+    state = 'blocked';
   } else {
-    const rate = await checkAndIncrementRateLimit(uid, 'overdue');
-    if (!rate.allowed) {
+    const rate = await checkAndIncrementRateLimit(uid, 'overdue', contacts.length);
+    if (!rate.allowed && rate.reason === 'limit') {
       console.warn(`Overdue alert rate limited for ${uid}`);
       state = 'failed';
     } else {
-      const userName = await getDisplayName(uid);
+      // A failed limit check (reason 'error') does not hold back a safety alert
       const messageBody = buildOverdueMessage({
-        userName,
+        userName: sender.name,
         kind,
         deadlineMs,
         destination: claimed.destination ?? null,
@@ -284,21 +289,40 @@ const OVERDUE_RESET = () => ({
 async function sendAllClear(
   ref: DocRef,
   contactIds: string[] | null,
-  reason: 'ended' | 'extended' | 'checked_in',
+  reason: AllClearReason,
   newDeadlineMs?: number | null
 ): Promise<void> {
   const uid = uidFromRef(ref);
   const contacts = await getTrustedContacts(uid, contactIds);
   if (contacts.length === 0) return;
 
-  const userName = await getDisplayName(uid);
+  const sender = await getSenderProfile(uid);
+  if (!sender.canSend) return;
+
+  const rate = await checkAndIncrementRateLimit(uid, 'all_clear', contacts.length);
+  if (!rate.allowed && rate.reason === 'limit') {
+    console.warn(`All-clear rate limited for ${uid}`);
+    return;
+  }
+
   await deliverSafetySms({
     uid,
     type: 'all_clear',
     recipients: contacts.map((c) => ({ id: c.id, name: c.name, phoneE164: c.phoneE164 })),
-    messageBody: buildAllClearMessage({ userName, reason, newDeadlineMs }),
+    messageBody: buildAllClearMessage({ userName: sender.name, reason, newDeadlineMs }),
     payload: { id: ref.id, reason },
   });
+}
+
+/** Send an all-clear at most once per trip, even if the trigger fires twice. */
+async function sendAllClearOnce(ref: DocRef, contactIds: string[] | null, reason: AllClearReason): Promise<void> {
+  const first = await admin.firestore().runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists || snap.data()?.allClearSentAt) return false;
+    tx.update(ref, { allClearSentAt: admin.firestore.FieldValue.serverTimestamp() });
+    return true;
+  });
+  if (first) await sendAllClear(ref, contactIds, reason);
 }
 
 /**
@@ -313,13 +337,24 @@ export const onTripUpdated = functions.firestore
     const ref = change.after.ref;
     const db = admin.firestore();
 
+    const contactIds: string[] | null = after.trustedContactIds ?? null;
+
+    // Traveller ended the trip themselves (not the hourly auto-expiry)
+    const endedByUser = after.status === 'completed'
+      || (after.status === 'cancelled' && after.cancellationReason !== 'auto_expired');
+
+    // An SOS went out to contacts; tell them the traveller has closed it
+    if (before.status === 'emergency') {
+      if (endedByUser) await sendAllClearOnce(ref, contactIds, 'sos_ended');
+      return null;
+    }
+
     if (before.status !== 'active') return null;
 
     const beforeEnds = toMillis(before.endsAt);
     const afterEnds = toMillis(after.endsAt);
     const wasFlagged = !!(before.overdueAt || before.overdueWarnedAt);
     const contactsWereTold = wasAlertDelivered(before.overdueAlertState);
-    const contactIds: string[] | null = after.trustedContactIds ?? null;
 
     // Traveller added time after the deadline: re-arm the alarm
     const extended = after.status === 'active'
@@ -336,17 +371,8 @@ export const onTripUpdated = functions.firestore
       return null;
     }
 
-    // Traveller ended the trip themselves (not the hourly auto-expiry)
-    const endedByUser = after.status === 'completed'
-      || (after.status === 'cancelled' && after.cancellationReason !== 'auto_expired');
     if (endedByUser && contactsWereTold) {
-      const first = await db.runTransaction(async (tx) => {
-        const snap = await tx.get(ref);
-        if (snap.data()?.allClearSentAt) return false;
-        tx.update(ref, { allClearSentAt: admin.firestore.FieldValue.serverTimestamp() });
-        return true;
-      });
-      if (first) await sendAllClear(ref, contactIds, 'ended');
+      await sendAllClearOnce(ref, contactIds, 'ended');
     }
 
     return null;
@@ -370,12 +396,64 @@ export const onSafetyTimerUpdated = functions.firestore
 // SOS
 // -----------------------------------------------------------------------------
 
+/** A trip location this recent is treated as where the traveller is now. */
+const LIVE_LOCATION_MS = 5 * 60 * 1000;
+
+const SOS_SEND_ATTEMPTS = 3;
+
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+interface SosLocation {
+  lat: number;
+  lng: number;
+  /** Set when the position is older than the SOS itself */
+  atMs: number | null;
+}
+
+function readLocation(loc: any): { lat: number; lng: number } | null {
+  return loc && typeof loc.lat === 'number' && typeof loc.lng === 'number'
+    ? { lat: loc.lat, lng: loc.lng }
+    : null;
+}
+
+/**
+ * Best position for an SOS. The app creates the alert at once and attaches a
+ * GPS fix a few seconds later, so when nothing recent is known we wait
+ * briefly for that fix before falling back to older data.
+ */
+async function resolveSosLocation(
+  alertRef: DocRef,
+  alertData: DocData,
+  trip: DocData | null
+): Promise<SosLocation | null> {
+  const fromAlert = readLocation(alertData.location);
+  if (fromAlert) return { ...fromAlert, atMs: null };
+
+  const fromTrip = readLocation(trip?.lastLocation);
+  const tripUpdateMs = toMillis(trip?.lastUpdate);
+  if (fromTrip && tripUpdateMs && Date.now() - tripUpdateMs <= LIVE_LOCATION_MS) {
+    return { ...fromTrip, atMs: null };
+  }
+
+  const waitMs = getNumberSetting('SOS_LOCATION_WAIT_MS', 8000);
+  const stepMs = 2000;
+  for (let waited = 0; waited < waitMs; waited += stepMs) {
+    await sleep(Math.min(stepMs, waitMs - waited));
+    const late = readLocation((await alertRef.get()).data()?.location);
+    if (late) return { ...late, atMs: null };
+  }
+
+  return fromTrip ? { ...fromTrip, atMs: tripUpdateMs } : null;
+}
+
 /**
  * SOS alert created: message trusted contacts with the best known location.
- * Runs on the server so it still goes out if the app is closed right after
- * the button is pressed.
+ * Runs on the server so it still goes out if the app is closed or suspended
+ * right after the button is pressed.
  */
-export const onSOSAlert = functions.firestore
+export const onSOSAlert = functions
+  .runWith({ timeoutSeconds: 120 })
+  .firestore
   .document('users/{uid}/alerts/{alertId}')
   .onCreate(async (snapshot, context) => {
     const alertData = snapshot.data();
@@ -393,23 +471,22 @@ export const onSOSAlert = functions.firestore
     });
     if (!claimed) return null;
 
-    const tripId: string | null = alertData.tripId || null;
-    let lat: number | null = alertData.location?.lat ?? null;
-    let lng: number | null = alertData.location?.lng ?? null;
+    const tripId: string | null = typeof alertData.tripId === 'string' ? alertData.tripId : null;
+    let trip: DocData | null = null;
 
     if (tripId) {
       const tripRef = db.doc(`users/${uid}/trips/${tripId}`);
-      const keepUntil = admin.firestore.Timestamp.fromMillis(Date.now() + OVERDUE_LINK_MS);
       const tripSnap = await tripRef.get();
       if (tripSnap.exists) {
-        // Fall back to the trip's last known position if the phone had no fix
-        if (lat == null || lng == null) {
-          lat = tripSnap.data()?.lastLocation?.lat ?? null;
-          lng = tripSnap.data()?.lastLocation?.lng ?? null;
-        }
+        trip = tripSnap.data()!;
+        // Make sure the trip shows as an emergency and its link stays readable,
+        // even if the app did not manage to update it
+        const keepUntil = admin.firestore.Timestamp.fromMillis(Date.now() + OVERDUE_LINK_MS);
+        const stillOpen = trip.status === 'active' || trip.status === 'emergency';
+        const update = { expiresAt: keepUntil, ...(stillOpen ? { status: 'emergency' } : {}) };
         await Promise.all([
-          tripRef.update({ expiresAt: keepUntil }),
-          db.doc(`sharedTrips/${tripId}`).set({ expiresAt: keepUntil }, { merge: true }),
+          tripRef.update(update),
+          db.doc(`sharedTrips/${tripId}`).set(update, { merge: true }),
         ]);
       }
     }
@@ -420,30 +497,46 @@ export const onSOSAlert = functions.firestore
       return null;
     }
 
-    const rate = await checkAndIncrementRateLimit(uid, 'sos');
-    if (!rate.allowed) {
+    const sender = await getSenderProfile(uid);
+    if (!sender.canSend) {
+      await ref.update({ smsState: 'blocked', smsError: sender.blockReason ?? null });
+      return null;
+    }
+
+    const rate = await checkAndIncrementRateLimit(uid, 'sos', contacts.length);
+    if (!rate.allowed && rate.reason === 'limit') {
       await ref.update({ smsState: 'failed', smsError: 'rate_limited' });
       return null;
     }
 
-    const userName = await getDisplayName(uid);
-    const delivery = await deliverSafetySms({
-      uid,
-      type: 'sos',
-      recipients: contacts.map((c) => ({ id: c.id, name: c.name, phoneE164: c.phoneE164 })),
-      messageBody: buildSosMessage({
-        type: 'sos',
-        userName,
-        lat: lat ?? undefined,
-        lng: lng ?? undefined,
-        token: tripId ?? undefined,
-      }),
-      payload: { alertId: ref.id, tripId, lat, lng },
+    const location = await resolveSosLocation(ref, alertData, trip);
+    const messageBody = buildSosMessage({
+      userName: sender.name,
+      lat: location?.lat ?? null,
+      lng: location?.lng ?? null,
+      locationAtMs: location?.atMs ?? null,
+      // Only link to a trip the contacts can actually open
+      token: trip ? tripId : null,
     });
+    const recipients: Recipient[] = contacts.map((c) => ({ id: c.id, name: c.name, phoneE164: c.phoneE164 }));
+
+    // Nothing else retries an SOS, so retry here when the provider rejects it
+    let delivery: DeliveryResult | null = null;
+    for (let attempt = 1; attempt <= SOS_SEND_ATTEMPTS; attempt++) {
+      delivery = await deliverSafetySms({
+        uid,
+        type: 'sos',
+        recipients,
+        messageBody,
+        payload: { alertId: ref.id, tripId, lat: location?.lat ?? null, lng: location?.lng ?? null, attempt },
+      });
+      if (delivery.status !== 'failed') break;
+      if (attempt < SOS_SEND_ATTEMPTS) await sleep(attempt * getNumberSetting('SOS_RETRY_DELAY_MS', 3000));
+    }
 
     await ref.update({
-      smsState: delivery.status,
-      notifiedContacts: delivery.sent > 0 ? contacts.map((c) => c.id) : [],
+      smsState: delivery!.status,
+      notifiedContacts: delivery!.sent > 0 ? contacts.map((c) => c.id) : [],
     });
     return null;
   });

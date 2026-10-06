@@ -274,7 +274,59 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow read: if isOwner(userId);
-      allow write: if isOwner(userId) && isAuthenticated();
+
+      // Fields the app itself writes. Anything else on a user document is
+      // server-owned (set with the Admin SDK) and cannot be added or changed
+      // from a client, so it is safe to keep moderation or account state here.
+      // points, level and badges are client-written and visible only to their
+      // owner; do not use them for anything of value without moving them to
+      // Cloud Functions first.
+      function clientUserFields() {
+        return [
+          'createdAt','blockedUids','username','usernameUpdatedAt','safetyChecklist',
+          'points','level','badges','totalReports','totalUpvotes','totalComments',
+          'tripsCompleted','loginStreak','lastLoginDate','lastReportDate'
+        ];
+      }
+
+      function isCount(d, key) {
+        return !(key in d) || (d[key] is number && d[key] >= 0);
+      }
+
+      function isValidUserData(d) {
+        return (!('blockedUids' in d) || (d.blockedUids is list && d.blockedUids.size() <= 500))
+          && (!('safetyChecklist' in d) || (d.safetyChecklist is list && d.safetyChecklist.size() <= 50))
+          && (!('badges' in d) || (d.badges is list && d.badges.size() <= 50))
+          && isCount(d, 'points') && isCount(d, 'level')
+          && isCount(d, 'totalReports') && isCount(d, 'totalUpvotes') && isCount(d, 'totalComments')
+          && isCount(d, 'tripsCompleted') && isCount(d, 'loginStreak')
+          && (!('lastLoginDate' in d) || (d.lastLoginDate is string && d.lastLoginDate.size() <= 10))
+          && (!('lastReportDate' in d) || (d.lastReportDate is string && d.lastReportDate.size() <= 10));
+      }
+
+      // A username must be reserved in /usernames by the same user, in the same
+      // transaction or earlier. It is the name contacts see in safety messages.
+      function ownsUsername(d) {
+        return d.username is string
+          && d.username.matches('^[a-zA-Z][a-zA-Z0-9_]{2,19}$')
+          && getAfter(/databases/$(database)/documents/usernames/$(d.username.lower())).data.uid == request.auth.uid;
+      }
+
+      allow create: if isOwner(userId) && isAuthenticated()
+        && request.resource.data.keys().hasOnly(clientUserFields())
+        && isValidUserData(request.resource.data)
+        && (!('username' in request.resource.data) || ownsUsername(request.resource.data));
+
+      // Only changed fields are checked against the list, so documents that
+      // carry older or server-owned fields can still be updated.
+      allow update: if isOwner(userId) && isAuthenticated()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(clientUserFields())
+        && isValidUserData(request.resource.data)
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['username'])
+            || ownsUsername(request.resource.data));
+
+      // Deleting and recreating the document would wipe server-owned fields
+      allow delete: if false;
     }
 
     match /users/{userId}/pointHistory/{historyId} {

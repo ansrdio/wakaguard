@@ -17,10 +17,23 @@ import { Timestamp } from 'firebase/firestore';
 // =============================================================================
 
 /**
- * Generate a cryptographically secure unguessable token
+ * Generate an unguessable token for a trip's share link.
+ * 128 random bits as 22 URL-safe characters: short enough to keep an SMS
+ * with the link inside two segments.
  * @returns A random token string
  */
 export function generateShareToken(): string {
+  const array = new Uint8Array(16);
+  crypto.getRandomValues(array);
+  const base64 = btoa(String.fromCharCode(...array));
+  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+/**
+ * Generate a 256-bit secret as 64 hex characters.
+ * Used for values that are never shown or sent in a message.
+ */
+export function generateSecretKey(): string {
   const array = new Uint8Array(32);
   crypto.getRandomValues(array);
   return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');

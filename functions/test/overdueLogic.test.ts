@@ -98,5 +98,5 @@ test('all-clear and SOS messages name the traveller', () => {
     buildAllClearMessage({ userName: 'Ada', reason: 'extended', newDeadlineMs: DEADLINE }),
     /New expected arrival Tue,? 4:30\s?pm/i
   );
-  assert.match(buildSosMessage({ type: 'sos', userName: 'Ada', lat: 6.5, lng: 3.3 }), /SOS: Ada needs help\./);
+  assert.match(buildSosMessage({ userName: 'Ada', lat: 6.5, lng: 3.3 }), /SOS: Ada needs help\./);
 });

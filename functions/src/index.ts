@@ -1,10 +1,8 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import { migrateLegacyData } from './migrateLegacyData';
-import { checkAndIncrementRateLimit } from './rateLimit';
-import { buildMessageForType, MessagePayload } from './templates';
-import { deliverSafetySms, isValidE164, TrustedContactDoc } from './safetyDelivery';
 
+export { sendSafetySms } from './safetySms';
 export { tripLocation } from './tripLocation';
 export {
   checkOverdueTrips,
@@ -649,144 +647,6 @@ export const cleanupExpiredTrips = functions.pubsub
       return null;
     }
   });
-
-// -------------------------------------------------------------------------
-// Safety SMS Messaging
-// -------------------------------------------------------------------------
-
-type SafetySmsRequest =
-  | { type: 'sos'; lat: number; lng: number; address?: string; token?: string }
-  | { type: 'checkin'; message?: string; lat?: number; lng?: number }
-  | { type: 'trip_share'; token: string; lat?: number; lng?: number }
-  | { type: 'one_time'; phoneE164: string; message: string };
-
-type TrustedContact = TrustedContactDoc;
-
-/**
- * Callable function to send safety SMS messages.
- * - SOS/checkin/trip_share: sends to user's trusted contacts
- * - one_time: sends to a single phone number provided by user
- */
-export const sendSafetySms = functions.https.onCall(async (data: SafetySmsRequest, context) => {
-  // 1. Auth check
-  if (!context.auth) {
-    throw new functions.https.HttpsError('unauthenticated', 'Must be authenticated');
-  }
-
-  const uid = context.auth.uid;
-  const signInProvider = context.auth.token.firebase?.sign_in_provider;
-
-  if (signInProvider === 'anonymous') {
-    throw new functions.https.HttpsError('permission-denied', 'Anonymous users cannot send SMS');
-  }
-
-  // 2. Validate request type
-  const validTypes = ['sos', 'checkin', 'trip_share', 'one_time'];
-  if (!data || !validTypes.includes(data.type)) {
-    throw new functions.https.HttpsError('invalid-argument', 'Invalid message type');
-  }
-
-  // 3. Rate limit check
-  const rateLimitResult = await checkAndIncrementRateLimit(uid, data.type);
-  if (!rateLimitResult.allowed) {
-    throw new functions.https.HttpsError('resource-exhausted', rateLimitResult.error || 'Rate limit exceeded');
-  }
-
-  // 4. Build recipients list
-  let recipients: Array<{ name?: string; phoneE164: string }> = [];
-
-  if (data.type === 'one_time') {
-    // Validate phone number
-    if (!data.phoneE164 || !isValidE164(data.phoneE164)) {
-      throw new functions.https.HttpsError('invalid-argument', 'Invalid phone number format. Use E.164 (e.g., +2348012345678)');
-    }
-    if (!data.message || data.message.trim().length === 0) {
-      throw new functions.https.HttpsError('invalid-argument', 'Message is required');
-    }
-    recipients = [{ phoneE164: data.phoneE164 }];
-  } else {
-    // Fetch trusted contacts
-    const contactsSnap = await db.collection(`users/${uid}/trustedContacts`).get();
-
-    if (contactsSnap.empty) {
-      throw new functions.https.HttpsError('failed-precondition', 'No trusted contacts');
-    }
-
-    const contacts: TrustedContact[] = [];
-    contactsSnap.forEach((doc) => {
-      const c = doc.data() as TrustedContact;
-      if (c.phoneE164 && isValidE164(c.phoneE164)) {
-        contacts.push(c);
-      }
-    });
-
-    if (contacts.length === 0) {
-      throw new functions.https.HttpsError('failed-precondition', 'No trusted contacts with valid phone numbers');
-    }
-
-    // Filter by notification preferences
-    recipients = contacts
-      .filter((c) => {
-        if (data.type === 'sos') return c.notifyOnSOS !== false;
-        if (data.type === 'checkin') return c.notifyOnCheckIn !== false;
-        if (data.type === 'trip_share') return c.notifyOnTripShare !== false;
-        return true;
-      })
-      .map((c) => ({ name: c.name, phoneE164: c.phoneE164 }));
-
-    if (recipients.length === 0) {
-      throw new functions.https.HttpsError('failed-precondition', 'No contacts enabled for this notification type');
-    }
-  }
-
-  // 5. Build message payload
-  const payload: MessagePayload = {
-    type: data.type,
-    lat: 'lat' in data ? data.lat : undefined,
-    lng: 'lng' in data ? data.lng : undefined,
-    address: 'address' in data ? data.address : undefined,
-    token: 'token' in data ? data.token : undefined,
-    message: 'message' in data ? data.message : undefined,
-  };
-
-  const messageBody = buildMessageForType(payload);
-
-  // 6. Send and log
-  const delivery = await deliverSafetySms({
-    uid,
-    type: data.type,
-    recipients,
-    messageBody,
-    payload: {
-      lat: payload.lat ?? null,
-      lng: payload.lng ?? null,
-      address: payload.address ?? null,
-      token: payload.token ?? null,
-      message: payload.message ?? null,
-    },
-  });
-  const status = delivery.status;
-
-  // Return appropriate response
-  if (status === 'blocked') {
-    return {
-      success: false,
-      status: 'blocked',
-      sent: 0,
-      failed: recipients.length,
-      logId: delivery.logId,
-      message: 'SMS sending is not yet available. Your message was prepared - you can share via WhatsApp instead.',
-    };
-  }
-
-  return {
-    success: status !== 'failed',
-    status,
-    sent: delivery.sent,
-    failed: delivery.failed,
-    logId: delivery.logId,
-  };
-});
 
 /**
  * Cloud Function to run data migration (admin only)

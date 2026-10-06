@@ -17,7 +17,11 @@ import {
   getDoc,
   getDocs,
   collection,
-  Timestamp
+  Timestamp,
+  runTransaction,
+  updateDoc,
+  deleteDoc,
+  deleteField
 } from 'firebase/firestore';
 import {
   getStorage,
@@ -502,6 +506,63 @@ async function pushSubUpdateLocation(ctx: AppContext, uid: string) {
   });
 }
 
+async function userDocCreate(ctx: AppContext, uid: string) {
+  await setDoc(doc(ctx.db, 'users', uid), { createdAt: Timestamp.now(), blockedUids: [] });
+}
+
+async function userDocCreateWithExtraField(ctx: AppContext, uid: string) {
+  await setDoc(doc(ctx.db, 'users', uid), { createdAt: Timestamp.now(), role: 'admin' });
+}
+
+// Same two writes the app makes in UsernameSetup
+async function userClaimUsername(ctx: AppContext, uid: string, username: string) {
+  await runTransaction(ctx.db, async (transaction) => {
+    transaction.set(doc(ctx.db, 'usernames', username.toLowerCase()), {
+      uid,
+      usernameLower: username.toLowerCase(),
+      createdAt: Timestamp.now()
+    });
+    transaction.update(doc(ctx.db, 'users', uid), {
+      username,
+      usernameUpdatedAt: Timestamp.now()
+    });
+  });
+}
+
+async function userDocUpdate(ctx: AppContext, uid: string, data: Record<string, unknown>) {
+  await updateDoc(doc(ctx.db, 'users', uid), data);
+}
+
+async function userDocDelete(ctx: AppContext, uid: string) {
+  await deleteDoc(doc(ctx.db, 'users', uid));
+}
+
+// Writes as the Admin SDK would, bypassing rules ("Bearer owner" is the emulator's admin token)
+async function adminSetUserFields(uid: string, fields: Record<string, string>) {
+  const mask = Object.keys(fields).map((k) => `updateMask.fieldPaths=${k}`).join('&');
+  const url = `http://127.0.0.1:8080/v1/projects/${getProjectId()}/databases/(default)/documents/users/${uid}?${mask}`;
+  const body = {
+    fields: Object.fromEntries(Object.entries(fields).map(([k, v]) => [k, { stringValue: v }]))
+  };
+  const response = await fetch(url, {
+    method: 'PATCH',
+    headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if (!response.ok) {
+    throw new Error(`Admin write failed: ${response.status} ${await response.text()}`);
+  }
+}
+
+async function userDocHasFields(ctx: AppContext, uid: string, expected: Record<string, unknown>) {
+  const data = (await getDoc(doc(ctx.db, 'users', uid))).data() || {};
+  for (const [key, value] of Object.entries(expected)) {
+    if (JSON.stringify(data[key]) !== JSON.stringify(value)) {
+      throw new Error(`users/${uid}.${key} is ${JSON.stringify(data[key])}, expected ${JSON.stringify(value)}`);
+    }
+  }
+}
+
 async function userDocGet(ctx: AppContext, uid: string) {
   const userRef = doc(ctx.db, 'users', uid);
   await getDoc(userRef);
@@ -618,6 +679,66 @@ async function run() {
     userUid = await signUpEmailPassword(user, email, 'SmokePass123!');
     const email2 = `smoke2_${runId}@example.com`;
     user2Uid = await signUpEmailPassword(user2, email2, 'SmokePass123!');
+
+    // ---- User document: only app-written fields, usernames must be reserved ----
+    const name1 = `Smoke_${runId.slice(-12)}`;
+    const name2 = `Other_${runId.slice(-12)}`;
+    await runStep('User: create user doc with unknown field denied', () =>
+      userDocCreateWithExtraField(user, userUid), true
+    );
+    await runStep('User: create user doc', () => userDocCreate(user, userUid));
+    await runStep('User2: create user doc', () => userDocCreate(user2, user2Uid));
+    await runStep('User: claim username in a transaction', () => userClaimUsername(user, userUid, name1));
+    await runStep('User2: claim own username', () => userClaimUsername(user2, user2Uid, name2));
+    await runStep('User: set username without reserving it denied', () =>
+      userDocUpdate(user, userUid, { username: `Unreserved_${runId.slice(-6)}` }), true
+    );
+    await runStep('User: set username reserved by another user denied', () =>
+      userDocUpdate(user, userUid, { username: name2 }), true
+    );
+    await runStep('User: set malformed username denied', () =>
+      userDocUpdate(user, userUid, { username: 'x http://evil.example' }), true
+    );
+    await runStep('User: update checklist, block list and stats', () =>
+      userDocUpdate(user, userUid, {
+        safetyChecklist: ['phone', 'water'],
+        blockedUids: [user2Uid],
+        points: 15,
+        level: 1,
+        lastLoginDate: '2026-10-06'
+      })
+    );
+    await runStep('User: set server-owned field denied', () =>
+      userDocUpdate(user, userUid, { smsBlocked: false }), true
+    );
+    await runStep('User: set negative points denied', () =>
+      userDocUpdate(user, userUid, { points: -5 }), true
+    );
+    await runStep('Admin: add server-owned and legacy fields', () =>
+      adminSetUserFields(userUid, { smsBlocked: 'true', legacyState: 'Lagos' })
+    );
+    await runStep('User: update doc that carries server-owned fields', () =>
+      userDocUpdate(user, userUid, { safetyChecklist: ['phone'] })
+    );
+    await runStep('User: change server-owned field denied', () =>
+      userDocUpdate(user, userUid, { smsBlocked: 'false' }), true
+    );
+    await runStep('User: remove server-owned field denied', () =>
+      userDocUpdate(user, userUid, { smsBlocked: deleteField() }), true
+    );
+    await runStep('User: delete own user doc denied', () => userDocDelete(user, userUid), true);
+    await runStep('User2: write to user1 doc denied', () =>
+      userDocUpdate(user2, userUid, { safetyChecklist: [] }), true
+    );
+    await runStep('User: user doc is intact', () =>
+      userDocHasFields(user, userUid, {
+        username: name1,
+        smsBlocked: 'true',
+        legacyState: 'Lagos',
+        safetyChecklist: ['phone'],
+        points: 15
+      })
+    );
 
     await runStep('Guest: create report denied', () => createReport(guest, guestUid), true);
     await runStep(

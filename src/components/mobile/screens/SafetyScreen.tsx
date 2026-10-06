@@ -17,9 +17,9 @@ import {
 import { 
   isValidE164, 
   formatToE164,
-  sendSosSms,
   sendCheckinSms,
   sendTripShareSms,
+  buildShareLink,
   buildSosShareText,
   buildCheckinShareText,
   buildTripShareText,
@@ -35,6 +35,9 @@ import { shareSafeTripLink } from '@/lib/share';
 import { AuthModal } from '@/components/AuthModal';
 
 type ModalType = 'sos' | 'safetrip' | 'contacts' | 'emergency' | null;
+
+/** Matches MAX_RECIPIENTS in functions/src/safetyDelivery.ts */
+const MAX_TRUSTED_CONTACTS = 5;
 
 // Nigerian Emergency Numbers
 const EMERGENCY_CONTACTS = [
@@ -120,10 +123,12 @@ export function SafetyScreen() {
     loading,
   } = useSafety();
 
+  // Derived from the trip so the share options survive an app restart mid-trip
+  const shareUrl = activeTrip ? buildShareLink(activeTrip.id) : null;
+
   const [activeModal, setActiveModal] = useState<ModalType>(null);
   const [processing, setProcessing] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
-  const [shareUrl, setShareUrl] = useState<string | null>(null);
   
   // Safe Trip configuration
   const [selectedDuration, setSelectedDuration] = useState(45);
@@ -193,48 +198,41 @@ export function SafetyScreen() {
     }
   }, []);
 
+  // Call 112. Works for everyone, signed in or not; when signed in the server
+  // also messages trusted contacts.
   const handleSOS = async () => {
-    if (!requireAccount('sos')) return;
-    if (!uid || isAnonymous) return;
     setProcessing(true);
     const result = await triggerSOS();
     setProcessing(false);
     setActiveModal(null);
-    if (result.success) {
-      showToast('Emergency services contacted', 'success');
-    } else {
-      showToast(result.error || 'Failed to trigger SOS', 'error');
-    }
+    const willAlertContacts = !!uid && !isAnonymous && trustedContacts.length > 0;
+    showToast(
+      willAlertContacts && result.success
+        ? 'Calling 112. Your contacts are being alerted.'
+        : 'Calling 112.',
+      'success'
+    );
   };
 
-  // Send SOS SMS to trusted contacts
-  const handleSosSms = async () => {
-    if (!requireAccount('send SOS SMS')) return;
+  // Alert trusted contacts without placing a call
+  const handleSosContactsOnly = async () => {
+    if (!requireAccount('alert contacts')) return;
     if (!uid || isAnonymous) return;
     if (trustedContacts.length === 0) {
       showToast('No trusted contacts. Add contacts first.', 'error');
       return;
     }
-    if (!currentLocation) {
-      showToast('Location unavailable. Please enable location.', 'error');
-      return;
-    }
-    
+
     setProcessing(true);
-    try {
-      const result = await sendSosSms(currentLocation.lat, currentLocation.lng) as any;
-      if (result.success) {
-        showToast(`SOS SMS sent to ${result.sent} contact(s)`, 'success');
-      } else if (result.status === 'blocked') {
-        showToast(result.message || 'SMS not available yet. Use WhatsApp instead.', 'error');
-      } else {
-        showToast('Failed to send SOS SMS', 'error');
-      }
-    } catch (err: any) {
-      showToast(err.message || 'Failed to send SOS SMS', 'error');
-    } finally {
-      setProcessing(false);
-    }
+    const result = await triggerSOS({ call: false });
+    setProcessing(false);
+    setActiveModal(null);
+    showToast(
+      result.confirmed
+        ? 'Your contacts are being alerted by SMS.'
+        : 'Alert saved. It will send as soon as your phone has signal.',
+      'success'
+    );
   };
 
   // Send check-in SMS to trusted contacts
@@ -267,7 +265,7 @@ export function SafetyScreen() {
   const handleTripShareSms = async () => {
     if (!requireAccount('send trip share SMS')) return;
     if (!uid || isAnonymous) return;
-    if (!shareUrl) {
+    if (!activeTrip) {
       showToast('Start a Safe Trip first.', 'error');
       return;
     }
@@ -275,13 +273,10 @@ export function SafetyScreen() {
       showToast('No trusted contacts. Add contacts first.', 'error');
       return;
     }
-    
-    // Extract token from shareUrl
-    const token = shareUrl.split('/').pop() || '';
-    
+
     setProcessing(true);
     try {
-      const result = await sendTripShareSms(token, currentLocation?.lat, currentLocation?.lng) as any;
+      const result = await sendTripShareSms(activeTrip.id) as any;
       if (result.success) {
         showToast(`Trip share SMS sent to ${result.sent} contact(s)`, 'success');
       } else if (result.status === 'blocked') {
@@ -314,12 +309,11 @@ export function SafetyScreen() {
 
   // Share via WhatsApp (Trip)
   const handleTripWhatsApp = () => {
-    if (!shareUrl) {
+    if (!activeTrip) {
       showToast('Start a Safe Trip first.', 'error');
       return;
     }
-    const token = shareUrl.split('/').pop() || '';
-    const text = buildTripShareText(token);
+    const text = buildTripShareText(activeTrip.id);
     openWhatsAppShare(text);
   };
 
@@ -334,7 +328,6 @@ export function SafetyScreen() {
     });
     setProcessing(false);
     if (result.success && result.shareUrl) {
-      setShareUrl(result.shareUrl);
       showToast('Safe Trip started. Tap "Share Link" to notify contacts.', 'success');
       // Don't auto-open share sheet - let user tap Share Link button
     } else {
@@ -353,7 +346,6 @@ export function SafetyScreen() {
     const result = await endSafeTrip();
     setProcessing(false);
     setActiveModal(null);
-    setShareUrl(null);
     
     if (result.success) {
       showToast('Trip ended. You can notify your contacts.', 'success');
@@ -575,6 +567,14 @@ export function SafetyScreen() {
       
       const contactIdBase = phoneE164.replace(/[^0-9]/g, '');
       const contactId = contactIdBase.length > 0 ? contactIdBase : String(Date.now());
+
+      // The server messages at most this many contacts per alert
+      const isNewContact = !trustedContacts.some((c) => c.id === contactId);
+      if (isNewContact && trustedContacts.length >= MAX_TRUSTED_CONTACTS) {
+        showToast(`You can have up to ${MAX_TRUSTED_CONTACTS} trusted contacts. Remove one to add another.`, 'error');
+        setProcessing(false);
+        return;
+      }
 
       await setDoc(doc(db, 'users', uid, 'trustedContacts', contactId), {
         name,
@@ -804,8 +804,15 @@ export function SafetyScreen() {
             </div>
           )}
 
+          {/* SOS notice */}
+          {activeTrip.status === 'emergency' && (
+            <div className="bg-red-100 border border-red-300 rounded-xl p-3 mb-4 text-sm text-red-800">
+              SOS sent. Your contacts were alerted and can follow this trip. End the trip when you are safe.
+            </div>
+          )}
+
           {/* Overdue / deadline notice */}
-          {activeTrip.endsAt && tripTimeStatus === 'expired' && (
+          {activeTrip.status !== 'emergency' && activeTrip.endsAt && tripTimeStatus === 'expired' && (
             <div className="bg-red-100 border border-red-300 rounded-xl p-3 mb-4 text-sm text-red-800">
               {activeTrip.overdueAt
                 ? 'Your contacts have been alerted that you are overdue. Add time or end the trip to let them know you are okay.'
@@ -1053,7 +1060,11 @@ export function SafetyScreen() {
               <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Phone className="w-10 h-10 text-red-600" />
               </div>
-              <p className="text-slate-600 mb-4">This will call emergency services (112) in Nigeria.</p>
+              <p className="text-slate-600 mb-4">
+                {trustedContacts.length > 0
+                  ? 'This calls emergency services (112) and alerts your trusted contacts by SMS with your location.'
+                  : 'This calls emergency services (112). Add trusted contacts so they are alerted too.'}
+              </p>
             </div>
             <button
               onClick={handleSOS}
@@ -1065,14 +1076,14 @@ export function SafetyScreen() {
             </button>
             
             <div className="border-t border-slate-200 pt-4 mt-4">
-              <p className="text-xs text-slate-500 mb-3 text-center">Or notify your trusted contacts:</p>
+              <p className="text-xs text-slate-500 mb-3 text-center">If a call is not safe, alert your contacts without calling:</p>
               <div className="flex gap-2">
                 <button
-                  onClick={handleSosSms}
+                  onClick={handleSosContactsOnly}
                   disabled={processing || trustedContacts.length === 0}
                   className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-                  📱 SMS
+                  📱 Alert by SMS
                 </button>
                 <button
                   onClick={handleSosWhatsApp}

@@ -1,100 +1,33 @@
-const BASE_URL = process.env.APP_BASE_URL || 'https://wakaguard.com';
+/**
+ * SMS message bodies.
+ *
+ * Every message names the traveller, because contacts receive it from a
+ * shared sender ID and cannot otherwise tell who it is about. userName must
+ * come from getSenderProfile(), which makes it safe to embed. Other
+ * user-typed text is cleaned here.
+ */
 
-export interface MessagePayload {
-  type: 'sos' | 'checkin' | 'trip_share' | 'one_time';
-  lat?: number;
-  lng?: number;
-  address?: string;
-  token?: string;
-  message?: string;
-  userName?: string;
+import { getSetting } from './config';
+import { sanitizeForSms, sanitizePlace } from './smsText';
+
+function baseUrl(): string {
+  return (getSetting('APP_BASE_URL') || 'https://wakaguard.com').replace(/\/+$/, '');
 }
 
-function buildMapsLink(lat: number, lng: number): string {
-  return `https://maps.google.com/?q=${lat},${lng}`;
+/** ~1 metre precision; more digits only make the message longer. */
+function coord(value: number): string {
+  return String(Number(value.toFixed(5)));
+}
+
+export function buildMapsLink(lat: number, lng: number): string {
+  return `https://maps.google.com/?q=${coord(lat)},${coord(lng)}`;
 }
 
 export function buildShareLink(token: string): string {
-  return `${BASE_URL}/s?token=${token}`;
+  return `${baseUrl()}/s?token=${encodeURIComponent(token)}`;
 }
 
-export function buildSosMessage(payload: MessagePayload): string {
-  const parts: string[] = [
-    payload.userName ? `WakaGuard SOS: ${payload.userName} needs help.` : 'WakaGuard SOS: I need help.',
-  ];
-
-  if (payload.lat != null && payload.lng != null) {
-    parts.push(`Location: ${payload.lat.toFixed(6)},${payload.lng.toFixed(6)}.`);
-    parts.push(`Map: ${buildMapsLink(payload.lat, payload.lng)}`);
-  }
-
-  if (payload.address) {
-    parts.push(`Address: ${payload.address}`);
-  }
-
-  if (payload.token) {
-    parts.push(`Track: ${buildShareLink(payload.token)}`);
-  }
-
-  return parts.join(' ');
-}
-
-export function buildCheckinMessage(payload: MessagePayload): string {
-  const parts: string[] = ["WakaGuard check-in: I'm OK."];
-
-  if (payload.message) {
-    parts.push(payload.message);
-  }
-
-  if (payload.lat != null && payload.lng != null) {
-    parts.push(`Map: ${buildMapsLink(payload.lat, payload.lng)}`);
-  }
-
-  return parts.join(' ');
-}
-
-export function buildTripShareMessage(payload: MessagePayload): string {
-  if (!payload.token) {
-    return 'WakaGuard trip share: Track my trip (link unavailable)';
-  }
-
-  const parts: string[] = [
-    'WakaGuard trip share: Track my trip here:',
-    buildShareLink(payload.token),
-    '(expires soon)',
-  ];
-
-  return parts.join(' ');
-}
-
-export function buildOneTimeMessage(message: string): string {
-  const prefix = 'WakaGuard: ';
-  const maxLen = 240;
-  const available = maxLen - prefix.length;
-  const truncated = message.length > available ? message.slice(0, available - 3) + '...' : message;
-  return prefix + truncated;
-}
-
-export function buildMessageForType(payload: MessagePayload): string {
-  switch (payload.type) {
-    case 'sos':
-      return buildSosMessage(payload);
-    case 'checkin':
-      return buildCheckinMessage(payload);
-    case 'trip_share':
-      return buildTripShareMessage(payload);
-    case 'one_time':
-      return buildOneTimeMessage(payload.message || '');
-    default:
-      return 'WakaGuard notification';
-  }
-}
-
-// -------------------------------------------------------------------------
-// Server-initiated messages (overdue monitor)
-// -------------------------------------------------------------------------
-
-/** Format a time for contacts in Nigeria, e.g. "Tue 4:30 PM". */
+/** Format a time for contacts in Nigeria, e.g. "Tue 4:30 pm". */
 export function formatLagosTime(ms: number): string {
   return new Intl.DateTimeFormat('en-GB', {
     timeZone: 'Africa/Lagos',
@@ -102,8 +35,87 @@ export function formatLagosTime(ms: number): string {
     hour: 'numeric',
     minute: '2-digit',
     hour12: true,
-  }).format(new Date(ms));
+  }).format(new Date(ms)).replace(',', '');
 }
+
+function hasLocation(p: { lat?: number | null; lng?: number | null }): p is { lat: number; lng: number } {
+  return typeof p.lat === 'number' && typeof p.lng === 'number';
+}
+
+// -------------------------------------------------------------------------
+// SOS
+// -------------------------------------------------------------------------
+
+export interface SosPayload {
+  userName: string;
+  lat?: number | null;
+  lng?: number | null;
+  /** When the location was received, if it is not from the moment of the SOS */
+  locationAtMs?: number | null;
+  token?: string | null;
+}
+
+export function buildSosMessage(p: SosPayload): string {
+  const parts: string[] = [`WakaGuard SOS: ${p.userName} needs help.`];
+
+  if (hasLocation(p)) {
+    const label = p.locationAtMs
+      ? `Last known location (${formatLagosTime(p.locationAtMs)})`
+      : 'Location';
+    parts.push(`${label}: ${buildMapsLink(p.lat, p.lng)}`);
+  }
+
+  if (p.token) {
+    parts.push(`Track: ${buildShareLink(p.token)}`);
+  }
+
+  parts.push('Call them or 112.');
+  return parts.join(' ');
+}
+
+// -------------------------------------------------------------------------
+// Messages the traveller chooses to send
+// -------------------------------------------------------------------------
+
+export function buildCheckinMessage(p: {
+  userName: string;
+  message?: string | null;
+  lat?: number | null;
+  lng?: number | null;
+}): string {
+  const parts: string[] = [`WakaGuard: ${p.userName} checked in and is OK.`];
+
+  const note = sanitizeForSms(p.message, { maxLength: 100 });
+  if (note) parts.push(`"${note}"`);
+
+  if (hasLocation(p)) {
+    parts.push(`Location: ${buildMapsLink(p.lat, p.lng)}`);
+  }
+
+  return parts.join(' ');
+}
+
+export function buildTripShareMessage(p: {
+  userName: string;
+  token: string;
+  destination?: string | null;
+  endsAtMs?: number | null;
+}): string {
+  const destination = sanitizePlace(p.destination);
+  const where = destination ? ` to ${destination}` : '';
+  const parts: string[] = [`WakaGuard: ${p.userName} is sharing a trip${where} with you.`];
+
+  if (p.endsAtMs) {
+    parts.push(`Expected arrival ${formatLagosTime(p.endsAtMs)}.`);
+  }
+
+  parts.push(`Follow it: ${buildShareLink(p.token)}`);
+  return parts.join(' ');
+}
+
+// -------------------------------------------------------------------------
+// Server-initiated messages (overdue monitor)
+// -------------------------------------------------------------------------
 
 export interface OverduePayload {
   userName: string;
@@ -121,13 +133,14 @@ export function buildOverdueMessage(p: OverduePayload): string {
   const parts: string[] = [];
 
   if (p.kind === 'trip') {
-    const where = p.destination ? ` to ${p.destination}` : '';
+    const destination = sanitizePlace(p.destination);
+    const where = destination ? ` to ${destination}` : '';
     parts.push(`WakaGuard: ${p.userName} has not checked in from a trip${where}, due ${due}.`);
   } else {
     parts.push(`WakaGuard: ${p.userName} set a safety timer and has not checked in, due ${due}.`);
   }
 
-  if (p.lat != null && p.lng != null) {
+  if (hasLocation(p)) {
     const seen = p.lastUpdateMs ? ` received ${formatLagosTime(p.lastUpdateMs)}` : '';
     parts.push(`Last location${seen}: ${buildMapsLink(p.lat, p.lng)}`);
   } else if (p.kind === 'trip') {
@@ -142,9 +155,11 @@ export function buildOverdueMessage(p: OverduePayload): string {
   return parts.join(' ');
 }
 
+export type AllClearReason = 'ended' | 'extended' | 'checked_in' | 'sos_ended';
+
 export function buildAllClearMessage(p: {
   userName: string;
-  reason: 'ended' | 'extended' | 'checked_in';
+  reason: AllClearReason;
   newDeadlineMs?: number | null;
 }): string {
   if (p.reason === 'extended' && p.newDeadlineMs) {
@@ -152,6 +167,11 @@ export function buildAllClearMessage(p: {
   }
   if (p.reason === 'ended') {
     return `WakaGuard: ${p.userName} has checked in and ended the trip safely.`;
+  }
+  if (p.reason === 'sos_ended') {
+    // Ending a trip after an SOS could be done under pressure, so do not
+    // tell contacts everything is fine
+    return `WakaGuard: ${p.userName} ended the SOS alert in the app. Please call them to confirm they are safe.`;
   }
   return `WakaGuard: ${p.userName} has checked in safely.`;
 }

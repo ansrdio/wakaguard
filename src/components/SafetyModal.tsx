@@ -8,6 +8,7 @@ import { useAuthedUser } from '@/hooks/useAuthedUser';
 import { useRequireAccount } from '@/hooks/useRequireAccount';
 import { Trip, TripStatus, Alert, AlertType, CheckIn } from '@/lib/types';
 import { generateShareToken, calculateTripExpiry, calculateTimerExpiry, checkRateLimit, formatTimeRemaining, isTripExpired } from '@/lib/safety';
+import { buildShareLink } from '@/lib/safetyMessaging';
 import { Toast } from '@/components/ui/Toast';
 import { AuthModal } from '@/components/AuthModal';
 
@@ -185,7 +186,7 @@ export function SafetyModal({ isOpen, onClose, userLocation }: SafetyModalProps)
   const handleCopyShareLink = () => {
     if (!activeTrip) return;
 
-    const shareUrl = `https://wakaguard.com/s?token=${activeTrip.shareToken}`;
+    const shareUrl = buildShareLink(activeTrip.id);
     navigator.clipboard.writeText(shareUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);

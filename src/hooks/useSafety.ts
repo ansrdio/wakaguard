@@ -20,7 +20,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { collection, doc, setDoc, updateDoc, query, where, onSnapshot, Timestamp, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuthedUser } from '@/hooks/useAuthedUser';
-import { generateShareToken, calculateTripExpiry, calculateTimerExpiry, calculateTripEnd } from '@/lib/safety';
+import { generateShareToken, generateSecretKey, calculateTripExpiry, calculateTimerExpiry, calculateTripEnd } from '@/lib/safety';
+import { buildShareLink } from '@/lib/safetyMessaging';
 import { Trip, TripStatus, SafetyTimer, AlertType } from '@/lib/types';
 
 /**
@@ -58,8 +59,12 @@ interface UseSafetyReturn {
   acknowledgeTimer: () => Promise<{ success: boolean; error?: string }>;
   
   // === EMERGENCY SOS ===
-  /** Trigger emergency SOS alert (notifies contacts, logs location) */
-  triggerSOS: () => Promise<{ success: boolean; error?: string }>;
+  /**
+   * Trigger an emergency SOS. The server messages trusted contacts as soon as
+   * the alert is saved. With call: false the dialer is not opened, for when a
+   * phone call would not be safe.
+   */
+  triggerSOS: (options?: { call?: boolean }) => Promise<{ success: boolean; confirmed?: boolean; error?: string }>;
   
   // === SAFE TRIP (UNIFIED API) ===
   /** Start a Safe Trip with duration, contacts, and destination */
@@ -81,6 +86,11 @@ interface UseSafetyReturn {
   /** Whether safety data is still loading */
   loading: boolean;
 }
+
+/** Nigeria's national emergency number */
+const EMERGENCY_NUMBER = '112';
+/** Longest the SOS waits for the alert to be saved before opening the dialer */
+const SOS_HEAD_START_MS = 700;
 
 /**
  * Hook for managing safety features in WakaGuard.
@@ -210,7 +220,7 @@ export function useSafety(): UseSafetyReturn {
         createdAt: serverTimestamp(),
       }, { merge: true });
 
-      const shareUrl = `https://wakaguard.com/s?token=${shareToken}`;
+      const shareUrl = buildShareLink(shareToken);
       return { success: true, shareUrl };
     } catch (error) {
       console.error('Error starting trip:', error);
@@ -315,62 +325,61 @@ export function useSafety(): UseSafetyReturn {
   }, [cancelTimer]);
 
   // Trigger emergency SOS
-  const triggerSOS = useCallback(async () => {
-    if (!uid) return { success: false, error: 'Not authenticated' };
+  const triggerSOS = useCallback(async (options?: { call?: boolean }) => {
+    const call = options?.call !== false;
+    const dial = () => {
+      if (call) window.location.href = `tel:${EMERGENCY_NUMBER}`;
+    };
 
-    try {
-      // Location is best effort: the alert must go out even without a GPS fix.
-      // The server falls back to the trip's last known position.
-      let location: { lat: number; lng: number } | null = null;
-      try {
-        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject, {
-            enableHighAccuracy: true,
-            timeout: 10000,
-          });
-        });
-        location = { lat: position.coords.latitude, lng: position.coords.longitude };
-      } catch (e) {
-        console.warn('Could not get location for SOS');
-      }
-
-      const alertId = `sos_${uid}_${Date.now()}`;
-      const alertData = {
-        type: AlertType.SOS,
-        location,
-        tripId: activeTrip?.id || null,
-        acknowledged: false,
-        notifiedContacts: [],
-        createdAt: serverTimestamp(),
-      };
-
-      await setDoc(doc(db, 'users', uid, 'alerts', alertId), alertData);
-
-      if (activeTrip) {
-        try {
-          await updateDoc(doc(db, 'users', uid, 'trips', activeTrip.id), {
-            status: TripStatus.EMERGENCY,
-          });
-        } catch (e) {
-        }
-        try {
-          await updateDoc(doc(db, 'sharedTrips', activeTrip.id), {
-            status: TripStatus.EMERGENCY,
-          });
-        } catch (e) {
-        }
-      }
-
-      // Also open phone dialer as fallback
-      window.location.href = 'tel:112'; // Nigeria emergency number
-
-      return { success: true };
-    } catch (error) {
-      // Even if the alert could not be saved, still open the dialer
-      console.error('Error triggering SOS:', error);
-      window.location.href = 'tel:112';
-      return { success: true }; // Still consider it success since we're calling emergency
+    if (!uid) {
+      dial();
+      return { success: false, error: 'Not authenticated' };
     }
+
+    // The alert is saved without waiting for GPS or for the server to confirm:
+    // with no data signal those waits never end, and the call must not depend
+    // on them. Firestore keeps the write queued and sends it when it can.
+    const alertRef = doc(db, 'users', uid, 'alerts', `sos_${uid}_${Date.now()}`);
+    const saved = setDoc(alertRef, {
+      type: AlertType.SOS,
+      location: null,
+      tripId: activeTrip?.id || null,
+      acknowledged: false,
+      notifiedContacts: [],
+      createdAt: serverTimestamp(),
+    });
+    saved.catch((error) => console.error('Error saving SOS alert:', error));
+
+    if (activeTrip) {
+      updateDoc(doc(db, 'users', uid, 'trips', activeTrip.id), { status: TripStatus.EMERGENCY })
+        .catch(() => {});
+      updateDoc(doc(db, 'sharedTrips', activeTrip.id), { status: TripStatus.EMERGENCY })
+        .catch(() => {});
+    }
+
+    // Attach a GPS fix when one arrives. The server waits a few seconds for it
+    // and otherwise falls back to the trip's last known position.
+    if (typeof navigator !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          updateDoc(alertRef, {
+            location: { lat: position.coords.latitude, lng: position.coords.longitude },
+          }).catch(() => {});
+        },
+        () => console.warn('Could not get location for SOS'),
+        { enableHighAccuracy: true, maximumAge: 30000, timeout: 10000 }
+      );
+    }
+
+    // Give the alert a brief head start before the dialer takes over the
+    // screen, since the app may be paused once it does.
+    const confirmed = await Promise.race([
+      saved.then(() => true, () => false),
+      new Promise<boolean>((resolve) => setTimeout(() => resolve(false), SOS_HEAD_START_MS)),
+    ]);
+
+    dial();
+    return { success: true, confirmed };
   }, [uid, activeTrip]);
 
   // ============================================
@@ -434,7 +443,7 @@ export function useSafety(): UseSafetyReturn {
         trustedContactIds: options.trustedContactIds ?? [],
         shouldNotifyContacts: true,
         // Private to the owner; never copied to the public sharedTrips doc
-        locationKey: generateShareToken(),
+        locationKey: generateSecretKey(),
       };
 
       await setDoc(doc(db, 'users', uid, 'trips', shareToken), tripData);
@@ -455,7 +464,7 @@ export function useSafety(): UseSafetyReturn {
       // The trip's endsAt is the single deadline. The server watches it and alerts
       // contacts if the trip is still active afterwards, so no linked timer is needed.
 
-      const shareUrl = `https://wakaguard.com/s?token=${shareToken}`;
+      const shareUrl = buildShareLink(shareToken);
       return { success: true, shareUrl };
     } catch (error: any) {
       console.error('Error starting Safe Trip:', error);

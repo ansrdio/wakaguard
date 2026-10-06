@@ -185,6 +185,7 @@ npx cap open ios
 
 - `docs/ARCHITECTURE.md` - System architecture overview
 - `docs/SAFETY_FEATURES_ROADMAP.md` - Safety feature specs
+- `docs/SAFETY-ALERTS-SETUP.md` - Safety alert setup, SMS provider, deploy order
 - `docs/PRODUCTION_CHECKLIST.md` - Production deployment checklist
 - `docs/backlog.md` - Feature backlog and roadmap
 

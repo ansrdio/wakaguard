@@ -7,15 +7,7 @@ const functions = getFunctions(app);
 // Types
 // -------------------------------------------------------------------------
 
-export type SafetySmsType = 'sos' | 'checkin' | 'trip_share' | 'one_time';
-
-export interface SendSosRequest {
-  type: 'sos';
-  lat: number;
-  lng: number;
-  address?: string;
-  token?: string;
-}
+export type SafetySmsType = 'checkin' | 'trip_share';
 
 export interface SendCheckinRequest {
   type: 'checkin';
@@ -26,33 +18,26 @@ export interface SendCheckinRequest {
 
 export interface SendTripShareRequest {
   type: 'trip_share';
+  /** The trip id, which is also its share token */
   token: string;
-  lat?: number;
-  lng?: number;
 }
 
-export interface SendOneTimeRequest {
-  type: 'one_time';
-  phoneE164: string;
-  message: string;
-}
-
-export type SendSafetySmsRequest =
-  | SendSosRequest
-  | SendCheckinRequest
-  | SendTripShareRequest
-  | SendOneTimeRequest;
+export type SendSafetySmsRequest = SendCheckinRequest | SendTripShareRequest;
 
 export interface SendSafetySmsResponse {
   success: boolean;
-  status: 'sent' | 'partial' | 'failed';
+  status: 'sent' | 'partial' | 'failed' | 'blocked';
   sent: number;
   failed: number;
   logId: string;
+  message?: string;
 }
 
 // -------------------------------------------------------------------------
 // Callable wrapper
+//
+// SOS and overdue alerts are not sent from here: the server sends them when
+// an SOS alert is created or a trip passes its expected arrival time.
 // -------------------------------------------------------------------------
 
 const sendSafetySmsCallable = httpsCallable<SendSafetySmsRequest, SendSafetySmsResponse>(
@@ -65,15 +50,6 @@ export async function sendSafetySms(request: SendSafetySmsRequest): Promise<Send
   return result.data;
 }
 
-export async function sendSosSms(
-  lat: number,
-  lng: number,
-  address?: string,
-  token?: string
-): Promise<SendSafetySmsResponse> {
-  return sendSafetySms({ type: 'sos', lat, lng, address, token });
-}
-
 export async function sendCheckinSms(
   message?: string,
   lat?: number,
@@ -82,19 +58,8 @@ export async function sendCheckinSms(
   return sendSafetySms({ type: 'checkin', message, lat, lng });
 }
 
-export async function sendTripShareSms(
-  token: string,
-  lat?: number,
-  lng?: number
-): Promise<SendSafetySmsResponse> {
-  return sendSafetySms({ type: 'trip_share', token, lat, lng });
-}
-
-export async function sendOneTimeSms(
-  phoneE164: string,
-  message: string
-): Promise<SendSafetySmsResponse> {
-  return sendSafetySms({ type: 'one_time', phoneE164, message });
+export async function sendTripShareSms(token: string): Promise<SendSafetySmsResponse> {
+  return sendSafetySms({ type: 'trip_share', token });
 }
 
 // -------------------------------------------------------------------------
@@ -107,8 +72,9 @@ function buildMapsLink(lat: number, lng: number): string {
   return `https://maps.google.com/?q=${lat},${lng}`;
 }
 
-function buildShareLink(token: string): string {
-  return `${BASE_URL}/t/${token}`;
+/** Public page where contacts follow a trip. The trip id is the token. */
+export function buildShareLink(token: string): string {
+  return `${BASE_URL}/s?token=${encodeURIComponent(token)}`;
 }
 
 export function buildSosShareText(lat: number, lng: number, address?: string, token?: string): string {
