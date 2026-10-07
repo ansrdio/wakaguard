@@ -12,6 +12,7 @@ import {
 } from 'firebase/auth';
 import { Capacitor } from '@capacitor/core';
 import { auth } from '@/lib/firebase';
+import { askToShowNotifications } from '@/lib/nativeNotifications';
 
 type OnboardingStep = 'tutorial' | 'notifications' | 'auth';
 type AuthMode = 'signin' | 'signup' | 'reset';
@@ -52,43 +53,16 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       return;
     }
 
-    if (!('Notification' in window)) {
-      // If notifications not supported, skip to auth
-      setStep('auth');
-      return;
-    }
-
+    // The web page's Notification API does not exist inside the apps, so this
+    // goes through the native plugin
     setRequestingPermission(true);
-    
     try {
-      const permission = await Notification.requestPermission();
-      setNotificationPermission(permission);
-      
-      if (permission === 'granted') {
-        // Register service worker and subscribe
-        if ('serviceWorker' in navigator) {
-          const registration = await navigator.serviceWorker.ready;
-          try {
-            const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 
-              'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U';
-            
-            await registration.pushManager.subscribe({
-              userVisibleOnly: true,
-              applicationServerKey: vapidKey,
-            });
-          } catch (e) {
-            console.log('Push subscription failed, continuing anyway');
-          }
-        }
-      }
-      
-      // Move to auth step regardless of permission result
-      setStep('auth');
-    } catch (error) {
-      console.error('Error requesting notification permission:', error);
-      setStep('auth');
+      const allowed = await askToShowNotifications();
+      setNotificationPermission(allowed ? 'granted' : 'denied');
     } finally {
       setRequestingPermission(false);
+      // Move on whatever the answer was
+      setStep('auth');
     }
   };
 

@@ -8,6 +8,7 @@ import {
   ChevronDown, ChevronUp
 } from 'lucide-react';
 import { useSafety } from '@/hooks/useSafety';
+import { askToShowNotifications } from '@/lib/nativeNotifications';
 import { MAX_TRUSTED_CONTACTS, joinNames } from '@/lib/tripPlanning';
 import { reachedServer } from '@/lib/firestoreWrites';
 import { StartTripForm, StartTripRequest } from '@/components/mobile/trip/StartTripForm';
@@ -287,6 +288,11 @@ export function SafetyScreen() {
       updateDoc(doc(db, 'users', uid), { alertName: request.alertName })
         .catch((error) => console.error('Failed to save alert name:', error));
     }
+
+    // First trip only: the "Safe Trip active" notification and the warning that
+    // comes before contacts are alerted both need this. Asked before the trip
+    // starts so it cannot collide with the location prompt that follows.
+    await askToShowNotifications();
 
     const result = await startSafeTrip({
       expectedDurationMinutes: request.durationMinutes,
