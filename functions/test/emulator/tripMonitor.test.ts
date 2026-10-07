@@ -403,6 +403,24 @@ test('SOS waits briefly for the phone to attach a GPS fix', async () => {
   }
 });
 
+test('SOS that arrives with a position sends it without waiting for another', async () => {
+  process.env.SOS_LOCATION_WAIT_MS = '6000';
+  try {
+    const { uid } = await makeUser();
+    const sos = await createSos(uid, { location: { lat: 6.6, lng: 3.35 } });
+
+    const startedAt = Date.now();
+    await sos.fire();
+    const tookMs = Date.now() - startedAt;
+
+    const body = (await logs(uid, 'sos'))[0].messageBody as string;
+    assert.match(body, /Location: https:\/\/maps\.google\.com\/\?q=6\.6,3\.35/);
+    assert.ok(tookMs < 4000, `sent in ${tookMs} ms, well inside the 6 s it would have waited for a fix`);
+  } finally {
+    process.env.SOS_LOCATION_WAIT_MS = '0';
+  }
+});
+
 test('SOS with no position at all still goes out', async () => {
   const { uid } = await makeUser();
   const sos = await createSos(uid, {});

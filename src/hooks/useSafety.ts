@@ -71,7 +71,7 @@ interface UseSafetyReturn {
    * the alert is saved. With call: false the dialer is not opened, for when a
    * phone call would not be safe.
    */
-  triggerSOS: (options?: { call?: boolean }) => Promise<{ success: boolean; confirmed?: boolean; error?: string }>;
+  triggerSOS: (options?: { call?: boolean; knownLocation?: { lat: number; lng: number } | null }) => Promise<{ success: boolean; confirmed?: boolean; error?: string }>;
   
   // === SAFE TRIP (UNIFIED API) ===
   /** Start a Safe Trip with duration, contacts, and destination */
@@ -353,8 +353,13 @@ export function useSafety(): UseSafetyReturn {
   }, [cancelTimer]);
 
   // Trigger emergency SOS
-  const triggerSOS = useCallback(async (options?: { call?: boolean }) => {
+  const triggerSOS = useCallback(async (options?: {
+    call?: boolean;
+    /** A position the app already holds and that is recent enough to send as current */
+    knownLocation?: { lat: number; lng: number } | null;
+  }) => {
     const call = options?.call !== false;
+    const knownLocation = options?.knownLocation ?? null;
     const dial = () => {
       if (call) window.location.href = `tel:${EMERGENCY_NUMBER}`;
     };
@@ -367,10 +372,12 @@ export function useSafety(): UseSafetyReturn {
     // The alert is saved without waiting for GPS or for the server to confirm:
     // with no data signal those waits never end, and the call must not depend
     // on them. Firestore keeps the write queued and sends it when it can.
+    // It goes out with the position the app already has, because once the
+    // dialer opens the app may be paused before a new fix arrives.
     const alertRef = doc(db, 'users', uid, 'alerts', `sos_${uid}_${Date.now()}`);
     const saved = setDoc(alertRef, {
       type: AlertType.SOS,
-      location: null,
+      location: knownLocation,
       tripId: activeTrip?.id || null,
       acknowledged: false,
       notifiedContacts: [],
@@ -385,8 +392,9 @@ export function useSafety(): UseSafetyReturn {
         .catch(() => {});
     }
 
-    // Attach a GPS fix when one arrives. The server waits a few seconds for it
-    // and otherwise falls back to the trip's last known position.
+    // Attach a fresh GPS fix when one arrives. With no position sent above, the
+    // server waits a few seconds for this one and otherwise falls back to the
+    // trip's last known position.
     if (typeof navigator !== 'undefined' && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {

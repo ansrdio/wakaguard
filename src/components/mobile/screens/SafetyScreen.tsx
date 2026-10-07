@@ -23,6 +23,7 @@ import {
   openWhatsAppShare,
 } from '@/lib/safetyMessaging';
 import { useAuthedUser } from '@/hooks/useAuthedUser';
+import { useRecentPosition } from '@/hooks/useRecentPosition';
 import { useRequireAccount } from '@/hooks/useRequireAccount';
 import { collection, deleteDoc, doc, getDoc, getDocs, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -183,23 +184,19 @@ export function SafetyScreen() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  // Get current location for SMS/WhatsApp
-  const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number } | null>(null);
-  
+  // The phone's latest position, kept ready for SOS and "I'm okay" messages.
+  // Asked for again when the SOS dialog opens, so it is seconds old by the
+  // time a button in it is tapped.
+  const { hasFix, current: currentPosition, refresh: refreshPosition } = useRecentPosition();
   useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => setCurrentLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-        () => console.warn('Could not get location for safety messaging')
-      );
-    }
-  }, []);
+    if (activeModal === 'sos') refreshPosition();
+  }, [activeModal, refreshPosition]);
 
   // Call 112. Works for everyone, signed in or not; when signed in the server
   // also messages trusted contacts.
   const handleSOS = async () => {
     setProcessing(true);
-    const result = await triggerSOS();
+    const result = await triggerSOS({ knownLocation: currentPosition() });
     setProcessing(false);
     setActiveModal(null);
     const willAlertContacts = !!uid && !isAnonymous && trustedContacts.length > 0;
@@ -221,7 +218,7 @@ export function SafetyScreen() {
     }
 
     setProcessing(true);
-    const result = await triggerSOS({ call: false });
+    const result = await triggerSOS({ call: false, knownLocation: currentPosition() });
     setProcessing(false);
     setActiveModal(null);
     showToast(
@@ -243,7 +240,9 @@ export function SafetyScreen() {
     
     setProcessing(true);
     try {
-      const result = await sendCheckinSms(undefined, currentLocation?.lat, currentLocation?.lng) as any;
+      // An old position is left out rather than sent as where you are now
+      const position = currentPosition();
+      const result = await sendCheckinSms(undefined, position?.lat, position?.lng) as any;
       if (result.success) {
         showToast(`Text sent to ${result.sent} ${result.sent === 1 ? 'contact' : 'contacts'}`, 'success');
       } else if (result.status === 'blocked') {
@@ -260,11 +259,13 @@ export function SafetyScreen() {
 
   // Share via WhatsApp (SOS)
   const handleSosWhatsApp = () => {
-    if (!currentLocation) {
+    const position = currentPosition();
+    if (!position) {
+      refreshPosition();
       showToast('Location unavailable. Please enable location.', 'error');
       return;
     }
-    const text = buildSosShareText(currentLocation.lat, currentLocation.lng);
+    const text = buildSosShareText(position.lat, position.lng);
     openWhatsAppShare(text);
   };
 
@@ -646,7 +647,7 @@ export function SafetyScreen() {
           <div className="grid grid-cols-2 gap-3">
             {EMERGENCY_CONTACTS.slice(0, 4).map((contact) => (
               <a
-                key={contact.number}
+                key={contact.name}
                 href={`tel:${contact.number}`}
                 className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 flex flex-col items-center text-center"
               >
@@ -869,7 +870,7 @@ export function SafetyScreen() {
                 </button>
                 <button
                   onClick={handleSosWhatsApp}
-                  disabled={!currentLocation}
+                  disabled={!hasFix}
                   className="flex-1 py-3 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   💬 WhatsApp
