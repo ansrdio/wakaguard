@@ -26,8 +26,11 @@ import {
 } from 'firebase/auth';
 import {
   getFirestore,
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+  persistentSingleTabManager,
   Firestore,
-  enableIndexedDbPersistence,
   connectFirestoreEmulator,
   disableNetwork,
   enableNetwork,
@@ -106,7 +109,21 @@ if (typeof window !== 'undefined') {
   auth = isFirstInit && Capacitor.isNativePlatform()
     ? initializeAuth(app, { persistence: [indexedDBLocalPersistence, browserLocalPersistence] })
     : getAuth(app);
-  db = getFirestore(app);
+  // Keep a copy of the user's data on the device, so a trip can be seen,
+  // started and ended with no signal. The phone app only ever has one page
+  // open, so it takes the storage lock outright: otherwise reopening the app
+  // within a few seconds of closing it finds the lock still held, and that
+  // whole session runs with nothing kept on the device. Browsers share the
+  // storage between tabs instead.
+  db = isFirstInit
+    ? initializeFirestore(app, {
+        localCache: persistentLocalCache({
+          tabManager: Capacitor.isNativePlatform()
+            ? persistentSingleTabManager({ forceOwnership: true })
+            : persistentMultipleTabManager(),
+        }),
+      })
+    : getFirestore(app);
   storage = getStorage(app);
 
   // Must happen before any other use of the services
@@ -139,18 +156,6 @@ if (typeof window !== 'undefined') {
     // Sent by the native shell when the app returns to the foreground
     document.addEventListener('resume', reconnect);
   }
-
-  // Enable IndexedDB persistence for offline support
-  // This allows the app to work in areas with poor network connectivity
-  enableIndexedDbPersistence(db).catch((err) => {
-    if (err.code === 'failed-precondition') {
-      // Multiple tabs open - persistence can only be enabled in one tab
-      console.warn('Firestore persistence unavailable: multiple tabs open');
-    } else if (err.code === 'unimplemented') {
-      // Browser doesn't support IndexedDB persistence
-      console.warn('Firestore persistence unavailable: browser not supported');
-    }
-  });
 }
 
 export { app, auth, db, storage };
