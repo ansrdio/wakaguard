@@ -147,8 +147,13 @@ export const STATE_NORMALIZATION_MAP: Record<string, NigerianState> = {
  * Normalize a state name to match our standard format
  */
 export function normalizeStateName(stateName: string): NigerianState | null {
-  const normalized = stateName.toLowerCase().trim();
-  return STATE_NORMALIZATION_MAP[normalized] || null;
+  const normalized = stateName.toLowerCase().trim().replace(/\s+/g, ' ');
+  return (
+    STATE_NORMALIZATION_MAP[normalized] ||
+    // Map services return most states with the word on the end, as in "Lagos State"
+    STATE_NORMALIZATION_MAP[normalized.replace(/ state$/, '')] ||
+    null
+  );
 }
 
 /**
