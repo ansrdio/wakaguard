@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import dynamic from 'next/dynamic';
 import { ArrowLeft, Check, Clock, Loader2, MapPin, MapPinOff, Users } from 'lucide-react';
 import { Trip, TripStatus } from '@/lib/types';
@@ -58,7 +59,10 @@ export function TripMapScreen({ trip, watcherNames, processing, onClose, onArriv
   const location = describeLocationStatus(trip.lastUpdate?.toMillis() ?? null, !!trip.lastLocation, nowMs);
   const LocationIcon = location.state === 'fresh' ? MapPin : MapPinOff;
 
-  return (
+  // Drawn at the top of the page, not inside the Trip screen: on iPhone a
+  // scrolling area keeps everything in it underneath the app's own bars, which
+  // hid this screen's back button and its buttons at the bottom.
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
@@ -149,6 +153,7 @@ export function TripMapScreen({ trip, watcherNames, processing, onClose, onArriv
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
