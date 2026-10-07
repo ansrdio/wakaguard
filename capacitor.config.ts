@@ -33,6 +33,10 @@ const config: CapacitorConfig = {
       style: 'DARK',
       backgroundColor: '#1e293b',
     },
+    // Android 15+: light icons on the dark strip behind both system bars
+    SystemBars: {
+      style: 'DARK',
+    },
     SplashScreen: {
       launchShowDuration: 2000,
       launchAutoHide: true,
