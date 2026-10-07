@@ -76,7 +76,8 @@ export interface SenderProfile {
   blockReason?: 'account_disabled' | 'email_not_verified' | 'sms_blocked';
 }
 
-const UNKNOWN_NAME = 'Your contact';
+/** Used in messages when the account has no usable name */
+export const UNKNOWN_NAME = 'Your contact';
 
 /**
  * Who a message is from, and whether this account may send SMS at all.

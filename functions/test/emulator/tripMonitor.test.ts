@@ -354,6 +354,94 @@ test('the daily cap holds across hours', async () => {
 });
 
 // ---------------------------------------------------------------------------
+// The path travelled, kept on the share document
+// ---------------------------------------------------------------------------
+
+const shared = async (id: string) => (await db().doc(`sharedTrips/${id}`).get()).data()!;
+const moveTo = (uid: string, id: string, lat: number, lng: number, atMs: number) =>
+  updateAndTrigger(onTripUpdated, `users/${uid}/trips/${id}`, { lastLocation: { lat, lng }, lastUpdate: ts(atMs) }, { uid, tripId: id });
+
+test('positions build a path on the share document, starting from where the trip began', async () => {
+  const { uid, contactIds } = await makeUser();
+  const now = Date.now();
+  const id = await makeTrip(uid, contactIds, {
+    endsAt: ts(now + 30 * MIN),
+    startTime: ts(now - 10 * MIN),
+    startLocation: { lat: 6.6, lng: 3.35 },
+  });
+
+  await moveTo(uid, id, 6.61, 3.35, now - 6 * MIN);
+  await moveTo(uid, id, 6.62, 3.35, now - 3 * MIN);
+
+  const path = (await shared(id)).path;
+  assert.deepEqual(path.map((p: any) => [p.lat, p.lng]), [[6.6, 3.35], [6.61, 3.35], [6.62, 3.35]]);
+  assert.equal(path[0].at, now - 10 * MIN);
+  assert.equal(path[2].at, now - 3 * MIN);
+});
+
+test('standing still, repeated events and late events do not grow the path', async () => {
+  const { uid, contactIds } = await makeUser();
+  const now = Date.now();
+  const id = await makeTrip(uid, contactIds, { endsAt: ts(now + 30 * MIN) });
+
+  await moveTo(uid, id, 6.61, 3.35, now - 6 * MIN);
+  const ref = db().doc(`users/${uid}/trips/${id}`);
+  const before = await ref.get();
+  await ref.update({ lastLocation: { lat: 6.62, lng: 3.35 }, lastUpdate: ts(now - 4 * MIN) });
+  const after = await ref.get();
+  // The same event delivered twice
+  await (onTripUpdated as any).run({ before, after }, { params: { uid, tripId: id } });
+  await (onTripUpdated as any).run({ before, after }, { params: { uid, tripId: id } });
+  // A few metres of GPS drift
+  await moveTo(uid, id, 6.62001, 3.35, now - 2 * MIN);
+  // An older event arriving after a newer one
+  await (onTripUpdated as any).run({ before: after, after: before }, { params: { uid, tripId: id } });
+
+  assert.deepEqual((await shared(id)).path.map((p: any) => p.lat), [6.61, 6.62]);
+});
+
+test('the traveller\'s name is put on the share document once, even with no position', async () => {
+  const { uid, contactIds } = await makeUser();
+  await db().doc(`users/${uid}`).set({ alertName: 'Ada O.' }, { merge: true });
+  const id = await makeTrip(uid, contactIds, { endsAt: ts(Date.now() + 30 * MIN) });
+
+  await updateAndTrigger(onTripUpdated, `users/${uid}/trips/${id}`, { endsAt: ts(Date.now() + 45 * MIN) }, { uid, tripId: id });
+  assert.equal((await shared(id)).name, 'Ada O.');
+  assert.equal((await shared(id)).path, undefined, 'no position, so no path');
+
+  // A later change of name does not rewrite a trip already under way
+  await db().doc(`users/${uid}`).set({ alertName: 'Someone Else' }, { merge: true });
+  await moveTo(uid, id, 6.61, 3.35, Date.now());
+  assert.equal((await shared(id)).name, 'Ada O.');
+});
+
+test('the path is removed when the trip ends, and kept through an SOS', async () => {
+  const { uid, contactIds } = await makeUser();
+  const now = Date.now();
+  const id = await makeTrip(uid, contactIds, { endsAt: ts(now + 30 * MIN) });
+  await moveTo(uid, id, 6.61, 3.35, now - 6 * MIN);
+
+  await updateAndTrigger(onTripUpdated, `users/${uid}/trips/${id}`, { status: 'emergency' }, { uid, tripId: id });
+  await moveTo(uid, id, 6.62, 3.35, now - 3 * MIN);
+  assert.equal((await shared(id)).path.length, 2, 'still recorded during an emergency');
+
+  await updateAndTrigger(onTripUpdated, `users/${uid}/trips/${id}`, { status: 'completed' }, { uid, tripId: id });
+  const after = await shared(id);
+  assert.equal(after.path, undefined);
+  assert.equal(after.name, 'Ada', 'the rest of the document is untouched');
+});
+
+test('a trip with no share document does not get one created by the path', async () => {
+  const { uid, contactIds } = await makeUser();
+  const id = await makeTrip(uid, contactIds, { endsAt: ts(Date.now() + 30 * MIN) });
+  await db().doc(`sharedTrips/${id}`).delete();
+
+  await moveTo(uid, id, 6.61, 3.35, Date.now());
+
+  assert.equal((await db().doc(`sharedTrips/${id}`).get()).exists, false);
+});
+
+// ---------------------------------------------------------------------------
 // SOS
 // ---------------------------------------------------------------------------
 

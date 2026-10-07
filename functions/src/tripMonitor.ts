@@ -17,8 +17,9 @@ import * as admin from 'firebase-admin';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { checkAndIncrementRateLimit } from './rateLimit';
 import { getNumberSetting } from './config';
-import { deliverSafetySms, DeliveryResult, getSenderProfile, getTrustedContacts, Recipient } from './safetyDelivery';
+import { deliverSafetySms, DeliveryResult, getSenderProfile, getTrustedContacts, Recipient, UNKNOWN_NAME } from './safetyDelivery';
 import { AllClearReason, buildAllClearMessage, buildOverdueMessage, buildSosMessage } from './templates';
+import { addPathPoint, readPath } from './tripPath';
 import {
   decideOverdueAction,
   OverdueAlertState,
@@ -326,9 +327,74 @@ async function sendAllClearOnce(ref: DocRef, contactIds: string[] | null, reason
   if (first) await sendAllClear(ref, contactIds, reason);
 }
 
+const isOpenStatus = (status: unknown) => status === 'active' || status === 'emergency';
+
 /**
- * Contacts who were told someone is overdue must also be told when that
- * person turns up. Fires when an overdue trip is ended or extended.
+ * Keep the public share document's path up to date, and put the traveller's
+ * name on it.
+ *
+ * Runs for every change to a trip, so it covers positions posted by the phone
+ * app and ones written by a browser. Trigger events can arrive twice or out of
+ * order; addPathPoint ignores anything that is not newer than the path's end.
+ *
+ * The path is removed when the trip ends. The share link stops working then,
+ * and a record of where someone went should not outlive its use.
+ */
+async function recordPath(tripRef: DocRef, before: DocData, after: DocData): Promise<void> {
+  const db = admin.firestore();
+  const sharedRef = db.doc(`sharedTrips/${tripRef.id}`);
+
+  if (!isOpenStatus(after.status)) {
+    if (isOpenStatus(before.status)) {
+      await db.runTransaction(async (tx) => {
+        const snap = await tx.get(sharedRef);
+        if (snap.exists && snap.data()!.path !== undefined) tx.update(sharedRef, { path: FieldValue.delete() });
+      });
+    }
+    return;
+  }
+
+  const here = readLocation(after.lastLocation);
+  const atMs = toMillis(after.lastUpdate);
+  const hasNewPosition = !!here && atMs != null && atMs !== toMillis(before.lastUpdate);
+
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(sharedRef);
+    // The app creates the share document; never create it here, or the app's own write would be refused
+    if (!snap.exists) return;
+    const shared = snap.data()!;
+    const update: DocData = {};
+
+    // An empty name is stored when none is known, so this is looked up once per trip
+    if (typeof shared.name !== 'string') {
+      const { name } = await getSenderProfile(uidFromRef(tripRef));
+      update.name = name === UNKNOWN_NAME ? '' : name;
+    }
+
+    if (hasNewPosition) {
+      let path = readPath(shared.path);
+      const seeded = path.length === 0;
+      if (seeded) {
+        // Begin at the point the trip started from, when the phone had one
+        const start = readLocation(after.startLocation);
+        const startMs = toMillis(after.startTime);
+        if (start && startMs != null && startMs < atMs!) path = [{ ...start, at: startMs }];
+      }
+      const next = addPathPoint(path, { ...here!, at: atMs! });
+      if (next) update.path = next;
+      else if (seeded && path.length > 0) update.path = path;
+    }
+
+    if (Object.keys(update).length > 0) tx.update(sharedRef, update);
+  });
+}
+
+/**
+ * Fires on every change to a trip.
+ *
+ * Keeps the path on the share document in step with the trip's position, and
+ * tells contacts who were told someone is overdue when that person turns up
+ * (an overdue trip ended or extended).
  */
 export const onTripUpdated = functions.firestore
   .document('users/{uid}/trips/{tripId}')
@@ -339,6 +405,10 @@ export const onTripUpdated = functions.firestore
     const db = admin.firestore();
 
     const contactIds: string[] | null = after.trustedContactIds ?? null;
+
+    // Never let the map get in the way of the alerts below
+    await recordPath(ref, before, after)
+      .catch((err) => console.error(`Could not update the path of trip ${ref.id}`, err));
 
     // Traveller ended the trip themselves (not the hourly auto-expiry)
     const endedByUser = after.status === 'completed'
