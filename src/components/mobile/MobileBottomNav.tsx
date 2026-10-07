@@ -1,6 +1,7 @@
 'use client';
 
 import { MapIcon, List, Navigation, User } from 'lucide-react';
+import { useKeyboardOpen } from '@/hooks/useKeyboardOpen';
 
 type MobileTab = 'map' | 'reports' | 'safety' | 'profile';
 
@@ -19,6 +20,11 @@ export function MobileBottomNav({ activeTab, onTabChange, safetyBadge, reportCou
     { id: 'reports' as MobileTab, label: 'Reports', icon: List, badge: reportCount && reportCount > 0 ? reportCount : null },
     { id: 'profile' as MobileTab, label: 'Profile', icon: User, badge: null },
   ];
+
+  // With the keyboard up the bar would sit on top of it, over the form being
+  // filled in and its buttons
+  const keyboardOpen = useKeyboardOpen();
+  if (keyboardOpen) return null;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-[9999] pointer-events-auto bg-white/95 dark:bg-slate-900/95 backdrop-blur border-t border-slate-200 dark:border-slate-700 shadow-lg supports-[backdrop-filter]:bg-white/80 dark:supports-[backdrop-filter]:bg-slate-900/80" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>

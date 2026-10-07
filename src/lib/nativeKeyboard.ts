@@ -20,10 +20,16 @@ import { Capacitor } from '@capacitor/core';
 /** The keyboard takes about a quarter of a second to slide away, and iOS can move the page again while it does */
 const SETTLE_DELAYS_MS = [0, 120, 350];
 
-function isTextEntry(el: Element | null): boolean {
+/** Input types that take focus without bringing up a keyboard or picker */
+const NON_TEXT_INPUTS = new Set(['button', 'checkbox', 'color', 'file', 'image', 'radio', 'range', 'reset', 'submit']);
+
+/** Whether focus on this element means the phone's keyboard (or a picker in its place) is showing */
+export function isTextEntry(el: Element | null): boolean {
   if (!el) return false;
   const tag = el.tagName;
-  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (el as HTMLElement).isContentEditable;
+  if (tag === 'INPUT') return !NON_TEXT_INPUTS.has((el as HTMLInputElement).type);
+  // Elements outside HTML, such as the parts of an icon, have no isContentEditable at all
+  return tag === 'TEXTAREA' || tag === 'SELECT' || (el as HTMLElement).isContentEditable === true;
 }
 
 /**
