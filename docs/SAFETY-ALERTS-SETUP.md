@@ -7,7 +7,7 @@ How to configure, deploy and run the Safe Trip alerting: overdue alerts, SOS, tr
 | Function | Trigger | Purpose |
 |----------|---------|---------|
 | `checkOverdueTrips` | Every minute | Warns the traveller at the expected arrival time, alerts trusted contacts by SMS 5 minutes later |
-| `onTripUpdated` | Trip document updated | Tells contacts when an alerted traveller adds time or ends the trip |
+| `onTripUpdated` | Trip document updated | Keeps the path travelled and the traveller's name on the share document; tells contacts when an alerted traveller adds time or ends the trip |
 | `onSafetyTimerUpdated` | Timer document updated | All-clear for standalone safety timers |
 | `onSOSAlert` | SOS alert created | Sends the SOS SMS to trusted contacts, with retries |
 | `tripLocation` | HTTPS | Receives location from the native app in the background |
@@ -40,6 +40,8 @@ Older deployments set Twilio values with `firebase functions:config:set`. Those 
 
 The app at wakaguard.com is served from Firebase Hosting. The new client needs the new rules and functions, so deploy in this order:
 
+**The rules must go out before the functions.** The functions add two fields to each trip's share document (`path` and `name`). Under the old rules a share document with fields they do not know is rejected on its next update, so the app's own writes to it (add time, arrive, SOS) would start failing for every trip in progress.
+
 ```bash
 # 1. Rules and indexes (indexes take a few minutes to build)
 firebase deploy --only firestore:rules,firestore:indexes
@@ -56,6 +58,15 @@ firebase deploy --only hosting
 Use a test Firebase project first (`firebase use <project>`).
 
 For the native apps, run `npx cap sync` after `npm run build`, then build in Android Studio and Xcode.
+
+### The trip map and what it stores
+
+The traveller's trip map and the page a contact opens from the trip link draw the same thing: the path the phone has reported and its latest position. There is no planned route.
+
+- The path is built by `onTripUpdated` from the positions the trip already receives, as up to 240 points on `sharedTrips/{tripId}`. Movements under 40 m are skipped.
+- It is removed when the trip ends. During an SOS or an overdue alert it stays until the trip is ended or the hourly clean-up cancels it.
+- The private trip document does not keep the path, only its start and end points.
+- The app cannot set or change `path` or `name`; the rules allow them only as written by the server.
 
 ## 3. Check it works
 
