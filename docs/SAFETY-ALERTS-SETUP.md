@@ -121,6 +121,8 @@ If `pod install` (run by `npx cap sync`) stops with a Ruby encoding error, run i
 for port in 9099 8080 9199 5001; do adb reverse tcp:$port tcp:$port; done
 ```
 
+**Notifications.** The apps ask for permission to show notifications the first time a trip is started, and from the "Enable Notifications" button on first launch. Without it, Android 13 and later hide the "Safe Trip active" notification and the warning sent before contacts are alerted.
+
 Before the first release:
 
 1. **API key restrictions.** Inside the app, pages come from `capacitor://localhost` (iOS) and `https://localhost` (Android), not from wakaguard.com. If the browser API key in Google Cloud Console is restricted to your web domains, add those two addresses or sign-in and data will fail inside the app.
@@ -132,7 +134,9 @@ What has been run so far, all against the local emulators:
 
 - **iPhone simulator:** first launch, sign-in, staying signed in, adding a contact, a full trip, location updates with the app in the background, force-closing mid-trip and reopening.
 - **Android virtual phone (Android 16, plain image):** first launch, sign-in, the location prompt, adding a contact, starting and ending a trip, ending a trip with no connection and having it sent once the connection returned, the SOS (dialer opens on 112, contacts are texted), the map, the Back button and the keyboard.
-- **Not yet run on Android: location updates during a trip.** The location plugin needs Google Play services, which that image does not have, so no update ever reached the server from it. Use a real phone, or a virtual device with a "Google APIs" or "Google Play" image.
+- **Real Android phone (Galaxy A15, Android 16), over USB with `adb reverse`:** everything above, plus location updates during a trip. An update reached the server about every two minutes with the app open, in the background, with the screen locked, with the phone made to behave as if on battery (`adb shell dumpsys battery unplug`), and in forced deep Doze (`adb shell dumpsys deviceidle force-idle deep`). Sharing resumed within seconds of reopening after a force-close. The phone was stationary on Wi-Fi for about half an hour, so a long journey on mobile data is still to be seen.
+- **Location does not work on a plain Android virtual device.** The location plugin needs Google Play services; use a "Google APIs" or "Google Play" image, or a real phone.
+- **Not run anywhere on a real phone:** "Call 112 Now", which opens the dialer. On the virtual phone the SOS text sent that way carried no location; "Alert by SMS" on the real phone did.
 
 A simulator cannot show what a locked phone, a weak signal or battery saving do, so check on a real phone, on both platforms:
 
