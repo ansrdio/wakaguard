@@ -48,35 +48,41 @@ self.addEventListener('fetch', (event) => {
 
 /**
  * FCM background notifications
- * Uses compat SDK for SW compatibility
+ * Uses compat SDK for SW compatibility. The version is filled in at build time
+ * so it matches the Firebase version the app is built with.
+ * If this part cannot load, the offline cache above must keep working.
  */
-importScripts('https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/10.12.5/firebase-messaging-compat.js');
+try {
+  importScripts('https://www.gstatic.com/firebasejs/__FIREBASE_VERSION__/firebase-app-compat.js');
+  importScripts('https://www.gstatic.com/firebasejs/__FIREBASE_VERSION__/firebase-messaging-compat.js');
 
-firebase.initializeApp({
-  apiKey: '__FIREBASE_API_KEY__',
-  authDomain: '__FIREBASE_AUTH_DOMAIN__',
-  projectId: '__FIREBASE_PROJECT_ID__',
-  storageBucket: '__FIREBASE_STORAGE_BUCKET__',
-  messagingSenderId: '__FIREBASE_MESSAGING_SENDER_ID__',
-  appId: '__FIREBASE_APP_ID__',
-});
-
-const messaging = firebase.messaging();
-
-messaging.onBackgroundMessage((payload) => {
-  const title = payload?.notification?.title || payload?.data?.title || 'WakaGuard';
-  const body = payload?.notification?.body || payload?.data?.body || 'New notification from WakaGuard';
-  const url = payload?.fcmOptions?.link || payload?.data?.link || payload?.data?.url || '/';
-
-  self.registration.showNotification(title, {
-    body,
-    icon: '/icons/icon-192x192.png',
-    badge: '/icons/icon-72x72.png',
-    requireInteraction: true,
-    data: { url },
+  firebase.initializeApp({
+    apiKey: '__FIREBASE_API_KEY__',
+    authDomain: '__FIREBASE_AUTH_DOMAIN__',
+    projectId: '__FIREBASE_PROJECT_ID__',
+    storageBucket: '__FIREBASE_STORAGE_BUCKET__',
+    messagingSenderId: '__FIREBASE_MESSAGING_SENDER_ID__',
+    appId: '__FIREBASE_APP_ID__',
   });
-});
+
+  const messaging = firebase.messaging();
+
+  messaging.onBackgroundMessage((payload) => {
+    const title = payload?.notification?.title || payload?.data?.title || 'WakaGuard';
+    const body = payload?.notification?.body || payload?.data?.body || 'New notification from WakaGuard';
+    const url = payload?.fcmOptions?.link || payload?.data?.link || payload?.data?.url || '/';
+
+    self.registration.showNotification(title, {
+      body,
+      icon: '/icons/icon-192x192.png',
+      badge: '/icons/icon-72x72.png',
+      requireInteraction: true,
+      data: { url },
+    });
+  });
+} catch (error) {
+  console.warn('Background notifications are unavailable:', error);
+}
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();

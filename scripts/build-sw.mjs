@@ -38,6 +38,18 @@ for (const [k, v] of Object.entries(map)) {
   }
 }
 
+// The service worker loads Firebase from Google's CDN. Use the version the app
+// itself is built with: an old CDN build can stop loading in newer browsers,
+// and a service worker that fails to load takes offline support down with it.
+const firebaseVersion = JSON.parse(
+  fs.readFileSync(path.resolve('node_modules', 'firebase', 'package.json'), 'utf8')
+).version;
+if (!/^\d+\.\d+\.\d+$/.test(firebaseVersion)) {
+  console.error(`Unexpected Firebase version "${firebaseVersion}". Cannot build the service worker.`);
+  process.exit(1);
+}
+map.__FIREBASE_VERSION__ = firebaseVersion;
+
 let sw = fs.readFileSync(templatePath, 'utf8');
 for (const [k, v] of Object.entries(map)) {
   sw = sw.replaceAll(k, v);
