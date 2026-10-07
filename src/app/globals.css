@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+/*
+ * Dark styles follow the app's own setting (the .dark class set in
+ * ThemeContext), not the phone's. Without this, a phone in dark mode turned
+ * only some parts of a screen dark.
+ */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* Light mode defaults */
 :root { 
   color-scheme: light; 
