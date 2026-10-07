@@ -400,7 +400,7 @@ service cloud.firestore {
       function isValidSharedTrip(d) {
         return d.keys().hasOnly([
           'uid','tripId','status','expiresAt','lastLocation','lastUpdate','destination','createdAt',
-          'endsAt','overdueAt'
+          'endsAt','overdueAt','path','name'
         ])
         && d.uid is string
         && d.tripId is string
@@ -412,6 +412,8 @@ service cloud.firestore {
         && (!('destination' in d) || d.destination == null || d.destination is string)
         && (!('endsAt' in d) || d.endsAt == null || d.endsAt is timestamp)
         && (!('overdueAt' in d) || d.overdueAt == null || d.overdueAt is timestamp)
+        && (!('name' in d) || (d.name is string && d.name.size() <= 60))
+        && (!('path' in d) || (d.path is list && d.path.size() <= 300))
         && (!('lastLocation' in d) || d.lastLocation == null || (
           d.lastLocation is map
           && d.lastLocation.keys().hasOnly(['lat','lng','accuracy'])
@@ -423,16 +425,30 @@ service cloud.firestore {
         ));
       }
 
+      // The path travelled and the traveller's name are written by the server
+      // (functions/src/tripMonitor.ts). They are in the list of allowed keys
+      // because an update is checked against the whole document, and without
+      // them every later write by the app (add time, arrive, SOS) would be
+      // refused once the server had added them. The app may not set or change
+      // them itself.
+      function serverFieldsUntouched() {
+        return request.resource.data.get('path', null) == resource.data.get('path', null)
+          && request.resource.data.get('name', null) == resource.data.get('name', null);
+      }
+
       allow create: if isAuthenticated()
         && request.auth.uid == request.resource.data.uid
-        && isValidSharedTrip(request.resource.data);
+        && isValidSharedTrip(request.resource.data)
+        && !('path' in request.resource.data)
+        && !('name' in request.resource.data);
 
       allow update: if isAuthenticated()
         && ('uid' in resource.data)
         && resource.data.uid is string
         && request.auth.uid == resource.data.uid
         && request.resource.data.uid == resource.data.uid
-        && isValidSharedTrip(request.resource.data);
+        && isValidSharedTrip(request.resource.data)
+        && serverFieldsUntouched();
 
       allow delete: if isAuthenticated()
         && request.auth.uid == resource.data.uid;

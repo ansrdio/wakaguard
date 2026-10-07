@@ -446,6 +446,66 @@ async function sharedTripUpdateWhileOverdue(ctx: AppContext, token: string) {
   });
 }
 
+// The server adds the path travelled and the traveller's name (functions/src/tripMonitor.ts).
+// Written here as the Admin SDK would, bypassing rules.
+async function adminAddPathAndName(token: string) {
+  const url = `http://127.0.0.1:8080/v1/projects/${getProjectId()}/databases/(default)/documents/sharedTrips/${token}`
+    + '?updateMask.fieldPaths=path&updateMask.fieldPaths=name';
+  const point = (lat: number, lng: number, at: number) => ({
+    mapValue: { fields: { lat: { doubleValue: lat }, lng: { doubleValue: lng }, at: { integerValue: String(at) } } }
+  });
+  const body = {
+    fields: {
+      name: { stringValue: 'Ada' },
+      path: { arrayValue: { values: [point(6.5, 3.4, Date.now() - 120000), point(6.51, 3.41, Date.now() - 60000)] } }
+    }
+  };
+  const response = await fetch(url, {
+    method: 'PATCH',
+    headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if (!response.ok) {
+    throw new Error(`Admin write failed: ${response.status} ${await response.text()}`);
+  }
+}
+
+// Once the server has added them, the app's own updates must still pass rules
+async function sharedTripUpdateAfterServerFields(ctx: AppContext, token: string) {
+  const sharedRef = doc(ctx.db, 'sharedTrips', token);
+  const data = (await getDoc(sharedRef)).data();
+  if (!data?.path || data.name !== 'Ada') {
+    throw new Error('Server fields missing from the shared trip');
+  }
+  await updateDoc(sharedRef, { lastLocation: { lat: 6.53, lng: 3.43, accuracy: 8 }, lastUpdate: Timestamp.now() });
+  await updateDoc(sharedRef, { endsAt: Timestamp.fromDate(new Date(Date.now() + 90 * 60 * 1000)) });
+}
+
+async function sharedTripChangePath(ctx: AppContext, token: string) {
+  await updateDoc(doc(ctx.db, 'sharedTrips', token), { path: [{ lat: 9.0, lng: 7.4, at: Date.now() }] });
+}
+
+async function sharedTripRemovePath(ctx: AppContext, token: string) {
+  await updateDoc(doc(ctx.db, 'sharedTrips', token), { path: deleteField() });
+}
+
+async function sharedTripChangeName(ctx: AppContext, token: string) {
+  await updateDoc(doc(ctx.db, 'sharedTrips', token), { name: 'Somebody Else' });
+}
+
+async function sharedTripCreateWithServerFields(ctx: AppContext, uid: string, token: string) {
+  await setDoc(doc(ctx.db, 'sharedTrips', token), {
+    uid,
+    tripId: token,
+    status: 'active',
+    expiresAt: Timestamp.fromDate(new Date(Date.now() + 60 * 60 * 1000)),
+    lastUpdate: Timestamp.now(),
+    createdAt: Timestamp.now(),
+    name: 'Ada',
+    path: [{ lat: 6.5, lng: 3.4, at: Date.now() }]
+  });
+}
+
 async function sharedTripUpdateBadEndsAt(ctx: AppContext, token: string) {
   const sharedRef = doc(ctx.db, 'sharedTrips', token);
   const snapshot = await getDoc(sharedRef);
@@ -867,6 +927,22 @@ async function run() {
     await runStep('User: update shared trip', () => sharedTripUpdate(user, userUid, ids.tripId));
     await runStep('User: update shared trip with endsAt/overdueAt', () =>
       sharedTripUpdateWhileOverdue(user, ids.tripId)
+    );
+    await runStep('Server: add path and name to shared trip', () => adminAddPathAndName(ids.tripId));
+    await runStep('User: update shared trip after the server added a path and a name', () =>
+      sharedTripUpdateAfterServerFields(user, ids.tripId)
+    );
+    await runStep('User: changing the shared trip path denied', () =>
+      sharedTripChangePath(user, ids.tripId), true
+    );
+    await runStep('User: removing the shared trip path denied', () =>
+      sharedTripRemovePath(user, ids.tripId), true
+    );
+    await runStep('User: changing the shared trip name denied', () =>
+      sharedTripChangeName(user, ids.tripId), true
+    );
+    await runStep('User: creating a shared trip with a path and a name denied', () =>
+      sharedTripCreateWithServerFields(user, userUid, `shared_serverfields_${runId}`), true
     );
     await runStep('User: shared trip with non-timestamp endsAt denied', () =>
       sharedTripUpdateBadEndsAt(user, ids.tripId), true
