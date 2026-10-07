@@ -1,4 +1,4 @@
-import * as functions from 'firebase-functions';
+import * as functions from 'firebase-functions/v1';
 
 /**
  * Read a setting from the environment (functions/.env or a secret).
