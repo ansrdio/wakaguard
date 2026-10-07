@@ -7,6 +7,7 @@ import {
   formatDuration,
   ARRIVAL_PRESETS,
   DEFAULT_TRIP_MINUTES,
+  initialsOf,
   joinNames,
   textContactsByDefault,
   tripExpiryMs,
@@ -35,12 +36,12 @@ test('arrival time shows the weekday only when it is not today', () => {
 });
 
 test('countdown moves from active to ending soon to overdue', () => {
-  assert.deepEqual(describeTimeLeft(NOW + 134 * MIN, NOW), { state: 'active', text: '2 h 14 min left' });
-  assert.deepEqual(describeTimeLeft(NOW + 10 * MIN, NOW), { state: 'endingSoon', text: '10 min left' });
-  assert.deepEqual(describeTimeLeft(NOW + 20 * 1000, NOW), { state: 'endingSoon', text: '1 min left' });
-  assert.deepEqual(describeTimeLeft(NOW, NOW), { state: 'overdue', text: 'Arrival time reached' });
-  assert.deepEqual(describeTimeLeft(NOW - 12 * MIN, NOW), { state: 'overdue', text: '12 min overdue' });
-  assert.deepEqual(describeTimeLeft(NOW - 95 * MIN, NOW), { state: 'overdue', text: '1 h 35 min overdue' });
+  assert.deepEqual(describeTimeLeft(NOW + 134 * MIN, NOW), { state: 'active', text: '2 h 14 min left', label: 'Time remaining', value: '2 h 14 min' });
+  assert.deepEqual(describeTimeLeft(NOW + 10 * MIN, NOW), { state: 'endingSoon', text: '10 min left', label: 'Time remaining', value: '10 min' });
+  assert.deepEqual(describeTimeLeft(NOW + 20 * 1000, NOW), { state: 'endingSoon', text: '1 min left', label: 'Time remaining', value: '1 min' });
+  assert.deepEqual(describeTimeLeft(NOW, NOW), { state: 'overdue', text: 'Arrival time reached', label: 'Time remaining', value: '0 min' });
+  assert.deepEqual(describeTimeLeft(NOW - 12 * MIN, NOW), { state: 'overdue', text: '12 min overdue', label: 'Overdue by', value: '12 min' });
+  assert.deepEqual(describeTimeLeft(NOW - 95 * MIN, NOW), { state: 'overdue', text: '1 h 35 min overdue', label: 'Overdue by', value: '1 h 35 min' });
 });
 
 test('a complete plan is valid', () => {
@@ -102,4 +103,11 @@ test('names are joined the way people say them', () => {
   assert.equal(joinNames(['Mum']), 'Mum');
   assert.equal(joinNames(['Mum', 'Tunde']), 'Mum and Tunde');
   assert.equal(joinNames(['Mum', 'Tunde', 'Ngozi']), 'Mum, Tunde and Ngozi');
+});
+
+test('initialsOf: letters that stand in for a photo', () => {
+  assert.equal(initialsOf('Mum'), 'M');
+  assert.equal(initialsOf('aunty ngozi'), 'AN');
+  assert.equal(initialsOf('  Tunde   Bello  Adeyemi '), 'TB');
+  assert.equal(initialsOf(''), '');
 });

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { 
-  Shield, Users, AlertTriangle, Phone, X, Check, Loader2,
+  Shield, Users, Phone, X, Check, Loader2,
   ChevronRight, Heart, Car, Lightbulb, UserPlus, Trash2, CheckCircle2,
   AlertCircle, Flame, Ambulance, ShieldCheck, Plus,
   ChevronDown, ChevronUp
@@ -20,7 +20,6 @@ import {
   sendTripShareSms,
   buildShareLink,
   buildSosShareText,
-  buildTripShareText,
   openWhatsAppShare,
 } from '@/lib/safetyMessaging';
 import { useAuthedUser } from '@/hooks/useAuthedUser';
@@ -32,6 +31,11 @@ import { shareSafeTripLink } from '@/lib/share';
 import { AuthModal } from '@/components/AuthModal';
 
 type ModalType = 'sos' | 'contacts' | 'emergency' | null;
+
+const moreRow = 'w-full p-4 flex items-center gap-3 text-left hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors';
+const moreIcon = 'w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0';
+const moreTitle = 'block font-semibold text-slate-900 dark:text-white';
+const moreSub = 'block text-sm text-slate-500 dark:text-slate-400';
 
 // Nigerian Emergency Numbers
 const EMERGENCY_CONTACTS = [
@@ -265,15 +269,6 @@ export function SafetyScreen() {
   };
 
   // Share via WhatsApp (Trip)
-  const handleTripWhatsApp = () => {
-    if (!activeTrip) {
-      showToast('Start a Safe Trip first.', 'error');
-      return;
-    }
-    const text = buildTripShareText(activeTrip.id);
-    openWhatsAppShare(text);
-  };
-
   const handleStartTrip = async (request: StartTripRequest) => {
     if (!requireAccount('start safe trip')) return;
     if (!uid || isAnonymous) return;
@@ -619,8 +614,8 @@ export function SafetyScreen() {
 
   if (loading) {
     return (
-      <div className="absolute inset-0 flex items-center justify-center bg-slate-50">
-        <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+      <div className="absolute inset-0 flex items-center justify-center bg-slate-50 dark:bg-slate-900">
+        <Loader2 className="w-8 h-8 text-brand-600 animate-spin" />
         <AuthModal isOpen={showAuthModal} onClose={closeAuthModal} />
       </div>
     );
@@ -631,7 +626,7 @@ export function SafetyScreen() {
     return (
       <div className="absolute inset-0 overflow-y-auto px-4 pt-20 pb-28 bg-slate-50 dark:bg-slate-900" style={{ marginTop: 'calc(env(safe-area-inset-top, 0px) + 56px)' }}>
         <div className="text-center py-12">
-          <Shield className="w-16 h-16 text-blue-600 mx-auto mb-4" />
+          <Shield className="w-16 h-16 text-brand-600 mx-auto mb-4" />
           <h1 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Safe Trip</h1>
           <p className="text-slate-600 dark:text-slate-400 mb-6 px-4">
             Start a trip and say when you should arrive. If you don&apos;t, the people you chose get a text with
@@ -639,9 +634,9 @@ export function SafetyScreen() {
           </p>
           <button
             onClick={openAuthModal}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-brand-600 text-white rounded-2xl font-semibold hover:bg-brand-700 transition-colors"
           >
-            Sign In to Continue
+            Sign in to continue
           </button>
         </div>
 
@@ -691,13 +686,12 @@ export function SafetyScreen() {
           onArrive={handleEndSafeTrip}
           onExtend={handleExtendTrip}
           onShare={handleShareLink}
-          onWhatsApp={handleTripWhatsApp}
           onTextOkay={handleCheckinSms}
           onSOS={() => setActiveModal('sos')}
         />
       ) : savedAlertName === null ? (
         <div className="rounded-3xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-10 flex justify-center">
-          <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
+          <Loader2 className="w-6 h-6 text-brand-600 animate-spin" />
         </div>
       ) : (
         <StartTripForm
@@ -720,122 +714,111 @@ export function SafetyScreen() {
       {/* 2. EMERGENCY SOS (the trip card has its own while a trip is running) */}
       {/* ============================================ */}
       {!activeTrip && (
-      <button
-        onClick={() => setActiveModal('sos')}
-        className="w-full p-5 bg-red-50 border-2 border-red-200 rounded-2xl text-left hover:border-red-300 transition-colors"
-      >
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center flex-shrink-0">
-            <AlertTriangle className="w-6 h-6 text-red-600" />
-          </div>
-          <div className="flex-1">
-            <h3 className="text-lg font-semibold text-red-900">Emergency SOS</h3>
-            <p className="text-sm text-red-700">Call 112 and alert your contacts. Use only in danger.</p>
-          </div>
-          <ChevronRight className="w-5 h-5 text-red-400" />
-        </div>
-      </button>
+        <button
+          onClick={() => setActiveModal('sos')}
+          className="w-full p-4 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-2xl text-left hover:border-red-300 transition-colors flex items-center gap-4"
+        >
+          <span className="w-11 h-11 bg-red-600 text-white rounded-full flex items-center justify-center flex-shrink-0">
+            <Phone className="w-5 h-5" aria-hidden="true" />
+          </span>
+          <span className="flex-1">
+            <span className="block font-semibold text-red-900 dark:text-red-100">Emergency SOS</span>
+            <span className="block text-sm text-red-700 dark:text-red-300">Call 112 and alert your contacts. Use only in danger.</span>
+          </span>
+          <ChevronRight className="w-5 h-5 text-red-400" aria-hidden="true" />
+        </button>
       )}
 
       {/* ============================================ */}
-      {/* 3. CHECKPOINT QUICK ACTION (Nigeria-specific) */}
+      {/* 3. THE REST: contacts, hotlines, checkpoint log, tips */}
       {/* ============================================ */}
-      <button
-        onClick={handleCheckpointStop}
-        disabled={processing}
-        className="w-full p-4 bg-amber-50 border border-amber-200 rounded-2xl text-left hover:border-amber-300 transition-colors disabled:opacity-50"
-      >
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center flex-shrink-0">
-            <ShieldCheck className="w-5 h-5 text-amber-600" />
-          </div>
-          <div className="flex-1">
-            <h3 className="font-semibold text-slate-900">Stopped at a checkpoint?</h3>
-            <p className="text-xs text-slate-600">Tap to log it with your location</p>
-          </div>
-          {processing ? <Loader2 className="w-4 h-4 text-amber-600 animate-spin" /> : <ChevronRight className="w-4 h-4 text-amber-400" />}
-        </div>
-      </button>
-
-      {/* ============================================ */}
-      {/* 4. QUICK ACTIONS ROW */}
-      {/* ============================================ */}
-      <div className="grid grid-cols-2 gap-3">
-        {/* Emergency Numbers */}
-        <button
-          onClick={() => setActiveModal('emergency')}
-          className="p-4 bg-white border-2 border-slate-200 rounded-2xl text-left hover:border-red-300 transition-colors"
-        >
-          <Phone className="w-7 h-7 text-red-600 mb-2" />
-          <h3 className="font-semibold text-slate-900 text-sm">Emergency Numbers</h3>
-          <p className="text-xs text-slate-500">Nigeria hotlines</p>
+      <div className="rounded-3xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 divide-y divide-slate-100 dark:divide-slate-700 overflow-hidden">
+        <button onClick={() => setActiveModal('contacts')} className={moreRow}>
+          <span className={`${moreIcon} bg-brand-100 text-brand-700 dark:bg-brand-900 dark:text-brand-200`}>
+            <Users className="w-5 h-5" aria-hidden="true" />
+          </span>
+          <span className="flex-1 min-w-0">
+            <span className={moreTitle}>Trusted contacts</span>
+            <span className={moreSub}>{trustedContacts.length === 0 ? 'None saved yet' : `${trustedContacts.length} saved`}</span>
+          </span>
+          <ChevronRight className="w-5 h-5 text-slate-400" aria-hidden="true" />
         </button>
 
-        {/* Trusted Contacts */}
-        <button
-          onClick={() => setActiveModal('contacts')}
-          className="p-4 bg-white border-2 border-slate-200 rounded-2xl text-left hover:border-purple-300 transition-colors"
-        >
-          <Heart className="w-7 h-7 text-purple-600 mb-2" />
-          <h3 className="font-semibold text-slate-900 text-sm">Trusted Contacts</h3>
-          <p className="text-xs text-slate-500">{trustedContacts.length} saved</p>
+        <button onClick={() => setActiveModal('emergency')} className={moreRow}>
+          <span className={`${moreIcon} bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-200`}>
+            <Phone className="w-5 h-5" aria-hidden="true" />
+          </span>
+          <span className="flex-1 min-w-0">
+            <span className={moreTitle}>Emergency numbers</span>
+            <span className={moreSub}>Police, FRSC and other hotlines</span>
+          </span>
+          <ChevronRight className="w-5 h-5 text-slate-400" aria-hidden="true" />
         </button>
-      </div>
 
-      {/* ============================================ */}
-      {/* 5. TIPS & CHECKLIST (Collapsible) */}
-      {/* ============================================ */}
-      <div className="bg-white border-2 border-slate-200 rounded-2xl overflow-hidden">
-        <button
-          onClick={() => setTipsExpanded(!tipsExpanded)}
-          className="w-full p-4 flex items-center justify-between hover:bg-slate-50 transition-colors"
-        >
-          <div className="flex items-center gap-3">
-            <Lightbulb className="w-6 h-6 text-blue-600" />
-            <div className="text-left">
-              <h3 className="font-semibold text-slate-900">Safety Tips & Checklist</h3>
-              <p className="text-xs text-slate-500">{checkedItems.length}/{SAFETY_CHECKLIST.length} items checked</p>
-            </div>
-          </div>
-          {tipsExpanded ? <ChevronUp className="w-5 h-5 text-slate-400" /> : <ChevronDown className="w-5 h-5 text-slate-400" />}
+        <button onClick={handleCheckpointStop} disabled={processing} className={`${moreRow} disabled:opacity-50`}>
+          <span className={`${moreIcon} bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-200`}>
+            <ShieldCheck className="w-5 h-5" aria-hidden="true" />
+          </span>
+          <span className="flex-1 min-w-0">
+            <span className={moreTitle}>Stopped at a checkpoint?</span>
+            <span className={moreSub}>Log it with your location</span>
+          </span>
+          {processing
+            ? <Loader2 className="w-5 h-5 text-slate-400 animate-spin" aria-hidden="true" />
+            : <ChevronRight className="w-5 h-5 text-slate-400" aria-hidden="true" />}
+        </button>
+
+        <button onClick={() => setTipsExpanded(!tipsExpanded)} aria-expanded={tipsExpanded} className={moreRow}>
+          <span className={`${moreIcon} bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-200`}>
+            <Lightbulb className="w-5 h-5" aria-hidden="true" />
+          </span>
+          <span className="flex-1 min-w-0">
+            <span className={moreTitle}>Safety tips and checklist</span>
+            <span className={moreSub}>{checkedItems.length} of {SAFETY_CHECKLIST.length} checked</span>
+          </span>
+          {tipsExpanded
+            ? <ChevronUp className="w-5 h-5 text-slate-400" aria-hidden="true" />
+            : <ChevronDown className="w-5 h-5 text-slate-400" aria-hidden="true" />}
         </button>
 
         {tipsExpanded && (
-          <div className="border-t border-slate-200 p-4 space-y-4">
-            {/* Quick Checklist */}
+          <div className="p-4 space-y-4">
             <div>
-              <h4 className="text-sm font-semibold text-slate-700 mb-2">Pre-Trip Checklist</h4>
+              <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Before you set off</h4>
               <div className="space-y-2">
-                {SAFETY_CHECKLIST.slice(0, 5).map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => handleToggleChecklist(item.id)}
-                    className={`w-full flex items-center gap-3 p-2 rounded-xl text-left transition-colors ${
-                      checkedItems.includes(item.id)
-                        ? 'bg-green-50 border border-green-200'
-                        : 'bg-slate-50 hover:bg-slate-100'
-                    }`}
-                  >
-                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                      checkedItems.includes(item.id) ? 'bg-green-600 border-green-600' : 'border-slate-300'
-                    }`}>
-                      {checkedItems.includes(item.id) && <Check className="w-3 h-3 text-white" />}
-                    </div>
-                    <span className={`text-sm ${checkedItems.includes(item.id) ? 'text-green-800' : 'text-slate-700'}`}>
-                      {item.label}
-                    </span>
-                  </button>
-                ))}
+                {SAFETY_CHECKLIST.slice(0, 5).map((item) => {
+                  const done = checkedItems.includes(item.id);
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => handleToggleChecklist(item.id)}
+                      aria-pressed={done}
+                      className={`w-full flex items-center gap-3 p-2.5 rounded-xl text-left transition-colors ${
+                        done
+                          ? 'bg-brand-50 dark:bg-brand-900/40'
+                          : 'bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-700'
+                      }`}
+                    >
+                      <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                        done ? 'bg-brand-600 border-brand-600' : 'border-slate-300 dark:border-slate-500'
+                      }`}>
+                        {done && <Check className="w-3 h-3 text-white" />}
+                      </span>
+                      <span className={`text-sm ${done ? 'text-brand-800 dark:text-brand-100' : 'text-slate-700 dark:text-slate-200'}`}>
+                        {item.label}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
-            {/* Safety Tips Summary */}
             <div>
-              <h4 className="text-sm font-semibold text-slate-700 mb-2">Quick Tips</h4>
+              <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Quick tips</h4>
               <ul className="space-y-2">
                 {SAFETY_TIPS[0].tips.slice(0, 3).map((tip, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm text-slate-600">
-                    <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                  <li key={i} className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300">
+                    <CheckCircle2 className="w-4 h-4 text-brand-600 dark:text-brand-300 flex-shrink-0 mt-0.5" aria-hidden="true" />
                     {tip}
                   </li>
                 ))}

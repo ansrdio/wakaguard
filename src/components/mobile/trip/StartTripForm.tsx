@@ -13,6 +13,7 @@ import {
   TripPlanErrors,
   formatClock,
   formatDuration,
+  initialsOf,
   textContactsByDefault,
   validateTripPlan,
 } from '@/lib/tripPlanning';
@@ -58,7 +59,7 @@ const CUSTOM_MINUTES = [0, 15, 30, 45];
 
 const inputClass =
   'w-full px-4 py-3 border border-slate-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900 ' +
-  'text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500';
+  'text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-brand-500 focus:border-brand-500';
 const labelClass = 'block text-sm font-semibold text-slate-800 dark:text-slate-100 mb-2';
 const errorClass = 'text-sm text-red-600 dark:text-red-400 mt-1.5';
 
@@ -182,7 +183,7 @@ export function StartTripForm({
                 }}
                 className={`py-2.5 px-2 rounded-xl text-sm font-medium transition-colors ${
                   selected
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-brand-600 text-white'
                     : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600'
                 }`}
               >
@@ -196,7 +197,7 @@ export function StartTripForm({
             onClick={() => setCustomOpen(true)}
             className={`py-2.5 px-2 rounded-xl text-sm font-medium transition-colors ${
               showCustom
-                ? 'bg-blue-600 text-white'
+                ? 'bg-brand-600 text-white'
                 : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600'
             }`}
           >
@@ -262,9 +263,9 @@ export function StartTripForm({
               return (
                 <li key={contact.id}>
                   <label
-                    className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${
+                    className={`flex items-center gap-3 p-3 rounded-2xl border cursor-pointer transition-colors ${
                       checked
-                        ? 'border-blue-300 bg-blue-50 dark:bg-blue-950/40 dark:border-blue-700'
+                        ? 'border-brand-300 bg-brand-50 dark:bg-brand-900/40 dark:border-brand-700'
                         : 'border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900'
                     }`}
                   >
@@ -276,15 +277,21 @@ export function StartTripForm({
                     />
                     <span
                       aria-hidden="true"
-                      className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 ${
-                        checked ? 'bg-blue-600 border-blue-600' : 'border-slate-300 dark:border-slate-500'
-                      }`}
+                      className="w-10 h-10 rounded-full bg-brand-100 text-brand-800 dark:bg-brand-900 dark:text-brand-100 flex items-center justify-center text-sm font-bold flex-shrink-0"
                     >
-                      {checked && <Check className="w-3.5 h-3.5 text-white" />}
+                      {initialsOf(contact.name)}
                     </span>
-                    <span className="min-w-0">
+                    <span className="min-w-0 flex-1">
                       <span className="block font-medium text-slate-900 dark:text-white truncate">{contact.name}</span>
                       <span className="block text-xs text-slate-500 dark:text-slate-400">{contact.phoneE164 || contact.phone}</span>
+                    </span>
+                    <span
+                      aria-hidden="true"
+                      className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                        checked ? 'bg-brand-600 border-brand-600' : 'border-slate-300 dark:border-slate-500'
+                      }`}
+                    >
+                      {checked && <Check className="w-4 h-4 text-white" />}
                     </span>
                   </label>
                 </li>
@@ -362,7 +369,7 @@ export function StartTripForm({
               type="checkbox"
               checked={textContacts}
               onChange={(e) => setTextContactsChoice(e.target.checked)}
-              className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+              className="w-4 h-4 rounded border-slate-300 accent-brand-600 focus:ring-brand-500"
             />
             <span className="text-sm text-slate-700 dark:text-slate-200">Text them the trip link when I start</span>
           </label>
@@ -415,7 +422,7 @@ export function StartTripForm({
         type="button"
         onClick={handleSubmit}
         disabled={processing}
-        className="w-full py-4 bg-blue-600 text-white rounded-xl font-bold text-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+        className="w-full py-4 bg-brand-600 text-white rounded-2xl font-bold text-lg hover:bg-brand-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
       >
         {processing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Navigation className="w-5 h-5" />}
         Start safe trip

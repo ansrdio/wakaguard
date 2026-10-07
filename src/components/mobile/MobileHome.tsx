@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
-import { Plus, Search, ThumbsUp, ThumbsDown, Clock, MapPin, ChevronRight, AlertTriangle, X } from 'lucide-react';
+import { Plus, Search, ThumbsUp, ThumbsDown, Clock, MapPin, ChevronRight, AlertTriangle, X, List, Map as MapIcon, Info } from 'lucide-react';
 import { Report } from '@/lib/types';
 import { ReportFilters } from '@/lib/filters';
 import { NigerianState, PILOT_STATES } from '@/lib/nigerianStates';
@@ -50,6 +50,8 @@ export function MobileHome({
   const [sortBy, setSortBy] = useState<'recent' | 'upvoted' | 'nearest'>('recent');
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
   const [sheetState, setSheetState] = useState<SheetState>('collapsed');
+  // Nearby shows the reports on the map or as a list
+  const [nearbyView, setNearbyView] = useState<'map' | 'list'>('map');
   const [showFilterSheet, setShowFilterSheet] = useState(false);
   const [showStateSelector, setShowStateSelector] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -73,14 +75,14 @@ export function MobileHome({
   // First-time user hint
   const [showWelcomeHint, setShowWelcomeHint] = useState(() => {
     if (typeof window !== 'undefined') {
-      return !localStorage.getItem('wakaguard_map_hint_seen');
+      return !localStorage.getItem('wakaguard_nearby_note_seen');
     }
     return true;
   });
   
   const dismissWelcomeHint = () => {
     setShowWelcomeHint(false);
-    localStorage.setItem('wakaguard_map_hint_seen', 'true');
+    localStorage.setItem('wakaguard_nearby_note_seen', 'true');
   };
 
   // Filter and sort reports
@@ -165,6 +167,7 @@ export function MobileHome({
   const handleReportClick = useCallback((reportId: string) => {
     setSelectedReportId(reportId);
     setActiveTab('map'); // Switch to map to show marker
+    setNearbyView('map');
   }, []);
 
   const handleShowToast = useCallback((message: string, type: 'success' | 'error') => {
@@ -174,11 +177,7 @@ export function MobileHome({
 
   const handleTabChange = (tab: MobileTab) => {
     setActiveTab(tab);
-    if (tab === 'reports') {
-      setSheetState('half');
-    } else {
-      setSheetState('collapsed');
-    }
+    setSheetState('collapsed');
   };
 
   // Helper: Format time ago
@@ -221,22 +220,31 @@ export function MobileHome({
   }) {
     return (
       <div className="absolute inset-0 overflow-y-auto bg-slate-50 dark:bg-slate-900">
-        <div className="px-4 pt-20 pb-24 space-y-3" style={{ marginTop: 'calc(env(safe-area-inset-top, 0px) + 56px)' }}>
+        <div className="px-4 pt-4 pb-24 space-y-3" style={{ marginTop: 'calc(env(safe-area-inset-top, 0px) + 56px)' }}>
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white">Road Reports</h2>
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">Reports near you</h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">
                 {reports.length === 0 ? 'No active reports' : `${reports.length} active report${reports.length === 1 ? '' : 's'}`}
               </p>
             </div>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors"
-            >
-              <Plus className="w-4 h-4" />
-              Report
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setNearbyView('map')}
+                className="flex items-center gap-1.5 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 rounded-xl text-sm font-medium"
+              >
+                <MapIcon className="w-4 h-4" />
+                Map
+              </button>
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="flex items-center gap-1.5 px-3 py-2 bg-brand-600 text-white rounded-xl text-sm font-medium hover:bg-brand-700 transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                Report
+              </button>
+            </div>
           </div>
 
           {/* Sort Options */}
@@ -247,7 +255,7 @@ export function MobileHome({
                 onClick={() => setSortBy(option)}
                 className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
                   sortBy === option
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-brand-600 text-white'
                     : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
                 }`}
               >
@@ -261,12 +269,14 @@ export function MobileHome({
             <div className="mt-8 rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 p-8 text-center">
               <AlertTriangle className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
               <p className="text-slate-600 dark:text-slate-400 font-medium mb-1">No reports yet</p>
-              <p className="text-sm text-slate-500 dark:text-slate-500 mb-4">Be the first to report a road hazard in your area</p>
+              <p className="text-sm text-slate-500 dark:text-slate-500 mb-4">
+                Nobody has reported anything here lately. That does not mean the roads are clear.
+              </p>
               <button
                 onClick={() => setShowCreateModal(true)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors"
+                className="px-4 py-2 bg-brand-600 text-white rounded-xl text-sm font-medium hover:bg-brand-700 transition-colors"
               >
-                Create First Report
+                Report something
               </button>
             </div>
           ) : (
@@ -282,7 +292,7 @@ export function MobileHome({
                     onClick={() => onReportClick(r.id)}
                     className={`w-full text-left rounded-2xl border-2 p-4 transition-all active:scale-[0.98] ${
                       isSelected
-                        ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/20 shadow-md'
+                        ? 'border-brand-400 bg-brand-50 dark:bg-brand-900/20 shadow-md'
                         : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600'
                     }`}
                   >
@@ -347,7 +357,7 @@ export function MobileHome({
       return <ProfileScreen />;
     }
 
-    if (activeTab === 'reports') {
+    if (activeTab === 'map' && nearbyView === 'list') {
       return (
         <>
           <MobileReportsScreen
@@ -376,63 +386,57 @@ export function MobileHome({
           />
         </div>
 
-        {/* Welcome Hint for First-Time Users */}
-        {showWelcomeHint && reports.length === 0 && (
-          <div className="fixed top-32 left-4 right-4 z-30 animate-in slide-in-from-top duration-300">
-            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl shadow-xl p-4">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
-                  <MapPin className="w-5 h-5" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-bold text-sm mb-1">Welcome to WakaGuard!</h3>
-                  <p className="text-xs text-white/90 leading-relaxed">
-                    See a pothole, accident, or road hazard? Tap the <span className="font-bold">blue + button</span> below to report it and help other drivers!
-                  </p>
-                </div>
-                <button
-                  onClick={dismissWelcomeHint}
-                  className="p-1 hover:bg-white/20 rounded-full transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
+        {/* What this map is, shown until dismissed */}
+        {showWelcomeHint && (
+          <div className="fixed left-4 right-4 z-30" style={{ top: 'calc(env(safe-area-inset-top, 0px) + 126px)' }}>
+            <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-lg p-3 flex items-start gap-3">
+              <Info className="w-5 h-5 text-brand-600 dark:text-brand-300 flex-shrink-0 mt-0.5" aria-hidden="true" />
+              <p className="flex-1 text-sm text-slate-700 dark:text-slate-200">
+                Reports here come from other travellers. No report does not mean a road is safe.
+              </p>
+              <button
+                onClick={dismissWelcomeHint}
+                className="p-1 -m-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                aria-label="Dismiss"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
           </div>
         )}
 
-        {/* Report FAB with pulse animation for empty state */}
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className={`fixed bottom-32 right-4 z-30 w-14 h-14 bg-blue-600 text-white rounded-full shadow-2xl hover:bg-blue-700 transition-all flex items-center justify-center ${
-            reports.length === 0 ? 'animate-pulse' : ''
-          }`}
-          aria-label="Report an issue"
-        >
-          <Plus className="w-8 h-8" />
-        </button>
-
-        {/* FAB Label for first-time users */}
-        {showWelcomeHint && reports.length === 0 && (
-          <div className="fixed bottom-[7.5rem] right-20 z-30 bg-slate-900 text-white text-xs px-3 py-1.5 rounded-lg shadow-lg">
-            Tap to report
-            <div className="absolute right-[-6px] top-1/2 -translate-y-1/2 w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[6px] border-l-slate-900" />
-          </div>
+        {/* Report button: sits above the reports sheet, and steps aside when the sheet is opened */}
+        {sheetState === 'collapsed' && (
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="fixed bottom-48 right-4 z-30 h-14 pl-4 pr-5 bg-brand-600 text-white rounded-full shadow-xl hover:bg-brand-700 transition-colors flex items-center gap-2 font-semibold"
+            aria-label="Report something on the road"
+          >
+            <Plus className="w-6 h-6" />
+            Report
+          </button>
         )}
 
-        {/* Quick Action Pills */}
+        {/* Search, and the same reports as a list */}
         <div className="fixed left-4 right-4 z-20 flex gap-2" style={{ top: 'calc(env(safe-area-inset-top, 0px) + 70px)' }}>
           <button
             onClick={() => setShowFilterSheet(true)}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-white/95 backdrop-blur-sm border border-slate-200 rounded-full shadow-md hover:bg-white transition-colors"
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full shadow-md transition-colors"
           >
-            <Search className="w-4 h-4 text-slate-700" />
-            <span className="text-sm font-medium text-slate-900">Search & Filters</span>
+            <Search className="w-4 h-4 text-slate-700 dark:text-slate-200" />
+            <span className="text-sm font-medium text-slate-900 dark:text-white">Search and filters</span>
             {activeFilterCount > 0 && (
-              <span className="ml-1 w-5 h-5 bg-blue-600 text-white text-xs rounded-full flex items-center justify-center">
+              <span className="ml-1 w-5 h-5 bg-brand-600 text-white text-xs rounded-full flex items-center justify-center">
                 {activeFilterCount}
               </span>
             )}
+          </button>
+          <button
+            onClick={() => setNearbyView('list')}
+            className="flex items-center gap-1.5 px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full shadow-md text-sm font-medium text-slate-900 dark:text-white"
+          >
+            <List className="w-4 h-4" />
+            List
           </button>
         </div>
 
@@ -454,6 +458,8 @@ export function MobileHome({
     <div className="fixed inset-0 bg-slate-50 flex flex-col">
       {/* Top Bar */}
       <MobileTopBar
+        title={activeTab === 'safety' ? 'Safe Trip' : activeTab === 'map' ? 'Nearby' : 'Profile'}
+        showAreaControls={activeTab === 'map'}
         selectedState={selectedState}
         onStateClick={() => setShowStateSelector(true)}
         onLocate={onLocate}
@@ -470,7 +476,6 @@ export function MobileHome({
         activeTab={activeTab} 
         onTabChange={handleTabChange}
         safetyBadge={hasSafetyActivity}
-        reportCount={reports.length > 0 ? reports.length : undefined}
       />
 
       {/* Modals & Sheets */}
@@ -523,7 +528,7 @@ export function MobileHome({
                     }}
                     className={`p-3 rounded-xl text-left text-sm font-medium transition-colors ${
                       selectedState === state
-                        ? 'bg-blue-600 text-white'
+                        ? 'bg-brand-600 text-white'
                         : 'bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white hover:bg-slate-200 dark:hover:bg-slate-600'
                     }`}
                   >

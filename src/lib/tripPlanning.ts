@@ -93,7 +93,11 @@ export function formatClock(ms: number, nowMs: number = Date.now(), options: Clo
 
 export interface TimeLeft {
   state: 'active' | 'endingSoon' | 'overdue';
+  /** One line: "32 min left", "12 min overdue" */
   text: string;
+  /** The same in two parts, for a label above a figure: "Time remaining" / "32 min" */
+  label: string;
+  value: string;
 }
 
 /** Countdown text for an active trip. */
@@ -102,17 +106,21 @@ export function describeTimeLeft(endsAtMs: number, nowMs: number): TimeLeft {
 
   if (diff <= 0) {
     const lateMinutes = Math.floor(-diff / MINUTE_MS);
-    return {
-      state: 'overdue',
-      text: lateMinutes < 1 ? 'Arrival time reached' : `${formatDuration(lateMinutes)} overdue`,
-    };
+    if (lateMinutes < 1) {
+      return { state: 'overdue', text: 'Arrival time reached', label: 'Time remaining', value: formatDuration(0) };
+    }
+    const late = formatDuration(lateMinutes);
+    return { state: 'overdue', text: `${late} overdue`, label: 'Overdue by', value: late };
   }
 
   // Round up so "1 min left" is shown until the deadline itself
   const minutesLeft = Math.ceil(diff / MINUTE_MS);
+  const left = formatDuration(minutesLeft);
   return {
     state: minutesLeft <= ENDING_SOON_MINUTES ? 'endingSoon' : 'active',
-    text: `${formatDuration(minutesLeft)} left`,
+    text: `${left} left`,
+    label: 'Time remaining',
+    value: left,
   };
 }
 
@@ -193,6 +201,12 @@ export function describeLocationStatus(
     state: 'fresh',
     text: ageMinutes < 1 ? 'Sharing your location, updated just now' : `Sharing your location, updated ${ageMinutes} min ago`,
   };
+}
+
+/** Up to two letters to stand in for a photo: "Mum" gives "M", "Aunty Ngozi" gives "AN" */
+export function initialsOf(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  return words.slice(0, 2).map((word) => Array.from(word)[0].toUpperCase()).join('');
 }
 
 /** "Mum", "Mum and Tunde", "Mum, Tunde and Ngozi" */

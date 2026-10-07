@@ -7,6 +7,20 @@
  */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* WakaGuard green. brand-600 is the main colour; white text on it passes AA. */
+@theme {
+  --color-brand-50: #eef8f1;
+  --color-brand-100: #d7efdf;
+  --color-brand-200: #b0dec0;
+  --color-brand-300: #7fc79a;
+  --color-brand-400: #49a972;
+  --color-brand-500: #228b53;
+  --color-brand-600: #11763f;
+  --color-brand-700: #0d6335;
+  --color-brand-800: #0b4f2b;
+  --color-brand-900: #083d22;
+}
+
 /* Light mode defaults */
 :root { 
   color-scheme: light; 
