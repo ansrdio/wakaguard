@@ -229,6 +229,17 @@ export interface SharedTrip {
   endsAt?: Timestamp | null;
   /** Set by the server when the trip passed endsAt without a check-in */
   overdueAt?: Timestamp | null;
+  /** The traveller's name as their contacts know it. Written by the server; empty when none is known */
+  name?: string;
+  /** Where the trip has been so far, oldest first. Written by the server and removed when the trip ends */
+  path?: TripPathPoint[];
+}
+
+export interface TripPathPoint {
+  lat: number;
+  lng: number;
+  /** When the phone was there, in milliseconds since 1970 */
+  at: number;
 }
 
 export enum FlagTargetType {

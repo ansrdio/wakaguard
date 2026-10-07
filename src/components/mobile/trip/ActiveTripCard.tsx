@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Check, Clock, Loader2, MapPin, MapPinOff, Navigation, Phone, Share2, ShieldCheck } from 'lucide-react';
+import { Check, ChevronRight, Clock, Loader2, Map as MapIcon, MapPin, MapPinOff, Navigation, Phone, Share2, ShieldCheck } from 'lucide-react';
 import { Trip, TripStatus } from '@/lib/types';
 import { describeLocationStatus, describeTimeLeft, formatClock, initialsOf, joinNames } from '@/lib/tripPlanning';
 
@@ -14,6 +14,8 @@ interface ActiveTripCardProps {
   processing: boolean;
   onArrive: () => void;
   onExtend: (minutes: number) => void;
+  /** Open the trip on a map */
+  onViewMap: () => void;
   onShare: () => void;
   onTextOkay: () => void;
   onSOS: () => void;
@@ -69,6 +71,7 @@ export function ActiveTripCard({
   processing,
   onArrive,
   onExtend,
+  onViewMap,
   onShare,
   onTextOkay,
   onSOS,
@@ -166,6 +169,18 @@ export function ActiveTripCard({
             aria-hidden="true"
           />
           <span>{location.text}</span>
+        </div>
+
+        <div className="px-5 pb-5">
+          <button
+            type="button"
+            onClick={onViewMap}
+            className="w-full py-3 px-4 rounded-2xl text-base font-semibold transition-colors flex items-center gap-3 bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-slate-900 dark:text-blue-300 dark:hover:bg-slate-700"
+          >
+            <MapIcon className="w-5 h-5" aria-hidden="true" />
+            <span className="flex-1 text-left">View trip map</span>
+            <ChevronRight className="w-5 h-5" aria-hidden="true" />
+          </button>
         </div>
 
         {(unsynced || isEmergency || timeLeft?.state === 'overdue') && (

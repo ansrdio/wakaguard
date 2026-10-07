@@ -13,6 +13,7 @@ import { MAX_TRUSTED_CONTACTS, joinNames } from '@/lib/tripPlanning';
 import { reachedServer } from '@/lib/firestoreWrites';
 import { StartTripForm, StartTripRequest } from '@/components/mobile/trip/StartTripForm';
 import { ActiveTripCard } from '@/components/mobile/trip/ActiveTripCard';
+import { TripMapScreen } from '@/components/mobile/trip/TripMapScreen';
 import { 
   isValidE164, 
   formatToE164,
@@ -122,6 +123,23 @@ export function SafetyScreen() {
 
   // Derived from the trip so the share options survive an app restart mid-trip
   const shareUrl = activeTrip ? buildShareLink(activeTrip.id) : null;
+
+  // The trip on a map. Opening it adds a step to the browser history, so the
+  // phone's Back button closes the map instead of leaving the app.
+  const [tripMapOpen, setTripMapOpen] = useState(false);
+  const openTripMap = () => {
+    window.history.pushState({ wakaguardTripMap: true }, '');
+    setTripMapOpen(true);
+  };
+  const closeTripMap = () => {
+    if (window.history.state?.wakaguardTripMap) window.history.back();
+    else setTripMapOpen(false);
+  };
+  useEffect(() => {
+    const onBack = () => setTripMapOpen(false);
+    window.addEventListener('popstate', onBack);
+    return () => window.removeEventListener('popstate', onBack);
+  }, []);
 
   // Starting or ending a trip swaps what is at the top of the screen, so bring it back into view
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -686,6 +704,7 @@ export function SafetyScreen() {
           processing={processing}
           onArrive={handleEndSafeTrip}
           onExtend={handleExtendTrip}
+          onViewMap={openTripMap}
           onShare={handleShareLink}
           onTextOkay={handleCheckinSms}
           onSOS={() => setActiveModal('sos')}
@@ -828,6 +847,20 @@ export function SafetyScreen() {
           </div>
         )}
       </div>
+
+      {activeTrip && tripMapOpen && (
+        <TripMapScreen
+          trip={activeTrip}
+          watcherNames={watcherNames}
+          processing={processing}
+          onClose={closeTripMap}
+          onArrive={() => {
+            closeTripMap();
+            handleEndSafeTrip();
+          }}
+          onExtend={handleExtendTrip}
+        />
+      )}
 
       {/* SOS Modal */}
       {activeModal === 'sos' && (
