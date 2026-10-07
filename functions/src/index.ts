@@ -1,5 +1,6 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
+import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { migrateLegacyData } from './migrateLegacyData';
 
 export { sendSafetySms } from './safetySms';
@@ -237,12 +238,12 @@ export const onResolutionVoteWrite = functions.firestore
         resolved: resolvedCount,
         still_there: stillThereCount,
       },
-      lastConfirmedAt: admin.firestore.FieldValue.serverTimestamp(),
+      lastConfirmedAt: FieldValue.serverTimestamp(),
     };
 
     if (resolvedCount >= RESOLUTION_THRESHOLD) {
       updates.status = 'resolved';
-      updates.resolvedAt = admin.firestore.FieldValue.serverTimestamp();
+      updates.resolvedAt = FieldValue.serverTimestamp();
     }
 
     if (afterData.voteType === 'still_there' && (!beforeData || beforeData.voteType !== 'still_there')) {
@@ -252,7 +253,7 @@ export const onResolutionVoteWrite = functions.firestore
 
       if (expiresAt) {
         const extended = new Date(expiresAt.getTime() + STILL_THERE_EXTENSION_HOURS * 60 * 60 * 1000);
-        updates.expiresAt = admin.firestore.Timestamp.fromDate(extended);
+        updates.expiresAt = Timestamp.fromDate(extended);
       }
     }
 
@@ -293,7 +294,7 @@ export const updateUserLocation = functions.https.onCall(
       subscriptionsSnapshot.forEach((doc) => {
         batch.update(doc.ref, {
           location: { lat, lng },
-          locationUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          locationUpdatedAt: FieldValue.serverTimestamp(),
         });
       });
 
@@ -378,7 +379,7 @@ export const onVoteCreate = functions.firestore
 
         // Mark the vote as applied (idempotency marker)
         transaction.update(voteRef, {
-          appliedAt: admin.firestore.FieldValue.serverTimestamp(),
+          appliedAt: FieldValue.serverTimestamp(),
         });
 
         console.log(`Vote ${voteId} processed successfully`);
@@ -558,7 +559,7 @@ export const checkAdminStatus = functions.https.onCall(
 export const cleanupExpiredReports = functions.pubsub
   .schedule('every 1 hours')
   .onRun(async (context) => {
-    const now = admin.firestore.Timestamp.now();
+    const now = Timestamp.now();
     
     try {
       // Query for expired active reports
@@ -602,7 +603,7 @@ export const cleanupExpiredReports = functions.pubsub
 export const cleanupExpiredTrips = functions.pubsub
   .schedule('every 1 hours')
   .onRun(async (context) => {
-    const now = admin.firestore.Timestamp.now();
+    const now = Timestamp.now();
     
     try {
       // Query for expired active trips

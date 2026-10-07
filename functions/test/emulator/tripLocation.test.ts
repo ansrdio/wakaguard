@@ -53,6 +53,19 @@ test('valid update is written to the private and public trip documents', async (
   assert.equal(pub.locationKey, undefined, 'key never reaches the public doc');
 });
 
+test('the first position becomes the start point, and later ones leave it alone', async () => {
+  const fresh = await makeTrip();
+  await post({ uid: fresh.uid, tripId: fresh.tripId, key: KEY, lat: 6.45, lng: 3.39 });
+  const started = (await db().doc(`users/${fresh.uid}/trips/${fresh.tripId}`).get()).data()!;
+  assert.deepEqual(started.startLocation, { lat: 6.45, lng: 3.39 });
+  assert.equal((await shared(fresh.tripId)).startLocation, undefined, 'start point stays private');
+
+  const known = await makeTrip({ startLocation: { lat: 6.6, lng: 3.35 } });
+  await post({ uid: known.uid, tripId: known.tripId, key: KEY, lat: 6.7, lng: 4.9 });
+  const later = (await db().doc(`users/${known.uid}/trips/${known.tripId}`).get()).data()!;
+  assert.deepEqual(later.startLocation, { lat: 6.6, lng: 3.35 });
+});
+
 test('wrong key, missing key and unknown trip are all refused the same way', async () => {
   const { uid, tripId } = await makeTrip();
 

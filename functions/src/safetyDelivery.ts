@@ -1,4 +1,5 @@
 import * as admin from 'firebase-admin';
+import { FieldValue } from 'firebase-admin/firestore';
 import { getSetting } from './config';
 import { getProviders, sendSmsBatch, SendSmsResult } from './sms';
 import { sanitizeName } from './smsText';
@@ -107,9 +108,11 @@ export async function getSenderProfile(uid: string): Promise<SenderProfile> {
     console.warn(`Auth lookup failed for ${uid}; allowing send`, err);
   }
 
+  let alertName = '';
   let docName = '';
   try {
     const data = (await admin.firestore().doc(`users/${uid}`).get()).data() || {};
+    alertName = typeof data.alertName === 'string' ? data.alertName : '';
     docName = data.displayName || data.username || '';
     // Server-owned switch (clients cannot write it) to stop one user's SMS
     // without disabling their whole account
@@ -121,8 +124,9 @@ export async function getSenderProfile(uid: string): Promise<SenderProfile> {
     console.warn(`Could not read user document for ${uid}`, err);
   }
 
-  // A real name (from Google sign-in) is more recognisable than an app handle
-  const name = sanitizeName(authName) || sanitizeName(docName) || UNKNOWN_NAME;
+  // The name the user chose for alerts comes first. Otherwise a real name
+  // (from Google sign-in) is more recognisable than an app handle.
+  const name = sanitizeName(alertName) || sanitizeName(authName) || sanitizeName(docName) || UNKNOWN_NAME;
   return { name, canSend, blockReason };
 }
 
@@ -189,7 +193,7 @@ export async function deliverSafetySms(params: {
       error: r.error ?? null,
       provider: r.provider ?? null,
     })),
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    createdAt: FieldValue.serverTimestamp(),
   });
 
   console.log(`Safety SMS [${type}] for ${uid}: status=${status}, sent=${sent}/${recipients.length}`);

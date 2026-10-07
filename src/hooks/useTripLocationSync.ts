@@ -31,10 +31,14 @@ export type TripLocationProblem = 'permission_denied' | 'unavailable';
 
 const distance = (a: LocationFix, b: LocationFix) => calculateDistance(a.lat, a.lng, b.lat, b.lng);
 
-async function writeViaFirestore(uid: string, tripId: string, fix: LocationFix) {
+async function writeViaFirestore(uid: string, tripId: string, fix: LocationFix, isStart: boolean) {
   const lastLocation = { lat: fix.lat, lng: fix.lng, ...(fix.accuracy != null ? { accuracy: fix.accuracy } : {}) };
   await Promise.all([
-    updateDoc(doc(db, 'users', uid, 'trips', tripId), { lastLocation, lastUpdate: serverTimestamp() }),
+    updateDoc(doc(db, 'users', uid, 'trips', tripId), {
+      lastLocation,
+      lastUpdate: serverTimestamp(),
+      ...(isStart ? { startLocation: { lat: fix.lat, lng: fix.lng } } : {}),
+    }),
     updateDoc(doc(db, 'sharedTrips', tripId), { lastLocation, lastUpdate: serverTimestamp() }),
   ]);
 }
@@ -65,8 +69,11 @@ export function useTripLocationSync(
   const tripId = activeTrip?.id ?? null;
   const locationKey = activeTrip?.locationKey ?? null;
   const onProblemRef = useRef(onProblem);
+  // True until the trip has a start point (there may have been no GPS fix when it began)
+  const needsStartRef = useRef(false);
   useEffect(() => {
     onProblemRef.current = onProblem;
+    needsStartRef.current = !!activeTrip && !activeTrip.startLocation;
   });
 
   useEffect(() => {
@@ -96,7 +103,7 @@ export function useTripLocationSync(
         if (isNative && locationKey) {
           await writeViaNativeHttp(uid, tripId, locationKey, fix);
         } else {
-          await writeViaFirestore(uid, tripId, fix);
+          await writeViaFirestore(uid, tripId, fix, needsStartRef.current);
         }
       } catch (error) {
         // Let the next fix retry instead of waiting out the throttle

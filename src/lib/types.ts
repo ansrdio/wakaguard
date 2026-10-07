@@ -341,6 +341,15 @@ export interface Trip {
   lastContactNotificationAt?: Timestamp | null;
   /** Secret that lets the native app post location for this trip without an auth token */
   locationKey?: string;
+
+  // Kept for learning how long trips really take (private to the owner)
+  /** Where the trip started; filled by the first location if there was no fix at the start */
+  startLocation?: { lat: number; lng: number } | null;
+  /** Last known position when the traveller ended the trip */
+  endLocation?: { lat: number; lng: number } | null;
+  /** How many times time was added, and how much in total */
+  extensionCount?: number;
+  extendedMinutes?: number;
   /** Set by the server when the trip passed endsAt without a check-in */
   overdueAt?: Timestamp | null;
   /** Server-managed delivery state of the overdue alert */

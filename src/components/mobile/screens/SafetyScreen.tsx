@@ -2,18 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { 
-  Shield, Clock, Users, AlertTriangle, Phone, X, Share2, Check, Loader2, MapPin,
-  ChevronRight, Heart, Car, Lightbulb, UserPlus, Trash2, Bell, CheckCircle2,
-  FileText, AlertCircle, Flame, Ambulance, ShieldCheck, Plus, Moon, Navigation,
+  Shield, Users, AlertTriangle, Phone, X, Check, Loader2,
+  ChevronRight, Heart, Car, Lightbulb, UserPlus, Trash2, CheckCircle2,
+  AlertCircle, Flame, Ambulance, ShieldCheck, Plus,
   ChevronDown, ChevronUp
 } from 'lucide-react';
 import { useSafety } from '@/hooks/useSafety';
-import { 
-  formatTripRemainingTime, 
-  getSafeTripTimeStatus, 
-  SAFE_TRIP_DURATION_PRESETS,
-  isNightTime 
-} from '@/lib/safety';
+import { MAX_TRUSTED_CONTACTS, joinNames } from '@/lib/tripPlanning';
+import { StartTripForm, StartTripRequest } from '@/components/mobile/trip/StartTripForm';
+import { ActiveTripCard } from '@/components/mobile/trip/ActiveTripCard';
 import { 
   isValidE164, 
   formatToE164,
@@ -21,10 +18,8 @@ import {
   sendTripShareSms,
   buildShareLink,
   buildSosShareText,
-  buildCheckinShareText,
   buildTripShareText,
   openWhatsAppShare,
-  openWhatsAppChat,
 } from '@/lib/safetyMessaging';
 import { useAuthedUser } from '@/hooks/useAuthedUser';
 import { useRequireAccount } from '@/hooks/useRequireAccount';
@@ -34,10 +29,7 @@ import { Capacitor } from '@capacitor/core';
 import { shareSafeTripLink } from '@/lib/share';
 import { AuthModal } from '@/components/AuthModal';
 
-type ModalType = 'sos' | 'safetrip' | 'contacts' | 'emergency' | null;
-
-/** Matches MAX_RECIPIENTS in functions/src/safetyDelivery.ts */
-const MAX_TRUSTED_CONTACTS = 5;
+type ModalType = 'sos' | 'contacts' | 'emergency' | null;
 
 // Nigerian Emergency Numbers
 const EMERGENCY_CONTACTS = [
@@ -108,16 +100,13 @@ const SAFETY_CHECKLIST = [
 ];
 
 export function SafetyScreen() {
-  const { uid, isAnonymous } = useAuthedUser();
+  const { uid, isAnonymous, displayName } = useAuthedUser();
   const { requireAccount, showAuthModal, openAuthModal, closeAuthModal } = useRequireAccount({ uid, isAnonymous });
   const {
     activeTrip,
-    activeTimer,
     startSafeTrip,
     endSafeTrip,
     extendSafeTrip,
-    acknowledgeSafeTripTimer,
-    sendQuickCheckIn,
     triggerSOS,
     logCheckpointStop,
     loading,
@@ -130,10 +119,9 @@ export function SafetyScreen() {
   const [processing, setProcessing] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   
-  // Safe Trip configuration
-  const [selectedDuration, setSelectedDuration] = useState(45);
-  const [destination, setDestination] = useState('');
-  
+  // Name shown to contacts in alerts; null until the user document has loaded
+  const [savedAlertName, setSavedAlertName] = useState<string | null>(null);
+
   // Trusted contacts
   const [trustedContacts, setTrustedContacts] = useState<{ id: string; name: string; phone?: string; phoneE164: string; email?: string }[]>([]);
   const [newContactName, setNewContactName] = useState('');
@@ -146,9 +134,6 @@ export function SafetyScreen() {
   const [tipsExpanded, setTipsExpanded] = useState(false);
   const [checkedItems, setCheckedItems] = useState<string[]>([]);
   
-  // Remaining time display
-  const [remainingTime, setRemainingTime] = useState('');
-  
   // Load trusted contacts
   useEffect(() => {
     if (!uid || isAnonymous) return;
@@ -157,6 +142,7 @@ export function SafetyScreen() {
       if (userDoc.exists()) {
         setCheckedItems(userDoc.data().safetyChecklist || []);
       }
+      setSavedAlertName(userDoc.data()?.alertName || '');
 
       const contactsSnap = await getDocs(collection(db, 'users', uid, 'trustedContacts'));
       const contacts = contactsSnap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
@@ -164,22 +150,6 @@ export function SafetyScreen() {
     };
     loadContacts();
   }, [uid]);
-
-  // Update remaining time display for active trip
-  useEffect(() => {
-    if (!activeTrip?.endsAt) {
-      setRemainingTime('');
-      return;
-    }
-
-    const updateDisplay = () => {
-      setRemainingTime(formatTripRemainingTime(activeTrip.endsAt));
-    };
-
-    updateDisplay();
-    const interval = setInterval(updateDisplay, 1000);
-    return () => clearInterval(interval);
-  }, [activeTrip?.endsAt]);
 
   const showToast = (message: string, type: 'success' | 'error') => {
     setToast({ message, type });
@@ -246,9 +216,9 @@ export function SafetyScreen() {
     
     setProcessing(true);
     try {
-      const result = await sendCheckinSms("I'm checking in safely.", currentLocation?.lat, currentLocation?.lng) as any;
+      const result = await sendCheckinSms(undefined, currentLocation?.lat, currentLocation?.lng) as any;
       if (result.success) {
-        showToast(`Check-in SMS sent to ${result.sent} contact(s)`, 'success');
+        showToast(`Text sent to ${result.sent} ${result.sent === 1 ? 'contact' : 'contacts'}`, 'success');
       } else if (result.status === 'blocked') {
         showToast(result.message || 'SMS not available yet. Use WhatsApp instead.', 'error');
       } else {
@@ -256,36 +226,6 @@ export function SafetyScreen() {
       }
     } catch (err: any) {
       showToast(err.message || 'Failed to send check-in SMS', 'error');
-    } finally {
-      setProcessing(false);
-    }
-  };
-
-  // Send trip share SMS to trusted contacts
-  const handleTripShareSms = async () => {
-    if (!requireAccount('send trip share SMS')) return;
-    if (!uid || isAnonymous) return;
-    if (!activeTrip) {
-      showToast('Start a Safe Trip first.', 'error');
-      return;
-    }
-    if (trustedContacts.length === 0) {
-      showToast('No trusted contacts. Add contacts first.', 'error');
-      return;
-    }
-
-    setProcessing(true);
-    try {
-      const result = await sendTripShareSms(activeTrip.id) as any;
-      if (result.success) {
-        showToast(`Trip share SMS sent to ${result.sent} contact(s)`, 'success');
-      } else if (result.status === 'blocked') {
-        showToast(result.message || 'SMS not available yet. Use WhatsApp instead.', 'error');
-      } else {
-        showToast('Failed to send trip share SMS', 'error');
-      }
-    } catch (err: any) {
-      showToast(err.message || 'Failed to send trip share SMS', 'error');
     } finally {
       setProcessing(false);
     }
@@ -301,12 +241,6 @@ export function SafetyScreen() {
     openWhatsAppShare(text);
   };
 
-  // Share via WhatsApp (Check-in)
-  const handleCheckinWhatsApp = () => {
-    const text = buildCheckinShareText("I'm checking in safely.", currentLocation?.lat, currentLocation?.lng);
-    openWhatsAppShare(text);
-  };
-
   // Share via WhatsApp (Trip)
   const handleTripWhatsApp = () => {
     if (!activeTrip) {
@@ -317,22 +251,57 @@ export function SafetyScreen() {
     openWhatsAppShare(text);
   };
 
-  const handleStartSafeTrip = async () => {
+  const handleStartTrip = async (request: StartTripRequest) => {
     if (!requireAccount('start safe trip')) return;
     if (!uid || isAnonymous) return;
     setProcessing(true);
+
+    // The name goes into texts to contacts, so save it before the trip exists.
+    // The trip still starts if this fails; the server falls back to the sign-in name.
+    if (request.alertName !== savedAlertName) {
+      try {
+        await updateDoc(doc(db, 'users', uid), { alertName: request.alertName });
+        setSavedAlertName(request.alertName);
+      } catch (error) {
+        console.error('Failed to save alert name:', error);
+      }
+    }
+
     const result = await startSafeTrip({
-      expectedDurationMinutes: selectedDuration > 0 ? selectedDuration : undefined,
-      destinationLabel: destination || undefined,
-      trustedContactIds: trustedContacts.map(c => c.id),
+      expectedDurationMinutes: request.durationMinutes,
+      destinationLabel: request.destination,
+      trustedContactIds: request.contactIds,
     });
-    setProcessing(false);
-    if (result.success && result.shareUrl) {
-      showToast('Safe Trip started. Tap "Share Link" to notify contacts.', 'success');
-      // Don't auto-open share sheet - let user tap Share Link button
-    } else {
+
+    if (!result.success || !result.tripId) {
+      setProcessing(false);
       showToast(result.error || 'Failed to start Safe Trip', 'error');
-      setActiveModal(null);
+      return;
+    }
+
+    const watchers = joinNames(
+      trustedContacts.filter((c) => request.contactIds.includes(c.id)).map((c) => c.name)
+    );
+
+    if (!request.textContacts) {
+      setProcessing(false);
+      showToast('Trip started. Share the link so your contacts can follow it.', 'success');
+      return;
+    }
+
+    try {
+      const sms = await sendTripShareSms(result.tripId);
+      showToast(
+        sms.success
+          ? `Trip started. ${watchers} ${request.contactIds.length === 1 ? 'was' : 'were'} sent the link.`
+          : 'Trip started, but the text could not be sent. Share the link below instead.',
+        sms.success ? 'success' : 'error'
+      );
+    } catch (error) {
+      console.error('Trip share SMS failed:', error);
+      showToast('Trip started, but the text could not be sent. Share the link below instead.', 'error');
+    } finally {
+      setProcessing(false);
     }
   };
 
@@ -341,6 +310,7 @@ export function SafetyScreen() {
     if (!uid || isAnonymous) return;
     const currentShareUrl = shareUrl;
     const currentDestination = activeTrip?.destination;
+    const wasAlerted = !!activeTrip?.overdueAt || activeTrip?.status === 'emergency';
     
     setProcessing(true);
     const result = await endSafeTrip();
@@ -348,9 +318,15 @@ export function SafetyScreen() {
     setActiveModal(null);
     
     if (result.success) {
-      showToast('Trip ended. You can notify your contacts.', 'success');
-      // Offer to share "trip ended" notification
-      if (currentShareUrl) {
+      showToast(
+        wasAlerted
+          ? 'Trip ended. Your contacts are being told you checked in.'
+          : 'Trip ended. Glad you made it.',
+        'success'
+      );
+      // Contacts who were alerted get a text from the server. Otherwise offer
+      // to let them know through the share sheet.
+      if (currentShareUrl && !wasAlerted) {
         try {
           await shareSafeTripLink(currentShareUrl, { mode: 'end', destination: currentDestination });
         } catch (e) {
@@ -374,42 +350,6 @@ export function SafetyScreen() {
     }
   };
 
-  const handleCheckIn = async () => {
-    if (!requireAccount('check in')) return;
-    if (!uid || isAnonymous) return;
-    setProcessing(true);
-    const result = await acknowledgeSafeTripTimer();
-    setProcessing(false);
-    if (result.success) {
-      showToast('Checked in safely!', 'success');
-    } else {
-      showToast(result.error || 'Failed to check in', 'error');
-    }
-  };
-
-  const handleQuickCheckIn = async () => {
-    if (!requireAccount('quick check-in')) return;
-    if (!uid || isAnonymous) return;
-    if (!shareUrl) {
-      showToast('Start a Safe Trip first.', 'error');
-      return;
-    }
-    
-    setProcessing(true);
-    try {
-      await shareSafeTripLink(shareUrl, {
-        mode: 'checkin',
-        destination: activeTrip?.destination,
-      });
-      showToast('Check-in ready to share.', 'success');
-    } catch (e) {
-      // User cancel is normal; do not show failure
-      console.warn('Check-in share cancelled/failed:', e);
-    } finally {
-      setProcessing(false);
-    }
-  };
-
   const handleShareLink = async () => {
     if (!shareUrl) return;
     try {
@@ -426,29 +366,9 @@ export function SafetyScreen() {
     const result = await logCheckpointStop();
     setProcessing(false);
     if (result.success) {
-      showToast('Checkpoint stop logged. Your contacts will be notified in a future update.', 'success');
+      showToast('Checkpoint stop logged.', 'success');
     } else {
       showToast(result.error || 'Failed to log checkpoint', 'error');
-    }
-  };
-
-  const handleShare = async () => {
-    if (!shareUrl) return;
-    
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: 'Track My Safe Trip',
-          text: 'Follow my trip in real-time for safety',
-          url: shareUrl,
-        });
-      } catch (err) {
-        await navigator.clipboard.writeText(shareUrl);
-        showToast('Link copied to clipboard', 'success');
-      }
-    } else {
-      await navigator.clipboard.writeText(shareUrl);
-      showToast('Link copied to clipboard', 'success');
     }
   };
 
@@ -670,9 +590,10 @@ export function SafetyScreen() {
       <div className="absolute inset-0 overflow-y-auto px-4 pt-20 pb-28 bg-slate-50 dark:bg-slate-900" style={{ marginTop: 'calc(env(safe-area-inset-top, 0px) + 56px)' }}>
         <div className="text-center py-12">
           <Shield className="w-16 h-16 text-blue-600 mx-auto mb-4" />
-          <h1 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Safety Center</h1>
+          <h1 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Safe Trip</h1>
           <p className="text-slate-600 dark:text-slate-400 mb-6 px-4">
-            Sign in to access safety features like trip sharing, safety timers, and emergency contacts.
+            Start a trip and say when you should arrive. If you don&apos;t, the people you chose get a text with
+            your last location. Sign in to use it.
           </p>
           <button
             onClick={openAuthModal}
@@ -705,223 +626,54 @@ export function SafetyScreen() {
     );
   }
 
-  // Determine trip status for UI
-  const tripTimeStatus = activeTrip?.endsAt ? getSafeTripTimeStatus(activeTrip.endsAt) : 'active';
-  const isNight = isNightTime();
+  // Contacts told about the active trip (all of them for trips started before contacts could be chosen)
+  const tripContactIds = activeTrip?.trustedContactIds;
+  const watcherNames = trustedContacts
+    .filter((c) => !tripContactIds || tripContactIds.length === 0 || tripContactIds.includes(c.id))
+    .map((c) => c.name);
 
   return (
-    <div className="absolute inset-0 overflow-y-auto px-4 pt-20 pb-28 space-y-4 bg-slate-50 dark:bg-slate-900 touch-pan-y" style={{ marginTop: 'calc(env(safe-area-inset-top, 0px) + 56px)', WebkitOverflowScrolling: 'touch' }}>
-      {/* Header */}
-      <div className="text-center mb-2">
-        <Shield className="w-12 h-12 text-blue-600 mx-auto mb-2" />
-        <h1 className="text-xl font-bold text-slate-900">Safety Center</h1>
-      </div>
-
+    <div className="absolute inset-0 overflow-y-auto px-4 pt-4 pb-28 space-y-4 bg-slate-50 dark:bg-slate-900 touch-pan-y" style={{ marginTop: 'calc(env(safe-area-inset-top, 0px) + 56px)', WebkitOverflowScrolling: 'touch' }}>
       {/* ============================================ */}
-      {/* 1. SAFE TRIP - Primary CTA */}
+      {/* 1. THE TRIP: start form, or the trip in progress */}
       {/* ============================================ */}
       {activeTrip ? (
-        // Active Safe Trip Card
-        <div className={`rounded-3xl p-5 border-2 ${
-          tripTimeStatus === 'endingSoon' 
-            ? 'bg-amber-50 border-amber-300' 
-            : 'bg-emerald-50 border-emerald-300'
-        }`}>
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
-                tripTimeStatus === 'endingSoon' ? 'bg-amber-100' : 'bg-emerald-100'
-              }`}>
-                <Navigation className={`w-6 h-6 ${
-                  tripTimeStatus === 'endingSoon' ? 'text-amber-600' : 'text-emerald-600'
-                }`} />
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-slate-900">Safe Trip Active</h2>
-                <p className="text-sm text-slate-600">{activeTrip.destination || 'Trip in progress'}</p>
-              </div>
-            </div>
-            <div className={`px-3 py-1 rounded-full text-xs font-semibold ${
-              tripTimeStatus === 'endingSoon' 
-                ? 'bg-amber-200 text-amber-800' 
-                : 'bg-emerald-200 text-emerald-800'
-            }`}>
-              {remainingTime || 'No limit'}
-            </div>
-          </div>
-
-          {/* Trip Info */}
-          <div className="flex items-center gap-4 mb-4 text-sm text-slate-600">
-            <div className="flex items-center gap-1">
-              <Users className="w-4 h-4" />
-              <span>{trustedContacts.length} contacts</span>
-            </div>
-            {activeTrip.lastLocation && (
-              <div className="flex items-center gap-1">
-                <MapPin className="w-4 h-4" />
-                <span>Location sharing</span>
-              </div>
-            )}
-          </div>
-
-          {/* Share URL */}
-          {shareUrl && (
-            <div className="bg-white/60 rounded-xl p-3 mb-4">
-              <p className="text-xs text-slate-500 mb-2">Send this link to your trusted contacts:</p>
-              <div className="flex gap-2 mb-2">
-                <button
-                  onClick={handleShareLink}
-                  className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 flex items-center justify-center gap-2"
-                >
-                  <Share2 className="w-4 h-4" />
-                  Share Link
-                </button>
-                <button
-                  onClick={async () => {
-                    await navigator.clipboard.writeText(shareUrl);
-                    showToast('Link copied!', 'success');
-                  }}
-                  className="py-2.5 px-4 bg-slate-200 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-300 flex items-center justify-center"
-                >
-                  Copy
-                </button>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={handleTripShareSms}
-                  disabled={processing || trustedContacts.length === 0}
-                  className="flex-1 py-2 bg-indigo-600 text-white rounded-lg text-xs font-medium hover:bg-indigo-700 disabled:opacity-50 flex items-center justify-center gap-1"
-                >
-                  📱 SMS Contacts
-                </button>
-                <button
-                  onClick={handleTripWhatsApp}
-                  className="flex-1 py-2 bg-green-600 text-white rounded-lg text-xs font-medium hover:bg-green-700 flex items-center justify-center gap-1"
-                >
-                  💬 WhatsApp
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* SOS notice */}
-          {activeTrip.status === 'emergency' && (
-            <div className="bg-red-100 border border-red-300 rounded-xl p-3 mb-4 text-sm text-red-800">
-              SOS sent. Your contacts were alerted and can follow this trip. End the trip when you are safe.
-            </div>
-          )}
-
-          {/* Overdue / deadline notice */}
-          {activeTrip.status !== 'emergency' && activeTrip.endsAt && tripTimeStatus === 'expired' && (
-            <div className="bg-red-100 border border-red-300 rounded-xl p-3 mb-4 text-sm text-red-800">
-              {activeTrip.overdueAt
-                ? 'Your contacts have been alerted that you are overdue. Add time or end the trip to let them know you are okay.'
-                : 'Your expected arrival time has passed. Add time or end the trip, or your contacts will be alerted.'}
-            </div>
-          )}
-
-          {/* Action Buttons */}
-          <div className="flex gap-3">
-            {activeTrip.endsAt && (
-              <button
-                onClick={() => handleExtendTrip(30)}
-                disabled={processing}
-                className="flex-1 py-3 bg-white text-slate-800 border border-slate-300 rounded-xl font-semibold hover:bg-slate-50 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                +30 min
-              </button>
-            )}
-            {activeTimer && (
-              <button
-                onClick={handleCheckIn}
-                disabled={processing}
-                className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {processing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                I'm Safe
-              </button>
-            )}
-            <button
-              onClick={handleEndSafeTrip}
-              disabled={processing}
-              className={`${activeTimer || activeTrip.endsAt ? 'flex-1' : 'w-full'} py-3 bg-emerald-600 text-white rounded-xl font-semibold hover:bg-emerald-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2`}
-            >
-              {processing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-              End Trip
-            </button>
-          </div>
-          
-          {/* Quick Check-in Notifications */}
-          <div className="mt-3 flex gap-2">
-            <button
-              onClick={handleCheckinSms}
-              disabled={processing || trustedContacts.length === 0}
-              className="flex-1 py-2 bg-white/80 text-indigo-700 rounded-lg text-xs font-medium hover:bg-white disabled:opacity-50 flex items-center justify-center gap-1"
-            >
-              📱 Check-in SMS
-            </button>
-            <button
-              onClick={handleCheckinWhatsApp}
-              className="flex-1 py-2 bg-white/80 text-green-700 rounded-lg text-xs font-medium hover:bg-white flex items-center justify-center gap-1"
-            >
-              💬 Check-in WhatsApp
-            </button>
-          </div>
+        <ActiveTripCard
+          trip={activeTrip}
+          watcherNames={watcherNames}
+          processing={processing}
+          onArrive={handleEndSafeTrip}
+          onExtend={handleExtendTrip}
+          onShare={handleShareLink}
+          onWhatsApp={handleTripWhatsApp}
+          onTextOkay={handleCheckinSms}
+          onSOS={() => setActiveModal('sos')}
+        />
+      ) : savedAlertName === null ? (
+        <div className="rounded-3xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-10 flex justify-center">
+          <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
         </div>
       ) : (
-        // Start Safe Trip Card
-        <button
-          onClick={() => setActiveModal('safetrip')}
-          className="w-full rounded-3xl p-6 bg-gradient-to-br from-blue-600 to-blue-700 text-white text-left hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg"
-        >
-          <div className="flex items-start gap-4">
-            <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center flex-shrink-0">
-              <Navigation className="w-7 h-7 text-white" />
-            </div>
-            <div className="flex-1">
-              <h2 className="text-xl font-bold mb-1">Start Safe Trip</h2>
-              <p className="text-blue-100 text-sm">
-                Share your route, set a backup timer, and keep trusted contacts in the loop.
-              </p>
-            </div>
-            <ChevronRight className="w-6 h-6 text-blue-200 flex-shrink-0" />
-          </div>
-        </button>
-      )}
-
-      {/* Night Drive Hint */}
-      {isNight && !activeTrip && (
-        <div className="flex items-center gap-3 bg-indigo-50 border border-indigo-200 rounded-2xl p-4">
-          <Moon className="w-5 h-5 text-indigo-600 flex-shrink-0" />
-          <p className="text-sm text-indigo-800">
-            <span className="font-semibold">Driving at night?</span> Start a Safe Trip so someone knows where you are.
-          </p>
-        </div>
+        <StartTripForm
+          contacts={trustedContacts}
+          alertName={savedAlertName || displayName || ''}
+          alertNameSaved={!!savedAlertName}
+          processing={processing}
+          onStart={handleStartTrip}
+          newContactName={newContactName}
+          newContactPhone={newContactPhone}
+          onNewContactNameChange={setNewContactName}
+          onNewContactPhoneChange={setNewContactPhone}
+          onAddContact={handleAddContact}
+          onPickFromPhone={handlePickFromPhone}
+          onManageContacts={() => setActiveModal('contacts')}
+        />
       )}
 
       {/* ============================================ */}
-      {/* 2. QUICK CHECK-IN */}
+      {/* 2. EMERGENCY SOS (the trip card has its own while a trip is running) */}
       {/* ============================================ */}
-      <button
-        onClick={handleQuickCheckIn}
-        disabled={processing}
-        className="w-full p-5 bg-white border-2 border-slate-200 rounded-2xl text-left hover:border-purple-300 transition-colors disabled:opacity-50"
-      >
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center flex-shrink-0">
-            <Bell className="w-6 h-6 text-purple-600" />
-          </div>
-          <div className="flex-1">
-            <h3 className="text-lg font-semibold text-slate-900">Quick Check-in</h3>
-            <p className="text-sm text-slate-600">One tap "I am safe" to log your status</p>
-          </div>
-          {processing ? <Loader2 className="w-5 h-5 text-purple-600 animate-spin" /> : <ChevronRight className="w-5 h-5 text-slate-400" />}
-        </div>
-      </button>
-
-      {/* ============================================ */}
-      {/* 3. EMERGENCY SOS */}
-      {/* ============================================ */}
+      {!activeTrip && (
       <button
         onClick={() => setActiveModal('sos')}
         className="w-full p-5 bg-red-50 border-2 border-red-200 rounded-2xl text-left hover:border-red-300 transition-colors"
@@ -932,14 +684,15 @@ export function SafetyScreen() {
           </div>
           <div className="flex-1">
             <h3 className="text-lg font-semibold text-red-900">Emergency SOS</h3>
-            <p className="text-sm text-red-700">Press and hold to alert contacts. Use only in danger.</p>
+            <p className="text-sm text-red-700">Call 112 and alert your contacts. Use only in danger.</p>
           </div>
           <ChevronRight className="w-5 h-5 text-red-400" />
         </div>
       </button>
+      )}
 
       {/* ============================================ */}
-      {/* 4. CHECKPOINT QUICK ACTION (Nigeria-specific) */}
+      {/* 3. CHECKPOINT QUICK ACTION (Nigeria-specific) */}
       {/* ============================================ */}
       <button
         onClick={handleCheckpointStop}
@@ -952,14 +705,14 @@ export function SafetyScreen() {
           </div>
           <div className="flex-1">
             <h3 className="font-semibold text-slate-900">Stopped at a checkpoint?</h3>
-            <p className="text-xs text-slate-600">Tap to log & notify your contacts</p>
+            <p className="text-xs text-slate-600">Tap to log it with your location</p>
           </div>
           {processing ? <Loader2 className="w-4 h-4 text-amber-600 animate-spin" /> : <ChevronRight className="w-4 h-4 text-amber-400" />}
         </div>
       </button>
 
       {/* ============================================ */}
-      {/* 5. QUICK ACTIONS ROW */}
+      {/* 4. QUICK ACTIONS ROW */}
       {/* ============================================ */}
       <div className="grid grid-cols-2 gap-3">
         {/* Emergency Numbers */}
@@ -984,7 +737,7 @@ export function SafetyScreen() {
       </div>
 
       {/* ============================================ */}
-      {/* 6. TIPS & CHECKLIST (Collapsible) */}
+      {/* 5. TIPS & CHECKLIST (Collapsible) */}
       {/* ============================================ */}
       <div className="bg-white border-2 border-slate-200 rounded-2xl overflow-hidden">
         <button
@@ -1097,94 +850,6 @@ export function SafetyScreen() {
                 <p className="text-xs text-amber-600 mt-2 text-center">Add trusted contacts to enable SMS alerts</p>
               )}
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Safe Trip Modal */}
-      {activeModal === 'safetrip' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-white rounded-2xl w-full max-w-sm p-6 space-y-4 max-h-[85vh] overflow-y-auto">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold text-slate-900">Start Safe Trip</h2>
-              <button onClick={() => setActiveModal(null)} className="p-2 hover:bg-slate-100 rounded-full bg-slate-100">
-                <X className="w-5 h-5 text-slate-700" />
-              </button>
-            </div>
-
-            <p className="text-sm text-slate-600">
-              Share your location with trusted contacts and set a backup timer.
-            </p>
-
-            {/* Destination */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Where are you going? (optional)</label>
-              <input
-                type="text"
-                value={destination}
-                onChange={(e) => setDestination(e.target.value)}
-                placeholder="e.g., Home, Office, Lagos"
-                className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900 placeholder:text-slate-400"
-              />
-            </div>
-
-            {/* Duration Selection */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Expected trip duration</label>
-              <div className="grid grid-cols-3 gap-2">
-                {SAFE_TRIP_DURATION_PRESETS.map((preset) => (
-                  <button
-                    key={preset.value}
-                    onClick={() => setSelectedDuration(preset.value)}
-                    className={`py-2.5 px-2 rounded-xl text-sm font-medium transition-colors ${
-                      selectedDuration === preset.value
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                    }`}
-                  >
-                    {preset.label}
-                  </button>
-                ))}
-              </div>
-              <p className="text-xs text-slate-500 mt-2">
-                {selectedDuration > 0 
-                  ? `If you haven't ended the trip ${selectedDuration} minutes from now, your contacts are alerted 5 minutes later, even if your phone is off.`
-                  : 'No timer will be set.'}
-              </p>
-            </div>
-
-            {/* Contacts Summary */}
-            <div className="bg-slate-50 rounded-xl p-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Users className="w-4 h-4 text-purple-600" />
-                  <span className="text-sm font-medium text-slate-700">
-                    {trustedContacts.length} trusted contact{trustedContacts.length !== 1 ? 's' : ''}
-                  </span>
-                </div>
-                <button
-                  onClick={() => setActiveModal('contacts')}
-                  className="text-xs text-blue-600 font-medium hover:text-blue-700"
-                >
-                  Manage
-                </button>
-              </div>
-              {trustedContacts.length === 0 && (
-                <p className="text-xs text-amber-600 mt-2">
-                  Add contacts to notify them about your trip.
-                </p>
-              )}
-            </div>
-
-            {/* Start Button */}
-            <button
-              onClick={handleStartSafeTrip}
-              disabled={processing}
-              className="w-full py-4 bg-blue-600 text-white rounded-xl font-bold text-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              {processing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Navigation className="w-5 h-5" />}
-              Start Safe Trip
-            </button>
           </div>
         </div>
       )}

@@ -14,6 +14,7 @@
 
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
+import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { checkAndIncrementRateLimit } from './rateLimit';
 import { getNumberSetting } from './config';
 import { deliverSafetySms, DeliveryResult, getSenderProfile, getTrustedContacts, Recipient } from './safetyDelivery';
@@ -74,8 +75,8 @@ export const checkOverdueTrips = functions.pubsub
   .onRun(async () => {
     const db = admin.firestore();
     const nowMs = Date.now();
-    const now = admin.firestore.Timestamp.fromMillis(nowMs);
-    const oldest = admin.firestore.Timestamp.fromMillis(nowMs - OVERDUE_MAX_AGE_MS);
+    const now = Timestamp.fromMillis(nowMs);
+    const oldest = Timestamp.fromMillis(nowMs - OVERDUE_MAX_AGE_MS);
 
     const [trips, timers] = await Promise.all([
       db.collectionGroup('trips')
@@ -136,7 +137,7 @@ async function warnTraveller(ref: DocRef, kind: Kind): Promise<void> {
     const data = snap.data();
     if (!data || !isStillActive(kind, data)) return false;
     if (decideOverdueAction(toSubject(kind, data), Date.now()) !== 'warn') return false;
-    tx.update(ref, { overdueWarnedAt: admin.firestore.FieldValue.serverTimestamp() });
+    tx.update(ref, { overdueWarnedAt: FieldValue.serverTimestamp() });
     return true;
   });
   if (!claimed) return;
@@ -178,16 +179,16 @@ async function alertContacts(ref: DocRef, kind: Kind): Promise<void> {
 
     tx.update(ref, {
       overdueAlertState: 'sending',
-      overdueAlertClaimedAt: admin.firestore.FieldValue.serverTimestamp(),
-      overdueAlertAttempts: admin.firestore.FieldValue.increment(1),
-      overdueAt: data.overdueAt ?? admin.firestore.FieldValue.serverTimestamp(),
+      overdueAlertClaimedAt: FieldValue.serverTimestamp(),
+      overdueAlertAttempts: FieldValue.increment(1),
+      overdueAt: data.overdueAt ?? FieldValue.serverTimestamp(),
     });
     return data;
   });
   if (!claimed) return;
 
   const deadlineMs = toMillis(claimed[field])!;
-  const keepUntil = admin.firestore.Timestamp.fromMillis(Date.now() + OVERDUE_LINK_MS);
+  const keepUntil = Timestamp.fromMillis(Date.now() + OVERDUE_LINK_MS);
 
   // Show the overdue state on the public page straight away, and keep the link
   // alive: contacts need it most after the trip would normally have expired.
@@ -195,7 +196,7 @@ async function alertContacts(ref: DocRef, kind: Kind): Promise<void> {
     await Promise.all([
       ref.update({ expiresAt: keepUntil }),
       db.doc(`sharedTrips/${ref.id}`).set(
-        { overdueAt: admin.firestore.FieldValue.serverTimestamp(), expiresAt: keepUntil },
+        { overdueAt: FieldValue.serverTimestamp(), expiresAt: keepUntil },
         { merge: true }
       ),
     ]);
@@ -255,7 +256,7 @@ async function alertContacts(ref: DocRef, kind: Kind): Promise<void> {
     if (!data || toMillis(data[field]) !== deadlineMs) return;
     tx.update(ref, {
       overdueAlertState: state,
-      lastContactNotificationAt: admin.firestore.FieldValue.serverTimestamp(),
+      lastContactNotificationAt: FieldValue.serverTimestamp(),
       ...(notified.length > 0 ? { notifiedContacts: notified } : {}),
     });
   });
@@ -270,7 +271,7 @@ async function alertContacts(ref: DocRef, kind: Kind): Promise<void> {
     message: kind === 'trip'
       ? 'Trip passed its expected arrival time without a check-in'
       : 'Safety timer expired without check-in',
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    createdAt: FieldValue.serverTimestamp(),
   });
 }
 
@@ -279,11 +280,11 @@ async function alertContacts(ref: DocRef, kind: Kind): Promise<void> {
 // -----------------------------------------------------------------------------
 
 const OVERDUE_RESET = () => ({
-  overdueAt: admin.firestore.FieldValue.delete(),
-  overdueWarnedAt: admin.firestore.FieldValue.delete(),
-  overdueAlertState: admin.firestore.FieldValue.delete(),
-  overdueAlertAttempts: admin.firestore.FieldValue.delete(),
-  overdueAlertClaimedAt: admin.firestore.FieldValue.delete(),
+  overdueAt: FieldValue.delete(),
+  overdueWarnedAt: FieldValue.delete(),
+  overdueAlertState: FieldValue.delete(),
+  overdueAlertAttempts: FieldValue.delete(),
+  overdueAlertClaimedAt: FieldValue.delete(),
 });
 
 async function sendAllClear(
@@ -319,7 +320,7 @@ async function sendAllClearOnce(ref: DocRef, contactIds: string[] | null, reason
   const first = await admin.firestore().runTransaction(async (tx) => {
     const snap = await tx.get(ref);
     if (!snap.exists || snap.data()?.allClearSentAt) return false;
-    tx.update(ref, { allClearSentAt: admin.firestore.FieldValue.serverTimestamp() });
+    tx.update(ref, { allClearSentAt: FieldValue.serverTimestamp() });
     return true;
   });
   if (first) await sendAllClear(ref, contactIds, reason);
@@ -363,7 +364,7 @@ export const onTripUpdated = functions.firestore
       await Promise.all([
         ref.update(OVERDUE_RESET()),
         db.doc(`sharedTrips/${ref.id}`).set(
-          { overdueAt: admin.firestore.FieldValue.delete() },
+          { overdueAt: FieldValue.delete() },
           { merge: true }
         ),
       ]);
@@ -481,7 +482,7 @@ export const onSOSAlert = functions
         trip = tripSnap.data()!;
         // Make sure the trip shows as an emergency and its link stays readable,
         // even if the app did not manage to update it
-        const keepUntil = admin.firestore.Timestamp.fromMillis(Date.now() + OVERDUE_LINK_MS);
+        const keepUntil = Timestamp.fromMillis(Date.now() + OVERDUE_LINK_MS);
         const stillOpen = trip.status === 'active' || trip.status === 'emergency';
         const update = { expiresAt: keepUntil, ...(stillOpen ? { status: 'emergency' } : {}) };
         await Promise.all([

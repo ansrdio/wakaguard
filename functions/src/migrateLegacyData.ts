@@ -1,4 +1,5 @@
 import * as admin from 'firebase-admin';
+import { FieldValue } from 'firebase-admin/firestore';
 
 type FirestoreDb = FirebaseFirestore.Firestore;
 
@@ -55,7 +56,7 @@ export async function migrateLegacyData(
         lastLocation: trip.lastLocation ?? null,
         lastUpdate: trip.lastUpdate ?? null,
         destination: trip.destination ?? null,
-        createdAt: trip.createdAt ?? admin.firestore.FieldValue.serverTimestamp(),
+        createdAt: trip.createdAt ?? FieldValue.serverTimestamp(),
       };
 
       if (!dryRun) {
@@ -118,7 +119,7 @@ export async function migrateLegacyData(
             name: c?.name ?? '',
             phone: c?.phone ?? '',
             email: c?.email ?? null,
-            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            createdAt: FieldValue.serverTimestamp(),
           }, { merge: true });
           contactsCreated++;
         }

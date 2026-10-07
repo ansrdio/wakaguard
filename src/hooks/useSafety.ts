@@ -17,11 +17,12 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { collection, doc, setDoc, updateDoc, query, where, onSnapshot, Timestamp, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, setDoc, updateDoc, query, where, onSnapshot, Timestamp, addDoc, serverTimestamp, increment } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuthedUser } from '@/hooks/useAuthedUser';
 import { generateShareToken, generateSecretKey, calculateTripExpiry, calculateTimerExpiry, calculateTripEnd } from '@/lib/safety';
 import { buildShareLink } from '@/lib/safetyMessaging';
+import { tripExpiryMs } from '@/lib/tripPlanning';
 import { Trip, TripStatus, SafetyTimer, AlertType } from '@/lib/types';
 
 /**
@@ -68,7 +69,7 @@ interface UseSafetyReturn {
   
   // === SAFE TRIP (UNIFIED API) ===
   /** Start a Safe Trip with duration, contacts, and destination */
-  startSafeTrip: (options: SafeTripOptions) => Promise<{ success: boolean; shareUrl?: string; error?: string }>;
+  startSafeTrip: (options: SafeTripOptions) => Promise<{ success: boolean; tripId?: string; shareUrl?: string; error?: string }>;
   /** End the Safe Trip and associated timer */
   endSafeTrip: () => Promise<{ success: boolean; error?: string }>;
   /** Push back the expected arrival time (also clears an overdue state on the server) */
@@ -399,20 +400,24 @@ export function useSafety(): UseSafetyReturn {
     try {
       const shareToken = generateShareToken();
       const now = new Date();
-      const expiresAt = calculateTripExpiry(24);
-      
+
       // Calculate trip end time if duration is specified
       const endsAt = options.expectedDurationMinutes 
         ? calculateTripEnd(now, options.expectedDurationMinutes)
         : null;
+      // The documents and share link must still exist when contacts are alerted
+      const expiresAt = new Date(tripExpiryMs(now.getTime(), endsAt ? endsAt.getTime() : null));
 
-      // Get current location - use null instead of undefined (Firestore rejects undefined)
+      // Get current location - use null instead of undefined (Firestore rejects undefined).
+      // A recent fix is fine and the wait is short: location tracking takes over
+      // once the trip exists, so starting must not hang on a slow GPS.
       let lastLocation: { lat: number; lng: number; accuracy: number; updatedAt: Timestamp } | null = null;
       try {
         const position = await new Promise<GeolocationPosition>((resolve, reject) => {
           navigator.geolocation.getCurrentPosition(resolve, reject, {
             enableHighAccuracy: true,
-            timeout: 10000,
+            maximumAge: 60000,
+            timeout: 5000,
           });
         });
         lastLocation = {
@@ -444,6 +449,10 @@ export function useSafety(): UseSafetyReturn {
         shouldNotifyContacts: true,
         // Private to the owner; never copied to the public sharedTrips doc
         locationKey: generateSecretKey(),
+        // Planned versus actual, for learning how long trips really take
+        startLocation: lastLocation ? { lat: lastLocation.lat, lng: lastLocation.lng } : null,
+        extensionCount: 0,
+        extendedMinutes: 0,
       };
 
       await setDoc(doc(db, 'users', uid, 'trips', shareToken), tripData);
@@ -465,7 +474,7 @@ export function useSafety(): UseSafetyReturn {
       // contacts if the trip is still active afterwards, so no linked timer is needed.
 
       const shareUrl = buildShareLink(shareToken);
-      return { success: true, shareUrl };
+      return { success: true, tripId: shareToken, shareUrl };
     } catch (error: any) {
       console.error('Error starting Safe Trip:', error);
       console.error('Error details:', error?.code, error?.message);
@@ -482,6 +491,9 @@ export function useSafety(): UseSafetyReturn {
       await updateDoc(doc(db, 'users', uid, 'trips', activeTrip.id), {
         status: TripStatus.COMPLETED,
         endTime: serverTimestamp(),
+        endLocation: activeTrip.lastLocation
+          ? { lat: activeTrip.lastLocation.lat, lng: activeTrip.lastLocation.lng }
+          : null,
       });
 
       try {
@@ -514,11 +526,23 @@ export function useSafety(): UseSafetyReturn {
     try {
       // Extend from now if already past the deadline, otherwise from the deadline
       const baseMs = Math.max(Date.now(), activeTrip.endsAt?.toMillis() ?? 0);
-      const endsAt = Timestamp.fromMillis(baseMs + minutes * 60 * 1000);
+      const endsAtMs = baseMs + minutes * 60 * 1000;
+      const endsAt = Timestamp.fromMillis(endsAtMs);
 
-      await updateDoc(doc(db, 'users', uid, 'trips', activeTrip.id), { endsAt });
+      // Push the expiry out too if the new arrival time gets close to it
+      const expiryMs = Math.max(
+        activeTrip.expiresAt?.toMillis() ?? 0,
+        tripExpiryMs(activeTrip.startTime?.toMillis?.() ?? Date.now(), endsAtMs)
+      );
+      const update = { endsAt, expiresAt: Timestamp.fromMillis(expiryMs) };
+
+      await updateDoc(doc(db, 'users', uid, 'trips', activeTrip.id), {
+        ...update,
+        extensionCount: increment(1),
+        extendedMinutes: increment(minutes),
+      });
       try {
-        await updateDoc(doc(db, 'sharedTrips', activeTrip.id), { endsAt });
+        await updateDoc(doc(db, 'sharedTrips', activeTrip.id), update);
       } catch (e) {
       }
 

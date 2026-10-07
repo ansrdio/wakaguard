@@ -1,6 +1,6 @@
 'use client';
 
-import { MapIcon, List, Shield, User } from 'lucide-react';
+import { MapIcon, List, Navigation, User } from 'lucide-react';
 
 type MobileTab = 'map' | 'reports' | 'safety' | 'profile';
 
@@ -12,10 +12,11 @@ interface MobileBottomNavProps {
 }
 
 export function MobileBottomNav({ activeTab, onTabChange, safetyBadge, reportCount }: MobileBottomNavProps) {
+  // The trip comes first: it is what the app is for. Its id stays 'safety'.
   const tabs = [
+    { id: 'safety' as MobileTab, label: 'Trip', icon: Navigation, badge: safetyBadge ? '!' : null },
     { id: 'map' as MobileTab, label: 'Map', icon: MapIcon, badge: null },
     { id: 'reports' as MobileTab, label: 'Reports', icon: List, badge: reportCount && reportCount > 0 ? reportCount : null },
-    { id: 'safety' as MobileTab, label: 'Safety', icon: Shield, badge: safetyBadge ? '!' : null },
     { id: 'profile' as MobileTab, label: 'Profile', icon: User, badge: null },
   ];
 

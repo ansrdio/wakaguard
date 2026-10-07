@@ -708,6 +708,13 @@ async function run() {
         lastLoginDate: '2026-10-06'
       })
     );
+    await runStep('User: set alert name', () => userDocUpdate(user, userUid, { alertName: 'Ada' }));
+    await runStep('User: set over-long alert name denied', () =>
+      userDocUpdate(user, userUid, { alertName: 'x'.repeat(31) }), true
+    );
+    await runStep('User: set non-text alert name denied', () =>
+      userDocUpdate(user, userUid, { alertName: 42 }), true
+    );
     await runStep('User: set server-owned field denied', () =>
       userDocUpdate(user, userUid, { smsBlocked: false }), true
     );

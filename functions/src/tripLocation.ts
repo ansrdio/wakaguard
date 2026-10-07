@@ -12,6 +12,7 @@
 
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
+import { FieldValue } from 'firebase-admin/firestore';
 import { timingSafeEqual } from 'crypto';
 
 /** Updates arriving faster than this are acknowledged but not written. */
@@ -77,11 +78,12 @@ export const tripLocation = functions.https.onRequest(async (req, res) => {
   };
   const update = {
     lastLocation,
-    lastUpdate: admin.firestore.FieldValue.serverTimestamp(),
+    lastUpdate: FieldValue.serverTimestamp(),
   };
 
   await Promise.all([
-    tripRef.update(update),
+    // The first position doubles as the start point if the phone had no fix when the trip began
+    tripRef.update(trip.startLocation ? update : { ...update, startLocation: { lat, lng } }),
     db.doc(`sharedTrips/${tripId}`).set(update, { merge: true }),
   ]);
 

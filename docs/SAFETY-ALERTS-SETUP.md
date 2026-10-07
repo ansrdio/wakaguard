@@ -89,7 +89,20 @@ The web provider works while the native apps load the hosted site. If the apps a
 - **Stop one user:** set `smsBlocked: true` on their `users/{uid}` document (clients cannot change it), or disable the account in Firebase Auth.
 - **Message content:** names, destinations and notes are stripped of links and phone numbers before they go into a message.
 
-## 6. Tests
+## 6. Try it on your own machine
+
+The whole flow can be run locally against the Firebase emulators. Nothing real is touched and no SMS is sent: messages are printed in the emulator's log.
+
+1. Copy the "local development" block from `.env.local.example` into `.env.local`, and create `functions/.env.local` containing `SMS_PROVIDER=mock`.
+2. In one terminal: `npm run emulators:all`
+3. In a second: `npm run seed:emulator` (add `-- --with-contacts` for two ready-made contacts), then `npm run dev`
+4. Open http://localhost:3000 in a phone-sized browser window and sign in with the test account in `scripts/seed-emulator.mjs`.
+
+Starting a trip, adding time, the "I'm okay" text, SOS and ending a trip all work this way. The every-minute overdue check does not run in the emulator; `npm run test:monitor` covers it.
+
+Remove `.env.local` again before building the real site, or the build will point at the demo project.
+
+## 7. Tests
 
 ```bash
 npm run test:functions   # message templates, providers, alert logic

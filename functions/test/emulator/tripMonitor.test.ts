@@ -307,6 +307,17 @@ test('the name in a message is the real name, cleaned of links', async () => {
   assert.doesNotMatch(body, /evil/);
 });
 
+test('the name the user chose for alerts is used ahead of the sign-in name and handle', async () => {
+  const { uid, contactIds } = await makeUser({ displayName: 'Adaeze Okonkwo-Williams' });
+  await db().doc(`users/${uid}`).update({ alertName: 'Ada (Chidi\'s wife) www.evil.example' });
+  await makeTrip(uid, contactIds, { endsAt: ts(Date.now() - 10 * MIN) });
+
+  await runMonitor();
+
+  const body = (await logs(uid, 'overdue'))[0].messageBody as string;
+  assert.match(body, /^WakaGuard: Ada Chidi's wife has not checked in/);
+});
+
 test('a user cannot make the server send unlimited messages', async () => {
   const { uid, contactIds } = await makeUser({ contacts: 5 });
   for (let i = 0; i < 5; i++) {

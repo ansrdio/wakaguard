@@ -283,7 +283,7 @@ service cloud.firestore {
       // Cloud Functions first.
       function clientUserFields() {
         return [
-          'createdAt','blockedUids','username','usernameUpdatedAt','safetyChecklist',
+          'createdAt','blockedUids','username','usernameUpdatedAt','safetyChecklist','alertName',
           'points','level','badges','totalReports','totalUpvotes','totalComments',
           'tripsCompleted','loginStreak','lastLoginDate','lastReportDate'
         ];
@@ -297,6 +297,9 @@ service cloud.firestore {
         return (!('blockedUids' in d) || (d.blockedUids is list && d.blockedUids.size() <= 500))
           && (!('safetyChecklist' in d) || (d.safetyChecklist is list && d.safetyChecklist.size() <= 50))
           && (!('badges' in d) || (d.badges is list && d.badges.size() <= 50))
+          // Name shown to trusted contacts in safety messages. The server strips
+          // links and odd characters again before using it.
+          && (!('alertName' in d) || (d.alertName is string && d.alertName.size() >= 1 && d.alertName.size() <= 30))
           && isCount(d, 'points') && isCount(d, 'level')
           && isCount(d, 'totalReports') && isCount(d, 'totalUpvotes') && isCount(d, 'totalComments')
           && isCount(d, 'tripsCompleted') && isCount(d, 'loginStreak')

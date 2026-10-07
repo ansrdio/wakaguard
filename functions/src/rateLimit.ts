@@ -1,4 +1,5 @@
 import * as admin from 'firebase-admin';
+import { Timestamp } from 'firebase-admin/firestore';
 import { getNumberSetting } from './config';
 
 /**
@@ -82,12 +83,12 @@ export async function checkAndIncrementRateLimit(
       }
 
       tx.set(ref, {
-        windowStart: admin.firestore.Timestamp.fromMillis(hour.start),
+        windowStart: Timestamp.fromMillis(hour.start),
         count: hour.count + units,
         perType: { ...perType, [messageType]: typeCount + units },
-        dayStart: admin.firestore.Timestamp.fromMillis(day.start),
+        dayStart: Timestamp.fromMillis(day.start),
         dayCount: day.count + units,
-        lastSentAt: admin.firestore.Timestamp.fromMillis(now),
+        lastSentAt: Timestamp.fromMillis(now),
       });
       return { allowed: true };
     });

@@ -1,7 +1,10 @@
-import { getFunctions, httpsCallable } from 'firebase/functions';
-import { app } from './firebase';
+import { connectFunctionsEmulator, getFunctions, httpsCallable } from 'firebase/functions';
+import { app, EMULATOR_HOST, usingEmulators } from './firebase';
 
 const functions = getFunctions(app);
+if (usingEmulators()) {
+  connectFunctionsEmulator(functions, EMULATOR_HOST, 5001);
+}
 
 // -------------------------------------------------------------------------
 // Types

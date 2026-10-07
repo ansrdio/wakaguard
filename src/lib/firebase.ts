@@ -15,9 +15,9 @@
 
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
 import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
-import { getAuth, Auth } from 'firebase/auth';
-import { getFirestore, Firestore, enableIndexedDbPersistence } from 'firebase/firestore';
-import { getStorage, FirebaseStorage } from 'firebase/storage';
+import { getAuth, Auth, connectAuthEmulator } from 'firebase/auth';
+import { getFirestore, Firestore, enableIndexedDbPersistence, connectFirestoreEmulator } from 'firebase/firestore';
+import { getStorage, FirebaseStorage, connectStorageEmulator } from 'firebase/storage';
 
 /**
  * Firebase configuration object.
@@ -32,6 +32,21 @@ const firebaseConfig = {
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
+
+/** Host the Firebase emulators listen on (see firebase.json for the ports) */
+export const EMULATOR_HOST = '127.0.0.1';
+
+/**
+ * True when the app should talk to the local Firebase emulators instead of a
+ * real project. Needs NEXT_PUBLIC_USE_FIREBASE_EMULATORS=true and only ever
+ * applies on a local address, so a mis-set flag cannot send real users to
+ * localhost. See docs/SAFETY-ALERTS-SETUP.md.
+ */
+export function usingEmulators(): boolean {
+  if (process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATORS !== 'true') return false;
+  if (typeof window === 'undefined') return false;
+  return ['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname);
+}
 
 // Firebase service instances (initialized client-side only)
 let app: FirebaseApp;
@@ -72,6 +87,14 @@ if (typeof window !== 'undefined') {
   auth = getAuth(app);
   db = getFirestore(app);
   storage = getStorage(app);
+
+  // Must happen before any other use of the services
+  if (isFirstInit && usingEmulators()) {
+    connectAuthEmulator(auth, `http://${EMULATOR_HOST}:9099`, { disableWarnings: true });
+    connectFirestoreEmulator(db, EMULATOR_HOST, 8080);
+    connectStorageEmulator(storage, EMULATOR_HOST, 9199);
+    console.info('Using the local Firebase emulators');
+  }
 
   // Enable IndexedDB persistence for offline support
   // This allows the app to work in areas with poor network connectivity

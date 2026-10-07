@@ -15,6 +15,7 @@ import { ProfileScreen } from './screens/ProfileScreen';
 import MapView from '@/components/MapView';
 import { CreateReportModal } from '@/components/CreateReportModal';
 import NigerianStateSelector from '@/components/NigerianStateSelector';
+import { auth } from '@/lib/firebase';
 import { useSafety } from '@/hooks/useSafety';
 import { useTripLocationSync } from '@/hooks/useTripLocationSync';
 import { useEffect } from 'react';
@@ -40,7 +41,11 @@ export function MobileHome({
   onLocate,
   locating,
 }: MobileHomeProps) {
-  const [activeTab, setActiveTab] = useState<MobileTab>('map');
+  // Signed-in users land on the trip screen; guests can only browse, so they
+  // start on the map. Auth has already settled by the time this screen mounts.
+  const [activeTab, setActiveTab] = useState<MobileTab>(() =>
+    auth?.currentUser && !auth.currentUser.isAnonymous ? 'safety' : 'map'
+  );
   const [filters, setFilters] = useState<ReportFilters>({});
   const [sortBy, setSortBy] = useState<'recent' | 'upvoted' | 'nearest'>('recent');
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
@@ -61,6 +66,8 @@ export function MobileHome({
         : 'Location is unavailable. Your contacts cannot see where you are.',
       type: 'error',
     });
+    // The trip card keeps showing the location state, so this only needs to be noticed once
+    setTimeout(() => setToast(null), 6000);
   });
   
   // First-time user hint
