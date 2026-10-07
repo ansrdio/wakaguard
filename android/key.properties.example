@@ -1,0 +1,9 @@
+# Release signing for the Android app.
+# Copy this file to android/key.properties and fill it in. key.properties and
+# the keystore itself are ignored by git and must never be committed.
+#
+# storeFile is relative to the android/ folder.
+storeFile=wakaguard-release.keystore
+storePassword=
+keyAlias=wakaguard
+keyPassword=

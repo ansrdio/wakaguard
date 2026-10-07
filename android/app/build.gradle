@@ -1,5 +1,14 @@
 apply plugin: 'com.android.application'
 
+// Release signing details are read from android/key.properties, which is kept
+// out of the repository (see key.properties.example). Without that file,
+// release builds come out unsigned.
+def keyPropertiesFile = rootProject.file('key.properties')
+def keyProperties = new Properties()
+if (keyPropertiesFile.exists()) {
+    keyPropertiesFile.withInputStream { keyProperties.load(it) }
+}
+
 android {
     namespace = "com.wakaguard.app"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -18,17 +27,19 @@ android {
     }
     signingConfigs {
         release {
-            storeFile file('../wakaguard-release.keystore')
-            storePassword 'wakaguard123'
-            keyAlias 'wakaguard'
-            keyPassword 'wakaguard123'
+            if (keyPropertiesFile.exists()) {
+                storeFile rootProject.file(keyProperties['storeFile'])
+                storePassword keyProperties['storePassword']
+                keyAlias keyProperties['keyAlias']
+                keyPassword keyProperties['keyPassword']
+            }
         }
     }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-            signingConfig signingConfigs.release
+            signingConfig keyPropertiesFile.exists() ? signingConfigs.release : null
         }
     }
 }
