@@ -96,10 +96,11 @@ The apps carry their own copy of the web build. They no longer load the website,
 ```bash
 # .env.local must hold the real Firebase settings
 npm run build:android     # or: npm run build:ios
-npx cap sync              # also updates native plugins; needs Android Studio / Xcode set up
 ```
 
 `build:android` and `build:ios` first run `scripts/app-env.mjs`, which refuses to build if the Firebase settings are missing, point at the emulators, or a development server is configured. Whatever is in `.env.local` at build time is baked into the app.
+
+Both then run `npx cap sync`, which copies the web build into the native project and writes the list of native plugins the app loads. If you build by hand, use `sync` and not `copy`: with `copy` alone on a fresh checkout the Android app starts, but every native feature (background location, contacts, sharing) reports "plugin is not implemented".
 
 Two files are needed that are deliberately not in the repository. Download both from Firebase Console > Project settings > Your apps:
 
@@ -127,7 +128,13 @@ Before the first release:
 3. **Existing installs.** Anyone who has the earlier app is signed out once after updating, because their sign-in was stored under the website's address.
 4. **App Check**, if you turn it on, needs the native providers (Play Integrity and App Attest) rather than reCAPTCHA.
 
-The iPhone app has been run on a simulator against the local emulators (first launch, sign-in, staying signed in, adding a contact, a full trip, location updates with the app in the background, force-closing mid-trip and reopening). The Android app has been compiled, debug and release, but not yet run: the Android debug settings above are untested until it is. A simulator cannot show what a locked phone, a weak signal or battery saving do, so check on a real phone, on both platforms:
+What has been run so far, all against the local emulators:
+
+- **iPhone simulator:** first launch, sign-in, staying signed in, adding a contact, a full trip, location updates with the app in the background, force-closing mid-trip and reopening.
+- **Android virtual phone (Android 16, plain image):** first launch, sign-in, the location prompt, adding a contact, starting and ending a trip, ending a trip with no connection and having it sent once the connection returned, the SOS (dialer opens on 112, contacts are texted), the map, the Back button and the keyboard.
+- **Not yet run on Android: location updates during a trip.** The location plugin needs Google Play services, which that image does not have, so no update ever reached the server from it. Use a real phone, or a virtual device with a "Google APIs" or "Google Play" image.
+
+A simulator cannot show what a locked phone, a weak signal or battery saving do, so check on a real phone, on both platforms:
 
 - sign up, sign in, close and reopen the app, and confirm you are still signed in
 - start a trip, lock the screen and confirm the contact's page keeps updating
