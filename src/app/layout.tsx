@@ -4,6 +4,7 @@ import './globals.css';
 import 'leaflet/dist/leaflet.css';
 import { AuthProvider } from '@/components/AuthProvider';
 import { ServiceWorkerProvider } from '@/components/ServiceWorkerProvider';
+import { NativeSetup } from '@/components/NativeSetup';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -56,6 +57,7 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body className={`${inter.className} min-h-screen bg-slate-50 dark:bg-dark-bg transition-colors`} suppressHydrationWarning>
+        <NativeSetup />
         <ThemeProvider>
           <AuthProvider>
             <ServiceWorkerProvider>

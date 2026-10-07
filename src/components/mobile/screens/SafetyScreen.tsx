@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   Shield, Users, AlertTriangle, Phone, X, Check, Loader2,
   ChevronRight, Heart, Car, Lightbulb, UserPlus, Trash2, CheckCircle2,
@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useSafety } from '@/hooks/useSafety';
 import { MAX_TRUSTED_CONTACTS, joinNames } from '@/lib/tripPlanning';
+import { reachedServer } from '@/lib/firestoreWrites';
 import { StartTripForm, StartTripRequest } from '@/components/mobile/trip/StartTripForm';
 import { ActiveTripCard } from '@/components/mobile/trip/ActiveTripCard';
 import { 
@@ -104,6 +105,7 @@ export function SafetyScreen() {
   const { requireAccount, showAuthModal, openAuthModal, closeAuthModal } = useRequireAccount({ uid, isAnonymous });
   const {
     activeTrip,
+    activeTripUnsynced,
     startSafeTrip,
     endSafeTrip,
     extendSafeTrip,
@@ -114,6 +116,13 @@ export function SafetyScreen() {
 
   // Derived from the trip so the share options survive an app restart mid-trip
   const shareUrl = activeTrip ? buildShareLink(activeTrip.id) : null;
+
+  // Starting or ending a trip swaps what is at the top of the screen, so bring it back into view
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const activeTripId = activeTrip?.id ?? null;
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: 0 });
+  }, [activeTripId]);
 
   const [activeModal, setActiveModal] = useState<ModalType>(null);
   const [processing, setProcessing] = useState(false);
@@ -137,17 +146,30 @@ export function SafetyScreen() {
   // Load trusted contacts
   useEffect(() => {
     if (!uid || isAnonymous) return;
-    const loadContacts = async () => {
-      const userDoc = await getDoc(doc(db, 'users', uid));
-      if (userDoc.exists()) {
-        setCheckedItems(userDoc.data().safetyChecklist || []);
+    // Each part is loaded on its own: with no connection and nothing cached a
+    // read fails, and that must not leave the form stuck on its loading state
+    const loadProfile = async () => {
+      try {
+        const userDoc = await getDoc(doc(db, 'users', uid));
+        if (userDoc.exists()) {
+          setCheckedItems(userDoc.data().safetyChecklist || []);
+        }
+        setSavedAlertName(userDoc.data()?.alertName || '');
+      } catch (error) {
+        console.warn('Could not load profile:', error);
+        setSavedAlertName('');
       }
-      setSavedAlertName(userDoc.data()?.alertName || '');
-
-      const contactsSnap = await getDocs(collection(db, 'users', uid, 'trustedContacts'));
-      const contacts = contactsSnap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
-      setTrustedContacts(contacts);
     };
+    const loadContacts = async () => {
+      try {
+        const contactsSnap = await getDocs(collection(db, 'users', uid, 'trustedContacts'));
+        const contacts = contactsSnap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
+        setTrustedContacts(contacts);
+      } catch (error) {
+        console.warn('Could not load trusted contacts:', error);
+      }
+    };
+    loadProfile();
     loadContacts();
   }, [uid]);
 
@@ -258,13 +280,12 @@ export function SafetyScreen() {
 
     // The name goes into texts to contacts, so save it before the trip exists.
     // The trip still starts if this fails; the server falls back to the sign-in name.
+    // It is not waited for: with no connection the save stays queued, and waiting
+    // on it would hold up the trip itself.
     if (request.alertName !== savedAlertName) {
-      try {
-        await updateDoc(doc(db, 'users', uid), { alertName: request.alertName });
-        setSavedAlertName(request.alertName);
-      } catch (error) {
-        console.error('Failed to save alert name:', error);
-      }
+      setSavedAlertName(request.alertName);
+      updateDoc(doc(db, 'users', uid), { alertName: request.alertName })
+        .catch((error) => console.error('Failed to save alert name:', error));
     }
 
     const result = await startSafeTrip({
@@ -276,6 +297,14 @@ export function SafetyScreen() {
     if (!result.success || !result.tripId) {
       setProcessing(false);
       showToast(result.error || 'Failed to start Safe Trip', 'error');
+      return;
+    }
+
+    // No connection: the trip is saved on the phone and sent when it can be.
+    // Until then nobody is watching it, and the card says so.
+    if (result.pending) {
+      setProcessing(false);
+      showToast('No connection yet. This trip starts being watched once your phone is back online.', 'error');
       return;
     }
 
@@ -317,7 +346,9 @@ export function SafetyScreen() {
     setProcessing(false);
     setActiveModal(null);
     
-    if (result.success) {
+    if (result.success && result.pending) {
+      showToast('Saved on this phone. Until it is back online, your contacts could still be alerted.', 'error');
+    } else if (result.success) {
       showToast(
         wasAlerted
           ? 'Trip ended. Your contacts are being told you checked in.'
@@ -326,7 +357,7 @@ export function SafetyScreen() {
       );
       // Contacts who were alerted get a text from the server. Otherwise offer
       // to let them know through the share sheet.
-      if (currentShareUrl && !wasAlerted) {
+      if (currentShareUrl && !wasAlerted && !result.pending) {
         try {
           await shareSafeTripLink(currentShareUrl, { mode: 'end', destination: currentDestination });
         } catch (e) {
@@ -343,7 +374,9 @@ export function SafetyScreen() {
     setProcessing(true);
     const result = await extendSafeTrip(minutes);
     setProcessing(false);
-    if (result.success) {
+    if (result.success && result.pending) {
+      showToast('Saved on this phone. The extra time applies once you are back online.', 'error');
+    } else if (result.success) {
       showToast(`Added ${minutes} minutes`, 'success');
     } else {
       showToast(result.error || 'Failed to add time', 'error');
@@ -496,7 +529,7 @@ export function SafetyScreen() {
         return;
       }
 
-      await setDoc(doc(db, 'users', uid, 'trustedContacts', contactId), {
+      const saved = await reachedServer(setDoc(doc(db, 'users', uid, 'trustedContacts', contactId), {
         name,
         phone: rawPhone,
         phoneE164,
@@ -504,7 +537,7 @@ export function SafetyScreen() {
         notifyOnCheckIn: true,
         notifyOnTripShare: true,
         createdAt: serverTimestamp(),
-      }, { merge: true });
+      }, { merge: true }));
 
       setTrustedContacts((prev) => {
         const existing = prev.find((c) => c.id === contactId);
@@ -515,7 +548,10 @@ export function SafetyScreen() {
       });
       setNewContactName('');
       setNewContactPhone('');
-      showToast('Contact added', 'success');
+      showToast(
+        saved ? 'Contact added' : 'Contact saved on this phone. It will be sent when you are back online.',
+        saved ? 'success' : 'error'
+      );
     } catch (error) {
       showToast('Failed to add contact', 'error');
     } finally {
@@ -622,6 +658,9 @@ export function SafetyScreen() {
             ))}
           </div>
         </div>
+
+        {/* Without this the sign-in button above has nothing to open */}
+        <AuthModal isOpen={showAuthModal} onClose={closeAuthModal} />
       </div>
     );
   }
@@ -633,7 +672,7 @@ export function SafetyScreen() {
     .map((c) => c.name);
 
   return (
-    <div className="absolute inset-0 overflow-y-auto px-4 pt-4 pb-28 space-y-4 bg-slate-50 dark:bg-slate-900 touch-pan-y" style={{ marginTop: 'calc(env(safe-area-inset-top, 0px) + 56px)', WebkitOverflowScrolling: 'touch' }}>
+    <div ref={scrollRef} className="absolute inset-0 overflow-y-auto px-4 pt-4 pb-28 space-y-4 bg-slate-50 dark:bg-slate-900 touch-pan-y" style={{ marginTop: 'calc(env(safe-area-inset-top, 0px) + 56px)', WebkitOverflowScrolling: 'touch' }}>
       {/* ============================================ */}
       {/* 1. THE TRIP: start form, or the trip in progress */}
       {/* ============================================ */}
@@ -641,6 +680,7 @@ export function SafetyScreen() {
         <ActiveTripCard
           trip={activeTrip}
           watcherNames={watcherNames}
+          unsynced={activeTripUnsynced}
           processing={processing}
           onArrive={handleEndSafeTrip}
           onExtend={handleExtendTrip}

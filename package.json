@@ -7,9 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "build:cap": "next build && npx cap copy",
-    "build:android": "next build && npx cap copy android && cd android && ./gradlew assembleDebug",
-    "build:ios": "next build && npx cap copy ios",
+    "build:cap": "node scripts/app-env.mjs && next build && npx cap copy",
+    "build:android": "node scripts/app-env.mjs && next build && npx cap copy android && cd android && ./gradlew assembleDebug",
+    "build:ios": "node scripts/app-env.mjs && next build && npx cap copy ios",
     "emulators": "firebase emulators:start --only auth,firestore,storage",
     "test:smoke:run": "tsx tests/smoke.test.ts",
     "test:smoke": "firebase emulators:exec --only auth,firestore,storage \"npm run test:smoke:run\"",
@@ -17,7 +17,8 @@
     "test:monitor:run": "tsx --test functions/test/emulator/*.test.ts",
     "test:monitor": "firebase emulators:exec --only firestore,auth --project demo-wakaguard \"npm run test:monitor:run\"",
     "emulators:all": "npm --prefix functions run build && firebase emulators:start --only auth,firestore,storage,functions --project demo-wakaguard",
-    "seed:emulator": "node scripts/seed-emulator.mjs"
+    "seed:emulator": "node scripts/seed-emulator.mjs",
+    "check:app-env": "node scripts/app-env.mjs"
   },
   "dependencies": {
     "@capacitor-community/background-geolocation": "^1.2.26",

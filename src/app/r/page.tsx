@@ -20,6 +20,7 @@ import {
   MessageCircle, Flag, Share2, AlertCircle, CheckCircle, Navigation, Ban 
 } from 'lucide-react';
 import Link from 'next/link';
+import { buildReportLink } from '@/lib/appUrl';
 
 function ReportDetailContent() {
   const searchParams = useSearchParams();
@@ -179,7 +180,7 @@ function ReportDetailContent() {
 
   const handleShare = async () => {
     // Use new query param URL format for sharing
-    const url = `${window.location.origin}/r?id=${reportId}`;
+    const url = buildReportLink(reportId);
     if (navigator.share) {
       try {
         await navigator.share({

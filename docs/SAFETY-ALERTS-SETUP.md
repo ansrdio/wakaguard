@@ -89,7 +89,60 @@ The web provider works while the native apps load the hosted site. If the apps a
 - **Stop one user:** set `smsBlocked: true` on their `users/{uid}` document (clients cannot change it), or disable the account in Firebase Auth.
 - **Message content:** names, destinations and notes are stripped of links and phone numbers before they go into a message.
 
-## 6. Try it on your own machine
+## 6. Building the phone apps
+
+The apps carry their own copy of the web build. They no longer load the website, so they open with no signal and count as real apps for store review. The other side of that: a change to the app now reaches users through an app-store release, not a website deploy.
+
+```bash
+# .env.local must hold the real Firebase settings
+npm run build:android     # or: npm run build:ios
+npx cap sync              # also updates native plugins; needs Android Studio / Xcode set up
+```
+
+`build:android` and `build:ios` first run `scripts/app-env.mjs`, which refuses to build if the Firebase settings are missing, point at the emulators, or a development server is configured. Whatever is in `.env.local` at build time is baked into the app.
+
+Two files are needed that are deliberately not in the repository. Download both from Firebase Console > Project settings > Your apps:
+
+| File | Goes in | For the app registered as |
+| --- | --- | --- |
+| `GoogleService-Info.plist` | `ios/App/App/` | `com.ansrdlabs.wakaguard` |
+| `google-services.json` | `android/app/` | `com.wakaguard.app` |
+
+The iPhone app does not build without its file. The Android app builds without its file but then has no push notifications. The two apps have different IDs and each matches what is registered in Firebase, so leave them as they are.
+
+If `pod install` (run by `npx cap sync`) stops with a Ruby encoding error, run it as `LANG=en_US.UTF-8 npx cap sync ios`.
+
+**Signing the Android release.** The keystore and its passwords are read from `android/key.properties`, which git ignores. Copy `android/key.properties.example` to that name and fill it in; without it, release builds come out unsigned. The passwords used to be written in `android/app/build.gradle`, and this repository is public, so treat those old passwords as known to anyone: change them on the keystore (`keytool -storepasswd` and `keytool -keypasswd`, which keep the same signing key) before the next release, and anywhere else they were reused.
+
+**Unencrypted connections.** Release builds of both apps accept HTTPS only. The exceptions are for testing against the local emulators, which speak plain HTTP: the iPhone app allows addresses on the local network, and Android debug builds allow this machine only (`android/app/src/debug`). On an Android phone or virtual device, forward the emulator ports first:
+
+```bash
+for port in 9099 8080 9199 5001; do adb reverse tcp:$port tcp:$port; done
+```
+
+Before the first release:
+
+1. **API key restrictions.** Inside the app, pages come from `capacitor://localhost` (iOS) and `https://localhost` (Android), not from wakaguard.com. If the browser API key in Google Cloud Console is restricted to your web domains, add those two addresses or sign-in and data will fail inside the app.
+2. **Map tiles.** Set `NEXT_PUBLIC_MAP_TILE_URL` to a provider with an API key. OpenStreetMap's own servers may refuse traffic from apps.
+3. **Existing installs.** Anyone who has the earlier app is signed out once after updating, because their sign-in was stored under the website's address.
+4. **App Check**, if you turn it on, needs the native providers (Play Integrity and App Attest) rather than reCAPTCHA.
+
+The iPhone app has been run on a simulator against the local emulators (first launch, sign-in, staying signed in, adding a contact, a full trip, location updates with the app in the background, force-closing mid-trip and reopening). The Android app has been compiled, debug and release, but not yet run: the Android debug settings above are untested until it is. A simulator cannot show what a locked phone, a weak signal or battery saving do, so check on a real phone, on both platforms:
+
+- sign up, sign in, close and reopen the app, and confirm you are still signed in
+- start a trip, lock the screen and confirm the contact's page keeps updating
+- force-close the app mid-trip: location stops until it is reopened, and the overdue alert still goes out on time
+- switch on flight mode, start a trip, and confirm the "Waiting for a connection" warning appears and clears when signal returns
+- open Privacy Policy, Guidelines and Support from the Profile tab and come back
+- add a contact from the phone book, and take a photo for a road report
+
+For development with live reload, point the app at your dev server instead of its own files:
+
+```bash
+CAP_SERVER_URL=http://192.168.1.20:3000 npx cap sync
+```
+
+## 7. Try it on your own machine
 
 The whole flow can be run locally against the Firebase emulators. Nothing real is touched and no SMS is sent: messages are printed in the emulator's log.
 
@@ -102,7 +155,7 @@ Starting a trip, adding time, the "I'm okay" text, SOS and ending a trip all wor
 
 Remove `.env.local` again before building the real site, or the build will point at the demo project.
 
-## 7. Tests
+## 8. Tests
 
 ```bash
 npm run test:functions   # message templates, providers, alert logic

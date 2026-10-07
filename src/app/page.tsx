@@ -13,12 +13,18 @@ import { EmailVerification } from '@/components/EmailVerification';
 import { DesktopHome } from '@/components/DesktopHome';
 import { MobileHome } from '@/components/mobile/MobileHome';
 import { NigerianState } from '@/lib/nigerianStates';
+import { resetPageWhenKeyboardCloses } from '@/lib/nativeKeyboard';
 
 export default function Home() {
   const { selectedState, setSelectedState, isLoaded } = useSelectedState();
   const { ready: authReady, uid, email, emailVerified, needsUsername } = useAuthedUser();
   const { checkDailyLogin } = useUserStats(uid);
   const { mounted, isDesktop } = useResponsiveLayout();
+
+  // Every phone screen on this page (first-run steps, sign-in, home) fills the
+  // window and scrolls inside itself, so iOS must not leave the page shifted
+  // after typing
+  useEffect(() => (isDesktop ? undefined : resetPageWhenKeyboardCloses()), [isDesktop]);
 
   // Check daily login for streak points
   useEffect(() => {

@@ -13,6 +13,7 @@ import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { Report, ReportStatus } from '@/lib/types';
 import { AuthModal } from '@/components/AuthModal';
+import Link from 'next/link';
 
 type ModalType = 'myReports' | 'settings' | 'help' | null;
 
@@ -194,7 +195,7 @@ export function ProfileScreen() {
         </p>
         <div className="flex items-center justify-between pt-2 border-t border-slate-100">
           <span className="text-xs text-slate-500">Version 1.0.0</span>
-          <a href="/privacy" className="text-xs text-blue-600 hover:underline">Privacy Policy</a>
+          <Link href="/privacy" className="text-xs text-blue-600 hover:underline">Privacy Policy</Link>
         </div>
       </div>
 
@@ -299,29 +300,29 @@ export function ProfileScreen() {
             </div>
             
             <div className="space-y-3">
-              <a
+              <Link
                 href="/guidelines"
                 className="flex items-center justify-between p-4 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors"
               >
                 <span className="font-medium text-slate-900">Community Guidelines</span>
                 <ExternalLink className="w-4 h-4 text-slate-400" />
-              </a>
+              </Link>
 
-              <a
+              <Link
                 href="/support"
                 className="flex items-center justify-between p-4 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors"
               >
                 <span className="font-medium text-slate-900">Contact Support</span>
                 <ExternalLink className="w-4 h-4 text-slate-400" />
-              </a>
+              </Link>
 
-              <a
+              <Link
                 href="/privacy"
                 className="flex items-center justify-between p-4 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors"
               >
                 <span className="font-medium text-slate-900">Privacy Policy</span>
                 <ExternalLink className="w-4 h-4 text-slate-400" />
-              </a>
+              </Link>
             </div>
           </div>
         </div>

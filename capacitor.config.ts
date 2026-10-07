@@ -1,21 +1,32 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
-const capServerUrl = process.env.CAP_SERVER_URL;
+/**
+ * The app ships with its own copy of the web build (the `out` folder), so it
+ * opens without a connection and is a real app in the eyes of the app stores.
+ * Build it with `npm run build:android` or `npm run build:ios`.
+ *
+ * Development only: to load the app from a dev server instead (live reload),
+ * set CAP_SERVER_URL before syncing, for example
+ *   CAP_SERVER_URL=http://192.168.1.20:3000 npx cap sync
+ * Never set it for a store build.
+ */
+const devServerUrl = process.env.CAP_SERVER_URL;
 
 const config: CapacitorConfig = {
   appId: 'com.ansrdlabs.wakaguard',
   appName: 'WakaGuard',
   webDir: 'out',
-  server: capServerUrl
+  // Identifies the app to outside services such as map tile servers, which
+  // may refuse requests from an anonymous WebView
+  appendUserAgent: 'WakaGuard',
+  ...(devServerUrl
     ? {
-        url: capServerUrl,
-        cleartext: true,
+        server: {
+          url: devServerUrl,
+          cleartext: devServerUrl.startsWith('http://'),
+        },
       }
-    : {
-        // Load from Firebase Hosting for proper Firebase Auth support on iOS
-        url: 'https://routepulse-5701f.web.app',
-        cleartext: false,
-      },
+    : {}),
   plugins: {
     StatusBar: {
       overlaysWebView: false,
@@ -44,9 +55,10 @@ const config: CapacitorConfig = {
   },
   android: {
     backgroundColor: '#1e293b',
+    // Only needed when loading from a plain-http dev server
+    allowMixedContent: !!devServerUrl && devServerUrl.startsWith('http://'),
     // Stops background location updates halting after 5 minutes
     useLegacyBridge: true,
-    allowMixedContent: true,
   },
 };
 

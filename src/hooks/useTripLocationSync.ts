@@ -19,7 +19,7 @@ import { useEffect, useRef } from 'react';
 import { Capacitor, CapacitorHttp, registerPlugin } from '@capacitor/core';
 import type { BackgroundGeolocationPlugin } from '@capacitor-community/background-geolocation';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { db, EMULATOR_HOST, usingEmulators } from '@/lib/firebase';
 import { useAuthedUser } from '@/hooks/useAuthedUser';
 import { calculateDistance } from '@/lib/geo';
 import { HEARTBEAT_MS, LocationFix, SentFix, shouldSendFix, tripLocationEndpoint } from '@/lib/tripLocation';
@@ -44,7 +44,9 @@ async function writeViaFirestore(uid: string, tripId: string, fix: LocationFix, 
 }
 
 async function writeViaNativeHttp(uid: string, tripId: string, key: string, fix: LocationFix) {
-  const url = tripLocationEndpoint();
+  const url = usingEmulators()
+    ? `http://${EMULATOR_HOST}:5001/${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}/us-central1/tripLocation`
+    : tripLocationEndpoint();
   if (!url) throw new Error('tripLocation endpoint not configured');
 
   const response = await CapacitorHttp.post({

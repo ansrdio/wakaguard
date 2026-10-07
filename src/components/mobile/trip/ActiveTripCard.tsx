@@ -9,6 +9,8 @@ interface ActiveTripCardProps {
   trip: Trip;
   /** Names of the contacts who are told about this trip */
   watcherNames: string[];
+  /** The trip has changes the server has not received, so nobody is watching it yet */
+  unsynced: boolean;
   processing: boolean;
   onArrive: () => void;
   onExtend: (minutes: number) => void;
@@ -59,6 +61,7 @@ const secondaryButton =
 export function ActiveTripCard({
   trip,
   watcherNames,
+  unsynced,
   processing,
   onArrive,
   onExtend,
@@ -123,6 +126,14 @@ export function ActiveTripCard({
           <span>{location.text}</span>
         </li>
       </ul>
+
+      {unsynced && (
+        <div role="alert" className="mt-4 bg-amber-100 border border-amber-400 rounded-xl p-3 text-sm text-amber-900">
+          <span className="font-semibold">Waiting for a connection.</span> Your latest changes have not been sent,
+          so this trip may not be watched and your contacts may not be alerted. Keep the app open until this
+          message goes away.
+        </div>
+      )}
 
       {isEmergency && (
         <div role="status" className="mt-4 bg-red-100 border border-red-300 rounded-xl p-3 text-sm text-red-900">

@@ -10,6 +10,7 @@ import { useComments } from '@/hooks/useComments';
 import { flagReport } from '@/lib/actions';
 import { useVote } from '@/hooks/useVote';
 import { useReportResolution } from '@/hooks/useReportResolution';
+import { buildReportLink } from '@/lib/appUrl';
 
 interface ReportDetailsSheetProps {
   report: Report | null;
@@ -48,7 +49,7 @@ export function ReportDetailsSheet({ report, onClose, onShowToast }: ReportDetai
   };
 
   const handleShare = async () => {
-    const shareUrl = `https://wakaguard.com/r?id=${report.id}`;
+    const shareUrl = buildReportLink(report.id);
     
     if (navigator.share) {
       try {

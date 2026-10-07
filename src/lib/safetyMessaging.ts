@@ -1,5 +1,6 @@
 import { connectFunctionsEmulator, getFunctions, httpsCallable } from 'firebase/functions';
 import { app, EMULATOR_HOST, usingEmulators } from './firebase';
+import { APP_URL } from './appUrl';
 
 const functions = getFunctions(app);
 if (usingEmulators()) {
@@ -69,7 +70,7 @@ export async function sendTripShareSms(token: string): Promise<SendSafetySmsResp
 // WhatsApp URL builders (deep links, no API)
 // -------------------------------------------------------------------------
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://wakaguard.com';
+const BASE_URL = APP_URL;
 
 function buildMapsLink(lat: number, lng: number): string {
   return `https://maps.google.com/?q=${lat},${lng}`;

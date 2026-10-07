@@ -10,6 +10,7 @@ import { flagReport } from '@/lib/actions';
 import { useComments } from '@/hooks/useComments';
 import { useReportResolution } from '@/hooks/useReportResolution';
 import { useVote } from '@/hooks/useVote';
+import { buildReportLink } from '@/lib/appUrl';
 
 interface ReportDetailsCardProps {
   report: Report | null;
@@ -119,7 +120,7 @@ export function ReportDetailsCard({ report, onClose }: ReportDetailsCardProps) {
   };
 
   const handleShare = async () => {
-    const url = `https://wakaguard.com/r?id=${report.id}`;
+    const url = buildReportLink(report.id);
     
     try {
       // Try Web Share API first (better on mobile)

@@ -23,6 +23,7 @@ import { useAuthedUser } from '@/hooks/useAuthedUser';
 import { generateShareToken, generateSecretKey, calculateTripExpiry, calculateTimerExpiry, calculateTripEnd } from '@/lib/safety';
 import { buildShareLink } from '@/lib/safetyMessaging';
 import { tripExpiryMs } from '@/lib/tripPlanning';
+import { reachedServer } from '@/lib/firestoreWrites';
 import { Trip, TripStatus, SafetyTimer, AlertType } from '@/lib/types';
 
 /**
@@ -42,6 +43,11 @@ interface UseSafetyReturn {
   // === TRIP SHARING (LEGACY API) ===
   /** Currently active trip, or null if no trip is active */
   activeTrip: Trip | null;
+  /**
+   * True while the active trip has changes that have not reached the server.
+   * Until it has, the server cannot watch the trip or alert anyone.
+   */
+  activeTripUnsynced: boolean;
   /** Start a new trip with optional destination */
   startTrip: (destination?: string) => Promise<{ success: boolean; shareUrl?: string; error?: string }>;
   /** End the current active trip */
@@ -69,11 +75,11 @@ interface UseSafetyReturn {
   
   // === SAFE TRIP (UNIFIED API) ===
   /** Start a Safe Trip with duration, contacts, and destination */
-  startSafeTrip: (options: SafeTripOptions) => Promise<{ success: boolean; tripId?: string; shareUrl?: string; error?: string }>;
+  startSafeTrip: (options: SafeTripOptions) => Promise<{ success: boolean; tripId?: string; shareUrl?: string; pending?: boolean; error?: string }>;
   /** End the Safe Trip and associated timer */
-  endSafeTrip: () => Promise<{ success: boolean; error?: string }>;
+  endSafeTrip: () => Promise<{ success: boolean; pending?: boolean; error?: string }>;
   /** Push back the expected arrival time (also clears an overdue state on the server) */
-  extendSafeTrip: (minutes: number) => Promise<{ success: boolean; error?: string }>;
+  extendSafeTrip: (minutes: number) => Promise<{ success: boolean; pending?: boolean; error?: string }>;
   /** Acknowledge the Safe Trip timer (check-in without ending trip) */
   acknowledgeSafeTripTimer: () => Promise<{ success: boolean; error?: string }>;
   
@@ -90,6 +96,8 @@ interface UseSafetyReturn {
 
 /** Nigeria's national emergency number */
 const EMERGENCY_NUMBER = '112';
+/** A trip with unsent changes for this long is shown as not yet watched */
+const UNSYNCED_AFTER_MS = 10000;
 /** Longest the SOS waits for the alert to be saved before opening the dialer */
 const SOS_HEAD_START_MS = 700;
 
@@ -117,6 +125,7 @@ const SOS_HEAD_START_MS = 700;
 export function useSafety(): UseSafetyReturn {
   const { uid } = useAuthedUser();
   const [activeTrip, setActiveTrip] = useState<Trip | null>(null);
+  const [activeTripUnsynced, setActiveTripUnsynced] = useState(false);
   const [activeTimer, setActiveTimer] = useState<SafetyTimer | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -135,17 +144,35 @@ export function useSafety(): UseSafetyReturn {
       where('status', 'in', [TripStatus.ACTIVE, TripStatus.EMERGENCY])
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+    // Location updates leave the trip briefly unsent every half minute, so only
+    // changes that stay unsent for a while count as "not reaching the server"
+    let unsyncedTimer: ReturnType<typeof setTimeout> | null = null;
+    const clearUnsynced = () => {
+      if (unsyncedTimer) clearTimeout(unsyncedTimer);
+      unsyncedTimer = null;
+      setActiveTripUnsynced(false);
+    };
+
+    const unsubscribe = onSnapshot(q, { includeMetadataChanges: true }, (snapshot) => {
       if (!snapshot.empty) {
         const tripDoc = snapshot.docs[0];
         setActiveTrip({ id: tripDoc.id, ...tripDoc.data() } as Trip);
+        if (!tripDoc.metadata.hasPendingWrites) {
+          clearUnsynced();
+        } else if (!unsyncedTimer) {
+          unsyncedTimer = setTimeout(() => setActiveTripUnsynced(true), UNSYNCED_AFTER_MS);
+        }
       } else {
         setActiveTrip(null);
+        clearUnsynced();
       }
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      if (unsyncedTimer) clearTimeout(unsyncedTimer);
+    };
   }, [uid]);
 
   // Subscribe to active timer
@@ -455,26 +482,28 @@ export function useSafety(): UseSafetyReturn {
         extendedMinutes: 0,
       };
 
-      await setDoc(doc(db, 'users', uid, 'trips', shareToken), tripData);
-      await setDoc(doc(db, 'sharedTrips', shareToken), {
-        uid,
-        tripId: shareToken,
-        status: TripStatus.ACTIVE,
-        expiresAt: Timestamp.fromDate(expiresAt),
-        lastLocation: lastLocation
-          ? { lat: lastLocation.lat, lng: lastLocation.lng, accuracy: lastLocation.accuracy }
-          : null,
-        lastUpdate: serverTimestamp(),
-        destination: options.destinationLabel ?? null,
-        createdAt: serverTimestamp(),
-        endsAt: endsAt ? Timestamp.fromDate(endsAt) : null,
-      }, { merge: true });
+      const saved = await reachedServer(Promise.all([
+        setDoc(doc(db, 'users', uid, 'trips', shareToken), tripData),
+        setDoc(doc(db, 'sharedTrips', shareToken), {
+          uid,
+          tripId: shareToken,
+          status: TripStatus.ACTIVE,
+          expiresAt: Timestamp.fromDate(expiresAt),
+          lastLocation: lastLocation
+            ? { lat: lastLocation.lat, lng: lastLocation.lng, accuracy: lastLocation.accuracy }
+            : null,
+          lastUpdate: serverTimestamp(),
+          destination: options.destinationLabel ?? null,
+          createdAt: serverTimestamp(),
+          endsAt: endsAt ? Timestamp.fromDate(endsAt) : null,
+        }, { merge: true }),
+      ]));
 
       // The trip's endsAt is the single deadline. The server watches it and alerts
       // contacts if the trip is still active afterwards, so no linked timer is needed.
 
       const shareUrl = buildShareLink(shareToken);
-      return { success: true, tripId: shareToken, shareUrl };
+      return { success: true, tripId: shareToken, shareUrl, pending: !saved };
     } catch (error: any) {
       console.error('Error starting Safe Trip:', error);
       console.error('Error details:', error?.code, error?.message);
@@ -488,30 +517,25 @@ export function useSafety(): UseSafetyReturn {
 
     try {
       // End the trip
-      await updateDoc(doc(db, 'users', uid, 'trips', activeTrip.id), {
+      const saved = await reachedServer(updateDoc(doc(db, 'users', uid, 'trips', activeTrip.id), {
         status: TripStatus.COMPLETED,
         endTime: serverTimestamp(),
         endLocation: activeTrip.lastLocation
           ? { lat: activeTrip.lastLocation.lat, lng: activeTrip.lastLocation.lng }
           : null,
-      });
+      }));
 
-      try {
-        await updateDoc(doc(db, 'sharedTrips', activeTrip.id), {
-          status: TripStatus.COMPLETED,
-        });
-      } catch (e) {
-      }
+      updateDoc(doc(db, 'sharedTrips', activeTrip.id), { status: TripStatus.COMPLETED }).catch(() => {});
 
       // Also acknowledge any linked timer
       if (activeTimer?.tripId === activeTrip.id) {
-        await updateDoc(doc(db, 'users', uid, 'safetyTimers', activeTimer.id), {
+        updateDoc(doc(db, 'users', uid, 'safetyTimers', activeTimer.id), {
           acknowledged: true,
           acknowledgedAt: serverTimestamp(),
-        });
+        }).catch(() => {});
       }
 
-      return { success: true };
+      return { success: true, pending: !saved };
     } catch (error) {
       console.error('Error ending Safe Trip:', error);
       return { success: false, error: 'Failed to end Safe Trip' };
@@ -536,17 +560,14 @@ export function useSafety(): UseSafetyReturn {
       );
       const update = { endsAt, expiresAt: Timestamp.fromMillis(expiryMs) };
 
-      await updateDoc(doc(db, 'users', uid, 'trips', activeTrip.id), {
+      const saved = await reachedServer(updateDoc(doc(db, 'users', uid, 'trips', activeTrip.id), {
         ...update,
         extensionCount: increment(1),
         extendedMinutes: increment(minutes),
-      });
-      try {
-        await updateDoc(doc(db, 'sharedTrips', activeTrip.id), update);
-      } catch (e) {
-      }
+      }));
+      updateDoc(doc(db, 'sharedTrips', activeTrip.id), update).catch(() => {});
 
-      return { success: true };
+      return { success: true, pending: !saved };
     } catch (error) {
       console.error('Error extending Safe Trip:', error);
       return { success: false, error: 'Failed to add time' };
@@ -652,7 +673,7 @@ export function useSafety(): UseSafetyReturn {
         ...(location ? { location } : {}),
       };
 
-      await setDoc(doc(db, 'users', uid, 'alerts', alertId), alertData);
+      await reachedServer(setDoc(doc(db, 'users', uid, 'alerts', alertId), alertData));
 
       return { success: true };
     } catch (error) {
@@ -664,6 +685,7 @@ export function useSafety(): UseSafetyReturn {
   return {
     // Legacy trip functions
     activeTrip,
+    activeTripUnsynced,
     startTrip,
     endTrip,
     updateTripLocation,

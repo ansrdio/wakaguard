@@ -15,8 +15,23 @@
 
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
 import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
-import { getAuth, Auth, connectAuthEmulator } from 'firebase/auth';
-import { getFirestore, Firestore, enableIndexedDbPersistence, connectFirestoreEmulator } from 'firebase/firestore';
+import { Capacitor } from '@capacitor/core';
+import {
+  getAuth,
+  initializeAuth,
+  indexedDBLocalPersistence,
+  browserLocalPersistence,
+  Auth,
+  connectAuthEmulator,
+} from 'firebase/auth';
+import {
+  getFirestore,
+  Firestore,
+  enableIndexedDbPersistence,
+  connectFirestoreEmulator,
+  disableNetwork,
+  enableNetwork,
+} from 'firebase/firestore';
 import { getStorage, FirebaseStorage, connectStorageEmulator } from 'firebase/storage';
 
 /**
@@ -84,7 +99,13 @@ if (typeof window !== 'undefined') {
     }
   }
 
-  auth = getAuth(app);
+  // Inside the phone app the page is served from a local address. getAuth()
+  // also loads Google's sign-in popup helper, which never finishes loading
+  // there on iOS and leaves sign-in hanging. The app only uses email and
+  // guest sign-in, so start Auth without it.
+  auth = isFirstInit && Capacitor.isNativePlatform()
+    ? initializeAuth(app, { persistence: [indexedDBLocalPersistence, browserLocalPersistence] })
+    : getAuth(app);
   db = getFirestore(app);
   storage = getStorage(app);
 
@@ -94,6 +115,29 @@ if (typeof window !== 'undefined') {
     connectFirestoreEmulator(db, EMULATOR_HOST, 8080);
     connectStorageEmulator(storage, EMULATOR_HOST, 9199);
     console.info('Using the local Firebase emulators');
+  }
+
+  // A phone pauses the page's connections while the app is in the background,
+  // and the live data stream does not always recover afterwards: the screen then
+  // keeps showing what it knew before. Restart the connection when the app
+  // comes back. Queued writes are kept and sent as usual.
+  if (isFirstInit && Capacitor.isNativePlatform()) {
+    let reconnecting = false;
+    const reconnect = async () => {
+      if (reconnecting || document.visibilityState !== 'visible') return;
+      reconnecting = true;
+      try {
+        await disableNetwork(db);
+        await enableNetwork(db);
+      } catch (err) {
+        console.warn('Could not restart the data connection:', err);
+      } finally {
+        reconnecting = false;
+      }
+    };
+    document.addEventListener('visibilitychange', reconnect);
+    // Sent by the native shell when the app returns to the foreground
+    document.addEventListener('resume', reconnect);
   }
 
   // Enable IndexedDB persistence for offline support
