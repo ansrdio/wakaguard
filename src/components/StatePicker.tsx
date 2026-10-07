@@ -1,7 +1,7 @@
 'use client';
 
 import { PILOT_STATES } from '@/lib/nigerianStates';
-import { MapPin, Search, X, Info } from 'lucide-react';
+import { MapPin, Search, X } from 'lucide-react';
 import { useState } from 'react';
 
 interface StatePickerProps {
@@ -18,12 +18,12 @@ export function StatePicker({ onStateSelect, onCancel }: StatePickerProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[80vh] flex flex-col">
+      <div className="bg-white rounded-3xl shadow-xl w-full max-w-md max-h-[80vh] flex flex-col overflow-hidden">
         {/* Header */}
         <div className="border-b border-gray-200 p-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <MapPin className="w-5 h-5 text-blue-600" />
-            <h2 className="text-xl font-bold text-gray-900">Select Your State</h2>
+            <MapPin className="w-5 h-5 text-brand-600" aria-hidden="true" />
+            <h2 className="text-xl font-bold text-gray-900">Choose your state</h2>
           </div>
           {onCancel && (
             <button
@@ -43,20 +43,9 @@ export function StatePicker({ onStateSelect, onCancel }: StatePickerProps) {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search states..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Search states"
+              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
             />
-          </div>
-        </div>
-
-        {/* Pilot Notice */}
-        <div className="px-4 pt-4 pb-2">
-          <div className="flex items-start gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <Info className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-xs font-medium text-blue-900">Pilot States</p>
-              <p className="text-xs text-blue-700">More states coming soon!</p>
-            </div>
           </div>
         </div>
 
@@ -68,9 +57,9 @@ export function StatePicker({ onStateSelect, onCancel }: StatePickerProps) {
                 <button
                   key={state}
                   onClick={() => onStateSelect(state)}
-                  className="px-4 py-3 text-left border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-colors group"
+                  className="px-4 py-3 text-left border border-gray-200 rounded-xl hover:bg-brand-50 hover:border-brand-300 transition-colors group"
                 >
-                  <span className="font-medium text-gray-900 group-hover:text-blue-600">
+                  <span className="font-medium text-gray-900 group-hover:text-brand-700">
                     {state}
                   </span>
                 </button>
@@ -91,10 +80,7 @@ export function StatePicker({ onStateSelect, onCancel }: StatePickerProps) {
         {/* Footer */}
         <div className="border-t border-gray-200 p-4">
           <p className="text-center text-xs text-gray-500">
-            Select your state to view road reports
-          </p>
-          <p className="text-center text-xs text-gray-400 mt-1">
-            {PILOT_STATES.length} states currently available
+            Used to show reports near you. You can change it later.
           </p>
         </div>
       </div>

@@ -44,7 +44,8 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
 
 
   const handleTutorialComplete = () => {
-    setStep('notifications');
+    // Notifications only exist in the phone app, so a browser goes straight to sign-in
+    setStep(isNative ? 'notifications' : 'auth');
   };
 
   const requestNotificationPermission = async () => {
@@ -137,88 +138,52 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   // Notification permission step
   if (step === 'notifications') {
     return (
-      <div className="fixed inset-0 z-[100] bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 flex items-center justify-center p-4">
-        <div className="w-full max-w-md text-center">
-          {/* Icon */}
-          <div className="w-24 h-24 bg-white rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl">
-            <Bell className="w-12 h-12 text-blue-600" />
+      <div className="fixed inset-0 z-[100] bg-white dark:bg-slate-900 flex flex-col overflow-y-auto">
+        <div className="flex-1 flex flex-col items-center justify-center px-6 text-center w-full max-w-md mx-auto">
+          <div className="w-24 h-24 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center mb-8">
+            <Bell className="w-11 h-11" aria-hidden="true" />
           </div>
 
-          {/* Title */}
-          <h1 className="text-2xl font-bold text-white mb-3">Enable Notifications</h1>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-3">
+            {isNative ? 'Allow notifications' : 'Notifications'}
+          </h1>
 
-          {/* Description */}
           {isNative ? (
-            <>
-              <p className="text-base text-white/80 leading-relaxed mb-8">
-                Get real-time alerts about road hazards, checkpoints, and safety updates near you. Stay informed and stay safe!
-              </p>
-
-              {/* Benefits */}
-              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 mb-8">
-                <ul className="space-y-3 text-left">
-                  <li className="flex items-center gap-3 text-white/90 text-sm">
-                    <span className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
-                      ✓
-                    </span>
-                    Hazard alerts on your route
-                  </li>
-                  <li className="flex items-center gap-3 text-white/90 text-sm">
-                    <span className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
-                      ✓
-                    </span>
-                    Checkpoint notifications nearby
-                  </li>
-                  <li className="flex items-center gap-3 text-white/90 text-sm">
-                    <span className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
-                      ✓
-                    </span>
-                    Safety timer reminders
-                  </li>
-                </ul>
-              </div>
-            </>
+            <p className="text-base text-slate-600 dark:text-slate-300 leading-relaxed">
+              While a trip is running, WakaGuard keeps a notification on your phone, so you remember to end the
+              trip when you arrive.
+            </p>
           ) : (
-            <p className="text-base text-white/80 leading-relaxed mb-8">
-              Push notifications are available in the native app.
+            <p className="text-base text-slate-600 dark:text-slate-300 leading-relaxed">
+              Notifications are part of the phone app.
             </p>
           )}
+        </div>
 
-          {/* Enable button */}
+        <div className="px-6 pt-6 w-full max-w-md mx-auto" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 2rem)' }}>
           {isNative ? (
-            <button
-              onClick={requestNotificationPermission}
-              disabled={requestingPermission}
-              className="w-full flex items-center justify-center gap-2 px-8 py-4 bg-white text-blue-600 rounded-xl font-semibold hover:bg-white/90 transition-all shadow-lg disabled:opacity-50"
-            >
-              {requestingPermission ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  Requesting...
-                </>
-              ) : (
-                <>
-                  <Bell className="w-5 h-5" />
-                  Enable Notifications
-                </>
-              )}
-            </button>
+            <>
+              <button
+                onClick={requestNotificationPermission}
+                disabled={requestingPermission}
+                className="w-full py-4 bg-brand-600 text-white rounded-2xl font-bold text-lg hover:bg-brand-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {requestingPermission ? <Loader2 className="w-5 h-5 animate-spin" /> : <Bell className="w-5 h-5" aria-hidden="true" />}
+                Allow notifications
+              </button>
+              <button
+                onClick={() => setStep('auth')}
+                className="w-full mt-2 py-3 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white"
+              >
+                Not now
+              </button>
+            </>
           ) : (
             <button
               onClick={() => setStep('auth')}
-              className="w-full flex items-center justify-center gap-2 px-8 py-4 bg-white text-blue-600 rounded-xl font-semibold hover:bg-white/90 transition-all shadow-lg"
+              className="w-full py-4 bg-brand-600 text-white rounded-2xl font-bold text-lg hover:bg-brand-700 transition-colors"
             >
               Continue
-            </button>
-          )}
-
-          {/* Skip option */}
-          {isNative && (
-            <button
-              onClick={() => setStep('auth')}
-              className="mt-4 text-white/60 hover:text-white text-sm transition-colors"
-            >
-              Skip for now
             </button>
           )}
         </div>
@@ -228,10 +193,10 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
 
   // Auth step
   return (
-    <div className="fixed inset-0 z-[100] bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 flex items-center justify-center p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-[100] bg-slate-50 dark:bg-slate-900 flex items-center justify-center p-4 overflow-y-auto">
       <div className="w-full max-w-md my-auto py-8">
         {/* Logo */}
-        <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl">
+        <div className="w-20 h-20 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-3xl flex items-center justify-center mx-auto mb-6">
           <Image 
             src="/icons/icon-96x96.png" 
             alt="WakaGuard" 
@@ -242,15 +207,19 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
         </div>
 
         {/* Title */}
-        <h1 className="text-2xl font-bold text-white text-center mb-2">
-          {authMode === 'signin' ? 'Welcome Back!' : authMode === 'signup' ? 'Create Account' : 'Reset Password'}
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white text-center mb-2">
+          {authMode === 'signin' ? 'Welcome back' : authMode === 'signup' ? 'Create your account' : 'Reset your password'}
         </h1>
-        <p className="text-white/70 text-center mb-6">
-          {authMode === 'signin' ? 'Sign in to sync your reports' : authMode === 'signup' ? 'Join the WakaGuard community' : 'Enter your email to reset password'}
+        <p className="text-slate-600 dark:text-slate-300 text-center mb-6">
+          {authMode === 'signin'
+            ? 'Sign in to start a safe trip'
+            : authMode === 'signup'
+              ? 'You need an account so your contacts can be told about your trips'
+              : 'Enter your email and we will send you a reset link'}
         </p>
 
         {/* Auth Card */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl p-6">
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-3xl shadow-sm p-6">
           {/* Error/Success Messages */}
           {authError && (
             <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg">
@@ -277,7 +246,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
                   required
-                  className="w-full pl-10 pr-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  className="w-full pl-10 pr-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                 />
               </div>
             </div>
@@ -295,7 +264,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                     placeholder="••••••••"
                     required
                     minLength={6}
-                    className="w-full px-4 py-3 pr-12 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                    className="w-full px-4 py-3 pr-12 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                   />
                   <button
                     type="button"
@@ -315,10 +284,10 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             <button
               type="submit"
               disabled={authLoading}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-medium disabled:opacity-50"
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-brand-600 text-white rounded-2xl hover:bg-brand-700 transition-colors font-semibold disabled:opacity-50"
             >
               {authLoading && <Loader2 className="w-5 h-5 animate-spin" />}
-              {authMode === 'signin' ? 'Sign In' : authMode === 'signup' ? 'Create Account' : 'Send Reset Email'}
+              {authMode === 'signin' ? 'Sign in' : authMode === 'signup' ? 'Create account' : 'Send reset email'}
             </button>
           </form>
 
@@ -328,7 +297,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
               <>
                 <button
                   onClick={() => { setAuthMode('reset'); setAuthError(null); }}
-                  className="text-sm text-blue-600 hover:underline"
+                  className="text-sm text-brand-700 dark:text-brand-300 hover:underline"
                 >
                   Forgot password?
                 </button>
@@ -336,7 +305,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                   Don&apos;t have an account?{' '}
                   <button
                     onClick={() => { setAuthMode('signup'); setAuthError(null); }}
-                    className="text-blue-600 font-medium hover:underline"
+                    className="text-brand-700 dark:text-brand-300 font-medium hover:underline"
                   >
                     Sign up
                   </button>
@@ -348,7 +317,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                 Already have an account?{' '}
                 <button
                   onClick={() => { setAuthMode('signin'); setAuthError(null); }}
-                  className="text-blue-600 font-medium hover:underline"
+                  className="text-brand-700 dark:text-brand-300 font-medium hover:underline"
                 >
                   Sign in
                 </button>
@@ -357,7 +326,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             {authMode === 'reset' && (
               <button
                 onClick={() => { setAuthMode('signin'); setAuthError(null); }}
-                className="text-sm text-blue-600 hover:underline"
+                className="text-sm text-brand-700 dark:text-brand-300 hover:underline"
               >
                 Back to sign in
               </button>
@@ -370,12 +339,12 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
           <button
             onClick={handleContinueAsGuest}
             disabled={authLoading}
-            className="text-white/70 hover:text-white text-sm underline transition-colors disabled:opacity-50"
+            className="text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white text-sm underline transition-colors disabled:opacity-50"
           >
-            Continue as Guest (view only)
+            Look around without an account
           </button>
-          <p className="mt-2 text-white/50 text-xs">
-            Sign in to report hazards, vote, and access safety features
+          <p className="mt-2 text-slate-500 dark:text-slate-400 text-xs">
+            You need an account to start a trip or alert your contacts
           </p>
         </div>
       </div>

@@ -129,19 +129,19 @@ export function UsernameSetup({ uid, onComplete }: UsernameSetupProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[100] bg-slate-50 dark:bg-slate-900 flex items-center justify-center p-4 overflow-y-auto">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="w-20 h-20 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
-            <AtSign className="w-10 h-10 text-white" />
+          <div className="w-24 h-24 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center mx-auto mb-6">
+            <AtSign className="w-11 h-11" aria-hidden="true" />
           </div>
-          <h1 className="text-2xl font-bold text-white mb-2">Choose Your Username</h1>
-          <p className="text-blue-100">
-            This is how other users will identify you in the community
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Choose a username</h1>
+          <p className="text-slate-600 dark:text-slate-300">
+            It appears on any road reports you post. Your contacts see the name you give when you start a trip.
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-white rounded-2xl p-6 shadow-xl">
+        <form onSubmit={handleSubmit} className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
           <div className="mb-6">
             <label className="block text-sm font-medium text-slate-700 mb-2">
               Username
@@ -158,7 +158,7 @@ export function UsernameSetup({ uid, onComplete }: UsernameSetupProps) {
                     ? 'border-red-300 focus:ring-red-500' 
                     : isAvailable 
                       ? 'border-green-300 focus:ring-green-500' 
-                      : 'border-slate-300 focus:ring-blue-500'
+                      : 'border-slate-300 focus:ring-brand-500'
                 }`}
                 maxLength={20}
                 autoFocus
@@ -185,7 +185,7 @@ export function UsernameSetup({ uid, onComplete }: UsernameSetupProps) {
           <button
             type="submit"
             disabled={!isAvailable || saving || !!error}
-            className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2"
+            className="w-full py-3.5 bg-brand-600 hover:bg-brand-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-semibold rounded-2xl transition-colors flex items-center justify-center gap-2"
           >
             {saving ? (
               <>

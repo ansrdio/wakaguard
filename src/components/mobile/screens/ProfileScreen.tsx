@@ -191,7 +191,7 @@ export function ProfileScreen() {
           <h3 className="font-semibold text-slate-900">About WakaGuard</h3>
         </div>
         <p className="text-sm text-slate-600">
-          Community-driven road hazard reporting for safer travel across Nigeria. Help keep roads safe by reporting hazards you encounter.
+          Start a trip and say when you should arrive. If you don&apos;t, the people you chose are texted your last location. Reports from other travellers show what is happening near you.
         </p>
         <div className="flex items-center justify-between pt-2 border-t border-slate-100">
           <span className="text-xs text-slate-500">Version 1.0.0</span>

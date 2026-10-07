@@ -92,79 +92,51 @@ export function OnboardingGate({ onStateSelected }: OnboardingGateProps) {
   // Detecting Location
   if (viewState === 'detecting') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50 p-4">
+      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-slate-900 p-6">
         <div className="text-center max-w-md">
-          <div className="relative inline-block mb-6">
-            <div className="w-24 h-24 bg-blue-100 rounded-full animate-ping absolute"></div>
-            <div className="w-24 h-24 bg-blue-500 rounded-full flex items-center justify-center relative">
-              <Navigation className="w-12 h-12 text-white animate-pulse" />
+          <div className="relative inline-block mb-8">
+            <div className="w-24 h-24 bg-brand-100 rounded-full animate-ping absolute"></div>
+            <div className="w-24 h-24 bg-brand-600 rounded-full flex items-center justify-center relative">
+              <Navigation className="w-11 h-11 text-white" aria-hidden="true" />
             </div>
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-3">Detecting Your Location</h2>
-          <p className="text-gray-600 mb-4">
-            Please allow location access when prompted...
-          </p>
-          <div className="flex items-center justify-center gap-2">
-            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
-            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-          </div>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-3">Finding your state</h2>
+          <p className="text-slate-600 dark:text-slate-300">Allow location access if your phone asks.</p>
         </div>
       </div>
     );
   }
 
-  // Initial Welcome Screen
+  // First question after signing in
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50 p-4">
-      <div className="max-w-md w-full">
-        <div className="text-center mb-8">
-          <div className="inline-block p-4 bg-blue-500 rounded-full mb-4">
-            <MapPin className="w-12 h-12 text-white" />
-          </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-3">Welcome to WakaGuard</h1>
-          <p className="text-gray-600 text-lg">
-            Track road conditions in your area
-          </p>
+    <div className="min-h-screen flex flex-col bg-white dark:bg-slate-900">
+      <div className="flex-1 flex flex-col items-center justify-center px-6 text-center w-full max-w-md mx-auto">
+        <div className="w-24 h-24 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center mb-8">
+          <MapPin className="w-11 h-11" aria-hidden="true" />
         </div>
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-3">Which state are you in?</h1>
+        <p className="text-base text-slate-600 dark:text-slate-300 leading-relaxed">
+          We use it to show what other travellers have reported near you. You can change it at any time.
+        </p>
+      </div>
 
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-4">
-          <p className="text-center text-gray-700 mb-6">
-            To get started, we need to know which Nigerian state you want to monitor
-          </p>
-
-          <div className="space-y-3">
-            {/* Use Location Button */}
-            <button
-              onClick={handleUseLocation}
-              disabled={detecting}
-              className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-            >
-              <Navigation className="w-5 h-5" />
-              <div className="text-left">
-                <div className="font-semibold">Use My Location</div>
-                <div className="text-xs opacity-90">Automatically detect your state</div>
-              </div>
-            </button>
-
-            {/* Pick State Button */}
-            <button
-              onClick={handlePickState}
-              disabled={detecting}
-              className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-white text-gray-700 border-2 border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-            >
-              <MapPin className="w-5 h-5" />
-              <div className="text-left">
-                <div className="font-semibold">Pick My State</div>
-                <div className="text-xs opacity-70">Choose from list manually</div>
-              </div>
-            </button>
-          </div>
-        </div>
-
-        <div className="text-center text-sm text-gray-500">
-          <p>Your selection will be saved for future visits</p>
-        </div>
+      <div className="px-6 pt-6 w-full max-w-md mx-auto space-y-3" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 2rem)' }}>
+        <button
+          onClick={handleUseLocation}
+          disabled={detecting}
+          className="w-full py-4 bg-brand-600 text-white rounded-2xl font-bold text-lg hover:bg-brand-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+        >
+          <Navigation className="w-5 h-5" aria-hidden="true" />
+          Use my location
+        </button>
+        <button
+          onClick={handlePickState}
+          disabled={detecting}
+          className="w-full py-4 rounded-2xl font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 dark:bg-slate-800 dark:text-blue-300 dark:hover:bg-slate-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+        >
+          <MapPin className="w-5 h-5" aria-hidden="true" />
+          Choose a state
+        </button>
       </div>
     </div>
   );
