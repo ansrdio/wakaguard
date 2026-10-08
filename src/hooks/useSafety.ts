@@ -25,6 +25,7 @@ import { buildShareLink } from '@/lib/safetyMessaging';
 import { tripExpiryMs } from '@/lib/tripPlanning';
 import { reachedServer } from '@/lib/firestoreWrites';
 import { settleWithin } from '@/lib/timeLimit';
+import { getDeviceId } from '@/lib/deviceId';
 import { Trip, TripStatus, SafetyTimer, AlertType } from '@/lib/types';
 
 /**
@@ -81,6 +82,8 @@ interface UseSafetyReturn {
   endSafeTrip: () => Promise<{ success: boolean; pending?: boolean; error?: string }>;
   /** Push back the expected arrival time (also clears an overdue state on the server) */
   extendSafeTrip: (minutes: number) => Promise<{ success: boolean; pending?: boolean; error?: string }>;
+  /** Send the trip's positions from this device instead of the one it was started on */
+  sendTripLocationFromHere: () => Promise<{ success: boolean; pending?: boolean; error?: string }>;
   /** Acknowledge the Safe Trip timer (check-in without ending trip) */
   acknowledgeSafeTripTimer: () => Promise<{ success: boolean; error?: string }>;
   
@@ -493,6 +496,8 @@ export function useSafety(): UseSafetyReturn {
         shouldNotifyContacts: true,
         // Private to the owner; never copied to the public sharedTrips doc
         locationKey: generateSecretKey(),
+        // Signed in on two phones, only this one sends the trip's positions
+        trackingDeviceId: getDeviceId(),
         // Planned versus actual, for learning how long trips really take
         startLocation: lastLocation ? { lat: lastLocation.lat, lng: lastLocation.lng } : null,
         extensionCount: 0,
@@ -588,6 +593,21 @@ export function useSafety(): UseSafetyReturn {
     } catch (error) {
       console.error('Error extending Safe Trip:', error);
       return { success: false, error: 'Failed to add time' };
+    }
+  }, [uid, activeTrip]);
+
+  // Send the trip's positions from this device instead of the one it was started on
+  const sendTripLocationFromHere = useCallback(async () => {
+    if (!uid || !activeTrip) return { success: false, error: 'No active trip' };
+
+    try {
+      const saved = await reachedServer(
+        updateDoc(doc(db, 'users', uid, 'trips', activeTrip.id), { trackingDeviceId: getDeviceId() })
+      );
+      return { success: true, pending: !saved };
+    } catch (error) {
+      console.error('Error moving trip location to this device:', error);
+      return { success: false, error: 'Could not switch to this phone' };
     }
   }, [uid, activeTrip]);
 
@@ -717,6 +737,7 @@ export function useSafety(): UseSafetyReturn {
     startSafeTrip,
     endSafeTrip,
     extendSafeTrip,
+    sendTripLocationFromHere,
     acknowledgeSafeTripTimer,
     // Quick actions
     sendQuickCheckIn,

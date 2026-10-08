@@ -11,9 +11,13 @@ interface ActiveTripCardProps {
   watcherNames: string[];
   /** The trip has changes the server has not received, so nobody is watching it yet */
   unsynced: boolean;
+  /** Another phone signed in to this account is the one sending this trip's location */
+  locationFromElsewhere: boolean;
   processing: boolean;
   onArrive: () => void;
   onExtend: (minutes: number) => void;
+  /** Send the trip's location from this phone instead of the other one */
+  onSendFromHere: () => void;
   /** Open the trip on a map */
   onViewMap: () => void;
   onShare: () => void;
@@ -68,9 +72,11 @@ export function ActiveTripCard({
   trip,
   watcherNames,
   unsynced,
+  locationFromElsewhere,
   processing,
   onArrive,
   onExtend,
+  onSendFromHere,
   onViewMap,
   onShare,
   onTextOkay,
@@ -170,6 +176,22 @@ export function ActiveTripCard({
           />
           <span>{location.text}</span>
         </div>
+
+        {locationFromElsewhere && (
+          <div className="px-5 pb-4">
+            <div className="bg-amber-50 border border-amber-300 rounded-xl p-3 text-sm text-amber-900">
+              This trip was started on another phone, and its location is coming from that phone, not this one.
+              <button
+                type="button"
+                onClick={onSendFromHere}
+                disabled={processing}
+                className="block mt-2 font-semibold underline disabled:opacity-50"
+              >
+                Send it from this phone instead
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="px-5 pb-5">
           <button

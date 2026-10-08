@@ -352,6 +352,8 @@ export interface Trip {
   lastContactNotificationAt?: Timestamp | null;
   /** Secret that lets the native app post location for this trip without an auth token */
   locationKey?: string;
+  /** The install that sends this trip's positions (see lib/deviceId). Missing on older trips. */
+  trackingDeviceId?: string | null;
 
   // Kept for learning how long trips really take (private to the owner)
   /** Where the trip started; filled by the first location if there was no fix at the start */

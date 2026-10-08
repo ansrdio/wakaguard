@@ -14,6 +14,7 @@ import { reachedServer } from '@/lib/firestoreWrites';
 import { StartTripForm, StartTripRequest } from '@/components/mobile/trip/StartTripForm';
 import { ActiveTripCard } from '@/components/mobile/trip/ActiveTripCard';
 import { TripMapScreen } from '@/components/mobile/trip/TripMapScreen';
+import { getDeviceId, sendsTripLocation } from '@/lib/deviceId';
 import { 
   isValidE164, 
   formatToE164,
@@ -116,6 +117,7 @@ export function SafetyScreen() {
     startSafeTrip,
     endSafeTrip,
     extendSafeTrip,
+    sendTripLocationFromHere,
     triggerSOS,
     logCheckpointStop,
     loading,
@@ -400,6 +402,20 @@ export function SafetyScreen() {
       showToast(`Added ${minutes} minutes`, 'success');
     } else {
       showToast(result.error || 'Failed to add time', 'error');
+    }
+  };
+
+  const handleSendFromHere = async () => {
+    if (!uid || isAnonymous) return;
+    setProcessing(true);
+    const result = await sendTripLocationFromHere();
+    setProcessing(false);
+    if (result.success && result.pending) {
+      showToast('Saved on this phone. It takes over once you are back online.', 'error');
+    } else if (result.success) {
+      showToast("This phone is now sending the trip's location", 'success');
+    } else {
+      showToast(result.error || 'Could not switch to this phone', 'error');
     }
   };
 
@@ -701,9 +717,11 @@ export function SafetyScreen() {
           trip={activeTrip}
           watcherNames={watcherNames}
           unsynced={activeTripUnsynced}
+          locationFromElsewhere={!sendsTripLocation(activeTrip.trackingDeviceId, getDeviceId())}
           processing={processing}
           onArrive={handleEndSafeTrip}
           onExtend={handleExtendTrip}
+          onSendFromHere={handleSendFromHere}
           onViewMap={openTripMap}
           onShare={handleShareLink}
           onTextOkay={handleCheckinSms}

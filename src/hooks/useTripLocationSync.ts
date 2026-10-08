@@ -23,6 +23,7 @@ import { db, EMULATOR_HOST, usingEmulators } from '@/lib/firebase';
 import { useAuthedUser } from '@/hooks/useAuthedUser';
 import { calculateDistance } from '@/lib/geo';
 import { HEARTBEAT_MS, LocationFix, SentFix, shouldSendFix, tripLocationEndpoint } from '@/lib/tripLocation';
+import { getDeviceId, sendsTripLocation } from '@/lib/deviceId';
 import { Trip } from '@/lib/types';
 
 const BackgroundGeolocation = registerPlugin<BackgroundGeolocationPlugin>('BackgroundGeolocation');
@@ -70,6 +71,8 @@ export function useTripLocationSync(
   const { uid } = useAuthedUser();
   const tripId = activeTrip?.id ?? null;
   const locationKey = activeTrip?.locationKey ?? null;
+  // Signed in on two phones, only the one the trip belongs to sends its positions
+  const sendsHere = !!activeTrip && sendsTripLocation(activeTrip.trackingDeviceId, getDeviceId());
   const onProblemRef = useRef(onProblem);
   // True until the trip has a start point (there may have been no GPS fix when it began)
   const needsStartRef = useRef(false);
@@ -79,7 +82,7 @@ export function useTripLocationSync(
   });
 
   useEffect(() => {
-    if (!uid || !tripId) return;
+    if (!uid || !tripId || !sendsHere) return;
 
     const isNative = Capacitor.isNativePlatform();
     let lastSent: SentFix | null = null;
@@ -181,5 +184,5 @@ export function useTripLocationSync(
       navigator.geolocation.clearWatch(watchId);
       clearInterval(heartbeat);
     };
-  }, [uid, tripId, locationKey]);
+  }, [uid, tripId, locationKey, sendsHere]);
 }
