@@ -196,7 +196,7 @@ export function ProfileScreen() {
         </p>
         <p className="text-xs text-slate-500">WakaGuard is a product of {COMPANY_NAME}.</p>
         <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-          <span className="text-xs text-slate-500">Version 1.0.0</span>
+          <span className="text-xs text-slate-500">Version 1.2.0</span>
           <Link href="/privacy" className="text-xs text-blue-600 hover:underline">Privacy Policy</Link>
         </div>
       </div>
