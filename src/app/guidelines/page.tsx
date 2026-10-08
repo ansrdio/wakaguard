@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { BookOpen, ArrowLeft, AlertTriangle, CheckCircle } from 'lucide-react';
 import { COMPANY_ADDRESS, COMPANY_NAME, CONTACT_EMAIL } from '@/lib/company';
+import { ALERT_GRACE_MINUTES } from '@/lib/tripPlanning';
 
 export default function GuidelinesPage() {
   return (
@@ -22,18 +23,36 @@ export default function GuidelinesPage() {
           </div>
 
           <p className="text-gray-600 mb-8">
-            Last Updated: December 31, 2025
+            Last Updated: October 8, 2026
           </p>
 
           <section className="mb-8">
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">Our Mission</h2>
             <p className="text-gray-700 leading-relaxed mb-4">
-              WakaGuard is a community-driven platform for reporting and sharing road conditions, hazards, 
-              and traffic issues. Our goal is to help drivers stay informed and safe on the road.
+              WakaGuard is a travel-safety app. You start a trip before you set off, and if you have not
+              checked in by your arrival time, the contacts you chose are texted your last known location.
+              It also has a community map where travellers report road conditions, hazards and traffic.
             </p>
             <p className="text-gray-700 leading-relaxed mb-4">
-              To maintain a helpful and respectful community, we ask all users to follow these guidelines.
+              To keep WakaGuard dependable for travellers and their contacts, and helpful and respectful as a
+              community, we ask all users to follow these guidelines.
             </p>
+          </section>
+
+          <section className="mb-8">
+            <h2 className="text-2xl font-semibold text-gray-900 mb-4">Using Safe Trip and SOS</h2>
+            <p className="text-gray-700 leading-relaxed mb-4">
+              Safe Trip sends text messages to real people on your behalf. Please use it with care:
+            </p>
+            <ul className="list-disc list-inside text-gray-700 mb-4 space-y-2">
+              <li><strong>Ask first:</strong> Add someone as a trusted contact only if they have agreed, and remove them if they ask</li>
+              <li><strong>Use your own name:</strong> Enter the name your contacts know you by, so they know who a text is about</li>
+              <li><strong>Share your own trips only:</strong> A trip shares the location of the phone it was started on. Do not start a trip on someone else&apos;s phone to follow them</li>
+              <li><strong>Keep the trip link among people you trust:</strong> Anyone who has the link can see where your phone is until the trip ends</li>
+              <li><strong>End the trip when you arrive:</strong> If you are running late, add time. Otherwise your contacts are texted {ALERT_GRACE_MINUTES} minutes after your arrival time</li>
+              <li><strong>Use SOS only when you are in danger:</strong> To see how alerts work, start a test trip instead. Its texts say they are a test, and it is still worth telling your contacts beforehand</li>
+              <li><strong>Safety messages only:</strong> Do not use WakaGuard&apos;s texts for jokes, advertising or anything other than safety</li>
+            </ul>
           </section>
 
           <section className="mb-8">
@@ -42,9 +61,10 @@ export default function GuidelinesPage() {
               What to Report
             </h2>
             <p className="text-gray-700 leading-relaxed mb-4">
-              WakaGuard is designed for reporting road-related issues. Appropriate reports include:
+              The Nearby map is for reporting road-related issues. Appropriate reports include:
             </p>
             <ul className="list-disc list-inside text-gray-700 mb-4 space-y-2">
+              <li><strong>Checkpoints:</strong> Where a checkpoint is and how long the wait is</li>
               <li><strong>Potholes:</strong> Damaged or dangerous road surfaces</li>
               <li><strong>Traffic:</strong> Congestion, slow-moving traffic, or gridlock</li>
               <li><strong>Accidents:</strong> Collisions affecting traffic flow</li>
@@ -74,7 +94,7 @@ export default function GuidelinesPage() {
               <ul className="list-disc list-inside text-red-800 space-y-1">
                 <li>Names, addresses, or phone numbers</li>
                 <li>License plate numbers</li>
-                <li>Photos of people's faces</li>
+                <li>Photos of people&apos;s faces</li>
                 <li>Accusations against specific individuals or businesses</li>
                 <li>Personally identifiable information (PII)</li>
               </ul>
@@ -131,7 +151,7 @@ export default function GuidelinesPage() {
 
             <h3 className="text-xl font-semibold text-gray-800 mb-3">Commenting and Voting</h3>
             <ul className="list-disc list-inside text-gray-700 mb-4 space-y-2">
-              <li><strong>Upvote:</strong> Confirm issues you've also encountered</li>
+              <li><strong>Upvote:</strong> Confirm issues you&apos;ve also encountered</li>
               <li><strong>Downvote:</strong> Mark resolved or inaccurate reports</li>
               <li><strong>Comment:</strong> Add helpful updates or additional information</li>
               <li><strong>Be respectful:</strong> Treat others with courtesy</li>
@@ -145,7 +165,7 @@ export default function GuidelinesPage() {
               If you see content that violates these guidelines, please flag it for review:
             </p>
             <ol className="list-decimal list-inside text-gray-700 mb-4 space-y-2">
-              <li>Click the "Flag" button on the report or comment</li>
+              <li>Tap &quot;Flag Report&quot; on the report</li>
               <li>Select the reason for flagging</li>
               <li>Submit your flag for moderator review</li>
             </ol>
@@ -180,6 +200,7 @@ export default function GuidelinesPage() {
               <li><strong>Content removal:</strong> Reports or comments may be deleted</li>
               <li><strong>Account warnings:</strong> First-time violations may receive a warning</li>
               <li><strong>Account restrictions:</strong> Repeated violations may result in restrictions</li>
+              <li><strong>Texting switched off:</strong> Accounts that misuse safety texts or SOS may be stopped from sending them</li>
               <li><strong>Permanent ban:</strong> Severe or repeated violations may result in permanent account termination</li>
             </ul>
           </section>
@@ -190,10 +211,10 @@ export default function GuidelinesPage() {
               <strong>Important safety reminders:</strong>
             </p>
             <ul className="list-disc list-inside text-gray-700 mb-4 space-y-2">
-              <li>Never use the app while driving</li>
-              <li>Don't include personal information in reports</li>
+              <li>Start your trip before you set off, and never use the app while driving</li>
+              <li>Don&apos;t include personal information in reports</li>
               <li>Be cautious when navigating to reported locations</li>
-              <li>Report emergencies to local authorities, not just on WakaGuard</li>
+              <li>WakaGuard is not an emergency service and does not replace calling 112. In an emergency, call 112 first</li>
             </ul>
           </section>
 
