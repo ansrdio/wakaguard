@@ -24,6 +24,7 @@ import { generateShareToken, generateSecretKey, calculateTripExpiry, calculateTi
 import { buildShareLink } from '@/lib/safetyMessaging';
 import { tripExpiryMs } from '@/lib/tripPlanning';
 import { reachedServer } from '@/lib/firestoreWrites';
+import { settleWithin } from '@/lib/timeLimit';
 import { Trip, TripStatus, SafetyTimer, AlertType } from '@/lib/types';
 
 /**
@@ -100,6 +101,8 @@ const EMERGENCY_NUMBER = '112';
 const UNSYNCED_AFTER_MS = 10000;
 /** Longest the SOS waits for the alert to be saved before opening the dialer */
 const SOS_HEAD_START_MS = 700;
+/** Longest starting a trip waits for a first position; the trip starts without one after this */
+const START_LOCATION_WAIT_MS = 7000;
 
 /**
  * Hook for managing safety features in WakaGuard.
@@ -447,21 +450,27 @@ export function useSafety(): UseSafetyReturn {
       // A recent fix is fine and the wait is short: location tracking takes over
       // once the trip exists, so starting must not hang on a slow GPS.
       let lastLocation: { lat: number; lng: number; accuracy: number; updatedAt: Timestamp } | null = null;
-      try {
-        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+      // The browser's own timeout is not always honoured (a phone can leave the
+      // request unanswered), so the wait has its own limit as well.
+      const position = await settleWithin(
+        new Promise<GeolocationPosition>((resolve, reject) => {
           navigator.geolocation.getCurrentPosition(resolve, reject, {
             enableHighAccuracy: true,
             maximumAge: 60000,
             timeout: 5000,
           });
-        });
+        }),
+        START_LOCATION_WAIT_MS,
+        null
+      );
+      if (position) {
         lastLocation = {
           lat: position.coords.latitude,
           lng: position.coords.longitude,
           accuracy: position.coords.accuracy,
           updatedAt: Timestamp.now(),
         };
-      } catch (e) {
+      } else {
         console.warn('Could not get location for Safe Trip');
       }
 

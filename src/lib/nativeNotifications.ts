@@ -12,9 +12,13 @@
 
 import { Capacitor } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
+import { settleWithin } from '@/lib/timeLimit';
 
 /** Starting a trip must not hang on an unanswered prompt */
 const ANSWER_WAIT_MS = 20000;
+
+/** Reading the current setting should be instant; a phone that does not answer is not asked */
+const CHECK_WAIT_MS = 3000;
 
 /**
  * Show the system's notification prompt if the person has never answered it.
@@ -27,7 +31,8 @@ export async function askToShowNotifications(): Promise<boolean> {
   if (!Capacitor.isNativePlatform()) return false;
 
   try {
-    const current = await PushNotifications.checkPermissions();
+    const current = await settleWithin(PushNotifications.checkPermissions(), CHECK_WAIT_MS, null);
+    if (!current) return false;
     if (current.receive !== 'prompt') return current.receive === 'granted';
 
     const answer = await Promise.race([
