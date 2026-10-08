@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { doc, setDoc, getDoc, serverTimestamp, runTransaction } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Loader2, Check, X, AtSign } from 'lucide-react';
@@ -16,6 +16,10 @@ export function UsernameSetup({ uid, onComplete }: UsernameSetupProps) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
+  // What is in the box now. A check for an earlier, shorter name can finish
+  // last, and must not mark the name on screen as available.
+  const latestValue = useRef('');
+  const checkTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Validate username format
   const validateUsername = (value: string): string | null => {
@@ -42,8 +46,9 @@ export function UsernameSetup({ uid, onComplete }: UsernameSetupProps) {
     try {
       const usernameRef = doc(db, 'usernames', value.toLowerCase());
       const usernameSnap = await getDoc(usernameRef);
-      
-      if (usernameSnap.exists()) {
+      if (latestValue.current !== value) return;
+
+      if (usernameSnap.exists() && usernameSnap.data()?.uid !== uid) {
         setIsAvailable(false);
         setError('Username is already taken');
       } else {
@@ -52,10 +57,11 @@ export function UsernameSetup({ uid, onComplete }: UsernameSetupProps) {
       }
     } catch (err) {
       console.error('Error checking username:', err);
+      if (latestValue.current !== value) return;
       setError('Error checking availability');
       setIsAvailable(null);
     } finally {
-      setChecking(false);
+      if (latestValue.current === value) setChecking(false);
     }
   };
 
@@ -64,11 +70,13 @@ export function UsernameSetup({ uid, onComplete }: UsernameSetupProps) {
     const value = e.target.value.trim();
     setUsername(value);
     setIsAvailable(null);
-    
+    setChecking(false);
+    latestValue.current = value;
+    if (checkTimer.current) clearTimeout(checkTimer.current);
+
     if (value.length >= 3) {
-      // Debounce the check
-      const timeoutId = setTimeout(() => checkAvailability(value), 500);
-      return () => clearTimeout(timeoutId);
+      // Wait for a pause in typing, then check only the latest name
+      checkTimer.current = setTimeout(() => checkAvailability(value), 500);
     } else if (value.length > 0) {
       setError('Username must be at least 3 characters');
     } else {
@@ -100,16 +108,19 @@ export function UsernameSetup({ uid, onComplete }: UsernameSetupProps) {
         
         // Check again within transaction
         const usernameSnap = await transaction.get(usernameRef);
-        if (usernameSnap.exists()) {
-          throw new Error('Username was just taken. Please choose another.');
+        if (usernameSnap.exists() && usernameSnap.data()?.uid !== uid) {
+          throw new Error('That username is taken. Please choose another.');
         }
-        
-        // Reserve the username
-        transaction.set(usernameRef, {
-          uid,
-          usernameLower,
-          createdAt: serverTimestamp(),
-        });
+
+        // Reserve the username. It can already be this person's: an earlier
+        // try that was saved but never heard back is run again from the top.
+        if (!usernameSnap.exists()) {
+          transaction.set(usernameRef, {
+            uid,
+            usernameLower,
+            createdAt: serverTimestamp(),
+          });
+        }
         
         // Update user profile
         transaction.update(userRef, {
@@ -161,6 +172,9 @@ export function UsernameSetup({ uid, onComplete }: UsernameSetupProps) {
                       : 'border-slate-300 focus:ring-brand-500'
                 }`}
                 maxLength={20}
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
                 autoFocus
               />
               <div className="absolute right-3 top-1/2 -translate-y-1/2">
