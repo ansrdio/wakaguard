@@ -158,6 +158,9 @@ async function warnTraveller(ref: DocRef, kind: Kind): Promise<void> {
         body: `Check in or add time. Your contacts will be alerted in ${graceMinutes} minute${graceMinutes === 1 ? '' : 's'}.`,
       },
       data: { type: 'overdue_warning', kind, id: ref.id },
+      // A reminder nobody hears is no use: deliver it at once, with a sound
+      android: { priority: 'high', notification: { sound: 'default' } },
+      apns: { headers: { 'apns-priority': '10' }, payload: { aps: { sound: 'default' } } },
     });
   } catch (err) {
     console.warn(`Overdue warning push failed for ${uid}:`, err);

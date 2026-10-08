@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { doc, getDoc, setDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import { Capacitor } from '@capacitor/core';
+import { setPushOptOut } from '@/lib/pushRegistration';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { Geolocation } from '@capacitor/geolocation';
 import { db } from '@/lib/firebase';
@@ -90,6 +91,7 @@ export function usePushNotifications() {
       }
 
       setState(prev => ({ ...prev, permission: 'granted' }));
+      setPushOptOut(false);
 
       await PushNotifications.register();
 
@@ -174,6 +176,8 @@ export function usePushNotifications() {
       }
 
       await PushNotifications.removeAllListeners();
+      // Remembered, so the automatic registration does not put the token back
+      setPushOptOut(true);
 
       setState(prev => ({ ...prev, isSubscribed: false, loading: false }));
       return { success: true };

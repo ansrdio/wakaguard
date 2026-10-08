@@ -17,6 +17,7 @@ import { TripMapScreen } from '@/components/mobile/trip/TripMapScreen';
 import { getDeviceId, sendsTripLocation } from '@/lib/deviceId';
 import { canBeTexted, readContactPhone } from '@/lib/contactPhone';
 import { describeTripAlert } from '@/lib/alertOutcome';
+import { registerForPush } from '@/lib/pushRegistration';
 import { 
   sendCheckinSms,
   sendTripShareSms,
@@ -122,6 +123,12 @@ export function SafetyScreen() {
     logCheckpointStop,
     loading,
   } = useSafety();
+
+  // Someone who allowed notifications earlier is registered again at launch, in
+  // case the phone's token has changed
+  useEffect(() => {
+    if (uid && !isAnonymous) void registerForPush(uid);
+  }, [uid, isAnonymous]);
 
   // Derived from the trip so the share options survive an app restart mid-trip
   const shareUrl = activeTrip ? buildShareLink(activeTrip.id) : null;
@@ -323,7 +330,10 @@ export function SafetyScreen() {
     // First trip only: the "Safe Trip active" notification and the warning that
     // comes before contacts are alerted both need this. Asked before the trip
     // starts so it cannot collide with the location prompt that follows.
-    await askToShowNotifications();
+    const notificationsAllowed = await askToShowNotifications();
+    // Lets the server send "Are you okay?" when the arrival time passes. Not
+    // waited for: the trip must not hang on it.
+    if (notificationsAllowed) void registerForPush(uid);
 
     const result = await startSafeTrip({
       expectedDurationMinutes: request.durationMinutes,

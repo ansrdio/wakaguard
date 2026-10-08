@@ -16,6 +16,8 @@ end
 target 'App' do
   use_frameworks!
   capacitor_pods
+  # Turns the iPhone's notification token into the Firebase token the server sends to
+  pod 'FirebaseMessaging'
 end
 
 post_install do |installer|
