@@ -32,6 +32,13 @@ const EXTEND_OPTIONS = [
   { minutes: 60, label: '+1 hr' },
 ];
 
+// A test trip lasts two minutes, so a quarter of an hour more would end the test
+const TEST_EXTEND_OPTIONS = [
+  { minutes: 2, label: '+2 min' },
+  { minutes: 5, label: '+5 min' },
+  { minutes: 15, label: '+15 min' },
+];
+
 const TONES = {
   active: {
     card: 'border-slate-200 dark:border-slate-700',
@@ -283,7 +290,7 @@ export function ActiveTripCard({
 
       {canExtend && addTimeOpen && (
         <div className="grid grid-cols-3 gap-2" role="group" aria-label="Running late? Add time">
-          {EXTEND_OPTIONS.map((option) => (
+          {(trip.isTest ? TEST_EXTEND_OPTIONS : EXTEND_OPTIONS).map((option) => (
             <button
               key={option.minutes}
               type="button"
