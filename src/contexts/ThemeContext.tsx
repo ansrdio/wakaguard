@@ -1,6 +1,8 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { usePathname } from 'next/navigation';
+import { isPlainPage } from '@/lib/plainPages';
 
 type Theme = 'light' | 'dark';
 
@@ -35,6 +37,7 @@ function applyTheme(theme: Theme) {
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>('light');
   const [mounted, setMounted] = useState(false);
+  const plainPage = isPlainPage(usePathname());
 
   useEffect(() => {
     // Always start with light mode and ensure dark class is removed
@@ -61,8 +64,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setTheme(newTheme);
   };
 
-  // Prevent flash of wrong theme
-  if (!mounted) {
+  // Prevent flash of wrong theme. A plain page has no theme to get wrong.
+  if (!mounted && !plainPage) {
     return null;
   }
 

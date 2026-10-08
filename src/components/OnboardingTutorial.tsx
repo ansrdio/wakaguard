@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { ChevronLeft, ChevronRight, MapPin, Phone, Users } from 'lucide-react';
 import { ALERT_GRACE_MINUTES } from '@/lib/tripPlanning';
 import { COMPANY_ADDRESS, COMPANY_NAME } from '@/lib/company';
@@ -130,7 +131,8 @@ export function OnboardingTutorial({ onComplete }: OnboardingTutorialProps) {
         </div>
 
         <p className="mt-4 text-center text-xs text-slate-500 dark:text-slate-400">
-          WakaGuard is a product of {COMPANY_NAME}
+          WakaGuard is a product of {COMPANY_NAME}.{' '}
+          <Link href="/about" className="underline whitespace-nowrap hover:text-slate-700 dark:hover:text-slate-200">About WakaGuard</Link>
           <span className="hidden sm:block mt-1">{COMPANY_ADDRESS}</span>
         </p>
       </div>

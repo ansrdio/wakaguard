@@ -10,8 +10,8 @@ import { ThemeProvider } from '@/contexts/ThemeContext';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'WakaGuard - Road Safety',
-  description: 'Community-driven road hazard reporting for safer travel across Nigeria',
+  title: 'WakaGuard - Travel Safety',
+  description: 'Start a trip before you travel. If you do not arrive, WakaGuard texts the people you chose with your last known location.',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
@@ -24,13 +24,13 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     siteName: 'WakaGuard',
-    title: 'WakaGuard - Road Safety',
-    description: 'Community-driven road hazard reporting for safer travel across Nigeria',
+    title: 'WakaGuard - Travel Safety',
+    description: 'Start a trip before you travel. If you do not arrive, WakaGuard texts the people you chose with your last known location.',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'WakaGuard - Road Safety',
-    description: 'Community-driven road hazard reporting for safer travel across Nigeria',
+    title: 'WakaGuard - Travel Safety',
+    description: 'Start a trip before you travel. If you do not arrive, WakaGuard texts the people you chose with your last known location.',
   },
 };
 

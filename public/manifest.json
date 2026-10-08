@@ -1,7 +1,7 @@
 {
-  "name": "WakaGuard - Road Safety",
+  "name": "WakaGuard - Travel Safety",
   "short_name": "WakaGuard",
-  "description": "Community-driven road hazard reporting for safer travel across Nigeria",
+  "description": "Start a trip before you travel. If you do not arrive, WakaGuard texts the people you chose with your last known location.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f8fafc",
