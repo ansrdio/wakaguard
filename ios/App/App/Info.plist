@@ -60,6 +60,10 @@
 	</array>
 	<key>NSContactsUsageDescription</key>
 	<string>WakaGuard needs access to your contacts to add trusted contacts for safety features.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>WakaGuard uses the camera when you take a photo to add to a road report.</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
