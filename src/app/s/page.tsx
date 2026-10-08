@@ -117,8 +117,12 @@ function SharedTripContent() {
   const isStale = !!latest && lastUpdateMs !== null && nowMs - lastUpdateMs > STALE_AFTER_MS;
   const path = readTripPath(trip.path);
   const mapsUrl = latest ? `https://maps.google.com/?q=${latest.lat},${latest.lng}` : null;
+  // Nobody should be sent to the emergency line by a test
+  const callFor112 = (isOverdue || isEmergency) && !trip.isTest;
 
-  const pill = isEmergency
+  const pill = trip.isTest
+    ? { className: 'bg-amber-200 text-amber-900', label: 'Test' }
+    : isEmergency
     ? { className: 'bg-red-600 text-white', label: 'SOS sent' }
     : isOverdue
       ? { className: 'bg-red-100 text-red-800', label: 'Overdue' }
@@ -128,7 +132,22 @@ function SharedTripContent() {
 
   return (
     <Shell pill={<span className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${pill.className}`}>{pill.label}</span>}>
-      {isEmergency && (
+      {trip.isTest && (
+        <div role="status" className="bg-amber-300 text-slate-900">
+          <div className="max-w-5xl mx-auto px-4 py-3 flex items-start gap-2">
+            <AlertTriangle className="w-5 h-5 mt-0.5 flex-shrink-0" aria-hidden="true" />
+            <span className="font-semibold">
+              {isEmergency
+                ? `TEST ALERT. ${who || 'This person'} pressed SOS to try it out. This is not a real emergency. Do not call 112.`
+                : isOverdue
+                  ? `TEST ALERT. ${who || 'This person'} let a test trip run past its arrival time. This is not a real emergency.`
+                  : `TEST. ${who || 'This person'} is trying out WakaGuard. This is not a real trip.`}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {isEmergency && !trip.isTest && (
         <div role="alert" className="bg-red-600 text-white">
           <div className="max-w-5xl mx-auto px-4 py-3 flex items-start gap-2">
             <AlertTriangle className="w-5 h-5 mt-0.5 flex-shrink-0" aria-hidden="true" />
@@ -139,7 +158,7 @@ function SharedTripContent() {
         </div>
       )}
 
-      {isOverdue && (
+      {isOverdue && !trip.isTest && (
         <div role="alert" className="bg-red-600 text-white">
           <div className="max-w-5xl mx-auto px-4 py-3 flex items-start gap-2">
             <AlertTriangle className="w-5 h-5 mt-0.5 flex-shrink-0" aria-hidden="true" />
@@ -203,7 +222,7 @@ function SharedTripContent() {
             )}
           </div>
 
-          {(mapsUrl || isOverdue || isEmergency) && (
+          {(mapsUrl || callFor112) && (
             <div className="flex gap-3">
               {mapsUrl && (
                 <a
@@ -216,7 +235,7 @@ function SharedTripContent() {
                   Open in Google Maps
                 </a>
               )}
-              {(isOverdue || isEmergency) && (
+              {callFor112 && (
                 <a
                   href="tel:112"
                   className="flex-1 py-3.5 bg-red-600 text-white rounded-2xl font-bold hover:bg-red-700 flex items-center justify-center gap-2"

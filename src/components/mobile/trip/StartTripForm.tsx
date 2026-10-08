@@ -10,6 +10,8 @@ import {
   MAX_DESTINATION_LENGTH,
   MAX_TRIP_MINUTES,
   MAX_TRUSTED_CONTACTS,
+  TEST_ALERT_GRACE_MINUTES,
+  TEST_TRIP_MINUTES,
   TripPlanErrors,
   formatClock,
   formatDuration,
@@ -34,6 +36,8 @@ export interface StartTripRequest {
   alertName: string;
   /** Text the selected contacts the trip link as soon as the trip starts */
   textContacts: boolean;
+  /** A short trial run: same steps, and every text about it says it is a test */
+  isTest: boolean;
 }
 
 interface StartTripFormProps {
@@ -137,7 +141,15 @@ export function StartTripForm({
   const handleSubmit = () => {
     setSubmitted(true);
     if (Object.keys(validateTripPlan(plan)).length > 0) return;
-    onStart({ ...plan, textContacts });
+    onStart({ ...plan, textContacts, isTest: false });
+  };
+
+  // A test needs everything a real trip needs except a length, which is fixed
+  const handleTestTrip = () => {
+    setSubmitted(true);
+    const problems = validateTripPlan({ ...plan, durationMinutes: DEFAULT_TRIP_MINUTES });
+    if (Object.keys(problems).length > 0) return;
+    onStart({ ...plan, durationMinutes: TEST_TRIP_MINUTES, textContacts, isTest: true });
   };
 
   return (
@@ -457,6 +469,21 @@ export function StartTripForm({
         {processing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Navigation className="w-5 h-5" />}
         Start safe trip
       </button>
+
+      <div className="text-center">
+        <button
+          type="button"
+          onClick={handleTestTrip}
+          disabled={processing}
+          className="text-sm font-semibold text-blue-700 dark:text-blue-300 underline disabled:opacity-50"
+        >
+          Try a {TEST_TRIP_MINUTES}-minute test trip instead
+        </button>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+          It works like a real trip, only faster. If you don&apos;t end it, your contacts get a text
+          about {TEST_ALERT_GRACE_MINUTES} minute later that begins &quot;WAKAGUARD TEST ALERT&quot;.
+        </p>
+      </div>
     </section>
   );
 }

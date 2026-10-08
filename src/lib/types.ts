@@ -233,6 +233,8 @@ export interface SharedTrip {
   name?: string;
   /** Where the trip has been so far, oldest first. Written by the server and removed when the trip ends */
   path?: TripPathPoint[];
+  /** A test trip: the page says so, and nobody should be alarmed by it */
+  isTest?: boolean;
 }
 
 export interface TripPathPoint {
@@ -367,6 +369,16 @@ export interface Trip {
   overdueAt?: Timestamp | null;
   /** Server-managed delivery state of the overdue alert */
   overdueAlertState?: 'sending' | 'sent' | 'partial' | 'failed' | 'blocked' | 'no_contacts';
+  /** How many of the trip's contacts the overdue text was sent to, out of how many (server-managed) */
+  overdueAlertSent?: number;
+  overdueAlertTotal?: number;
+  overdueAlertAttempts?: number;
+  /** The same for the latest SOS on this trip (server-managed) */
+  sosAlertState?: 'sending' | 'sent' | 'partial' | 'failed' | 'blocked' | 'no_contacts';
+  sosAlertSent?: number;
+  sosAlertTotal?: number;
+  /** A test trip: short timer, and every text about it says it is a test */
+  isTest?: boolean;
 
   cancellationReason?: string;
 }

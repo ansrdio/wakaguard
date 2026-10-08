@@ -16,6 +16,7 @@ import { ActiveTripCard } from '@/components/mobile/trip/ActiveTripCard';
 import { TripMapScreen } from '@/components/mobile/trip/TripMapScreen';
 import { getDeviceId, sendsTripLocation } from '@/lib/deviceId';
 import { canBeTexted, readContactPhone } from '@/lib/contactPhone';
+import { describeTripAlert } from '@/lib/alertOutcome';
 import { 
   sendCheckinSms,
   sendTripShareSms,
@@ -217,6 +218,8 @@ export function SafetyScreen() {
   // Call 112. Works for everyone, signed in or not; when signed in the server
   // also messages trusted contacts.
   const handleSOS = async () => {
+    // A test trip never calls the emergency line
+    if (activeTrip?.isTest) return;
     setProcessing(true);
     const result = await triggerSOS({ knownLocation: currentPosition() });
     setProcessing(false);
@@ -326,6 +329,7 @@ export function SafetyScreen() {
       expectedDurationMinutes: request.durationMinutes,
       destinationLabel: request.destination,
       trustedContactIds: request.contactIds,
+      isTest: request.isTest,
     });
 
     if (!result.success || !result.tripId) {
@@ -348,7 +352,12 @@ export function SafetyScreen() {
 
     if (!request.textContacts) {
       setProcessing(false);
-      showToast('Trip started. Share the link so your contacts can follow it.', 'success');
+      showToast(
+        request.isTest
+          ? 'Test trip started. End it when you like, or let it run to see the alert.'
+          : 'Trip started. Share the link so your contacts can follow it.',
+        'success'
+      );
       return;
     }
 
@@ -373,7 +382,9 @@ export function SafetyScreen() {
     if (!uid || isAnonymous) return;
     const currentShareUrl = shareUrl;
     const currentDestination = activeTrip?.destination;
-    const wasAlerted = !!activeTrip?.overdueAt || activeTrip?.status === 'emergency';
+    // The server follows up with contacts only if it texted them, so only then is one promised
+    const alertBefore = activeTrip ? describeTripAlert(activeTrip) : null;
+    const contactsWereTexted = !!alertBefore?.texted;
     
     setProcessing(true);
     const result = await endSafeTrip();
@@ -384,14 +395,16 @@ export function SafetyScreen() {
       showToast('Saved on this phone. Until it is back online, your contacts could still be alerted.', 'error');
     } else if (result.success) {
       showToast(
-        wasAlerted
-          ? 'Trip ended. Your contacts are being told you checked in.'
-          : 'Trip ended. Glad you made it.',
+        !contactsWereTexted
+          ? 'Trip ended. Glad you made it.'
+          : alertBefore?.kind === 'sos'
+            ? 'Trip ended. Your contacts are being told you ended the SOS.'
+            : 'Trip ended. Your contacts are being told you checked in.',
         'success'
       );
       // Contacts who were alerted get a text from the server. Otherwise offer
       // to let them know through the share sheet.
-      if (currentShareUrl && !wasAlerted && !result.pending) {
+      if (currentShareUrl && !contactsWereTexted && !result.pending) {
         try {
           await shareSafeTripLink(currentShareUrl, { mode: 'end', destination: currentDestination });
         } catch (e) {
@@ -911,22 +924,28 @@ export function SafetyScreen() {
                 <Phone className="w-10 h-10 text-red-600" />
               </div>
               <p className="text-slate-600 mb-4">
-                {textableContacts.length > 0
-                  ? 'This calls emergency services (112) and alerts your trusted contacts by SMS with your location.'
-                  : 'This calls emergency services (112). Add trusted contacts so they are alerted too.'}
+                {activeTrip?.isTest
+                  ? 'This is a test trip, so 112 is not called. You can still try the alert to your contacts. The text says it is a test.'
+                  : textableContacts.length > 0
+                    ? 'This calls emergency services (112) and alerts your trusted contacts by SMS with your location.'
+                    : 'This calls emergency services (112). Add trusted contacts so they are alerted too.'}
               </p>
             </div>
-            <button
-              onClick={handleSOS}
-              disabled={processing}
-              className="w-full py-4 bg-red-600 text-white rounded-xl font-bold text-lg hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              {processing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Phone className="w-5 h-5" />}
-              Call 112 Now
-            </button>
+            {!activeTrip?.isTest && (
+              <button
+                onClick={handleSOS}
+                disabled={processing}
+                className="w-full py-4 bg-red-600 text-white rounded-xl font-bold text-lg hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {processing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Phone className="w-5 h-5" />}
+                Call 112 Now
+              </button>
+            )}
             
             <div className="border-t border-slate-200 pt-4 mt-4">
-              <p className="text-xs text-slate-500 mb-3 text-center">If a call is not safe, alert your contacts without calling:</p>
+              <p className="text-xs text-slate-500 mb-3 text-center">
+                {activeTrip?.isTest ? 'Try the alert to your contacts:' : 'If a call is not safe, alert your contacts without calling:'}
+              </p>
               <div className="flex gap-2">
                 <button
                   onClick={handleSosContactsOnly}

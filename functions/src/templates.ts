@@ -43,6 +43,18 @@ function hasLocation(p: { lat?: number | null; lng?: number | null }): p is { la
 }
 
 // -------------------------------------------------------------------------
+// Test trips
+// -------------------------------------------------------------------------
+
+/** Starts every text sent for a test trip, so nobody takes it for a real alert */
+export const TEST_PREFIX = 'WAKAGUARD TEST ALERT. NOT A REAL EMERGENCY. ';
+
+/** Label a message as a test when it belongs to a test trip */
+export function markAsTest(body: string, isTest: boolean | null | undefined): string {
+  return isTest ? TEST_PREFIX + body : body;
+}
+
+// -------------------------------------------------------------------------
 // SOS
 // -------------------------------------------------------------------------
 

@@ -618,3 +618,148 @@ test('the callable refuses free-form and SOS messages, guests and unverified acc
   const unverified = await makeUser({ emailVerified: false });
   await assert.rejects(callAs(unverified.uid, { type: 'checkin' }), /Verify your email/);
 });
+
+// ---------------------------------------------------------------------------
+// What the app is told about each alert
+// ---------------------------------------------------------------------------
+
+test('overdue alert: the trip records how many contacts a text was sent for', async () => {
+  const { uid, contactIds } = await makeUser({ contacts: 2 });
+  const id = await makeTrip(uid, contactIds, { endsAt: ts(Date.now() - 10 * MIN) });
+
+  await runMonitor();
+
+  const t = await trip(uid, id);
+  assert.equal(t.overdueAlertState, 'sent');
+  assert.equal(t.overdueAlertSent, 2);
+  assert.equal(t.overdueAlertTotal, 2);
+});
+
+test('overdue alert with no contact that can be texted: the trip says nobody was told', async () => {
+  const { uid } = await makeUser({ contacts: 0 });
+  await db().doc(`users/${uid}/trustedContacts/old`).set({ name: 'Old Contact', phone: '(202)5550123' });
+  const id = await makeTrip(uid, ['old'], { endsAt: ts(Date.now() - 10 * MIN) });
+
+  await runMonitor();
+
+  const t = await trip(uid, id);
+  assert.equal(t.overdueAlertState, 'no_contacts');
+  assert.equal(t.overdueAlertSent, 0);
+  assert.equal(t.overdueAlertTotal, 0);
+  assert.equal((await logs(uid, 'overdue')).length, 0);
+});
+
+test('adding time after an alert clears the recorded outcome', async () => {
+  const { uid, contactIds } = await makeUser();
+  const id = await makeTrip(uid, contactIds, { endsAt: ts(Date.now() - 10 * MIN) });
+  await runMonitor();
+  assert.equal((await trip(uid, id)).overdueAlertSent, 1);
+
+  await updateAndTrigger(onTripUpdated, `users/${uid}/trips/${id}`, { endsAt: ts(Date.now() + 20 * MIN) }, { uid, tripId: id });
+
+  const t = await trip(uid, id);
+  assert.equal(t.overdueAlertState, undefined);
+  assert.equal(t.overdueAlertSent, undefined);
+  assert.equal(t.overdueAlertTotal, undefined);
+});
+
+test('SOS on a trip: the trip records what was sent', async () => {
+  const { uid, contactIds } = await makeUser({ contacts: 2 });
+  const id = await makeTrip(uid, contactIds, { endsAt: ts(Date.now() + 30 * MIN), lastUpdate: ts(Date.now() - 1 * MIN) });
+  const sos = await createSos(uid, { tripId: id });
+
+  await sos.fire();
+
+  const t = await trip(uid, id);
+  assert.equal(t.sosAlertState, 'sent');
+  assert.equal(t.sosAlertSent, 2);
+  assert.equal(t.sosAlertTotal, 2);
+  // The public page never carries it
+  const shared = (await db().doc(`sharedTrips/${id}`).get()).data()!;
+  assert.equal(shared.sosAlertState, undefined);
+});
+
+test('SOS with no contact that can be texted: the trip says nobody was told', async () => {
+  const { uid } = await makeUser({ contacts: 0 });
+  const id = await makeTrip(uid, [], { endsAt: ts(Date.now() + 30 * MIN) });
+  const sos = await createSos(uid, { tripId: id });
+
+  await sos.fire();
+
+  const t = await trip(uid, id);
+  assert.equal(t.sosAlertState, 'no_contacts');
+  assert.equal(t.sosAlertSent, 0);
+});
+
+// ---------------------------------------------------------------------------
+// Test trips
+// ---------------------------------------------------------------------------
+
+const TEST_LABEL = /^WAKAGUARD TEST ALERT\. NOT A REAL EMERGENCY\. /;
+
+test('test trip: contacts are alerted one minute after the deadline, and the text says it is a test', async () => {
+  const { uid, contactIds } = await makeUser();
+  const testTrip = await makeTrip(uid, contactIds, { endsAt: ts(Date.now() - 90 * 1000), isTest: true });
+
+  const other = await makeUser();
+  const realTrip = await makeTrip(other.uid, other.contactIds, { endsAt: ts(Date.now() - 90 * 1000) });
+
+  await runMonitor();
+
+  const sent = await logs(uid, 'overdue');
+  assert.equal(sent.length, 1);
+  assert.match(sent[0].messageBody, TEST_LABEL);
+  assert.match(sent[0].messageBody, /WakaGuard: Ada has not checked in from a trip to Benin City/);
+  assert.equal((await trip(uid, testTrip)).overdueAlertState, 'sent');
+
+  // A real trip the same 90 seconds late is still inside its five minutes
+  assert.equal((await logs(other.uid, 'overdue')).length, 0);
+  assert.ok((await trip(other.uid, realTrip)).overdueWarnedAt);
+});
+
+test('test trip just past its deadline: the traveller is warned first, like a real trip', async () => {
+  const { uid, contactIds } = await makeUser();
+  const id = await makeTrip(uid, contactIds, { endsAt: ts(Date.now() - 20 * 1000), isTest: true });
+
+  await runMonitor();
+
+  const t = await trip(uid, id);
+  assert.ok(t.overdueWarnedAt);
+  assert.equal(t.overdueAlertState, undefined);
+  assert.equal((await logs(uid, 'overdue')).length, 0);
+});
+
+test('test trip: the SOS, the follow-up and the texts the traveller sends all say it is a test', async () => {
+  const { uid, contactIds } = await makeUser();
+  const id = await makeTrip(uid, contactIds, { endsAt: ts(Date.now() + 30 * MIN), lastUpdate: ts(Date.now() - 1 * MIN), isTest: true });
+
+  await callAs(uid, { type: 'trip_share', token: id });
+  await callAs(uid, { type: 'checkin' });
+  const sos = await createSos(uid, { tripId: id });
+  await sos.fire();
+  await updateAndTrigger(onTripUpdated, `users/${uid}/trips/${id}`, { status: 'completed' }, { uid, tripId: id });
+
+  for (const type of ['trip_share', 'checkin', 'sos', 'all_clear']) {
+    const sent = await logs(uid, type);
+    assert.equal(sent.length, 1, type);
+    assert.match(sent[0].messageBody, TEST_LABEL, type);
+  }
+  assert.match((await logs(uid, 'sos'))[0].messageBody, /WakaGuard SOS: Ada needs help\./);
+});
+
+test('real trip: no text is labelled as a test', async () => {
+  const { uid, contactIds } = await makeUser();
+  const id = await makeTrip(uid, contactIds, { endsAt: ts(Date.now() + 30 * MIN), lastUpdate: ts(Date.now() - 1 * MIN) });
+
+  await callAs(uid, { type: 'trip_share', token: id });
+  await callAs(uid, { type: 'checkin' });
+  const sos = await createSos(uid, { tripId: id });
+  await sos.fire();
+  await updateAndTrigger(onTripUpdated, `users/${uid}/trips/${id}`, { status: 'completed' }, { uid, tripId: id });
+
+  for (const type of ['trip_share', 'checkin', 'sos', 'all_clear']) {
+    const sent = await logs(uid, type);
+    assert.equal(sent.length, 1, type);
+    assert.doesNotMatch(sent[0].messageBody, /TEST/, type);
+  }
+});

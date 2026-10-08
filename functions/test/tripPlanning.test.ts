@@ -77,7 +77,8 @@ test('location status tells fresh from stale from missing', () => {
   assert.equal(describeLocationStatus(NOW - 3 * MIN, true, NOW).text, 'Sharing your location, updated 3 min ago');
   assert.deepEqual(describeLocationStatus(NOW - 12 * MIN, true, NOW), {
     state: 'stale',
-    text: 'No location sent for 12 min. Keep the app open.',
+    // Not "keep the app open": this shows while the app is open
+    text: 'No location received for 12 min. Check your signal and that location is switched on.',
   });
   assert.equal(describeLocationStatus(null, false, NOW).state, 'none');
   assert.equal(describeLocationStatus(NOW, false, NOW).state, 'none');

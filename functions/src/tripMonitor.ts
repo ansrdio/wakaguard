@@ -18,13 +18,13 @@ import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { checkAndIncrementRateLimit } from './rateLimit';
 import { getNumberSetting } from './config';
 import { deliverSafetySms, DeliveryResult, getSenderProfile, getTrustedContacts, Recipient, UNKNOWN_NAME } from './safetyDelivery';
-import { AllClearReason, buildAllClearMessage, buildOverdueMessage, buildSosMessage } from './templates';
+import { AllClearReason, buildAllClearMessage, buildOverdueMessage, buildSosMessage, markAsTest } from './templates';
 import { addPathPoint, readPath } from './tripPath';
 import {
   decideOverdueAction,
+  graceMs,
   OverdueAlertState,
   OverdueSubject,
-  OVERDUE_GRACE_MS,
   OVERDUE_MAX_AGE_MS,
   wasAlertDelivered,
 } from './overdueLogic';
@@ -59,6 +59,7 @@ function toSubject(kind: Kind, data: DocData): OverdueSubject {
     overdueAlertState: data.overdueAlertState ?? null,
     overdueAlertAttempts: data.overdueAlertAttempts ?? 0,
     overdueAlertClaimedAtMs: toMillis(data.overdueAlertClaimedAt),
+    isTest: data.isTest === true,
   };
 }
 
@@ -136,10 +137,10 @@ async function warnTraveller(ref: DocRef, kind: Kind): Promise<void> {
   const claimed = await db.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
     const data = snap.data();
-    if (!data || !isStillActive(kind, data)) return false;
-    if (decideOverdueAction(toSubject(kind, data), Date.now()) !== 'warn') return false;
+    if (!data || !isStillActive(kind, data)) return null;
+    if (decideOverdueAction(toSubject(kind, data), Date.now()) !== 'warn') return null;
     tx.update(ref, { overdueWarnedAt: FieldValue.serverTimestamp() });
-    return true;
+    return data;
   });
   if (!claimed) return;
 
@@ -147,13 +148,14 @@ async function warnTraveller(ref: DocRef, kind: Kind): Promise<void> {
   const fcmToken = subSnap.data()?.fcmToken;
   if (!fcmToken) return;
 
-  const graceMinutes = Math.round(OVERDUE_GRACE_MS / 60000);
+  const isTest = claimed.isTest === true;
+  const graceMinutes = Math.round(graceMs({ isTest }) / 60000);
   try {
     await admin.messaging().send({
       token: fcmToken,
       notification: {
-        title: 'Are you okay?',
-        body: `Check in or add time. Your contacts will be alerted in ${graceMinutes} minutes.`,
+        title: isTest ? 'Test trip: are you okay?' : 'Are you okay?',
+        body: `Check in or add time. Your contacts will be alerted in ${graceMinutes} minute${graceMinutes === 1 ? '' : 's'}.`,
       },
       data: { type: 'overdue_warning', kind, id: ref.id },
     });
@@ -207,6 +209,9 @@ async function alertContacts(ref: DocRef, kind: Kind): Promise<void> {
   const sender = await getSenderProfile(uid);
   let state: OverdueAlertState;
   let notified: string[] = [];
+  // How many of the trip's contacts the provider accepted a text for.
+  // The app shows these, so it never claims more than was sent.
+  let sentCount = 0;
 
   if (contacts.length === 0) {
     state = 'no_contacts';
@@ -220,7 +225,7 @@ async function alertContacts(ref: DocRef, kind: Kind): Promise<void> {
       state = 'failed';
     } else {
       // A failed limit check (reason 'error') does not hold back a safety alert
-      const messageBody = buildOverdueMessage({
+      const messageBody = markAsTest(buildOverdueMessage({
         userName: sender.name,
         kind,
         deadlineMs,
@@ -229,7 +234,7 @@ async function alertContacts(ref: DocRef, kind: Kind): Promise<void> {
         lng: claimed.lastLocation?.lng ?? null,
         lastUpdateMs: toMillis(claimed.lastUpdate),
         token: kind === 'trip' ? ref.id : null,
-      });
+      }), claimed.isTest === true);
 
       const recipients: Recipient[] = contacts.map((c) => ({
         id: c.id,
@@ -244,6 +249,7 @@ async function alertContacts(ref: DocRef, kind: Kind): Promise<void> {
         payload: { kind, id: ref.id, deadlineMs },
       });
       state = delivery.status;
+      sentCount = delivery.sent;
       if (delivery.sent > 0) notified = contacts.map((c) => c.id);
     }
   }
@@ -257,6 +263,8 @@ async function alertContacts(ref: DocRef, kind: Kind): Promise<void> {
     if (!data || toMillis(data[field]) !== deadlineMs) return;
     tx.update(ref, {
       overdueAlertState: state,
+      overdueAlertSent: sentCount,
+      overdueAlertTotal: contacts.length,
       lastContactNotificationAt: FieldValue.serverTimestamp(),
       ...(notified.length > 0 ? { notifiedContacts: notified } : {}),
     });
@@ -284,6 +292,8 @@ const OVERDUE_RESET = () => ({
   overdueAt: FieldValue.delete(),
   overdueWarnedAt: FieldValue.delete(),
   overdueAlertState: FieldValue.delete(),
+  overdueAlertSent: FieldValue.delete(),
+  overdueAlertTotal: FieldValue.delete(),
   overdueAlertAttempts: FieldValue.delete(),
   overdueAlertClaimedAt: FieldValue.delete(),
 });
@@ -307,11 +317,13 @@ async function sendAllClear(
     return;
   }
 
+  const isTest = (await ref.get()).data()?.isTest === true;
+
   await deliverSafetySms({
     uid,
     type: 'all_clear',
     recipients: contacts.map((c) => ({ id: c.id, name: c.name, phoneE164: c.phoneE164 })),
-    messageBody: buildAllClearMessage({ userName: sender.name, reason, newDeadlineMs }),
+    messageBody: markAsTest(buildAllClearMessage({ userName: sender.name, reason, newDeadlineMs }), isTest),
     payload: { id: ref.id, reason },
   });
 }
@@ -556,39 +568,50 @@ export const onSOSAlert = functions
         const stillOpen = trip.status === 'active' || trip.status === 'emergency';
         const update = { expiresAt: keepUntil, ...(stillOpen ? { status: 'emergency' } : {}) };
         await Promise.all([
-          tripRef.update(update),
+          tripRef.update({ ...update, sosAlertState: 'sending' }),
           db.doc(`sharedTrips/${tripId}`).set(update, { merge: true }),
         ]);
       }
     }
 
+    // The trip card reads the outcome from the trip, so it says what was actually sent
+    const recordOnTrip = async (state: string, sent: number, total: number) => {
+      if (!trip || !tripId) return;
+      await db.doc(`users/${uid}/trips/${tripId}`)
+        .update({ sosAlertState: state, sosAlertSent: sent, sosAlertTotal: total })
+        .catch((err) => console.warn(`Could not record the SOS outcome on trip ${tripId}`, err));
+    };
+
     const contacts = (await getTrustedContacts(uid)).filter((c) => c.notifyOnSOS !== false);
     if (contacts.length === 0) {
       await ref.update({ smsState: 'no_contacts' });
+      await recordOnTrip('no_contacts', 0, 0);
       return null;
     }
 
     const sender = await getSenderProfile(uid);
     if (!sender.canSend) {
       await ref.update({ smsState: 'blocked', smsError: sender.blockReason ?? null });
+      await recordOnTrip('blocked', 0, contacts.length);
       return null;
     }
 
     const rate = await checkAndIncrementRateLimit(uid, 'sos', contacts.length);
     if (!rate.allowed && rate.reason === 'limit') {
       await ref.update({ smsState: 'failed', smsError: 'rate_limited' });
+      await recordOnTrip('failed', 0, contacts.length);
       return null;
     }
 
     const location = await resolveSosLocation(ref, alertData, trip);
-    const messageBody = buildSosMessage({
+    const messageBody = markAsTest(buildSosMessage({
       userName: sender.name,
       lat: location?.lat ?? null,
       lng: location?.lng ?? null,
       locationAtMs: location?.atMs ?? null,
       // Only link to a trip the contacts can actually open
       token: trip ? tripId : null,
-    });
+    }), trip?.isTest === true);
     const recipients: Recipient[] = contacts.map((c) => ({ id: c.id, name: c.name, phoneE164: c.phoneE164 }));
 
     // Nothing else retries an SOS, so retry here when the provider rejects it
@@ -609,5 +632,6 @@ export const onSOSAlert = functions
       smsState: delivery!.status,
       notifiedContacts: delivery!.sent > 0 ? contacts.map((c) => c.id) : [],
     });
+    await recordOnTrip(delivery!.status, delivery!.sent, recipients.length);
     return null;
   });

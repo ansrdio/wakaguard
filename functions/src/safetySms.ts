@@ -11,7 +11,7 @@ import * as functions from 'firebase-functions/v1';
 import * as admin from 'firebase-admin';
 import { checkAndIncrementRateLimit } from './rateLimit';
 import { deliverSafetySms, getSenderProfile, getTrustedContacts } from './safetyDelivery';
-import { buildCheckinMessage, buildTripShareMessage } from './templates';
+import { buildCheckinMessage, buildTripShareMessage, markAsTest } from './templates';
 
 type SafetySmsRequest =
   | { type: 'checkin'; message?: string; lat?: number; lng?: number }
@@ -69,21 +69,27 @@ export const sendSafetySms = functions
       }
 
       contactIds = Array.isArray(trip.trustedContactIds) ? trip.trustedContactIds : null;
-      messageBody = buildTripShareMessage({
+      messageBody = markAsTest(buildTripShareMessage({
         userName: sender.name,
         token: data.token,
         destination: trip.destination ?? null,
         endsAtMs: trip.endsAt?.toMillis?.() ?? null,
-      });
+      }), trip.isTest === true);
       payload = { token: data.token };
     } else {
       const location = validCoordinate(data.lat, data.lng);
-      messageBody = buildCheckinMessage({
+      // "I'm okay" sent during a test trip is part of the test
+      const openTrips = await db.collection(`users/${uid}/trips`)
+        .where('status', 'in', ['active', 'emergency'])
+        .limit(5)
+        .get();
+      const inTestTrip = openTrips.docs.some((doc) => doc.data().isTest === true);
+      messageBody = markAsTest(buildCheckinMessage({
         userName: sender.name,
         message: typeof data.message === 'string' ? data.message : null,
         lat: location?.lat ?? null,
         lng: location?.lng ?? null,
-      });
+      }), inTestTrip);
       payload = { lat: location?.lat ?? null, lng: location?.lng ?? null };
     }
 

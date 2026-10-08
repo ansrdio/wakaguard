@@ -35,6 +35,8 @@ export interface SafeTripOptions {
   expectedDurationMinutes?: number;
   trustedContactIds?: string[];
   destinationLabel?: string;
+  /** A test trip: the server waits less before alerting, and labels every text as a test */
+  isTest?: boolean;
 }
 
 /**
@@ -498,6 +500,7 @@ export function useSafety(): UseSafetyReturn {
         locationKey: generateSecretKey(),
         // Signed in on two phones, only this one sends the trip's positions
         trackingDeviceId: getDeviceId(),
+        ...(options.isTest ? { isTest: true } : {}),
         // Planned versus actual, for learning how long trips really take
         startLocation: lastLocation ? { lat: lastLocation.lat, lng: lastLocation.lng } : null,
         extensionCount: 0,
@@ -518,6 +521,8 @@ export function useSafety(): UseSafetyReturn {
           destination: options.destinationLabel ?? null,
           createdAt: serverTimestamp(),
           endsAt: endsAt ? Timestamp.fromDate(endsAt) : null,
+          // The page a contact opens says when a trip is only a test
+          ...(options.isTest ? { isTest: true } : {}),
         }, { merge: true }),
       ]));
 

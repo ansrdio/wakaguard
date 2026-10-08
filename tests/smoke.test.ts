@@ -506,6 +506,29 @@ async function sharedTripCreateWithServerFields(ctx: AppContext, uid: string, to
   });
 }
 
+// A test trip says so on its public page, so a contact who opens the link is not alarmed
+async function sharedTestTripCreate(ctx: AppContext, uid: string, token: string, isTest: unknown) {
+  await setDoc(doc(ctx.db, 'sharedTrips', token), {
+    uid,
+    tripId: token,
+    status: 'active',
+    expiresAt: Timestamp.fromDate(new Date(Date.now() + 60 * 60 * 1000)),
+    lastLocation: null,
+    lastUpdate: Timestamp.now(),
+    destination: 'Ikeja',
+    createdAt: Timestamp.now(),
+    endsAt: Timestamp.fromDate(new Date(Date.now() + 2 * 60 * 1000)),
+    isTest
+  });
+}
+
+async function sharedTestTripStaysWritable(ctx: AppContext, token: string) {
+  const sharedRef = doc(ctx.db, 'sharedTrips', token);
+  await updateDoc(sharedRef, { lastLocation: { lat: 6.5, lng: 3.4, accuracy: 10 }, lastUpdate: Timestamp.now() });
+  const data = (await getDoc(sharedRef)).data();
+  if (data?.isTest !== true) throw new Error('isTest was lost');
+}
+
 async function sharedTripUpdateBadEndsAt(ctx: AppContext, token: string) {
   const sharedRef = doc(ctx.db, 'sharedTrips', token);
   const snapshot = await getDoc(sharedRef);
@@ -943,6 +966,16 @@ async function run() {
     );
     await runStep('User: creating a shared trip with a path and a name denied', () =>
       sharedTripCreateWithServerFields(user, userUid, `shared_serverfields_${runId}`), true
+    );
+
+    await runStep('User: create a shared test trip', () =>
+      sharedTestTripCreate(user, userUid, `shared_test_${runId}`, true)
+    );
+    await runStep('User: update a shared test trip (location)', () =>
+      sharedTestTripStaysWritable(user, `shared_test_${runId}`)
+    );
+    await runStep('User: shared trip with a test flag that is not true or false (should be denied)', () =>
+      sharedTestTripCreate(user, userUid, `shared_test_bad_${runId}`, 'yes'), true
     );
     await runStep('User: shared trip with non-timestamp endsAt denied', () =>
       sharedTripUpdateBadEndsAt(user, ids.tripId), true

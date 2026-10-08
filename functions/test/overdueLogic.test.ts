@@ -7,7 +7,8 @@ import {
   OVERDUE_MAX_AGE_MS,
   STALE_CLAIM_MS,
 } from '../src/overdueLogic';
-import { buildAllClearMessage, buildOverdueMessage, buildSosMessage } from '../src/templates';
+import { buildAllClearMessage, buildOverdueMessage, buildSosMessage, markAsTest, TEST_PREFIX } from '../src/templates';
+import { isGsm7 } from '../src/smsText';
 
 const DEADLINE = Date.UTC(2026, 9, 6, 15, 30); // 4:30 PM in Lagos
 const MIN = 60 * 1000;
@@ -99,4 +100,33 @@ test('all-clear and SOS messages name the traveller', () => {
     /New expected arrival Tue,? 4:30\s?pm/i
   );
   assert.match(buildSosMessage({ userName: 'Ada', lat: 6.5, lng: 3.3 }), /SOS: Ada needs help\./);
+});
+
+// ---------------------------------------------------------------------------
+// Test trips
+// ---------------------------------------------------------------------------
+
+test('test trip: contacts are alerted after one minute, a real trip after five', () => {
+  const now = Date.now();
+  const lateBy = (ms: number, isTest: boolean) =>
+    decideOverdueAction({ deadlineMs: now - ms, isTest, overdueWarnedAtMs: now - ms }, now);
+
+  assert.equal(lateBy(30 * 1000, true), 'none', 'warned already, still inside the minute');
+  assert.equal(lateBy(61 * 1000, true), 'alert');
+  assert.equal(lateBy(61 * 1000, false), 'none');
+  assert.equal(lateBy(5 * 60 * 1000 + 1000, false), 'alert');
+});
+
+test('test trip: the traveller is warned at the deadline, exactly as on a real trip', () => {
+  const now = Date.now();
+  assert.equal(decideOverdueAction({ deadlineMs: now - 5000, isTest: true }, now), 'warn');
+  assert.equal(decideOverdueAction({ deadlineMs: now + 5000, isTest: true }, now), 'none');
+});
+
+test('markAsTest: labels a test message and leaves a real one alone', () => {
+  assert.equal(markAsTest('WakaGuard: Ada has checked in safely.', true), 'WAKAGUARD TEST ALERT. NOT A REAL EMERGENCY. WakaGuard: Ada has checked in safely.');
+  assert.equal(markAsTest('WakaGuard: Ada has checked in safely.', false), 'WakaGuard: Ada has checked in safely.');
+  assert.equal(markAsTest('x', undefined), 'x');
+  // Stays in the plain SMS alphabet, so the label does not push a text into the costlier encoding
+  assert.ok(isGsm7(TEST_PREFIX));
 });

@@ -10,6 +10,10 @@
 /** Minutes after the expected arrival before contacts are alerted. Matches OVERDUE_GRACE_MS on the server. */
 export const ALERT_GRACE_MINUTES = 5;
 
+/** A test trip: the same steps as a real one, with waits short enough to watch (see the server's TEST_OVERDUE_GRACE_MS) */
+export const TEST_TRIP_MINUTES = 2;
+export const TEST_ALERT_GRACE_MINUTES = 1;
+
 /** Matches MAX_RECIPIENTS in functions/src/safetyDelivery.ts */
 export const MAX_TRUSTED_CONTACTS = 5;
 
@@ -195,7 +199,8 @@ export function describeLocationStatus(
   const ageMs = Math.max(0, nowMs - lastUpdateMs);
   const ageMinutes = Math.floor(ageMs / MINUTE_MS);
   if (ageMs > LOCATION_STALE_MS) {
-    return { state: 'stale', text: `No location sent for ${formatDuration(ageMinutes)}. Keep the app open.` };
+    // The app may well be open, so the advice is about what usually stops a phone reporting
+    return { state: 'stale', text: `No location received for ${formatDuration(ageMinutes)}. Check your signal and that location is switched on.` };
   }
   return {
     state: 'fresh',

@@ -6,6 +6,12 @@
 /** Time after the deadline before trusted contacts are alerted. */
 export const OVERDUE_GRACE_MS = 5 * 60 * 1000;
 
+/**
+ * The same wait for a test trip. A test goes through exactly the same steps
+ * as a real trip; only the waiting is shorter, so it can be tried in minutes.
+ */
+export const TEST_OVERDUE_GRACE_MS = 60 * 1000;
+
 /** Deadlines older than this are treated as stale and never alerted. */
 export const OVERDUE_MAX_AGE_MS = 12 * 60 * 60 * 1000;
 
@@ -31,6 +37,13 @@ export interface OverdueSubject {
   overdueAlertState?: OverdueAlertState | null;
   overdueAlertAttempts?: number | null;
   overdueAlertClaimedAtMs?: number | null;
+  /** A test trip: same steps, shorter wait, and its texts say it is a test */
+  isTest?: boolean;
+}
+
+/** How long after the deadline contacts are alerted */
+export function graceMs(subject: { isTest?: boolean }): number {
+  return subject.isTest ? TEST_OVERDUE_GRACE_MS : OVERDUE_GRACE_MS;
 }
 
 export type OverdueAction = 'none' | 'warn' | 'alert';
@@ -48,7 +61,7 @@ export function decideOverdueAction(subject: OverdueSubject, nowMs: number): Ove
   if (overdueByMs < 0) return 'none';
   if (overdueByMs > OVERDUE_MAX_AGE_MS) return 'none';
 
-  if (overdueByMs < OVERDUE_GRACE_MS) {
+  if (overdueByMs < graceMs(subject)) {
     return subject.overdueWarnedAtMs ? 'none' : 'warn';
   }
 

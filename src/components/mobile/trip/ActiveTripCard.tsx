@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Check, ChevronRight, Clock, Loader2, Map as MapIcon, MapPin, MapPinOff, Navigation, Phone, Share2, ShieldCheck } from 'lucide-react';
 import { Trip, TripStatus } from '@/lib/types';
 import { describeLocationStatus, describeTimeLeft, formatClock, initialsOf, joinNames } from '@/lib/tripPlanning';
+import { describeTripAlert, watcherCaption } from '@/lib/alertOutcome';
 
 interface ActiveTripCardProps {
   trip: Trip;
@@ -54,7 +55,8 @@ const TONES = {
     card: 'border-red-400 dark:border-red-600',
     pill: 'bg-red-600 text-white',
     figure: 'text-red-700 dark:text-red-300',
-    label: 'SOS sent',
+    // The state of the trip, not a claim about the texts: the banner below says what was sent
+    label: 'SOS active',
   },
 } as const;
 
@@ -97,6 +99,8 @@ export function ActiveTripCard({
   const location = describeLocationStatus(trip.lastUpdate?.toMillis() ?? null, !!trip.lastLocation, nowMs);
   const LocationIcon = location.state === 'fresh' ? MapPin : MapPinOff;
   const canExtend = endsAtMs != null && !isEmergency;
+  // What the server recorded about texting this trip's contacts; the card says that and no more
+  const alert = describeTripAlert(trip);
 
   return (
     <div className="space-y-3">
@@ -117,6 +121,13 @@ export function ActiveTripCard({
           </div>
           <span className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${tone.pill}`}>{tone.label}</span>
         </div>
+
+        {trip.isTest && (
+          <div className="mx-5 mb-4 bg-amber-100 border border-amber-300 rounded-xl p-3 text-sm text-amber-900">
+            <span className="font-semibold">Test trip.</span> Every text about it begins &quot;WAKAGUARD TEST ALERT&quot;,
+            and 112 is not called.
+          </div>
+        )}
 
         {/* When */}
         <div className={`${divider} px-5 py-4`} aria-live="polite">
@@ -152,9 +163,7 @@ export function ActiveTripCard({
               </span>
               <p className="min-w-0 text-sm text-slate-600 dark:text-slate-300">
                 <span className="block font-semibold text-slate-900 dark:text-white">{joinNames(watcherNames)}</span>
-                {isEmergency
-                  ? `${watcherNames.length === 1 ? 'has' : 'have'} been alerted`
-                  : "will be told if you don't arrive"}
+                {watcherCaption(alert, watcherNames.length)}
               </p>
             </>
           ) : (
@@ -205,7 +214,7 @@ export function ActiveTripCard({
           </button>
         </div>
 
-        {(unsynced || isEmergency || timeLeft?.state === 'overdue') && (
+        {(unsynced || alert || timeLeft?.state === 'overdue') && (
           <div className="px-5 pb-5 space-y-3">
             {unsynced && (
               <div role="alert" className="bg-amber-100 border border-amber-400 rounded-xl p-3 text-sm text-amber-900">
@@ -215,17 +224,22 @@ export function ActiveTripCard({
               </div>
             )}
 
-            {isEmergency && (
-              <div role="status" className="bg-red-100 border border-red-300 rounded-xl p-3 text-sm text-red-900">
-                SOS sent. Your contacts were alerted and can follow this trip. End the trip when you are safe.
+            {alert && (
+              <div
+                role="status"
+                className={`rounded-xl p-3 text-sm border ${
+                  alert.tone === 'problem'
+                    ? 'bg-red-600 border-red-700 text-white font-medium'
+                    : 'bg-red-100 border-red-300 text-red-900'
+                }`}
+              >
+                {alert.text}
               </div>
             )}
 
-            {!isEmergency && timeLeft?.state === 'overdue' && (
+            {!alert && timeLeft?.state === 'overdue' && (
               <div role="status" className="bg-red-100 border border-red-300 rounded-xl p-3 text-sm text-red-900">
-                {trip.overdueAt
-                  ? 'Your contacts have been told you are overdue. Add time or end the trip to let them know you are okay.'
-                  : 'Your arrival time has passed. Add time or end the trip, or your contacts will be alerted.'}
+                Your arrival time has passed. Add time or end the trip, or your contacts will be alerted.
               </div>
             )}
           </div>

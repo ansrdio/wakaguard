@@ -68,10 +68,27 @@ The traveller's trip map and the page a contact opens from the trip link draw th
 - The private trip document does not keep the path, only its start and end points.
 - The app cannot set or change `path` or `name`; the rules allow them only as written by the server.
 
+### Test trips
+
+"Try a 2-minute test trip instead" on the start form runs the real alert path with shorter waits, so the whole thing can be watched in a few minutes without alarming anyone.
+
+- The trip is marked `isTest`. It lasts 2 minutes, and contacts are texted about a minute after that instead of five (`TEST_OVERDUE_GRACE_MS`).
+- Every text about it (the trip link, "I'm okay", the overdue alert, the SOS and the follow-up) begins `WAKAGUARD TEST ALERT. NOT A REAL EMERGENCY.`
+- The SOS dialog does not offer the call to 112 during a test trip, and the page a contact opens says it is a test and hides its own Call 112 button.
+- Nothing else differs. A test trip uses the same monitor, the same triggers, the same limits and the same SMS provider as a real one, and its texts are charged like any others.
+
+The public share document carries `isTest`, so **deploy the Firestore rules before the app or the website** when releasing this for the first time. With the old rules a test trip cannot be started.
+
+### What the app says about an alert
+
+The app reports what the server recorded, not what it hopes happened. After an overdue alert the trip carries `overdueAlertState`, `overdueAlertSent` and `overdueAlertTotal`; after an SOS it carries `sosAlertState`, `sosAlertSent` and `sosAlertTotal`. The trip card turns these into sentences such as "A text saying you are overdue was sent to your 2 contacts" or "WakaGuard could not text your contacts. Call them yourself, or share the trip link."
+
+"Sent" means the SMS provider accepted the text. The app never says "delivered": it has no way of knowing a text reached the handset. With `SMS_ENABLED` off or `SMS_PROVIDER=mock` set while SMS is switched off, the state is `blocked` and the card says the contacts could not be texted.
+
 ## 3. Check it works
 
 1. Add yourself as a trusted contact with a second phone.
-2. Start a Safe Trip with the shortest duration and let it run past its time. Expect a push reminder at the deadline and an SMS 5 minutes later.
+2. Start a test trip (or a Safe Trip with the shortest duration) and let it run past its time. Expect a push reminder at the deadline and an SMS about a minute later for a test trip, 5 minutes later for a real one.
 3. Open the link in the SMS: it should show "Overdue" and the last location.
 4. Tap **+30 min**: the contact gets an "extended" SMS and the page stops showing overdue.
 5. End the trip after another alert: the contact gets an all-clear SMS.

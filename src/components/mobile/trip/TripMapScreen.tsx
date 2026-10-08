@@ -7,6 +7,7 @@ import { ArrowLeft, Check, Clock, Loader2, MapPin, MapPinOff, Users } from 'luci
 import { Trip, TripStatus } from '@/lib/types';
 import { describeLocationStatus, describeTimeLeft, formatClock, joinNames } from '@/lib/tripPlanning';
 import { readTripPath } from '@/lib/tripPath';
+import { describeTripAlert, watcherCaption } from '@/lib/alertOutcome';
 import { useSharedTrip } from '@/hooks/useSharedTrip';
 
 // Leaflet needs the browser, so the map is left out of the prerendered page
@@ -33,7 +34,7 @@ const PILLS = {
   active: { className: 'bg-brand-100 text-brand-800', label: 'On trip' },
   endingSoon: { className: 'bg-amber-100 text-amber-900', label: 'Arriving soon' },
   overdue: { className: 'bg-red-100 text-red-800', label: 'Overdue' },
-  emergency: { className: 'bg-red-600 text-white', label: 'SOS sent' },
+  emergency: { className: 'bg-red-600 text-white', label: 'SOS active' },
 } as const;
 
 /**
@@ -122,9 +123,7 @@ export function TripMapScreen({ trip, watcherNames, processing, onClose, onArriv
             <span className="block font-semibold text-slate-900 dark:text-white">
               {watcherNames.length === 0
                 ? 'No one is set to be told about this trip'
-                : isEmergency
-                  ? `${joinNames(watcherNames)} ${watcherNames.length === 1 ? 'has' : 'have'} been alerted`
-                  : `${joinNames(watcherNames)} will be told if you don't arrive`}
+                : `${joinNames(watcherNames)} ${watcherCaption(describeTripAlert(trip), watcherNames.length)}`}
             </span>
             Anyone you send the trip link to sees this map.
           </p>
