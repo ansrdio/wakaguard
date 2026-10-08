@@ -9,8 +9,14 @@ import type { CapacitorConfig } from '@capacitor/cli';
  * set CAP_SERVER_URL before syncing, for example
  *   CAP_SERVER_URL=http://192.168.1.20:3000 npx cap sync
  * Never set it for a store build.
+ *
+ * Diagnosis only: a release build keeps the page's console out of the device
+ * log. To see it while chasing a fault on a real phone, set CAP_DEVICE_LOGS=1
+ * before syncing. Never set it for a store build either: the log can hold
+ * positions and names.
  */
 const devServerUrl = process.env.CAP_SERVER_URL;
+const deviceLogs = process.env.CAP_DEVICE_LOGS === '1';
 
 const config: CapacitorConfig = {
   appId: 'com.ansrdlabs.wakaguard',
@@ -19,6 +25,7 @@ const config: CapacitorConfig = {
   // Identifies the app to outside services such as map tile servers, which
   // may refuse requests from an anonymous WebView
   appendUserAgent: 'WakaGuard',
+  ...(deviceLogs ? { loggingBehavior: 'production' as const } : {}),
   ...(devServerUrl
     ? {
         server: {
