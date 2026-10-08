@@ -207,6 +207,9 @@ export default function GuidelinesPage() {
           <section className="mb-8">
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">Questions?</h2>
             <p className="text-gray-700 leading-relaxed mb-4">
+              WakaGuard is a product of Inskriba Limited, a company registered in Nigeria.
+            </p>
+            <p className="text-gray-700 leading-relaxed mb-4">
               If you have questions about these guidelines, please contact us at:
             </p>
             <p className="text-blue-600 font-medium">

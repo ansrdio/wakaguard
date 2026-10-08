@@ -127,6 +127,10 @@ export function OnboardingTutorial({ onComplete }: OnboardingTutorialProps) {
             {!isLastSlide && <ChevronRight className="w-5 h-5" aria-hidden="true" />}
           </button>
         </div>
+
+        <p className="mt-4 text-center text-xs text-slate-500 dark:text-slate-400">
+          WakaGuard is a product of Inskriba Limited
+        </p>
       </div>
     </div>
   );

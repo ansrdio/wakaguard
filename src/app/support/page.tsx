@@ -243,6 +243,9 @@ export default function SupportPage() {
           <section>
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">Business Inquiries</h2>
             <p className="text-gray-700 mb-4">
+              WakaGuard is a product of Inskriba Limited, a company registered in Nigeria.
+            </p>
+            <p className="text-gray-700 mb-4">
               For partnership opportunities, media inquiries, or business-related questions, please contact:
             </p>
             <p className="text-blue-600 font-medium text-lg">
