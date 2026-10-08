@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import { ChevronLeft, ChevronRight, MapPin, Phone, Users } from 'lucide-react';
 import { ALERT_GRACE_MINUTES } from '@/lib/tripPlanning';
+import { COMPANY_ADDRESS, COMPANY_NAME } from '@/lib/company';
 
 interface OnboardingTutorialProps {
   onComplete: () => void;
@@ -129,7 +130,8 @@ export function OnboardingTutorial({ onComplete }: OnboardingTutorialProps) {
         </div>
 
         <p className="mt-4 text-center text-xs text-slate-500 dark:text-slate-400">
-          WakaGuard is a product of Inskriba Limited
+          WakaGuard is a product of {COMPANY_NAME}
+          <span className="hidden sm:block mt-1">{COMPANY_ADDRESS}</span>
         </p>
       </div>
     </div>

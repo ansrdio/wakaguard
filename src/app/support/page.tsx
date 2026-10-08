@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Headphones, ArrowLeft, Mail, MessageCircle, HelpCircle, Bug, FileText } from 'lucide-react';
+import { COMPANY_ADDRESS, COMPANY_NAME } from '@/lib/company';
 
 export default function SupportPage() {
   return (
@@ -243,7 +244,10 @@ export default function SupportPage() {
           <section>
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">Business Inquiries</h2>
             <p className="text-gray-700 mb-4">
-              WakaGuard is a product of Inskriba Limited, a company registered in Nigeria.
+              WakaGuard is a product of {COMPANY_NAME}, a company registered in Nigeria.
+            </p>
+            <p className="text-gray-700 mb-4">
+              Contact address: {COMPANY_ADDRESS}
             </p>
             <p className="text-gray-700 mb-4">
               For partnership opportunities, media inquiries, or business-related questions, please contact:
