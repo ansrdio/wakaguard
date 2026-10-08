@@ -23,7 +23,7 @@ import { useAuthedUser } from '@/hooks/useAuthedUser';
 import { generateShareToken, generateSecretKey, calculateTripExpiry, calculateTimerExpiry, calculateTripEnd } from '@/lib/safety';
 import { buildShareLink } from '@/lib/safetyMessaging';
 import { tripExpiryMs } from '@/lib/tripPlanning';
-import { reachedServer } from '@/lib/firestoreWrites';
+import { describeFailedSave, reachedServer } from '@/lib/firestoreWrites';
 import { settleWithin } from '@/lib/timeLimit';
 import { getDeviceId } from '@/lib/deviceId';
 import { Trip, TripStatus, SafetyTimer, AlertType } from '@/lib/types';
@@ -564,8 +564,7 @@ export function useSafety(): UseSafetyReturn {
 
       return { success: true, pending: !saved };
     } catch (error) {
-      console.error('Error ending Safe Trip:', error);
-      return { success: false, error: 'Failed to end Safe Trip' };
+      return { success: false, error: describeFailedSave('Failed to end Safe Trip', error) };
     }
   }, [uid, activeTrip, activeTimer]);
 
@@ -596,8 +595,7 @@ export function useSafety(): UseSafetyReturn {
 
       return { success: true, pending: !saved };
     } catch (error) {
-      console.error('Error extending Safe Trip:', error);
-      return { success: false, error: 'Failed to add time' };
+      return { success: false, error: describeFailedSave('Failed to add time', error) };
     }
   }, [uid, activeTrip]);
 

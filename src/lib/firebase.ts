@@ -34,8 +34,12 @@ import {
   connectFirestoreEmulator,
   disableNetwork,
   enableNetwork,
+  doc,
+  getDocFromCache,
 } from 'firebase/firestore';
 import { getStorage, FirebaseStorage, connectStorageEmulator } from 'firebase/storage';
+import { RESTART_GAP_MS, errorText, isLocalStoreFailure, restartPage } from './localStore';
+import { settleWithin } from './timeLimit';
 
 /**
  * Firebase configuration object.
@@ -134,28 +138,74 @@ if (typeof window !== 'undefined') {
     console.info('Using the local Firebase emulators');
   }
 
-  // A phone pauses the page's connections while the app is in the background,
-  // and the live data stream does not always recover afterwards: the screen then
-  // keeps showing what it knew before. Restart the connection when the app
-  // comes back. Queued writes are kept and sent as usual.
+  // A phone pauses the page's connections while the app is in the background.
+  // Two things can be broken when it comes back.
+  //
+  // The copy of the data kept on the phone may have stopped working (see
+  // localStore.ts): nothing can be read or saved until the page is loaded
+  // again, so do that.
+  //
+  // Otherwise the live data stream may not have recovered, and the screen
+  // keeps showing what it knew before. Restart the connection. Queued writes
+  // are kept and sent as usual.
   if (isFirstInit && Capacitor.isNativePlatform()) {
-    let reconnecting = false;
-    const reconnect = async () => {
-      if (reconnecting || document.visibilityState !== 'visible') return;
-      reconnecting = true;
+    let busy = false;
+    let restarting = false;
+    // The phone reports a return twice, and the page lives on for a moment
+    // after it has been told to load again
+    const restart = (reason: string) => {
+      if (restartPage(reason)) restarting = true;
+      // Refused because the page was loaded again moments ago: look once more after the gap
+      else setTimeout(onReturn, RESTART_GAP_MS);
+    };
+    const onReturn = async () => {
+      if (busy || restarting || document.visibilityState !== 'visible') return;
+      busy = true;
       try {
+        if (await localStoreHasFailed()) {
+          restart('the data kept on the phone stopped answering while the app was in the background');
+          return;
+        }
         await disableNetwork(db);
         await enableNetwork(db);
       } catch (err) {
-        console.warn('Could not restart the data connection:', err);
+        console.warn(`Could not restart the data connection: ${errorText(err)}`);
+        if (isLocalStoreFailure(err)) restart('the data connection could not be restarted');
       } finally {
-        reconnecting = false;
+        busy = false;
       }
     };
-    document.addEventListener('visibilitychange', reconnect);
+    document.addEventListener('visibilitychange', onReturn);
     // Sent by the native shell when the app returns to the foreground
-    document.addEventListener('resume', reconnect);
+    document.addEventListener('resume', onReturn);
   }
+}
+
+/** Longest the check of the on-phone database may take before it counts as not answering */
+const LOCAL_STORE_CHECK_MS = 4000;
+
+/**
+ * Ask the on-phone database for a document that is never there. A working
+ * database answers "not in the cache"; a failed one answers with its own
+ * fault, or not at all.
+ */
+async function localStoreHasFailed(): Promise<boolean> {
+  // Once it has failed, Firestore throws from the call itself instead of
+  // returning a promise that fails; the wrapper makes both look the same
+  const read = (async () => getDocFromCache(doc(db, 'localStore', 'check')))();
+  const outcome = await settleWithin(
+    read.then(
+      () => 'working' as const,
+      (err) => {
+        if (!isLocalStoreFailure(err)) return 'working' as const;
+        console.error(`The data kept on the phone could not be read: ${errorText(err)}`);
+        return 'failed' as const;
+      }
+    ),
+    LOCAL_STORE_CHECK_MS,
+    'no answer' as const
+  );
+  return outcome !== 'working';
 }
 
 export { app, auth, db, storage };

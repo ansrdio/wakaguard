@@ -8,6 +8,8 @@
  * @module firestoreWrites
  */
 
+import { errorText, isLocalStoreFailure, restartPage } from './localStore';
+
 /** Longest a save waits for the server before the screen moves on */
 export const SAVE_WAIT_MS = 8000;
 
@@ -21,4 +23,22 @@ export function reachedServer(write: Promise<unknown>, waitMs: number = SAVE_WAI
     write.then(() => true),
     new Promise<boolean>((resolve) => setTimeout(() => resolve(false), waitMs)),
   ]);
+}
+
+/**
+ * A failed save, as a message for the person and a line for the log.
+ * The short code in brackets (for example "unavailable") is what tells one
+ * cause from another when someone sends a screenshot.
+ *
+ * A save that failed because the on-phone database has stopped working is
+ * followed by loading the page again, after which saving works.
+ */
+export function describeFailedSave(what: string, error: unknown): string {
+  console.error(`${what}: ${errorText(error)}`);
+  if (isLocalStoreFailure(error)) {
+    restartPage(`${what.toLowerCase()} because the data kept on the phone stopped answering`);
+    return `${what}. Please try again.`;
+  }
+  const code = (error as { code?: unknown } | null)?.code;
+  return typeof code === 'string' ? `${what} (${code.replace(/^firestore\//, '')})` : what;
 }
