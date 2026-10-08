@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Shield, ArrowLeft } from 'lucide-react';
-import { COMPANY_ADDRESS, COMPANY_NAME } from '@/lib/company';
+import { COMPANY_ADDRESS, COMPANY_NAME, CONTACT_EMAIL } from '@/lib/company';
 
 export default function PrivacyPage() {
   return (
@@ -144,7 +144,7 @@ export default function PrivacyPage() {
             <ul className="list-disc list-inside text-gray-700 mb-4 space-y-2">
               <li>Ask you to remove them from your trusted contacts list</li>
               <li>Block the sending number on their device</li>
-              <li>Contact us at <a href="mailto:support@wakaguard.com" className="text-blue-600 hover:underline">support@wakaguard.com</a> to request removal</li>
+              <li>Contact us at <a href={`mailto:${CONTACT_EMAIL}`} className="text-blue-600 hover:underline">{CONTACT_EMAIL}</a> to request removal</li>
             </ul>
 
             <h3 className="text-xl font-semibold text-gray-800 mb-3">SMS Service Provider</h3>
@@ -307,8 +307,8 @@ export default function PrivacyPage() {
               If you have questions about this Privacy Policy, please contact us at:
             </p>
             <p className="text-blue-600 font-medium">
-              <a href="mailto:support@wakaguard.app" className="hover:underline">
-                support@wakaguard.app
+              <a href={`mailto:${CONTACT_EMAIL}`} className="hover:underline">
+                {CONTACT_EMAIL}
               </a>
             </p>
           </section>

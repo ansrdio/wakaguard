@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { BookOpen, ArrowLeft, AlertTriangle, CheckCircle } from 'lucide-react';
-import { COMPANY_ADDRESS, COMPANY_NAME } from '@/lib/company';
+import { COMPANY_ADDRESS, COMPANY_NAME, CONTACT_EMAIL } from '@/lib/company';
 
 export default function GuidelinesPage() {
   return (
@@ -217,8 +217,8 @@ export default function GuidelinesPage() {
               If you have questions about these guidelines, please contact us at:
             </p>
             <p className="text-blue-600 font-medium">
-              <a href="mailto:support@wakaguard.app" className="hover:underline">
-                support@wakaguard.app
+              <a href={`mailto:${CONTACT_EMAIL}`} className="hover:underline">
+                {CONTACT_EMAIL}
               </a>
             </p>
           </section>

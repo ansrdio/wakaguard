@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Headphones, ArrowLeft, Mail, MessageCircle, HelpCircle, Bug, FileText } from 'lucide-react';
-import { COMPANY_ADDRESS, COMPANY_NAME } from '@/lib/company';
+import { COMPANY_ADDRESS, COMPANY_NAME, CONTACT_EMAIL } from '@/lib/company';
 
 export default function SupportPage() {
   return (
@@ -36,10 +36,10 @@ export default function SupportPage() {
                     For general inquiries, bug reports, or feedback, please email us at:
                   </p>
                   <a 
-                    href="mailto:support@wakaguard.app"
+                    href={`mailto:${CONTACT_EMAIL}`}
                     className="text-blue-600 font-medium text-lg hover:underline"
                   >
-                    support@wakaguard.app
+                    {CONTACT_EMAIL}
                   </a>
                   <p className="text-gray-600 text-sm mt-2">
                     We typically respond within 24-48 hours.
@@ -164,10 +164,10 @@ export default function SupportPage() {
                   <p className="text-gray-700">
                     Send bug reports to:{' '}
                     <a 
-                      href="mailto:support@wakaguard.app?subject=Bug Report"
+                      href={`mailto:${CONTACT_EMAIL}?subject=Bug Report`}
                       className="text-blue-600 hover:underline"
                     >
-                      support@wakaguard.app
+                      {CONTACT_EMAIL}
                     </a>
                   </p>
                 </div>
@@ -189,10 +189,10 @@ export default function SupportPage() {
                   <p className="text-gray-700">
                     Send feature requests to:{' '}
                     <a 
-                      href="mailto:support@wakaguard.app?subject=Feature Request"
+                      href={`mailto:${CONTACT_EMAIL}?subject=Feature Request`}
                       className="text-blue-600 hover:underline"
                     >
-                      support@wakaguard.app
+                      {CONTACT_EMAIL}
                     </a>
                   </p>
                 </div>
@@ -253,8 +253,8 @@ export default function SupportPage() {
               For partnership opportunities, media inquiries, or business-related questions, please contact:
             </p>
             <p className="text-blue-600 font-medium text-lg">
-              <a href="mailto:support@wakaguard.app" className="hover:underline">
-                support@wakaguard.app
+              <a href={`mailto:${CONTACT_EMAIL}`} className="hover:underline">
+                {CONTACT_EMAIL}
               </a>
             </p>
           </section>
