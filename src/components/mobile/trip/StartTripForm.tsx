@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Check, Loader2, Navigation, Plus, UserPlus } from 'lucide-react';
+import { AlertTriangle, Check, Loader2, Navigation, Plus, UserPlus } from 'lucide-react';
 import {
   ALERT_GRACE_MINUTES,
   ARRIVAL_PRESETS,
@@ -17,11 +17,13 @@ import {
   textContactsByDefault,
   validateTripPlan,
 } from '@/lib/tripPlanning';
+import { canBeTexted } from '@/lib/contactPhone';
 
 export interface TripContact {
   id: string;
   name: string;
-  phoneE164: string;
+  /** Missing on a contact saved without a number the server can text */
+  phoneE164?: string;
   phone?: string;
 }
 
@@ -106,7 +108,10 @@ export function StartTripForm({
   // The saved name arrives after the first render
   const shownName = nameEdited ? name : alertName;
 
-  const selectedIds = contacts.filter((c) => !deselectedIds.includes(c.id)).map((c) => c.id);
+  // A contact whose number cannot be texted is never one of the people told
+  const selectedIds = contacts
+    .filter((c) => canBeTexted(c) && !deselectedIds.includes(c.id))
+    .map((c) => c.id);
   const isPreset = ARRIVAL_PRESETS.some((p) => p.minutes === durationMinutes);
   const showCustom = customOpen || !isPreset;
   const showAddForm = contacts.length === 0 || addOpenAtCount === contacts.length
@@ -259,6 +264,31 @@ export function StartTripForm({
         {contacts.length > 0 && (
           <ul className="space-y-2" aria-labelledby="trip-contacts-label">
             {contacts.map((contact) => {
+              if (!canBeTexted(contact)) {
+                return (
+                  <li
+                    key={contact.id}
+                    className="flex items-start gap-3 p-3 rounded-2xl border border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700"
+                  >
+                    <span
+                      aria-hidden="true"
+                      className="w-10 h-10 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-100 flex items-center justify-center flex-shrink-0"
+                    >
+                      <AlertTriangle className="w-5 h-5" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-medium text-slate-900 dark:text-white truncate">{contact.name}</span>
+                      <span className="block text-xs text-slate-500 dark:text-slate-400">{contact.phone || 'No number saved'}</span>
+                      <span className="block text-sm text-amber-800 dark:text-amber-200 mt-1">
+                        This number cannot be texted, so {contact.name} will not be told.{' '}
+                        <button type="button" onClick={onManageContacts} className="font-semibold underline">
+                          Fix it
+                        </button>
+                      </span>
+                    </span>
+                  </li>
+                );
+              }
               const checked = selectedIds.includes(contact.id);
               return (
                 <li key={contact.id}>

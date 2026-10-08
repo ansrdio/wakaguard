@@ -15,9 +15,8 @@ import { StartTripForm, StartTripRequest } from '@/components/mobile/trip/StartT
 import { ActiveTripCard } from '@/components/mobile/trip/ActiveTripCard';
 import { TripMapScreen } from '@/components/mobile/trip/TripMapScreen';
 import { getDeviceId, sendsTripLocation } from '@/lib/deviceId';
+import { canBeTexted, readContactPhone } from '@/lib/contactPhone';
 import { 
-  isValidE164, 
-  formatToE164,
   sendCheckinSms,
   sendTripShareSms,
   buildShareLink,
@@ -158,7 +157,10 @@ export function SafetyScreen() {
   const [savedAlertName, setSavedAlertName] = useState<string | null>(null);
 
   // Trusted contacts
-  const [trustedContacts, setTrustedContacts] = useState<{ id: string; name: string; phone?: string; phoneE164: string; email?: string }[]>([]);
+  const [trustedContacts, setTrustedContacts] = useState<{ id: string; name: string; phone?: string; phoneE164?: string; email?: string }[]>([]);
+  // The server only texts contacts with a full number saved, so only these count as people who are told
+  const textableContacts = trustedContacts.filter(canBeTexted);
+  const untextableCount = trustedContacts.length - textableContacts.length;
   const [newContactName, setNewContactName] = useState('');
   const [newContactPhone, setNewContactPhone] = useState('');
   const [phoneContacts, setPhoneContacts] = useState<{ name: string; phone: string }[]>([]);
@@ -219,7 +221,7 @@ export function SafetyScreen() {
     const result = await triggerSOS({ knownLocation: currentPosition() });
     setProcessing(false);
     setActiveModal(null);
-    const willAlertContacts = !!uid && !isAnonymous && trustedContacts.length > 0;
+    const willAlertContacts = !!uid && !isAnonymous && textableContacts.length > 0;
     showToast(
       willAlertContacts && result.success
         ? 'Calling 112. Your contacts are being alerted.'
@@ -232,8 +234,13 @@ export function SafetyScreen() {
   const handleSosContactsOnly = async () => {
     if (!requireAccount('alert contacts')) return;
     if (!uid || isAnonymous) return;
-    if (trustedContacts.length === 0) {
-      showToast('No trusted contacts. Add contacts first.', 'error');
+    if (textableContacts.length === 0) {
+      showToast(
+        untextableCount > 0
+          ? 'None of your contacts has a number that can be texted. Fix them in Trusted contacts.'
+          : 'No trusted contacts. Add contacts first.',
+        'error'
+      );
       return;
     }
 
@@ -253,8 +260,13 @@ export function SafetyScreen() {
   const handleCheckinSms = async () => {
     if (!requireAccount('send check-in SMS')) return;
     if (!uid || isAnonymous) return;
-    if (trustedContacts.length === 0) {
-      showToast('No trusted contacts. Add contacts first.', 'error');
+    if (textableContacts.length === 0) {
+      showToast(
+        untextableCount > 0
+          ? 'None of your contacts has a number that can be texted. Fix them in Trusted contacts.'
+          : 'No trusted contacts. Add contacts first.',
+        'error'
+      );
       return;
     }
     
@@ -544,15 +556,14 @@ export function SafetyScreen() {
       const name = newContactName.trim();
       const rawPhone = newContactPhone.trim();
       
-      // Convert to E.164 format (default Nigeria +234)
-      const phoneE164 = formatToE164(rawPhone, '+234');
-      
-      // Validate E.164 format
-      if (!isValidE164(phoneE164)) {
-        showToast('Invalid phone format. Use +234... or 0...', 'error');
+      // Only a number the server can text is saved; anything else is sent back to be completed
+      const read = readContactPhone(rawPhone);
+      if (!read.ok) {
+        showToast(read.error, 'error');
         setProcessing(false);
         return;
       }
+      const phoneE164 = read.phoneE164;
       
       const contactIdBase = phoneE164.replace(/[^0-9]/g, '');
       const contactId = contactIdBase.length > 0 ? contactIdBase : String(Date.now());
@@ -596,7 +607,7 @@ export function SafetyScreen() {
   };
 
   // Remove trusted contact
-  const handleRemoveContact = async (contact: { id: string; name: string; phone?: string; phoneE164: string }) => {
+  const handleRemoveContact = async (contact: { id: string; name: string; phone?: string; phoneE164?: string }) => {
     if (!requireAccount('remove trusted contact')) return;
     if (!uid || isAnonymous) return;
     
@@ -703,7 +714,7 @@ export function SafetyScreen() {
 
   // Contacts told about the active trip (all of them for trips started before contacts could be chosen)
   const tripContactIds = activeTrip?.trustedContactIds;
-  const watcherNames = trustedContacts
+  const watcherNames = textableContacts
     .filter((c) => !tripContactIds || tripContactIds.length === 0 || tripContactIds.includes(c.id))
     .map((c) => c.name);
 
@@ -778,6 +789,11 @@ export function SafetyScreen() {
           <span className="flex-1 min-w-0">
             <span className={moreTitle}>Trusted contacts</span>
             <span className={moreSub}>{trustedContacts.length === 0 ? 'None saved yet' : `${trustedContacts.length} saved`}</span>
+            {untextableCount > 0 && (
+              <span className="block text-sm font-medium text-amber-700 dark:text-amber-300">
+                {untextableCount === 1 ? '1 has a number that cannot be texted' : `${untextableCount} have numbers that cannot be texted`}
+              </span>
+            )}
           </span>
           <ChevronRight className="w-5 h-5 text-slate-400" aria-hidden="true" />
         </button>
@@ -895,7 +911,7 @@ export function SafetyScreen() {
                 <Phone className="w-10 h-10 text-red-600" />
               </div>
               <p className="text-slate-600 mb-4">
-                {trustedContacts.length > 0
+                {textableContacts.length > 0
                   ? 'This calls emergency services (112) and alerts your trusted contacts by SMS with your location.'
                   : 'This calls emergency services (112). Add trusted contacts so they are alerted too.'}
               </p>
@@ -914,7 +930,7 @@ export function SafetyScreen() {
               <div className="flex gap-2">
                 <button
                   onClick={handleSosContactsOnly}
-                  disabled={processing || trustedContacts.length === 0}
+                  disabled={processing || textableContacts.length === 0}
                   className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   📱 Alert by SMS
@@ -927,8 +943,12 @@ export function SafetyScreen() {
                   💬 WhatsApp
                 </button>
               </div>
-              {trustedContacts.length === 0 && (
-                <p className="text-xs text-amber-600 mt-2 text-center">Add trusted contacts to enable SMS alerts</p>
+              {textableContacts.length === 0 && (
+                <p className="text-xs text-amber-600 mt-2 text-center">
+                  {untextableCount > 0
+                    ? 'None of your contacts has a number that can be texted. Fix them in Trusted contacts.'
+                    : 'Add trusted contacts to enable SMS alerts'}
+                </p>
               )}
             </div>
           </div>
@@ -1042,6 +1062,11 @@ export function SafetyScreen() {
                         <div>
                           <p className="font-medium text-slate-900">{contact.name}</p>
                           <p className="text-xs text-slate-500">{contact.phoneE164 || contact.phone}</p>
+                          {!canBeTexted(contact) && (
+                            <p className="text-xs font-medium text-amber-700 mt-0.5">
+                              This number cannot be texted. Remove it and add it again with the full number.
+                            </p>
+                          )}
                         </div>
                       </div>
                       <button
