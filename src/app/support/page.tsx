@@ -300,7 +300,23 @@ export default function SupportPage() {
                 <p className="text-gray-700">
                   Currently, users cannot delete their own content. If you need content removed, please 
                   contact support with the report ID or details. Administrators can remove content that 
-                  violates our guidelines.
+                  violates our guidelines. Deleting your account deletes everything you posted.
+                </p>
+              </div>
+
+              <div className="border-l-4 border-blue-500 pl-4">
+                <h4 className="text-lg font-semibold text-gray-900 mb-2">
+                  How do I delete my account?
+                </h4>
+                <p className="text-gray-700">
+                  In the app, open Profile and tap Delete account; on the website, open the account menu
+                  and choose Delete account. You will be asked for your password. Your profile, contacts,
+                  trips and anything you posted are deleted straight away. If a trip is running, end it
+                  first. The{' '}
+                  <Link href="/delete-account" className="text-blue-600 hover:underline">
+                    Delete your account
+                  </Link>{' '}
+                  page has the full details.
                 </p>
               </div>
 

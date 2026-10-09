@@ -170,6 +170,7 @@ export function LandingPage({ onOpenApp }: { onOpenApp: () => void }) {
             <Link href="/privacy" className="hover:underline">Privacy policy</Link>
             <Link href="/support" className="hover:underline">Support</Link>
             <Link href="/guidelines" className="hover:underline">Guidelines</Link>
+            <Link href="/delete-account" className="hover:underline">Delete your account</Link>
           </nav>
         </div>
       </footer>

@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Shield, ArrowLeft } from 'lucide-react';
 import { COMPANY_ADDRESS, COMPANY_NAME, CONTACT_EMAIL } from '@/lib/company';
+import { MESSAGE_LOG_DAYS_AFTER_DELETION } from '@/lib/dataRetention';
 import { ALERT_GRACE_MINUTES, MAX_TRUSTED_CONTACTS } from '@/lib/tripPlanning';
 
 export default function PrivacyPage() {
@@ -23,7 +24,7 @@ export default function PrivacyPage() {
           </div>
 
           <p className="text-gray-600 mb-8">
-            Last Updated: October 8, 2026
+            Last Updated: October 9, 2026
           </p>
 
           <section className="mb-8">
@@ -280,14 +281,16 @@ export default function PrivacyPage() {
               <li>SOS alerts and checkpoint stops you log, with their locations, also stay in your account</li>
             </ul>
             <p className="text-gray-700 leading-relaxed mb-6">
-              These records are private to your account. We keep them until you ask us to delete them.
+              These records are private to your account. We keep them until you delete your account or ask
+              us to delete them.
             </p>
 
             <h3 className="text-xl font-semibold text-gray-800 mb-3">Trusted Contacts and Message Logs</h3>
             <p className="text-gray-700 leading-relaxed mb-6">
               A trusted contact is deleted when you remove it. Logs of texts already sent, which include the
               recipient&apos;s name and number, are kept for troubleshooting and abuse prevention until we no
-              longer need them or you ask us to delete them.
+              longer need them or you ask us to delete them. If you delete your account, they are kept for{' '}
+              {MESSAGE_LOG_DAYS_AFTER_DELETION} days and then deleted automatically.
             </p>
 
             <h3 className="text-xl font-semibold text-gray-800 mb-3">Reports</h3>
@@ -306,25 +309,31 @@ export default function PrivacyPage() {
             </ul>
             <p className="text-gray-700 leading-relaxed mb-6">
               Expired reports are marked as &quot;expired&quot; and may be hidden from public view, but data is retained
-              for moderation and audit purposes.
+              for moderation and audit purposes. Deleting your account deletes your reports.
             </p>
 
             <h3 className="text-xl font-semibold text-gray-800 mb-3">Photos</h3>
             <p className="text-gray-700 leading-relaxed mb-6">
               Photos are stored in Firebase Storage and remain accessible as long as the report exists.
-              We may retain photos indefinitely for moderation purposes.
+              We may keep them after that for moderation purposes. Deleting your account deletes your photos.
             </p>
 
             <h3 className="text-xl font-semibold text-gray-800 mb-3">Comments and Votes</h3>
             <p className="text-gray-700 leading-relaxed mb-6">
               Comments and votes are retained as long as the associated report exists. Removed comments
-              are soft-deleted (marked as removed) but not permanently deleted.
+              are soft-deleted (marked as removed) but not permanently deleted. Deleting your account
+              deletes the comments and votes you posted.
             </p>
 
             <h3 className="text-xl font-semibold text-gray-800 mb-3">User Accounts</h3>
             <p className="text-gray-700 leading-relaxed mb-6">
-              Your account and the data held with it are kept until you ask us to delete them. Signing out,
-              or deleting the app from your phone, does not delete your account.
+              Your account and the data held with it are kept until you delete your account. You can do
+              that yourself at any time: in the app, open Profile and tap Delete account; on the website,
+              open the account menu and choose Delete account. Everything listed above is then deleted
+              straight away, except the log of texts sent to your contacts, which is kept for{' '}
+              {MESSAGE_LOG_DAYS_AFTER_DELETION} days. The steps, and what is deleted and kept, are set out
+              on the <Link href="/delete-account" className="text-blue-600 hover:underline">Delete your account</Link> page.
+              Signing out, or deleting the app from your phone, does not delete your account.
             </p>
           </section>
 
@@ -357,12 +366,13 @@ export default function PrivacyPage() {
               <li>Turn notifications off in Profile or in your phone&apos;s settings</li>
               <li>Block users to hide their content from your view</li>
               <li>Flag inappropriate content for review</li>
+              <li>Delete your account and the data held with it yourself, as described under User Accounts above</li>
               <li>Ask us for a copy of the data we hold about you, or ask us to correct or delete it, by writing to <a href={`mailto:${CONTACT_EMAIL}`} className="text-blue-600 hover:underline">{CONTACT_EMAIL}</a></li>
             </ul>
             <p className="text-gray-700 leading-relaxed mb-6">
-              <strong>Note:</strong> The app does not yet have a button for deleting your account or exporting
-              your data, so these requests are handled by email. Once content is posted, it cannot be deleted
-              by users (only by administrators).
+              <strong>Note:</strong> The app does not yet have a button for exporting your data, so that
+              request is handled by email. A single report or comment cannot be deleted by its author once
+              posted (only by administrators); deleting your account deletes everything you posted.
             </p>
           </section>
 

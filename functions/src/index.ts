@@ -4,6 +4,7 @@ import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { migrateLegacyData } from './migrateLegacyData';
 
 export { sendSafetySms } from './safetySms';
+export { deleteMyAccount } from './accountDeletion';
 export { tripLocation } from './tripLocation';
 export {
   checkOverdueTrips,

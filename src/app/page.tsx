@@ -2,9 +2,10 @@
 
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import dynamic from 'next/dynamic';
+import { AccountDeletedNotice } from '@/components/AccountDeletedNotice';
 import { AppLoader } from '@/components/AppLoader';
 import { LandingPage } from '@/components/site/LandingPage';
-import { rememberAppOpened, visitorIsInApp } from '@/lib/frontPage';
+import { accountWasJustDeleted, forgetAccountDeleted, rememberAppOpened, visitorIsInApp } from '@/lib/frontPage';
 
 // The app runs only in a browser (Firebase is not set up while the site is
 // built), so it stays out of the built page and arrives as a file of its own.
@@ -23,6 +24,7 @@ if (typeof window !== 'undefined') {
 // Nothing announces a change to the answer; it is read afresh on each render
 const neverChanges = () => () => {};
 const notKnownYet = () => null;
+const notOnTheServer = () => false;
 
 /**
  * The front page. Someone who has not used WakaGuard in this browser gets the
@@ -40,10 +42,22 @@ export default function Home() {
   const [pressedOpen, setPressedOpen] = useState(false);
   const inApp = pressedOpen || arrivedInApp;
 
+  // The page reloads after an account is deleted, and says so once
+  const justDeleted = useSyncExternalStore(neverChanges, accountWasJustDeleted, notOnTheServer);
+  const [noticeClosed, setNoticeClosed] = useState(false);
+
   // So that leaving for another page and coming back, or signing out, stays in the app
   useEffect(() => {
     if (inApp) rememberAppOpened();
   }, [inApp]);
+
+  if (justDeleted && !noticeClosed) {
+    const closeNotice = () => {
+      forgetAccountDeleted();
+      setNoticeClosed(true);
+    };
+    return <AccountDeletedNotice onDone={closeNotice} />;
+  }
 
   if (inApp) {
     return <AppHome />;

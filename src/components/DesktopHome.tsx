@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Plus, MapPin, List, Crosshair, ArrowUpDown, AlertCircle, X, Shield, User, Settings, FileText, HelpCircle, LogOut, ChevronDown, Bell, Moon, Sun, Grid, LayoutList } from 'lucide-react';
+import { Plus, MapPin, List, Crosshair, ArrowUpDown, AlertCircle, X, Shield, User, Settings, FileText, HelpCircle, LogOut, ChevronDown, Bell, Moon, Sun, Grid, LayoutList, Trash2 } from 'lucide-react';
 import { ReportListSkeleton, MapSkeleton } from '@/components/LoadingSkeletons';
 import { Report, ReportStatus } from '@/lib/types';
 import { ReportFilters } from '@/lib/filters';
@@ -25,6 +25,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { AuthModal } from '@/components/AuthModal';
+import { DeleteAccountDialog } from '@/components/DeleteAccountDialog';
 
 interface DesktopHomeProps {
   rawReports: Report[];
@@ -65,6 +66,7 @@ export function DesktopHome({
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showMyReportsModal, setShowMyReportsModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false);
 
   const { uid, isAnonymous } = useAuthedUser();
   const { requireAccount, showAuthModal, openAuthModal, closeAuthModal } = useRequireAccount({ uid, isAnonymous });
@@ -294,6 +296,15 @@ export function DesktopHome({
                           <LogOut className="w-4 h-4 text-red-500" />
                           <span className="text-sm text-red-600">Sign Out</span>
                         </button>
+                        {!isAnonymous && (
+                          <button
+                            onClick={() => { setShowDeleteAccount(true); setShowUserMenu(false); }}
+                            className="w-full px-4 py-2.5 text-left hover:bg-slate-50 flex items-center gap-3 transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4 text-slate-500" />
+                            <span className="text-sm text-slate-700">Delete account</span>
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
@@ -735,6 +746,7 @@ export function DesktopHome({
 
       {/* Auth Modal */}
       <AuthModal isOpen={showAuthModal} onClose={closeAuthModal} />
+      {showDeleteAccount && <DeleteAccountDialog onClose={() => setShowDeleteAccount(false)} />}
     </>
   );
 }

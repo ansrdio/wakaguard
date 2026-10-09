@@ -92,6 +92,14 @@ The traveller's trip map and the page a contact opens from the trip link draw th
 
 The public share document carries `isTest`, so **deploy the Firestore rules before the app or the website** when releasing this for the first time. With the old rules a test trip cannot be started.
 
+### Deleting an account
+
+A person deletes their own account from Profile (phone) or the account menu (website); the public page `/delete-account` explains it. The app asks for the password again and calls `deleteMyAccount` (`functions/src/accountDeletion.ts`), which removes everything held about them and then the sign-in. It refuses while a trip is running.
+
+The one thing kept is the log of texts sent to their contacts (`safetyMessageLogs`). Each entry is stamped with `deleteAfter`, 90 days on, and Firestore deletes it then: that is the time-to-live rule on `deleteAfter` in `firestore.indexes.json`, not code. The number is `LOG_RETENTION_DAYS`; the app and the public pages quote it from `src/lib/dataRetention.ts`, and a test holds the two together.
+
+Deploy the indexes before the function. It looks up a person's resolution votes across all reports, which needs the `resolutionVotes.uid` index in `firestore.indexes.json`; until that has finished building, a deletion stops part-way with an error (nothing is lost: the person is still signed in and can try again). Release the website after the function, or the button will be there with nothing behind it.
+
 ### What the app says about an alert
 
 The app reports what the server recorded, not what it hopes happened. After an overdue alert the trip carries `overdueAlertState`, `overdueAlertSent` and `overdueAlertTotal`; after an SOS it carries `sosAlertState`, `sosAlertSent` and `sosAlertTotal`. The trip card turns these into sentences such as "A text saying you are overdue was sent to your 2 contacts" or "WakaGuard could not text your contacts. Call them yourself, or share the trip link."
@@ -211,6 +219,6 @@ Remove `.env.local` again before building the real site, or the build will point
 
 ```bash
 npm run test:functions   # message templates, providers, alert logic
-npm run test:monitor     # server flows against the Firestore and Auth emulators
+npm run test:monitor     # server flows against the Firestore, Auth and Storage emulators
 npm run test:smoke       # security rules
 ```

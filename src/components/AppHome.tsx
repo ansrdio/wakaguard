@@ -15,6 +15,8 @@ import { MobileHome } from '@/components/mobile/MobileHome';
 import { NigerianState } from '@/lib/nigerianStates';
 import { resetPageWhenKeyboardCloses } from '@/lib/nativeKeyboard';
 import { AppLoader } from '@/components/AppLoader';
+import { AccountDeletionScreen } from '@/components/AccountDeletionScreen';
+import { useAccountDeletion } from '@/lib/accountDeletion';
 
 /**
  * The app itself: the first-run screens, then the trip, nearby and profile
@@ -39,6 +41,7 @@ export function AppHome() {
     }
   }, [uid, emailVerified, checkDailyLogin]);
   const { showOnboarding, completeOnboarding, checked: onboardingChecked } = useOnboardingStatus();
+  const deletion = useAccountDeletion();
   
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locating, setLocating] = useState(false);
@@ -87,6 +90,11 @@ export function AppHome() {
       }
     );
   };
+
+  // An account being deleted: the profile below is disappearing as this shows
+  if (deletion.stage !== 'idle') {
+    return <AccountDeletionScreen deletion={deletion} />;
+  }
 
   // Show onboarding if state not selected
   if (!isLoaded || !authReady || !onboardingChecked) {

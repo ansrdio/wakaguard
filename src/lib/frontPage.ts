@@ -14,6 +14,9 @@ const FIRST_RUN_DONE_KEY = 'wakaguard_onboarding_complete';
 // Kept for the tab, so a reload during the first-run screens does not go back to the landing page
 const OPENED_APP_KEY = 'wakaguard_opened_app';
 
+// Set as an account is deleted, so the page that loads next can say so once
+const ACCOUNT_DELETED_KEY = 'wakaguard_account_deleted';
+
 /** A link that opens the app without showing the landing page first. */
 export const OPEN_APP_HREF = '/?app=1';
 
@@ -44,6 +47,31 @@ export function rememberAppOpened(): void {
   }
 }
 
+/** Leaves word for the page that loads after an account has been deleted. */
+export function noteAccountDeleted(): void {
+  try {
+    sessionStorage.setItem(ACCOUNT_DELETED_KEY, '1');
+  } catch {
+    // The account is gone either way; only the confirmation screen is lost
+  }
+}
+
+export function accountWasJustDeleted(): boolean {
+  try {
+    return sessionStorage.getItem(ACCOUNT_DELETED_KEY) !== null;
+  } catch {
+    return false;
+  }
+}
+
+export function forgetAccountDeleted(): void {
+  try {
+    sessionStorage.removeItem(ACCOUNT_DELETED_KEY);
+  } catch {
+    // Nothing to do
+  }
+}
+
 /**
  * The same question as visitorIsInApp, asked by the page itself before
  * anything is drawn. The built front page holds the landing page, so without
@@ -51,6 +79,7 @@ export function rememberAppOpened(): void {
  * the app's scripts had loaded, which is seconds on a slow connection.
  *
  * It has to be plain script text with nothing imported, so it repeats the rule
- * above. Keep the two the same.
+ * above. Keep the two the same. It also counts someone whose account has just
+ * been deleted: they are about to be shown a confirmation, not the landing page.
  */
-export const IN_APP_SCRIPT = `(function(){try{var w=window,c=w.Capacitor,m=w.webkit&&w.webkit.messageHandlers;if(w.androidBridge||(m&&m.bridge)||(c&&c.isNativePlatform&&c.isNativePlatform())||navigator.standalone===true||w.matchMedia('(display-mode: standalone)').matches||/[?&]app(=|&|$)/.test(location.search)||localStorage.getItem('${FIRST_RUN_DONE_KEY}')!==null||sessionStorage.getItem('${OPENED_APP_KEY}')!==null)document.documentElement.setAttribute('${IN_APP_ATTRIBUTE}','')}catch(e){}})()`;
+export const IN_APP_SCRIPT = `(function(){try{var w=window,c=w.Capacitor,m=w.webkit&&w.webkit.messageHandlers;if(w.androidBridge||(m&&m.bridge)||(c&&c.isNativePlatform&&c.isNativePlatform())||navigator.standalone===true||w.matchMedia('(display-mode: standalone)').matches||/[?&]app(=|&|$)/.test(location.search)||localStorage.getItem('${FIRST_RUN_DONE_KEY}')!==null||sessionStorage.getItem('${OPENED_APP_KEY}')!==null||sessionStorage.getItem('${ACCOUNT_DELETED_KEY}')!==null)document.documentElement.setAttribute('${IN_APP_ATTRIBUTE}','')}catch(e){}})()`;

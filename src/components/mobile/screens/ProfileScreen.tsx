@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { User, LogOut, Settings, HelpCircle, Shield, FileText, ChevronRight, MapPin, ThumbsUp, MessageCircle, Loader2, ExternalLink, Bell, Moon, X, Sun, LogIn } from 'lucide-react';
+import { User, LogOut, Settings, HelpCircle, Shield, FileText, ChevronRight, MapPin, ThumbsUp, MessageCircle, Loader2, ExternalLink, Bell, Moon, X, Sun, LogIn, Trash2 } from 'lucide-react';
 import { useAuthedUser } from '@/hooks/useAuthedUser';
 import { useRequireAccount } from '@/hooks/useRequireAccount';
 import { useMyReports } from '@/hooks/useMyReports';
@@ -13,10 +13,11 @@ import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { Report, ReportStatus } from '@/lib/types';
 import { AuthModal } from '@/components/AuthModal';
+import { DeleteAccountDialog } from '@/components/DeleteAccountDialog';
 import Link from 'next/link';
 import { COMPANY_NAME } from '@/lib/company';
 
-type ModalType = 'myReports' | 'settings' | 'help' | null;
+type ModalType = 'myReports' | 'settings' | 'help' | 'deleteAccount' | null;
 
 export function ProfileScreen() {
   const { uid, isAnonymous, email, displayName, username } = useAuthedUser();
@@ -183,6 +184,18 @@ export function ProfileScreen() {
             <span className="text-red-600 font-medium">Sign Out</span>
           </button>
         )}
+
+        {uid && !isAnonymous && (
+          <button
+            onClick={() => setActiveModal('deleteAccount')}
+            className="w-full p-4 bg-white border border-slate-200 rounded-xl text-left hover:bg-slate-50 transition-colors flex items-center gap-3"
+          >
+            <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center">
+              <Trash2 className="w-5 h-5 text-slate-600" />
+            </div>
+            <span className="text-slate-900 font-medium">Delete account</span>
+          </button>
+        )}
       </div>
 
       {/* Info Section */}
@@ -329,6 +342,8 @@ export function ProfileScreen() {
           </div>
         </div>
       )}
+
+      {activeModal === 'deleteAccount' && <DeleteAccountDialog onClose={() => setActiveModal(null)} />}
 
       {/* Auth Modal */}
       <AuthModal isOpen={showAuthModal} onClose={closeAuthModal} />
