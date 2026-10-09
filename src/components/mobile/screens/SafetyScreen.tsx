@@ -109,7 +109,7 @@ const SAFETY_CHECKLIST = [
   { id: 'water', label: 'Water and snacks for long trips', category: 'Comfort' },
 ];
 
-export function SafetyScreen() {
+export function SafetyScreen({ onReportRoad }: { /** Open the road report form */ onReportRoad?: () => void } = {}) {
   const { uid, isAnonymous, displayName } = useAuthedUser();
   const { requireAccount, showAuthModal, openAuthModal, closeAuthModal } = useRequireAccount({ uid, isAnonymous });
   const {
@@ -764,6 +764,7 @@ export function SafetyScreen() {
           onViewMap={openTripMap}
           onShare={handleShareLink}
           onTextOkay={handleCheckinSms}
+          onReportRoad={onReportRoad}
           onSOS={() => setActiveModal('sos')}
         />
       ) : savedAlertName === null ? (

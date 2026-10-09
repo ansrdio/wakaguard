@@ -350,7 +350,7 @@ export function MobileHome({
   // Render tab content
   const renderContent = () => {
     if (activeTab === 'safety') {
-      return <SafetyScreen />;
+      return <SafetyScreen onReportRoad={() => setShowCreateModal(true)} />;
     }
 
     if (activeTab === 'profile') {

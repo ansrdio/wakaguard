@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Check, ChevronRight, Clock, Loader2, Map as MapIcon, MapPin, MapPinOff, Navigation, Phone, Share2, ShieldCheck } from 'lucide-react';
+import { AlertTriangle, Check, ChevronRight, Clock, Loader2, Map as MapIcon, MapPin, MapPinOff, Navigation, Phone, Share2, ShieldCheck } from 'lucide-react';
 import { Trip, TripStatus } from '@/lib/types';
 import { describeLocationStatus, describeTimeLeft, formatClock, initialsOf, joinNames } from '@/lib/tripPlanning';
 import { describeTripAlert, watcherCaption } from '@/lib/alertOutcome';
@@ -23,6 +23,8 @@ interface ActiveTripCardProps {
   onViewMap: () => void;
   onShare: () => void;
   onTextOkay: () => void;
+  /** Open the road report form. Left out where there is no such form to open. */
+  onReportRoad?: () => void;
   onSOS: () => void;
 }
 
@@ -89,6 +91,7 @@ export function ActiveTripCard({
   onViewMap,
   onShare,
   onTextOkay,
+  onReportRoad,
   onSOS,
 }: ActiveTripCardProps) {
   const [nowMs, setNowMs] = useState(() => Date.now());
@@ -311,6 +314,19 @@ export function ActiveTripCard({
         <Share2 className="w-5 h-5" aria-hidden="true" />
         Share link
       </button>
+
+      {/* A traveller is the one person who can see what is on this road right now */}
+      {onReportRoad && (
+        <div>
+          <button type="button" onClick={onReportRoad} className={`${quietButton} w-full`}>
+            <AlertTriangle className="w-5 h-5" aria-hidden="true" />
+            Report something on the road
+          </button>
+          <p className="text-xs text-slate-500 dark:text-slate-400 text-center mt-1.5">
+            A checkpoint, a crash, a bad stretch? Tell other travellers, when it is safe to use your phone.
+          </p>
+        </div>
+      )}
 
       <button
         type="button"
