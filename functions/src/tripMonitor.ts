@@ -35,6 +35,12 @@ type Kind = 'trip' | 'timer';
 
 const BATCH_LIMIT = 200;
 
+/**
+ * The Android notification channel the app makes for the "Are you okay?"
+ * reminder (REMINDER_CHANNEL_ID in src/lib/pushRegistration.ts). The two must match.
+ */
+const REMINDER_CHANNEL_ID = 'trip_reminders';
+
 /** Once contacts are alerted, keep the share link readable for this long. */
 const OVERDUE_LINK_MS = 72 * 60 * 60 * 1000;
 
@@ -158,8 +164,11 @@ async function warnTraveller(ref: DocRef, kind: Kind): Promise<void> {
         body: `Check in or add time. Your contacts will be alerted in ${graceMinutes} minute${graceMinutes === 1 ? '' : 's'}.`,
       },
       data: { type: 'overdue_warning', kind, id: ref.id },
-      // A reminder nobody hears is no use: deliver it at once, with a sound
-      android: { priority: 'high', notification: { sound: 'default' } },
+      // A reminder nobody hears is no use: deliver it at once, with a sound.
+      // On Android it goes to the app's own channel, which appears over other
+      // apps. A phone whose app has not made that channel yet falls back to
+      // Firebase's default one.
+      android: { priority: 'high', notification: { sound: 'default', channelId: REMINDER_CHANNEL_ID } },
       apns: { headers: { 'apns-priority': '10' }, payload: { aps: { sound: 'default' } } },
     });
   } catch (err) {

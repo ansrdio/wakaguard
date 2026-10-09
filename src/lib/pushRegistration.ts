@@ -26,8 +26,35 @@ const OPT_OUT_KEY = 'wakaguard_push_opt_out';
 /** Reading the phone's setting should be instant; a phone that does not answer is skipped */
 const CHECK_WAIT_MS = 3000;
 
+/**
+ * The Android channel the "Are you okay?" reminder arrives on. The server
+ * names the same id (REMINDER_CHANNEL_ID in functions/src/tripMonitor.ts).
+ */
+export const REMINDER_CHANNEL_ID = 'trip_reminders';
+
 let listening = false;
 let signedInUid: string | null = null;
+let channelReady = false;
+
+/**
+ * Android shows a notification the way its channel says. With no channel of
+ * its own the reminder lands on Firebase's catch-all one, which makes a sound
+ * but does not appear over whatever the person is doing, and this is the
+ * notification that stops their contacts being alerted for nothing. Its own
+ * channel is set to appear on screen. An iPhone has no channels.
+ */
+async function prepareReminderChannel(): Promise<void> {
+  if (channelReady || Capacitor.getPlatform() !== 'android') return;
+  await PushNotifications.createChannel({
+    id: REMINDER_CHANNEL_ID,
+    name: 'Trip reminders',
+    description: 'Asks if you are okay when a trip passes its arrival time, before your contacts are alerted',
+    importance: 4,
+    visibility: 1,
+    vibration: true,
+  });
+  channelReady = true;
+}
 
 /** Remember that the person switched notifications off (or back on) in Profile */
 export function setPushOptOut(optedOut: boolean): void {
@@ -79,6 +106,9 @@ export async function registerForPush(uid: string): Promise<void> {
   if (!Capacitor.isNativePlatform() || hasOptedOut()) return;
 
   try {
+    // Needs no permission, and has to exist before the first reminder arrives
+    await settleWithin(prepareReminderChannel(), CHECK_WAIT_MS, null);
+
     const status = await settleWithin(PushNotifications.checkPermissions(), CHECK_WAIT_MS, null);
     if (status?.receive !== 'granted') return;
 
