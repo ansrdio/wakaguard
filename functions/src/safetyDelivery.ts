@@ -3,6 +3,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { getSetting } from './config';
 import { getProviders, sendSmsBatch, SendSmsResult } from './sms';
 import { sanitizeName } from './smsText';
+import { addressTo } from './templates';
 
 export type DeliveryStatus = 'sent' | 'partial' | 'failed' | 'blocked';
 
@@ -132,7 +133,9 @@ export async function getSenderProfile(uid: string): Promise<SenderProfile> {
 }
 
 /**
- * Send one message body to a list of recipients and write a safetyMessageLogs entry.
+ * Send one message to a list of recipients and write a safetyMessageLogs entry.
+ * Each recipient's copy opens with their name and closes with the company's
+ * (see addressTo); the log keeps the body they share.
  * Never throws for provider errors; the outcome is in the returned status.
  *
  * 'sent' means the provider accepted every message, not that each handset
@@ -163,8 +166,9 @@ export async function deliverSafetySms(params: {
     status = 'blocked';
     failed = recipients.length;
   } else {
+    // Each contact's text is addressed to them and signed with the company's name
     providerResults = await sendSmsBatch(
-      recipients.map((r) => ({ phoneE164: r.phoneE164, body: messageBody }))
+      recipients.map((r) => ({ phoneE164: r.phoneE164, body: addressTo(r.name, messageBody) }))
     );
 
     sent = providerResults.filter((r) => r.sid && !r.error).length;

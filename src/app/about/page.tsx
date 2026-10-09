@@ -38,24 +38,24 @@ const STEPS = [
 const TEXTS = [
   {
     when: 'A traveller shares a trip with a contact',
-    example: 'WakaGuard: Ada is sharing a trip to Ibadan with you. Expected arrival Tue 4:30 pm. Follow it: [trip link]',
+    example: 'Dear Tobi, WakaGuard: Ada is sharing a trip to Ibadan with you. Expected arrival Tue 4:30 pm. Follow it: [trip link] Powered by Inskriba Ltd.',
   },
   {
     when: 'A traveller has not arrived',
     example:
-      'WakaGuard: Ada has not checked in from a trip to Ibadan, due Tue 4:30 pm. Last location received Tue 4:12 pm: [map link] Track: [trip link] Please call them.',
+      'Dear Tobi, WakaGuard: Ada has not checked in from a trip to Ibadan, due Tue 4:30 pm. Last location received Tue 4:12 pm: [map link] Track: [trip link] Please call them. Powered by Inskriba Ltd.',
   },
   {
     when: 'A traveller presses SOS',
-    example: 'WakaGuard SOS: Ada needs help. Location: [map link] Track: [trip link] Call them or 112.',
+    example: 'Dear Tobi, WakaGuard SOS: Ada needs help. Location: [map link] Track: [trip link] Call them or 112. Powered by Inskriba Ltd.',
   },
   {
     when: 'A traveller tells a contact they are fine',
-    example: 'WakaGuard: Ada checked in and is OK.',
+    example: 'Dear Tobi, WakaGuard: Ada checked in and is OK. Powered by Inskriba Ltd.',
   },
   {
     when: 'A traveller who was overdue checks in',
-    example: 'WakaGuard: Ada has checked in and ended the trip safely.',
+    example: 'Dear Tobi, WakaGuard: Ada has checked in and ended the trip safely. Powered by Inskriba Ltd.',
   },
 ];
 
@@ -131,7 +131,7 @@ export default function AboutPage() {
           <h2 id="texts" className="text-2xl font-bold mb-2">The text messages WakaGuard sends</h2>
           <p className="text-slate-700 max-w-2xl">
             WakaGuard texts only the contacts a traveller has chosen, and only about that traveller&apos;s own trip.
-            It does not send marketing messages. The messages look like this:
+            It does not send marketing messages. Each one is addressed to the contact by name and ends with our company&apos;s name. They look like this:
           </p>
           <ul className="mt-4 bg-white rounded-3xl border border-slate-200 shadow-sm divide-y divide-slate-100">
             {TEXTS.map(({ when, example }) => (

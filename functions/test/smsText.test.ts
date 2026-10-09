@@ -2,12 +2,14 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { countSmsSegments, isGsm7, sanitizeForSms, sanitizeName, sanitizePlace, toGsm7 } from '../src/smsText';
 import {
+  addressTo,
   buildAllClearMessage,
   buildCheckinMessage,
   buildMapsLink,
   buildOverdueMessage,
   buildSosMessage,
   buildTripShareMessage,
+  markAsTest,
 } from '../src/templates';
 
 const DEADLINE = Date.UTC(2026, 9, 6, 15, 30);
@@ -122,4 +124,53 @@ test('every message fits in two SMS segments with the longest allowed inputs', (
     assert.ok(isGsm7(body), `not GSM-7: ${body}`);
     assert.ok(countSmsSegments(body) <= 2, `${countSmsSegments(body)} segments (${body.length} chars): ${body}`);
   }
+});
+
+test('addressTo: opens with the contact\'s name and closes with the company\'s', () => {
+  const body = buildAllClearMessage({ userName: 'Ada', reason: 'ended' });
+  assert.equal(
+    addressTo('Tobi', body),
+    'Dear Tobi, WakaGuard: Ada has checked in and ended the trip safely. Powered by Inskriba Ltd.'
+  );
+});
+
+test('addressTo: a test label stays in front of the greeting', () => {
+  const body = markAsTest(buildSosMessage({ userName: 'Ada' }), true);
+  assert.equal(
+    addressTo('Tobi', body),
+    'WAKAGUARD TEST ALERT. NOT A REAL EMERGENCY. Dear Tobi, WakaGuard SOS: Ada needs help. Call them or 112. Powered by Inskriba Ltd.'
+  );
+});
+
+test('addressTo: a contact\'s name cannot carry a link, a number or a second message', () => {
+  const msg = addressTo('Mum. Visit http://evil.example or call +234 803 123 4567 now', 'WakaGuard: Ada has checked in safely.');
+  assert.doesNotMatch(msg, /evil\.example/);
+  assert.doesNotMatch(msg, /803/);
+  assert.match(msg, /^Dear Mum\./);
+  assert.match(msg, / Powered by Inskriba Ltd\.$/);
+  // The name is the traveller's own label for the contact; it is kept short
+  assert.ok(msg.indexOf(',') <= 'Dear '.length + 20);
+});
+
+test('addressTo: no usable name means no greeting, and the sign-off stays', () => {
+  for (const name of ['', '   ', null, undefined, 42, 'https://evil.example']) {
+    assert.equal(addressTo(name, 'WakaGuard: Ada has checked in safely.'), 'WakaGuard: Ada has checked in safely. Powered by Inskriba Ltd.');
+  }
+});
+
+test('addressed messages: an ordinary alert is two segments, and the longest possible is three', () => {
+  const ordinary = addressTo('Abimbola', buildOverdueMessage({
+    userName: 'Adaeze', kind: 'trip', deadlineMs: DEADLINE, destination: 'Shoprite Ikeja',
+    lat: 6.61234, lng: 3.35678, lastUpdateMs: DEADLINE - 600000, token: TOKEN,
+  }));
+  assert.ok(isGsm7(ordinary), `not GSM-7: ${ordinary}`);
+  assert.equal(countSmsSegments(ordinary), 2, `${ordinary.length} chars: ${ordinary}`);
+
+  const userName = sanitizeName('W'.repeat(60));
+  const longest = addressTo('C'.repeat(60), markAsTest(buildOverdueMessage({
+    userName, kind: 'trip', deadlineMs: DEADLINE, destination: 'D'.repeat(80),
+    lat: -12.345678, lng: -123.456789, lastUpdateMs: DEADLINE, token: TOKEN,
+  }), true));
+  assert.ok(isGsm7(longest), `not GSM-7: ${longest}`);
+  assert.ok(countSmsSegments(longest) <= 3, `${countSmsSegments(longest)} segments (${longest.length} chars): ${longest}`);
 });

@@ -190,7 +190,7 @@ export default function PrivacyPage() {
             <ul className="list-disc list-inside text-gray-700 mb-4 space-y-2">
               <li>The name you entered for alerts</li>
               <li>Depending on the message: your destination, your expected arrival time, your last known location as a Google Maps link with the time we received it, and the trip link</li>
-              <li>Messages begin with &quot;WakaGuard&quot; for identification. Texts about a test trip begin &quot;WAKAGUARD TEST ALERT. NOT A REAL EMERGENCY.&quot;</li>
+              <li>Each message is addressed to the contact by the name you saved for them, says it is from WakaGuard, and ends &quot;Powered by Inskriba Ltd.&quot; Texts about a test trip begin &quot;WAKAGUARD TEST ALERT. NOT A REAL EMERGENCY.&quot;</li>
             </ul>
 
             <h3 className="text-xl font-semibold text-gray-800 mb-3">Consent &amp; Opt-In</h3>

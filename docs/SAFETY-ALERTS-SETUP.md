@@ -32,6 +32,19 @@ To keep Twilio as a backup, set `SMS_FALLBACK_PROVIDER=twilio` and the three `TW
 
 A message logged as `sent` was accepted by the provider. That is not proof it reached the phone; check the provider's delivery reports when testing.
 
+### The shape of every text
+
+Termii's compliance rules ask that a notification names the person receiving it and the company sending it,
+and a sender ID is registered against a sample message that cannot be edited afterwards. Every text therefore
+goes out as:
+
+`Dear <contact's name>, WakaGuard: <the message> Powered by Inskriba Ltd.`
+
+The greeting and the sign-off are added per contact by `addressTo` in `functions/src/templates.ts`, so the
+message builders and the log keep the shared body. If the wording of the sign-off or the greeting changes,
+the sample registered with Termii has to be submitted again. The texts carry two kinds of link (the trip page
+on wakaguard.com and a Google Maps position); ask Termii whether those need whitelisting on the sender ID.
+
 ### Settings that were in `functions.config()`
 
 Older deployments set Twilio values with `firebase functions:config:set`. Those are still read as a fallback, but Firebase has deprecated that API and deploys that rely on it will fail after March 2027. Move the values into `functions/.env`.

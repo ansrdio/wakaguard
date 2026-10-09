@@ -8,7 +8,7 @@
  */
 
 import { getSetting } from './config';
-import { sanitizeForSms, sanitizePlace } from './smsText';
+import { sanitizeForSms, sanitizeName, sanitizePlace } from './smsText';
 
 function baseUrl(): string {
   return (getSetting('APP_BASE_URL') || 'https://wakaguard.com').replace(/\/+$/, '');
@@ -52,6 +52,34 @@ export const TEST_PREFIX = 'WAKAGUARD TEST ALERT. NOT A REAL EMERGENCY. ';
 /** Label a message as a test when it belongs to a test trip */
 export function markAsTest(body: string, isTest: boolean | null | undefined): string {
   return isTest ? TEST_PREFIX + body : body;
+}
+
+// -------------------------------------------------------------------------
+// Who the text is to, and who it is from
+// -------------------------------------------------------------------------
+
+/** The registered company behind WakaGuard, named at the end of every text */
+export const SIGN_OFF = 'Powered by Inskriba Ltd.';
+
+/** The contact's name is the traveller's own label for them; keep the greeting short */
+const GREETING_NAME_LENGTH = 20;
+
+/**
+ * Address a message to the person receiving it and sign it with the company's
+ * name: "Dear Tobi, WakaGuard: ... Powered by Inskriba Ltd."
+ *
+ * The SMS provider's compliance rules (Termii, October 2026) ask for both in
+ * every notification, and the sender ID is registered with a sample in this
+ * shape. A text that leaves them out may not be carried.
+ *
+ * A test label stays at the very front, ahead of the greeting. A contact with
+ * no usable name gets no greeting rather than "Dear ,".
+ */
+export function addressTo(recipientName: unknown, body: string): string {
+  const label = body.startsWith(TEST_PREFIX) ? TEST_PREFIX : '';
+  const rest = body.slice(label.length);
+  const name = sanitizeName(recipientName).slice(0, GREETING_NAME_LENGTH).trim();
+  return `${label}${name ? `Dear ${name}, ` : ''}${rest} ${SIGN_OFF}`;
 }
 
 // -------------------------------------------------------------------------
