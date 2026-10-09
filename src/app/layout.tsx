@@ -6,6 +6,7 @@ import { AuthProvider } from '@/components/AuthProvider';
 import { ServiceWorkerProvider } from '@/components/ServiceWorkerProvider';
 import { NativeSetup } from '@/components/NativeSetup';
 import { ThemeProvider } from '@/contexts/ThemeContext';
+import { IN_APP_SCRIPT } from '@/lib/frontPage';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -48,8 +49,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="h-full">
+    // The script below may add an attribute to <html> before React starts
+    <html lang="en" className="h-full" suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: IN_APP_SCRIPT }} />
         <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-180x180.png" />
         <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-96x96.png" />
         <link rel="icon" type="image/png" sizes="16x16" href="/icons/icon-48x48.png" />

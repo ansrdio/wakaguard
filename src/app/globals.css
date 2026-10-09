@@ -31,6 +31,20 @@
   color-scheme: dark;
 }
 
+/*
+ * The built front page holds the landing page and the app's loader. Until the
+ * app's scripts have decided which one this visitor gets, these two rules pick
+ * for them: the script in the page's head marks <html> for anyone already
+ * using WakaGuard (see lib/frontPage.ts), and they get the loader.
+ */
+html[data-in-app] .for-new-visitors {
+  display: none;
+}
+
+html:not([data-in-app]) .for-app-users {
+  display: none;
+}
+
 /* Safe area for native apps (iOS/Android) */
 html {
   padding-top: env(safe-area-inset-top);
