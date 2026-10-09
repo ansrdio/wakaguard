@@ -89,9 +89,10 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
         // Send verification email
         await sendEmailVerification(userCredential.user);
         clearTimeout(timeoutId);
-        setAuthSuccess('Account created! Please check your email to verify your account.');
-        setAuthMode('signin');
-        setAuthLoading(false);
+        // Creating the account signs the person in. Go on to "Check your
+        // email" rather than back to a sign-in form headed "Welcome back" for
+        // an account they are already in.
+        handleAuthComplete();
       } else if (authMode === 'reset') {
         await sendPasswordResetEmail(auth, email);
         clearTimeout(timeoutId);
