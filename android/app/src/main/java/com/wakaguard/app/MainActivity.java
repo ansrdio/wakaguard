@@ -10,7 +10,6 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import com.getcapacitor.BridgeActivity;
-import com.codetrixstudio.capacitor.GoogleAuth.GoogleAuth;
 
 public class MainActivity extends BridgeActivity {
     // Shown behind the status and navigation bars. Matches backgroundColor in capacitor.config.ts.
@@ -18,7 +17,6 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
-        registerPlugin(GoogleAuth.class);
         super.onCreate(savedInstanceState);
         keepWebViewClearOfSystemBars();
         goBackInsideTheAppFirst();

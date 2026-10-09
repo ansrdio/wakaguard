@@ -4,6 +4,5 @@
     <string name="title_activity_main">WakaGuard</string>
     <string name="package_name">com.wakaguard.app</string>
     <string name="custom_url_scheme">com.wakaguard.app</string>
-    <string name="server_client_id">1023994839910-mtbl6jmpa2l2anbjhp4d9sis43p848ci.apps.googleusercontent.com</string>
     <string name="capacitor_background_geolocation_notification_channel_name">Safe Trip tracking</string>
 </resources>
