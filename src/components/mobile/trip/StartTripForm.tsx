@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AlertTriangle, Check, Loader2, Navigation, Plus, UserPlus } from 'lucide-react';
 import {
   ALERT_GRACE_MINUTES,
@@ -138,9 +138,25 @@ export function StartTripForm({
     setDeselectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   };
 
+  // The start buttons are at the bottom of a long form and the first question
+  // is at the top. Someone who taps Start with a question unanswered sees
+  // nothing happen unless the form takes them to it.
+  const formRef = useRef<HTMLElement>(null);
+  const [refusals, setRefusals] = useState(0);
+  useEffect(() => {
+    if (refusals === 0) return;
+    const form = formRef.current;
+    const target = form?.querySelector<HTMLElement>('[aria-invalid="true"]') ?? form?.querySelector<HTMLElement>('[role="alert"]');
+    target?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    if (target instanceof HTMLInputElement) target.focus({ preventScroll: true });
+  }, [refusals]);
+
   const handleSubmit = () => {
     setSubmitted(true);
-    if (Object.keys(validateTripPlan(plan)).length > 0) return;
+    if (Object.keys(validateTripPlan(plan)).length > 0) {
+      setRefusals((n) => n + 1);
+      return;
+    }
     onStart({ ...plan, textContacts, isTest: false });
   };
 
@@ -148,12 +164,19 @@ export function StartTripForm({
   const handleTestTrip = () => {
     setSubmitted(true);
     const problems = validateTripPlan({ ...plan, durationMinutes: DEFAULT_TRIP_MINUTES });
-    if (Object.keys(problems).length > 0) return;
+    if (Object.keys(problems).length > 0) {
+      setRefusals((n) => n + 1);
+      return;
+    }
     onStart({ ...plan, durationMinutes: TEST_TRIP_MINUTES, textContacts, isTest: true });
   };
 
+  // Said again beside the buttons, where the person's thumb is
+  const firstProblem = errors.destination || errors.duration || errors.contacts || errors.alertName || null;
+
   return (
     <section
+      ref={formRef}
       aria-labelledby="start-trip-heading"
       className="rounded-3xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm p-5 space-y-5"
     >
@@ -460,14 +483,28 @@ export function StartTripForm({
         )}
       </div>
 
+      {firstProblem && (
+        <p className="text-sm font-semibold text-red-700 dark:text-red-300 text-center">
+          {firstProblem} to start the trip.
+        </p>
+      )}
+
       <button
         type="button"
         onClick={handleSubmit}
         disabled={processing}
-        className="w-full py-4 bg-brand-600 text-white rounded-2xl font-bold text-lg hover:bg-brand-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+        className="w-full py-3.5 bg-brand-600 text-white rounded-2xl font-bold text-lg hover:bg-brand-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-3"
       >
         {processing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Navigation className="w-5 h-5" />}
-        Start safe trip
+        <span className="text-left leading-tight">
+          <span className="block">Start safe trip</span>
+          {/* The length is on the button so a trip of the wrong length is noticed before it starts */}
+          {!errors.duration && (
+            <span className="block text-sm font-medium opacity-90">
+              {formatDuration(durationMinutes)}, arrive by {formatClock(arriveByMs, nowMs)}
+            </span>
+          )}
+        </span>
       </button>
 
       <div className="text-center">
@@ -475,7 +512,7 @@ export function StartTripForm({
           type="button"
           onClick={handleTestTrip}
           disabled={processing}
-          className="text-sm font-semibold text-blue-700 dark:text-blue-300 underline disabled:opacity-50"
+          className="w-full py-3 rounded-2xl text-base font-semibold border border-slate-300 dark:border-slate-600 text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
         >
           Try a {TEST_TRIP_MINUTES}-minute test trip instead
         </button>

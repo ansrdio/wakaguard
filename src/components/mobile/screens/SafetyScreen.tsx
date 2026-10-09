@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { useSafety } from '@/hooks/useSafety';
 import { askToShowNotifications } from '@/lib/nativeNotifications';
-import { MAX_TRUSTED_CONTACTS, joinNames } from '@/lib/tripPlanning';
+import { MAX_TRUSTED_CONTACTS, formatDuration, joinNames } from '@/lib/tripPlanning';
 import { reachedServer } from '@/lib/firestoreWrites';
 import { StartTripForm, StartTripRequest } from '@/components/mobile/trip/StartTripForm';
 import { ActiveTripCard } from '@/components/mobile/trip/ActiveTripCard';
@@ -360,12 +360,17 @@ export function SafetyScreen() {
       trustedContacts.filter((c) => request.contactIds.includes(c.id)).map((c) => c.name)
     );
 
+    // Says the length, so a trip started at the wrong length is noticed at once
+    const started = request.isTest
+      ? `${formatDuration(request.durationMinutes)} test trip started.`
+      : `${formatDuration(request.durationMinutes)} trip started.`;
+
     if (!request.textContacts) {
       setProcessing(false);
       showToast(
         request.isTest
-          ? 'Test trip started. End it when you like, or let it run to see the alert.'
-          : 'Trip started. Share the link so your contacts can follow it.',
+          ? `${started} End it when you like, or let it run to see the alert.`
+          : `${started} Share the link so your contacts can follow it.`,
         'success'
       );
       return;
@@ -375,13 +380,13 @@ export function SafetyScreen() {
       const sms = await sendTripShareSms(result.tripId);
       showToast(
         sms.success
-          ? `Trip started. ${watchers} ${request.contactIds.length === 1 ? 'was' : 'were'} sent the link.`
-          : 'Trip started, but the text could not be sent. Share the link below instead.',
+          ? `${started} ${watchers} ${request.contactIds.length === 1 ? 'was' : 'were'} sent the link.`
+          : `${started} The text could not be sent, so share the link below instead.`,
         sms.success ? 'success' : 'error'
       );
     } catch (error) {
       console.error('Trip share SMS failed:', error);
-      showToast('Trip started, but the text could not be sent. Share the link below instead.', 'error');
+      showToast(`${started} The text could not be sent, so share the link below instead.`, 'error');
     } finally {
       setProcessing(false);
     }
