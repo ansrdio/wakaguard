@@ -29,6 +29,8 @@ interface ActiveTripCardProps {
 }
 
 const EXTEND_OPTIONS = [
+  // Most trips are across town, where "five minutes away" is the usual reason to add time
+  { minutes: 5, label: '+5 min' },
   { minutes: 15, label: '+15 min' },
   { minutes: 30, label: '+30 min' },
   { minutes: 60, label: '+1 hr' },
@@ -95,7 +97,6 @@ export function ActiveTripCard({
   onSOS,
 }: ActiveTripCardProps) {
   const [nowMs, setNowMs] = useState(() => Date.now());
-  const [addTimeOpen, setAddTimeOpen] = useState(false);
 
   useEffect(() => {
     const interval = setInterval(() => setNowMs(Date.now()), 5000);
@@ -106,6 +107,8 @@ export function ActiveTripCard({
   const isEmergency = trip.status === TripStatus.EMERGENCY;
   const timeLeft = endsAtMs != null ? describeTimeLeft(endsAtMs, nowMs) : null;
   const tone = TONES[isEmergency ? 'emergency' : timeLeft?.state ?? 'active'];
+  const shortOfTime = !isEmergency && (timeLeft?.state === 'endingSoon' || timeLeft?.state === 'overdue');
+  const extendOptions = trip.isTest ? TEST_EXTEND_OPTIONS : EXTEND_OPTIONS;
   const location = describeLocationStatus(trip.lastUpdate?.toMillis() ?? null, !!trip.lastLocation, nowMs);
   const LocationIcon = location.state === 'fresh' ? MapPin : MapPinOff;
   const canExtend = endsAtMs != null && !isEmergency;
@@ -266,49 +269,50 @@ export function ActiveTripCard({
         {isEmergency ? "I'm safe now, end trip" : "I've arrived"}
       </button>
 
-      <div className={`grid gap-3 ${canExtend ? 'grid-cols-2' : 'grid-cols-1'}`}>
-        {canExtend && (
-          <button
-            type="button"
-            onClick={() => setAddTimeOpen((open) => !open)}
-            aria-expanded={addTimeOpen}
-            disabled={processing}
-            className={quietButton}
+      {/* The choices are on the card, not behind a button: adding time is what
+          stops a false alarm, and nobody should have to hunt for it. They turn
+          amber once the arrival time is near or past. */}
+      {canExtend && (
+        <div role="group" aria-labelledby="add-time-label">
+          <p
+            id="add-time-label"
+            className={`flex items-center gap-1.5 text-sm font-semibold mb-2 ${
+              shortOfTime ? 'text-amber-800 dark:text-amber-300' : 'text-slate-700 dark:text-slate-200'
+            }`}
           >
-            <Clock className="w-5 h-5" aria-hidden="true" />
-            Add time
-          </button>
-        )}
-        <button
-          type="button"
-          onClick={onTextOkay}
-          disabled={processing || watcherNames.length === 0}
-          aria-label="Text your contacts that you are okay"
-          className={quietButton}
-        >
-          <ShieldCheck className="w-5 h-5" aria-hidden="true" />
-          Text &quot;I&apos;m okay&quot;
-        </button>
-      </div>
-
-      {canExtend && addTimeOpen && (
-        <div className="grid grid-cols-3 gap-2" role="group" aria-label="Running late? Add time">
-          {(trip.isTest ? TEST_EXTEND_OPTIONS : EXTEND_OPTIONS).map((option) => (
-            <button
-              key={option.minutes}
-              type="button"
-              onClick={() => {
-                setAddTimeOpen(false);
-                onExtend(option.minutes);
-              }}
-              disabled={processing}
-              className="py-3 rounded-xl text-sm font-semibold bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50"
-            >
-              {option.label}
-            </button>
-          ))}
+            <Clock className="w-4 h-4" aria-hidden="true" />
+            Running late? Add time
+          </p>
+          <div className={`grid gap-2 ${extendOptions.length === 4 ? 'grid-cols-4' : 'grid-cols-3'}`}>
+            {extendOptions.map((option) => (
+              <button
+                key={option.minutes}
+                type="button"
+                onClick={() => onExtend(option.minutes)}
+                disabled={processing}
+                className={`py-3 rounded-xl text-sm font-semibold border transition-colors disabled:opacity-50 ${
+                  shortOfTime
+                    ? 'bg-amber-50 border-amber-400 text-amber-900 hover:bg-amber-100 dark:bg-amber-950 dark:border-amber-600 dark:text-amber-200'
+                    : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-700'
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
         </div>
       )}
+
+      <button
+        type="button"
+        onClick={onTextOkay}
+        disabled={processing || watcherNames.length === 0}
+        aria-label="Text your contacts that you are okay"
+        className={`${quietButton} w-full`}
+      >
+        <ShieldCheck className="w-5 h-5" aria-hidden="true" />
+        Text &quot;I&apos;m okay&quot;
+      </button>
 
       <button type="button" onClick={onShare} className={`${quietButton} w-full`}>
         <Share2 className="w-5 h-5" aria-hidden="true" />

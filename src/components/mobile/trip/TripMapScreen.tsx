@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import dynamic from 'next/dynamic';
 import { ArrowLeft, Check, Clock, Loader2, MapPin, MapPinOff, Users } from 'lucide-react';
 import { Trip, TripStatus } from '@/lib/types';
-import { describeLocationStatus, describeTimeLeft, formatClock, joinNames } from '@/lib/tripPlanning';
+import { TEST_TRIP_MINUTES, describeLocationStatus, describeTimeLeft, formatClock, joinNames } from '@/lib/tripPlanning';
 import { readTripPath } from '@/lib/tripPath';
 import { describeTripAlert, watcherCaption } from '@/lib/alertOutcome';
 import { useSharedTrip } from '@/hooks/useSharedTrip';
@@ -59,6 +59,8 @@ export function TripMapScreen({ trip, watcherNames, processing, onClose, onArriv
   const pill = PILLS[isEmergency ? 'emergency' : timeLeft?.state ?? 'active'];
   const location = describeLocationStatus(trip.lastUpdate?.toMillis() ?? null, !!trip.lastLocation, nowMs);
   const LocationIcon = location.state === 'fresh' ? MapPin : MapPinOff;
+  // A quarter of an hour more would end a two-minute test
+  const extraMinutes = trip.isTest ? TEST_TRIP_MINUTES : 15;
 
   // Drawn at the top of the page, not inside the Trip screen: on iPhone a
   // scrolling area keeps everything in it underneath the app's own bars, which
@@ -142,12 +144,12 @@ export function TripMapScreen({ trip, watcherNames, processing, onClose, onArriv
           {!isEmergency && endsAtMs != null && (
             <button
               type="button"
-              onClick={() => onExtend(15)}
+              onClick={() => onExtend(extraMinutes)}
               disabled={processing}
               className="py-3.5 rounded-2xl font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-slate-800 dark:text-blue-300 dark:hover:bg-slate-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
             >
               <Clock className="w-5 h-5" aria-hidden="true" />
-              Add 15 min
+              Add {extraMinutes} min
             </button>
           )}
         </div>
