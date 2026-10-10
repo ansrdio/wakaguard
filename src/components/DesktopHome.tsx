@@ -68,7 +68,8 @@ export function DesktopHome({
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showDeleteAccount, setShowDeleteAccount] = useState(false);
 
-  const { uid, isAnonymous } = useAuthedUser();
+  const { uid, isAnonymous, email, username } = useAuthedUser();
+  const signedIn = !!uid && !isAnonymous;
   const { requireAccount, showAuthModal, openAuthModal, closeAuthModal } = useRequireAccount({ uid, isAnonymous });
   const { reports: myReports, loading: myReportsLoading, count: reportCount } = useMyReports();
   const { isSupported: pushSupported, isSubscribed, permission, subscribe, unsubscribe, loading: pushLoading } = usePushNotifications();
@@ -186,7 +187,7 @@ export function DesktopHome({
             <MapPin className="w-6 h-6 text-blue-600" />
             <div className="flex flex-col">
               <h1 className="text-xl font-bold text-slate-900 dark:text-white leading-tight">WakaGuard</h1>
-              <p className="text-xs text-slate-500 dark:text-slate-400 leading-none">Report road issues</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-none">Travel safety</p>
             </div>
           </div>
 
@@ -244,8 +245,8 @@ export function DesktopHome({
                   <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)} />
                   <div className="absolute right-0 top-full mt-2 w-64 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 z-50 overflow-hidden">
                     <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
-                      <p className="font-semibold text-slate-900 dark:text-white">{uid ? 'Road Guardian' : 'Guest'}</p>
-                      <p className="text-xs text-slate-500">{uid ? `ID: ${uid.substring(0, 12)}...` : 'Sign in to save reports'}</p>
+                      <p className="font-semibold text-slate-900 dark:text-white truncate">{signedIn ? (username || 'Your account') : 'Guest'}</p>
+                      <p className="text-xs text-slate-500 truncate">{signedIn ? email : 'Sign in to save reports'}</p>
                     </div>
                     {!uid && (
                       <div className="p-3 border-b border-slate-100 dark:border-slate-700">
@@ -653,7 +654,7 @@ export function DesktopHome({
                   </div>
                   <div>
                     <p className="font-medium text-slate-900">Account</p>
-                    <p className="text-xs text-slate-500">{uid ? `ID: ${uid.substring(0, 8)}...` : 'Guest'}</p>
+                    <p className="text-xs text-slate-500">{signedIn ? (username ? `@${username}` : email) : 'Guest'}</p>
                   </div>
                 </div>
               </div>
@@ -737,7 +738,7 @@ export function DesktopHome({
               </div>
 
               <div className="pt-4 border-t border-slate-200">
-                <p className="text-xs text-slate-500 text-center">WakaGuard v1.0.0</p>
+                <p className="text-xs text-slate-500 text-center">WakaGuard 1.2.0</p>
               </div>
             </div>
           </div>
