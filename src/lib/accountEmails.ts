@@ -1,7 +1,7 @@
 import { sendEmailVerification, sendPasswordResetEmail, type ActionCodeSettings, type User } from 'firebase/auth';
 import { auth, usingEmulators } from './firebase';
 import { APP_URL } from './appUrl';
-import { emailLinkSettings } from './emailLinks';
+import { emailLinkSettings, type EmailTask } from './emailLinks';
 
 /**
  * The two emails WakaGuard asks Firebase to send: "verify your address" and
@@ -23,8 +23,8 @@ const SETTINGS_REFUSED = [
   'auth/argument-error',
 ];
 
-async function withOurLinks(send: (settings?: ActionCodeSettings) => Promise<void>): Promise<void> {
-  const settings = usingEmulators() ? null : emailLinkSettings(APP_URL);
+async function withOurLinks(task: EmailTask, send: (settings?: ActionCodeSettings) => Promise<void>): Promise<void> {
+  const settings = usingEmulators() ? null : emailLinkSettings(APP_URL, task);
   if (settings) {
     try {
       await send(settings);
@@ -39,9 +39,9 @@ async function withOurLinks(send: (settings?: ActionCodeSettings) => Promise<voi
 }
 
 export function sendVerificationEmail(user: User): Promise<void> {
-  return withOurLinks((settings) => sendEmailVerification(user, settings));
+  return withOurLinks('verify', (settings) => sendEmailVerification(user, settings));
 }
 
 export function sendPasswordReset(email: string): Promise<void> {
-  return withOurLinks((settings) => sendPasswordResetEmail(auth, email, settings));
+  return withOurLinks('reset', (settings) => sendPasswordResetEmail(auth, email, settings));
 }

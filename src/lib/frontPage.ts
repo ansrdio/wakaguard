@@ -39,6 +39,18 @@ export function visitorIsInApp(): boolean {
   }
 }
 
+/**
+ * Whether WakaGuard has been used in this browser: the first-run screens are
+ * behind it, or this tab has already gone into the app.
+ */
+export function usedHereBefore(): boolean {
+  try {
+    return localStorage.getItem(FIRST_RUN_DONE_KEY) !== null || sessionStorage.getItem(OPENED_APP_KEY) !== null;
+  } catch {
+    return false;
+  }
+}
+
 export function rememberAppOpened(): void {
   try {
     sessionStorage.setItem(OPENED_APP_KEY, '1');

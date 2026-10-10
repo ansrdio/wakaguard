@@ -4,7 +4,9 @@ import { useEffect, useState, useSyncExternalStore } from 'react';
 import dynamic from 'next/dynamic';
 import { AccountDeletedNotice } from '@/components/AccountDeletedNotice';
 import { AppLoader } from '@/components/AppLoader';
+import { EmailDoneNotice } from '@/components/EmailDoneNotice';
 import { LandingPage } from '@/components/site/LandingPage';
+import { emailTaskJustDone } from '@/lib/emailLinks';
 import { accountWasJustDeleted, forgetAccountDeleted, rememberAppOpened, visitorIsInApp } from '@/lib/frontPage';
 
 // The app runs only in a browser (Firebase is not set up while the site is
@@ -46,10 +48,16 @@ export default function Home() {
   const justDeleted = useSyncExternalStore(neverChanges, accountWasJustDeleted, notOnTheServer);
   const [noticeClosed, setNoticeClosed] = useState(false);
 
+  // Back from the page an email link opens, in a browser that has never run
+  // WakaGuard: their account is in the phone app, so they are sent back to it
+  const emailTask = useSyncExternalStore(neverChanges, emailTaskJustDone, notKnownYet);
+  const [choseBrowser, setChoseBrowser] = useState(false);
+  const sendBackToApp = emailTask !== null && !choseBrowser;
+
   // So that leaving for another page and coming back, or signing out, stays in the app
   useEffect(() => {
-    if (inApp) rememberAppOpened();
-  }, [inApp]);
+    if (inApp && !sendBackToApp) rememberAppOpened();
+  }, [inApp, sendBackToApp]);
 
   if (justDeleted && !noticeClosed) {
     const closeNotice = () => {
@@ -57,6 +65,10 @@ export default function Home() {
       setNoticeClosed(true);
     };
     return <AccountDeletedNotice onDone={closeNotice} />;
+  }
+
+  if (sendBackToApp) {
+    return <EmailDoneNotice task={emailTask} onUseBrowser={() => setChoseBrowser(true)} />;
   }
 
   if (inApp) {
