@@ -22,6 +22,24 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- "Continue" on the page an email link opens: brings the app back to the front.
+                 Android checks https://wakaguard.com/.well-known/assetlinks.json before it
+                 agrees (see src/lib/emailLinks.ts). -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="wakaguard.com" android:path="/open" />
+            </intent-filter>
+
+            <!-- The "Open WakaGuard" button on that page, for when the address above opened in a browser -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="wakaguard" />
+            </intent-filter>
+
         </activity>
 
         <provider

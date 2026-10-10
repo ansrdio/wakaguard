@@ -1,0 +1,10 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["PRVK6W5NUS.com.ansrdlabs.wakaguard"],
+        "components": [{ "/": "/open" }]
+      }
+    ]
+  }
+}

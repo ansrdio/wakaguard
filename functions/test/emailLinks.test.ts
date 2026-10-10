@@ -1,13 +1,35 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { emailLinkSettings, emailTaskFrom } from '../../src/lib/emailLinks';
+import { emailLinkSettings, emailTaskFrom, emailTaskIn, openPhoneAppHref } from '../../src/lib/emailLinks';
 
 test('email links go to our own address, and Continue comes back saying what was done', () => {
-  assert.deepEqual(emailLinkSettings('https://wakaguard.com', 'verify'), {
+  assert.deepEqual(emailLinkSettings('https://wakaguard.com', 'verify', false), {
     url: 'https://wakaguard.com/?app=1&after=verify',
     linkDomain: 'wakaguard.com',
   });
-  assert.equal(emailLinkSettings('https://wakaguard.com/', 'reset')?.url, 'https://wakaguard.com/?app=1&after=reset');
+  assert.equal(
+    emailLinkSettings('https://wakaguard.com/', 'reset', false)?.url,
+    'https://wakaguard.com/?app=1&after=reset'
+  );
+});
+
+test('emails sent by the phone app lead back to the address that opens the app', () => {
+  assert.deepEqual(emailLinkSettings('https://wakaguard.com', 'verify', true), {
+    url: 'https://wakaguard.com/open?after=verify',
+    linkDomain: 'wakaguard.com',
+  });
+  assert.equal(emailLinkSettings('https://wakaguard.com/', 'reset', true)?.url, 'https://wakaguard.com/open?after=reset');
+});
+
+test('the page at that address knows what was done, and its button opens the app', () => {
+  assert.equal(emailTaskIn('?after=verify'), 'verify');
+  assert.equal(emailTaskIn('?after=reset'), 'reset');
+  assert.equal(emailTaskIn(''), 'unknown');
+  assert.equal(emailTaskIn('?after=anything'), 'unknown');
+
+  assert.equal(openPhoneAppHref('verify'), 'wakaguard://open?after=verify');
+  assert.equal(openPhoneAppHref('reset'), 'wakaguard://open?after=reset');
+  assert.equal(openPhoneAppHref('unknown'), 'wakaguard://open');
 });
 
 test('the site knows when someone has come back from an email page', () => {
@@ -48,6 +70,7 @@ test("Firebase's own addresses and a developer's machine keep Firebase's default
     'not an address',
     '',
   ]) {
-    assert.equal(emailLinkSettings(address, 'verify'), null, address);
+    assert.equal(emailLinkSettings(address, 'verify', false), null, address);
+    assert.equal(emailLinkSettings(address, 'verify', true), null, address);
   }
 });

@@ -28,6 +28,7 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>com.ansrdlabs.wakaguard</string>
+				<string>wakaguard</string>
 			</array>
 		</dict>
 	</array>

@@ -6,7 +6,8 @@
  *   npm run seed:emulator      (in another)
  *
  * The account only exists inside the emulators and is wiped when they stop.
- * Pass --with-contacts to also add two trusted contacts.
+ * Pass --with-contacts to also add two trusted contacts, and --unverified to
+ * leave the email address unverified, as it is straight after signing up.
  */
 
 import { createRequire } from 'node:module';
@@ -47,7 +48,7 @@ try {
     uid: TEST_USER.uid,
     email: TEST_USER.email,
     password: TEST_USER.password,
-    emailVerified: true,
+    emailVerified: !process.argv.includes('--unverified'),
   });
 
   const now = admin.firestore.FieldValue.serverTimestamp();

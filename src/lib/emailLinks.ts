@@ -14,8 +14,24 @@ import { OPEN_APP_HREF, usedHereBefore } from './frontPage';
  * Someone who signed up on the website carries on in the app there. Someone
  * who signed up in the phone app is in a browser that has never run
  * WakaGuard: opening the website's copy of the app would look as if the app
- * had carried on in the browser, signed out. They are told to go back to the
- * phone app instead (EmailDoneNotice).
+ * had carried on in the browser, signed out. They go back to the phone app:
+ *
+ * - "Continue" in an email sent by the phone app leads to BACK_TO_APP_PATH,
+ *   an address the phones are told belongs to the app (the two files in
+ *   public/.well-known, the intent filter in AndroidManifest.xml and the
+ *   associated domain in App.entitlements), so pressing it opens the app.
+ * - Where a phone opens that address in the browser anyway, the page there
+ *   has a button that opens the app (EmailDoneNotice, the app's own scheme).
+ * - Emails from Android 1.2.0 build 18 lead to the website's copy of the app;
+ *   the front page spots those arrivals and shows the same notice.
+ *
+ * The app notices by itself that the address is verified when it comes back
+ * to the front (EmailVerification).
+ *
+ * The two files name the apps allowed to claim the address: assetlinks.json
+ * by the fingerprints of Google Play's signing key and of our upload key
+ * (Play Console, App signing), apple-app-site-association by Apple team and
+ * bundle ID. If any of those change, the files must change with them.
  *
  * The link can only be moved to an address Firebase Hosting serves for this
  * project, which rules out Firebase's own addresses and a developer's
@@ -31,9 +47,15 @@ export type EmailTaskDone = EmailTask | 'unknown';
 // Says which task, on the address "Continue" leads to
 const TASK_PARAM = 'after';
 
+/** The website address that opens the phone app. The apps claim this path and nothing else. */
+export const BACK_TO_APP_PATH = '/open';
+
+// The phone apps also answer to this, which works from a button where the address above did not
+const APP_SCHEME = 'wakaguard';
+
 const NOT_OURS = /(^|\.)(web\.app|firebaseapp\.com|localhost|test)$|^127\.0\.0\.1$|^\[::1\]$/;
 
-export function emailLinkSettings(appUrl: string, task: EmailTask): ActionCodeSettings | null {
+export function emailLinkSettings(appUrl: string, task: EmailTask, fromPhoneApp: boolean): ActionCodeSettings | null {
   let host: string;
   try {
     const parsed = new URL(appUrl);
@@ -44,7 +66,19 @@ export function emailLinkSettings(appUrl: string, task: EmailTask): ActionCodeSe
   }
   if (NOT_OURS.test(host)) return null;
 
-  return { url: `${appUrl.replace(/\/+$/, '')}${OPEN_APP_HREF}&${TASK_PARAM}=${task}`, linkDomain: host };
+  const back = fromPhoneApp ? `${BACK_TO_APP_PATH}?${TASK_PARAM}=${task}` : `${OPEN_APP_HREF}&${TASK_PARAM}=${task}`;
+  return { url: `${appUrl.replace(/\/+$/, '')}${back}`, linkDomain: host };
+}
+
+/** What the address of the "back to the app" page says was done. */
+export function emailTaskIn(search: string): EmailTaskDone {
+  const task = new URLSearchParams(search).get(TASK_PARAM);
+  return task === 'verify' || task === 'reset' ? task : 'unknown';
+}
+
+/** For a button on a web page: opens the phone app, if it is on this phone. */
+export function openPhoneAppHref(task: EmailTaskDone): string {
+  return `${APP_SCHEME}://open${task === 'unknown' ? '' : `?${TASK_PARAM}=${task}`}`;
 }
 
 // The page an email link opens: Firebase's own address, or the same page served from ours

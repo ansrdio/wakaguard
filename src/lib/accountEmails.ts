@@ -1,3 +1,4 @@
+import { Capacitor } from '@capacitor/core';
 import { sendEmailVerification, sendPasswordResetEmail, type ActionCodeSettings, type User } from 'firebase/auth';
 import { auth, usingEmulators } from './firebase';
 import { APP_URL } from './appUrl';
@@ -24,7 +25,7 @@ const SETTINGS_REFUSED = [
 ];
 
 async function withOurLinks(task: EmailTask, send: (settings?: ActionCodeSettings) => Promise<void>): Promise<void> {
-  const settings = usingEmulators() ? null : emailLinkSettings(APP_URL, task);
+  const settings = usingEmulators() ? null : emailLinkSettings(APP_URL, task, Capacitor.isNativePlatform());
   if (settings) {
     try {
       await send(settings);

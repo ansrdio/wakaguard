@@ -1,0 +1,13 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.wakaguard.app",
+      "sha256_cert_fingerprints": [
+        "1E:3F:84:F4:DA:FA:EA:50:E9:05:63:09:44:CF:6E:F1:DC:17:12:4B:2E:8B:36:B3:90:44:9D:C8:47:9A:5E:2F",
+        "67:D3:78:CE:43:DE:F7:62:10:C9:BD:43:DC:C5:3E:2B:21:B1:A8:1C:BB:A8:50:11:60:44:14:E5:A2:9B:90:FF"
+      ]
+    }
+  }
+]
