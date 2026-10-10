@@ -1,7 +1,7 @@
 import { useSelectedLayoutSegments } from 'next/navigation';
 
 // Plain information: nothing on these depends on who is signed in or on the chosen theme
-const PLAIN_PAGES = ['/about', '/privacy', '/support', '/guidelines', '/delete-account', '/open'];
+const PLAIN_PAGES = ['/about', '/privacy', '/support', '/guidelines', '/delete-account', '/open', '/confirm'];
 
 /**
  * Whether the page being shown is drawn at once instead of waiting for the app

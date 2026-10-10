@@ -8,8 +8,14 @@ import { OPEN_APP_HREF, usedHereBefore } from './frontPage';
  *
  * Left alone, Firebase puts the links on its own address
  * (<project>.firebaseapp.com), and the page they open ends with nowhere to
- * go. With these settings the link is on our address, and the page offers
- * "Continue", which comes back to this site.
+ * go. The settings here give that page a "Continue", which comes back to
+ * this site.
+ *
+ * The page itself can be ours too: Firebase's console has a "Customize
+ * action URL" setting for where the links lead. Pointed at EMAIL_LINK_PATH,
+ * the address in the email is wakaguard.com and the page is EmailLinkPage,
+ * which does what the link is for and then sends the person on as below.
+ * Until that setting is changed, Firebase's own page does the same job.
  *
  * Someone who signed up on the website carries on in the app there. Someone
  * who signed up in the phone app is in a browser that has never run
@@ -47,6 +53,9 @@ export type EmailTaskDone = EmailTask | 'unknown';
 // Says which task, on the address "Continue" leads to
 const TASK_PARAM = 'after';
 
+/** The page on this site that a link in an email opens, once Firebase is told to use it. */
+export const EMAIL_LINK_PATH = '/confirm';
+
 /** The website address that opens the phone app. The apps claim this path and nothing else. */
 export const BACK_TO_APP_PATH = '/open';
 
@@ -79,6 +88,39 @@ export function emailTaskIn(search: string): EmailTaskDone {
 /** For a button on a web page: opens the phone app, if it is on this phone. */
 export function openPhoneAppHref(task: EmailTaskDone): string {
   return `${APP_SCHEME}://open${task === 'unknown' ? '' : `?${TASK_PARAM}=${task}`}`;
+}
+
+/** A link from one of our emails, as the page it opens reads it. */
+export type EmailLink =
+  | { task: EmailTask; code: string; appOpens: boolean }
+  // One of Firebase's other links (changing an email address, say), which its own page handles
+  | { task: 'other' }
+  // Not a whole link: something was lost on the way from the email
+  | null;
+
+/**
+ * Reads the address Firebase builds for a link in an email:
+ * ?mode=...&oobCode=...&continueUrl=...
+ *
+ * appOpens says whether "Open WakaGuard" will do anything. Only an app that
+ * asked to come back to BACK_TO_APP_PATH answers to it; older builds and the
+ * website asked for something else, or for nothing.
+ */
+export function emailLinkFrom(search: string, appUrl: string): EmailLink {
+  const params = new URLSearchParams(search);
+  const mode = params.get('mode');
+  const code = params.get('oobCode');
+  if (!mode || !code) return null;
+  if (mode !== 'verifyEmail' && mode !== 'resetPassword') return { task: 'other' };
+
+  let appOpens = false;
+  try {
+    const next = new URL(params.get('continueUrl') ?? '');
+    appOpens = next.origin === new URL(appUrl).origin && next.pathname === BACK_TO_APP_PATH;
+  } catch {
+    // No address to continue to, or not one at all: an older build sent the email
+  }
+  return { task: mode === 'verifyEmail' ? 'verify' : 'reset', code, appOpens };
 }
 
 // The page an email link opens: Firebase's own address, or the same page served from ours
