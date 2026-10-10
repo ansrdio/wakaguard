@@ -6,12 +6,11 @@ import { Bell, BellOff, Loader2, ChevronRight, Mail, Eye, EyeOff } from 'lucide-
 import Image from 'next/image';
 import { 
   signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword,
-  sendPasswordResetEmail,
-  sendEmailVerification
+  createUserWithEmailAndPassword
 } from 'firebase/auth';
 import { Capacitor } from '@capacitor/core';
 import { auth } from '@/lib/firebase';
+import { sendPasswordReset, sendVerificationEmail } from '@/lib/accountEmails';
 import { askToShowNotifications } from '@/lib/nativeNotifications';
 
 type OnboardingStep = 'tutorial' | 'notifications' | 'auth';
@@ -87,14 +86,14 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       } else if (authMode === 'signup') {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         // Send verification email
-        await sendEmailVerification(userCredential.user);
+        await sendVerificationEmail(userCredential.user);
         clearTimeout(timeoutId);
         // Creating the account signs the person in. Go on to "Check your
         // email" rather than back to a sign-in form headed "Welcome back" for
         // an account they are already in.
         handleAuthComplete();
       } else if (authMode === 'reset') {
-        await sendPasswordResetEmail(auth, email);
+        await sendPasswordReset(email);
         clearTimeout(timeoutId);
         setAuthSuccess('Password reset email sent! Check your inbox.');
         setAuthMode('signin');

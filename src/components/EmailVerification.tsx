@@ -2,8 +2,9 @@
 
 import { useState } from 'react';
 import { Mail, RefreshCw, LogOut, CheckCircle, Loader2 } from 'lucide-react';
-import { sendEmailVerification, signOut } from 'firebase/auth';
+import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
+import { sendVerificationEmail } from '@/lib/accountEmails';
 
 interface EmailVerificationProps {
   email: string;
@@ -21,7 +22,7 @@ export function EmailVerification({ email }: EmailVerificationProps) {
     setError(null);
     
     try {
-      await sendEmailVerification(auth.currentUser);
+      await sendVerificationEmail(auth.currentUser);
       setSent(true);
       setTimeout(() => setSent(false), 5000);
     } catch (err: any) {

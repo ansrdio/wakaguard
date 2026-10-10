@@ -4,10 +4,10 @@ import { useState } from 'react';
 import { X, Mail, Loader2, Eye, EyeOff } from 'lucide-react';
 import { 
   signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword,
-  sendPasswordResetEmail
+  createUserWithEmailAndPassword
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
+import { sendPasswordReset, sendVerificationEmail } from '@/lib/accountEmails';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -38,10 +38,14 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
         await signInWithEmailAndPassword(auth, email, password);
         onClose();
       } else if (mode === 'signup') {
-        await createUserWithEmailAndPassword(auth, email, password);
+        const created = await createUserWithEmailAndPassword(auth, email, password);
+        // The next screen says "We sent a link"; it can send another if this one fails
+        await sendVerificationEmail(created.user).catch((error) => {
+          console.error('Could not send the verification email:', error);
+        });
         onClose();
       } else if (mode === 'reset') {
-        await sendPasswordResetEmail(auth, email);
+        await sendPasswordReset(email);
         setSuccess('Password reset email sent! Check your inbox.');
         setMode('signin');
       }
