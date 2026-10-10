@@ -26,6 +26,18 @@ export function getRateLimitConfig(): RateLimitConfig {
   };
 }
 
+/**
+ * Per-account limits on "confirm your email" and "reset your password", so
+ * that nobody's inbox can be filled by pressing a button over and over.
+ */
+export function getEmailLimitConfig(): RateLimitConfig {
+  return {
+    maxPerHour: getNumberSetting('EMAIL_MAX_PER_HOUR', 6),
+    maxPerTypePerHour: getNumberSetting('EMAIL_MAX_PER_TYPE_PER_HOUR', 5),
+    maxPerDay: getNumberSetting('EMAIL_MAX_PER_DAY', 15),
+  };
+}
+
 export interface RateLimitResult {
   allowed: boolean;
   /**
@@ -51,15 +63,17 @@ function currentWindow(start: unknown, count: unknown, lengthMs: number, now: nu
 
 /**
  * Check the user's limits and, if allowed, record `units` messages.
+ * Texts and emails are counted apart, each in a record of its own.
  */
 export async function checkAndIncrementRateLimit(
   uid: string,
   messageType: string,
   units: number = 1,
-  config: RateLimitConfig = getRateLimitConfig()
+  config: RateLimitConfig = getRateLimitConfig(),
+  counted: 'sms' | 'email' = 'sms'
 ): Promise<RateLimitResult> {
   const db = admin.firestore();
-  const ref = db.doc(`users/${uid}/rateLimits/sms`);
+  const ref = db.doc(`users/${uid}/rateLimits/${counted}`);
   const now = Date.now();
 
   try {

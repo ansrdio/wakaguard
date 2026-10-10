@@ -49,6 +49,20 @@ on wakaguard.com and a Google Maps position); ask Termii whether those need whit
 
 Older deployments set Twilio values with `firebase functions:config:set`. Those are still read as a fallback, but Firebase has deprecated that API and deploys that rely on it will fail after March 2027. Move the values into `functions/.env`.
 
+### Account emails
+
+"Verify your email" and "reset your password" can be sent two ways.
+
+**Firebase's own email** needs no setup and is what the app uses until the settings below are in place. Its link is on Firebase's address (`<project>.firebaseapp.com`). The console has a setting to move it ("Customize action URL"), but on this project Google refuses the change with `EMAIL_TEMPLATE_UPDATE_NOT_ALLOWED`.
+
+**WakaGuard's own email** has the link on wakaguard.com. Firebase is asked only for the one-time code; `sendVerificationEmail` and `sendPasswordResetEmail` (`functions/src/accountEmails.ts`) write the email and send it through Brevo. The link opens `/confirm` on the website, which verifies the address or takes the new password.
+
+1. In Brevo, authenticate the sender's domain (Senders, Domains & Dedicated IPs) by adding the DNS records it lists. Without this the emails are rejected or land in spam.
+2. In Brevo, switch **click tracking off** for transactional emails. With it on, Brevo replaces every link with one on its own address and passes the one-time code through its servers.
+3. Create an API key (SMTP & API) and set `MAIL_PROVIDER=brevo`, `BREVO_API_KEY` and `MAIL_FROM_EMAIL` in `functions/.env`, then deploy the functions.
+
+The app asks WakaGuard's server first and falls back to Firebase's email if the server refuses or does not answer, so removing `MAIL_PROVIDER` and deploying again switches back. `MAIL_PROVIDER=mock` logs the email and sends nothing. Each account can be sent a handful an hour (`EMAIL_MAX_*`); asking to reset a password answers the same whether or not the address has an account.
+
 ## 2. Deploy
 
 The app at wakaguard.com is served from Firebase Hosting. The new client needs the new rules and functions, so deploy in this order:

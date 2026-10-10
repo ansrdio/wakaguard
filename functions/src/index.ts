@@ -5,6 +5,7 @@ import { migrateLegacyData } from './migrateLegacyData';
 
 export { sendSafetySms } from './safetySms';
 export { deleteMyAccount } from './accountDeletion';
+export { sendPasswordResetEmail, sendVerificationEmail } from './accountEmails';
 export { tripLocation } from './tripLocation';
 export {
   checkOverdueTrips,
