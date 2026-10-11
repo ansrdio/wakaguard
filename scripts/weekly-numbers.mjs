@@ -267,9 +267,14 @@ export function scoreWeek(data, options) {
   const tests = [...testTrips.values()].flat();
   const testTripIds = new Set(tests.map((trip) => trip.id));
   const sos = data.alerts.filter(included).filter((alert) => alert.type === 'sos' && inWeek(alert.createdMs));
+  const withUsername = [...people].filter((uid) => usernames.get(uid));
+  const ranked = new Set(ranking.map((row) => row.uid));
   const health = {
     accounts: people.size,
-    accountsWithUsername: [...people].filter((uid) => usernames.get(uid)).length,
+    accountsWithUsername: withUsername.length,
+    // Records the old version left behind, or sign-ups that never chose a name
+    accountsWithoutUsername: people.size - withUsername.length,
+    namedWithoutPoints: withUsername.filter((uid) => !ranked.has(uid)).length,
     everTestTrip: testTrips.size,
     countedThisWeek: rows.filter((row) => row.week.counted >= 1).length,
     countedSinceBeta: rows.filter((row) => row.sinceBeta.counted >= 1).length,
@@ -377,12 +382,13 @@ export function formatReport(result, { fromMs, toMs, nowMs, source }) {
         + 'reports; a prize tie is yours to decide.');
     }
   }
-  say(`Accounts with no points this week: ${health.accounts - ranking.length}`);
+  say(`Accounts with a username and no points this week: ${health.namedWithoutPoints}`);
 
   say();
   say('B. HEALTH');
   say(table([
     ['Accounts with a username', health.accountsWithUsername],
+    ['Accounts without a username', health.accountsWithoutUsername],
     ['People with at least one test trip, ever', health.everTestTrip],
     ['People with a counted real trip this week', health.countedThisWeek],
     ['People with a counted real trip since the beta began', health.countedSinceBeta],

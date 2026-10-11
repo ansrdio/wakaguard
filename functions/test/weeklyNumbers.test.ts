@@ -266,6 +266,8 @@ test('the health numbers follow people since the beta began', () => {
   assert.deepEqual(result.health, {
     accounts: 3,
     accountsWithUsername: 3,
+    accountsWithoutUsername: 0,
+    namedWithoutPoints: 0,
     everTestTrip: 1,
     countedThisWeek: 2,
     countedSinceBeta: 2,
@@ -296,6 +298,19 @@ test('two people who voted up each other are named, and prize ties are pointed o
 test('someone with no username is shown by the start of their id', () => {
   const result = score({ trips: [trip('AbCdEfGhIjKlMnOp', MONDAY)] });
   assert.equal(result.ranking[0].name, 'AbCdEf');
+});
+
+test('records with no username are counted apart from testers with no points', () => {
+  const result = score({
+    users: [...users('ada', 'tunde'), { uid: 'old-1', username: '' }, { uid: 'old-2', username: '' }],
+    trips: [trip('uid-ada', MONDAY)],
+  });
+  assert.equal(result.health.accountsWithUsername, 2);
+  assert.equal(result.health.accountsWithoutUsername, 2);
+  assert.equal(result.health.namedWithoutPoints, 1);
+  const text = formatReport(result, { fromMs: FROM, toMs: TO, nowMs: TO, source: 'a test' });
+  assert.match(text, /Accounts with a username and no points this week: 1/);
+  assert.match(text, /Accounts without a username\s+2/);
 });
 
 test('the printed report has usernames and counts, and nothing private', () => {
