@@ -18,6 +18,7 @@
     "test:monitor": "firebase emulators:exec --only firestore,auth,storage --project demo-wakaguard \"npm run test:monitor:run\"",
     "emulators:all": "npm --prefix functions run build && firebase emulators:start --only auth,firestore,storage,functions --project demo-wakaguard",
     "seed:emulator": "node scripts/seed-emulator.mjs",
+    "numbers:weekly": "node scripts/weekly-numbers.mjs",
     "check:app-env": "node scripts/app-env.mjs"
   },
   "dependencies": {
