@@ -83,6 +83,12 @@ body.dark-mode {
   overflow-y: auto !important;
 }
 
+/* The map's credit line and anything else Leaflet puts along the bottom edge
+   stand clear of what lies over it (the reports sheet on a phone) */
+.leaflet-container .leaflet-bottom {
+  bottom: var(--map-bottom-clear, 0px);
+}
+
 /* Adjust Leaflet zoom controls for mobile header */
 .leaflet-top.leaflet-left {
   top: 160px !important;

@@ -286,7 +286,8 @@ const MapView = memo(function MapView({ reports, selectedReportId, onMarkerClick
         <button
           onClick={handleLocateClick}
           disabled={locating}
-          className="absolute bottom-6 right-6 z-[1000] p-3 bg-white hover:bg-slate-50 rounded-full shadow-lg border border-slate-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          className="absolute right-6 z-[1000] p-3 bg-white hover:bg-slate-50 rounded-full shadow-lg border border-slate-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          style={{ bottom: 'calc(1.5rem + var(--map-bottom-clear, 0px))' }}
           title="Use my location"
         >
           {locating ? (

@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { ChevronUp, ChevronDown } from 'lucide-react';
 import { Report } from '@/lib/types';
 import { ReportList } from '@/components/ReportList';
+import { BOTTOM_NAV_HEIGHT, SHEET_PEEK_HEIGHT, TOP_BAR_HEIGHT } from '@/lib/mobileLayout';
 
 type SheetState = 'collapsed' | 'half' | 'full';
 
@@ -31,14 +32,18 @@ export function ReportsBottomSheet({
   const [currentY, setCurrentY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
 
-  const heightMap = {
-    collapsed: 'h-16',
-    half: 'h-[50vh]',
-    full: 'h-[calc(100vh-7rem)]', // Account for top bar + bottom nav
+  // The sheet stands on the bottom bar. Opened fully it stops under the top bar.
+  const heights: Record<SheetState, string> = {
+    collapsed: SHEET_PEEK_HEIGHT,
+    half: '50vh',
+    full: `calc(100vh - ${BOTTOM_NAV_HEIGHT} - ${TOP_BAR_HEIGHT})`,
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
     setStartY(e.touches[0].clientY);
+    // Until the finger moves it has gone nowhere. Left at zero, a plain tap
+    // counted as a long swipe up as well as a tap, and opened the sheet twice over.
+    setCurrentY(e.touches[0].clientY);
     setIsDragging(true);
   };
 
@@ -78,7 +83,8 @@ export function ReportsBottomSheet({
   return (
     <div
       ref={sheetRef}
-      className={`fixed bottom-[7rem] left-0 right-0 z-20 bg-white dark:bg-slate-900 rounded-t-3xl shadow-2xl border-t border-slate-200 dark:border-slate-700 transition-all duration-300 ${heightMap[state]}`}
+      className="fixed left-0 right-0 z-20 flex flex-col bg-white dark:bg-slate-900 rounded-t-3xl shadow-2xl border-t border-slate-200 dark:border-slate-700 transition-all duration-300"
+      style={{ bottom: BOTTOM_NAV_HEIGHT, height: heights[state] }}
     >
       {/* Drag Handle & Header */}
       <div
@@ -111,7 +117,7 @@ export function ReportsBottomSheet({
 
       {/* Content */}
       {state !== 'collapsed' && (
-        <div className="flex-1 overflow-y-auto pb-24 touch-pan-y" style={{ maxHeight: state === 'half' ? 'calc(50vh - 4rem)' : 'calc(100vh - 11rem)', WebkitOverflowScrolling: 'touch' }}>
+        <div className="flex-1 min-h-0 overflow-y-auto pb-4 touch-pan-y" style={{ WebkitOverflowScrolling: 'touch' }}>
           {reports.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
               <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">No reports found</p>

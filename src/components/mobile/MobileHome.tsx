@@ -13,6 +13,7 @@ import { ReportDetailsSheet } from './ReportDetailsSheet';
 import { SafetyScreen } from './screens/SafetyScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
 import MapView from '@/components/MapView';
+import { BOTTOM_NAV_HEIGHT, MAP_BOTTOM_CLEAR, SHEET_CORNER, SHEET_PEEK_HEIGHT } from '@/lib/mobileLayout';
 import { CreateReportModal } from '@/components/CreateReportModal';
 import NigerianStateSelector from '@/components/NigerianStateSelector';
 import { auth } from '@/lib/firebase';
@@ -373,16 +374,24 @@ export function MobileHome({
     // MAP TAB (default)
     return (
       <>
-        {/* Map Stage */}
-        <div className="absolute inset-0 bottom-20">
+        {/* Map Stage. It runs down to the reports sheet and under its rounded
+            corners. The top bar has the "find me" button, so the map's own is
+            left out: it would sit where the Report button is. */}
+        <div
+          className="absolute inset-x-0 top-0"
+          style={
+            {
+              bottom: `calc(${BOTTOM_NAV_HEIGHT} + ${SHEET_PEEK_HEIGHT} - ${SHEET_CORNER})`,
+              [MAP_BOTTOM_CLEAR]: SHEET_CORNER,
+            } as React.CSSProperties
+          }
+        >
           <MapView
             reports={reports}
             selectedReportId={selectedReportId}
             onMarkerClick={handleReportClick}
             selectedState={selectedState}
             userLocation={userLocation}
-            onLocate={onLocate}
-            locating={locating}
           />
         </div>
 
@@ -409,7 +418,8 @@ export function MobileHome({
         {sheetState === 'collapsed' && (
           <button
             onClick={() => setShowCreateModal(true)}
-            className="fixed bottom-48 right-4 z-30 h-14 pl-4 pr-5 bg-brand-600 text-white rounded-full shadow-xl hover:bg-brand-700 transition-colors flex items-center gap-2 font-semibold"
+            className="fixed right-4 z-30 h-14 pl-4 pr-5 bg-brand-600 text-white rounded-full shadow-xl hover:bg-brand-700 transition-colors flex items-center gap-2 font-semibold"
+            style={{ bottom: `calc(${BOTTOM_NAV_HEIGHT} + ${SHEET_PEEK_HEIGHT} + 1rem)` }}
             aria-label="Report something on the road"
           >
             <Plus className="w-6 h-6" />

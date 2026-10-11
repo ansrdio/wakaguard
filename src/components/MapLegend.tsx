@@ -3,6 +3,9 @@
 import { useState } from 'react';
 import { Info, X } from 'lucide-react';
 
+// A little above the map's bottom edge, and clear of anything lying over it (see lib/mobileLayout.ts)
+const ABOVE_MAP_EDGE = { bottom: 'calc(1rem + var(--map-bottom-clear, 0px))' };
+
 /**
  * MapLegend Component
  * 
@@ -23,7 +26,8 @@ export function MapLegend() {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="absolute bottom-4 left-4 z-[400] bg-white dark:bg-slate-800 rounded-lg shadow-md px-3 py-2 flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors border border-slate-200 dark:border-slate-700"
+        className="absolute left-4 z-[400] bg-white dark:bg-slate-800 rounded-lg shadow-md px-3 py-2 flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors border border-slate-200 dark:border-slate-700"
+        style={ABOVE_MAP_EDGE}
         aria-label="Show map legend"
       >
         <Info className="w-4 h-4 text-slate-500 dark:text-slate-400" />
@@ -33,7 +37,10 @@ export function MapLegend() {
   }
 
   return (
-    <div className="absolute bottom-4 left-4 z-[400] bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-3 min-w-[160px]">
+    <div
+      className="absolute left-4 z-[400] bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-3 min-w-[160px]"
+      style={ABOVE_MAP_EDGE}
+    >
       <div className="flex items-center justify-between mb-2">
         <h4 className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">Severity</h4>
         <button
