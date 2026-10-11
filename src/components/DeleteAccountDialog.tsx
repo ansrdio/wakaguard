@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Loader2, X } from 'lucide-react';
 import { confirmPassword, deleteAccount, type DeletionProblem } from '@/lib/accountDeletion';
+import { useAreaAboveKeyboard } from '@/hooks/useAreaAboveKeyboard';
 import { MESSAGE_LOG_DAYS_AFTER_DELETION } from '@/lib/dataRetention';
 
 const PASSWORD_PROBLEMS: Record<DeletionProblem, string> = {
@@ -23,6 +24,21 @@ export function DeleteAccountDialog({ onClose }: { onClose: () => void }) {
   const [checking, setChecking] = useState(false);
   const [problem, setProblem] = useState<DeletionProblem | null>(null);
 
+  // On an iPhone the keyboard comes up over the lower half of the dialog,
+  // which is where the password goes. The dialog keeps to the part of the
+  // screen still in view, and brings the field to the middle of it.
+  const aboveKeyboard = useAreaAboveKeyboard();
+  const backdrop = useRef<HTMLDivElement>(null);
+  const passwordField = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    const box = backdrop.current;
+    const field = passwordField.current;
+    if (!aboveKeyboard || !box || !field || document.activeElement !== field) return;
+    const fieldAt = field.getBoundingClientRect();
+    const boxAt = box.getBoundingClientRect();
+    box.scrollTop += fieldAt.top + fieldAt.height / 2 - (boxAt.top + boxAt.height / 2);
+  }, [aboveKeyboard]);
+
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (!password || checking) return;
@@ -39,7 +55,13 @@ export function DeleteAccountDialog({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 overflow-y-auto">
+    <div
+      ref={backdrop}
+      // The form's own margins centre it while there is room, and let it start
+      // at the top, where it can be scrolled, when there is not
+      className="fixed inset-0 z-50 flex items-start justify-center p-4 bg-black/50 overflow-y-auto"
+      style={aboveKeyboard ? { top: aboveKeyboard.top, height: aboveKeyboard.height, bottom: 'auto' } : undefined}
+    >
       <form
         onSubmit={submit}
         role="dialog"
@@ -72,6 +94,7 @@ export function DeleteAccountDialog({ onClose }: { onClose: () => void }) {
           </label>
           <input
             id="delete-account-password"
+            ref={passwordField}
             type="password"
             autoComplete="current-password"
             value={password}
