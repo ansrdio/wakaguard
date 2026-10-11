@@ -58,8 +58,9 @@ Older deployments set Twilio values with `firebase functions:config:set`. Those 
 **WakaGuard's own email** has the link on wakaguard.com. Firebase is asked only for the one-time code; `sendVerificationEmail` and `sendPasswordResetEmail` (`functions/src/accountEmails.ts`) write the email and send it through Brevo. The link opens `/confirm` on the website, which verifies the address or takes the new password.
 
 1. In Brevo, authenticate the sender's domain (Senders, Domains & Dedicated IPs) by adding the DNS records it lists. Without this the emails are rejected or land in spam.
-2. In Brevo, switch **click tracking off** for transactional emails. With it on, Brevo replaces every link with one on its own address and passes the one-time code through its servers.
-3. Create an API key (SMTP & API) and set `MAIL_PROVIDER=brevo`, `BREVO_API_KEY` and `MAIL_FROM_EMAIL` in `functions/.env`, then deploy the functions.
+2. Create an API key (SMTP & API, on the API keys tab) and set `MAIL_PROVIDER=brevo`, `BREVO_API_KEY` and `MAIL_FROM_EMAIL` in `functions/.env`, then deploy the functions.
+
+Brevo counts clicks by replacing every link in an email with one on its own address, and has no setting to stop that. So the emails hold their link as plain text, not as a button: Brevo leaves text alone, and mail apps make an address in text tappable themselves. Do not turn it into a button or an `<a href>` while Brevo is the provider.
 
 The app asks WakaGuard's server first and falls back to Firebase's email if the server refuses or does not answer, so removing `MAIL_PROVIDER` and deploying again switches back. `MAIL_PROVIDER=mock` logs the email and sends nothing. Each account can be sent a handful an hour (`EMAIL_MAX_*`); asking to reset a password answers the same whether or not the address has an account.
 

@@ -9,10 +9,10 @@
  * - MAIL_FROM_NAME   shown beside it; 'WakaGuard' unless set
  * - MAIL_REPLY_TO    where replies go, if not to the sender
  *
- * Click tracking must be off for transactional emails in the Brevo account.
- * With it on, Brevo swaps every link for one on its own address, which is the
- * very thing these emails exist to avoid, and passes the one-time code in the
- * link through its servers.
+ * Brevo counts clicks by swapping every link (<a href>) in an email for one
+ * on its own address, and has no setting to stop that for emails sent this
+ * way. That is the very thing these emails exist to avoid, so they hold their
+ * link as plain text, which Brevo leaves alone (see emailText.ts).
  */
 
 import { getNumberSetting, getSetting } from './config';

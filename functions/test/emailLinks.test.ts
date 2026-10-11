@@ -99,6 +99,9 @@ test("our own page reads the link Firebase builds for an email", () => {
     appOpens: false,
   });
   assert.deepEqual(emailLinkFrom('?mode=verifyEmail&oobCode=abc', site), { task: 'verify', code: 'abc', appOpens: false });
+  // WakaGuard's own emails say it in a word instead
+  assert.deepEqual(emailLinkFrom('?mode=verifyEmail&oobCode=abc&from=app', site), { task: 'verify', code: 'abc', appOpens: true });
+  assert.deepEqual(emailLinkFrom('?mode=verifyEmail&oobCode=abc&from=web', site), { task: 'verify', code: 'abc', appOpens: false });
   // Someone else's site dressed up as ours does not get the button
   const theirs = encodeURIComponent('https://example.com/open?after=verify');
   assert.deepEqual(emailLinkFrom(`?mode=verifyEmail&oobCode=abc&continueUrl=${theirs}`, site), {

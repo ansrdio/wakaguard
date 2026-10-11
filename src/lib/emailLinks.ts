@@ -53,6 +53,9 @@ export type EmailTaskDone = EmailTask | 'unknown';
 // Says which task, on the address "Continue" leads to
 const TASK_PARAM = 'after';
 
+/** On a link in an email WakaGuard sent itself: 'app' when the phone app asked for it. */
+export const FROM_PARAM = 'from';
+
 /** The page on this site that a link in an email opens, once Firebase is told to use it. */
 export const EMAIL_LINK_PATH = '/confirm';
 
@@ -99,8 +102,10 @@ export type EmailLink =
   | null;
 
 /**
- * Reads the address Firebase builds for a link in an email:
- * ?mode=...&oobCode=...&continueUrl=...
+ * Reads the address of a link in an email. Firebase builds
+ * ?mode=...&oobCode=...&continueUrl=... for the emails it sends; the ones
+ * WakaGuard sends itself say ?mode=...&oobCode=...&from=app instead, to keep
+ * the link short (functions/src/emailText.ts).
  *
  * appOpens says whether "Open WakaGuard" will do anything. Only an app that
  * asked to come back to BACK_TO_APP_PATH answers to it; older builds and the
@@ -113,10 +118,10 @@ export function emailLinkFrom(search: string, appUrl: string): EmailLink {
   if (!mode || !code) return null;
   if (mode !== 'verifyEmail' && mode !== 'resetPassword') return { task: 'other' };
 
-  let appOpens = false;
+  let appOpens = params.get(FROM_PARAM) === 'app';
   try {
     const next = new URL(params.get('continueUrl') ?? '');
-    appOpens = next.origin === new URL(appUrl).origin && next.pathname === BACK_TO_APP_PATH;
+    appOpens ||= next.origin === new URL(appUrl).origin && next.pathname === BACK_TO_APP_PATH;
   } catch {
     // No address to continue to, or not one at all: an older build sent the email
   }

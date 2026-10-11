@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import * as server from '../src/emailText';
 import { buildAccountEmail, continueUrl, ourEmailLink } from '../src/emailText';
 import { getMailProvider, getMailSender } from '../src/mail';
-import { BACK_TO_APP_PATH, EMAIL_LINK_PATH, emailLinkFrom, emailLinkSettings, emailTaskIn } from '../../src/lib/emailLinks';
+import { BACK_TO_APP_PATH, EMAIL_LINK_PATH, FROM_PARAM, emailLinkFrom, emailLinkSettings } from '../../src/lib/emailLinks';
 import { OPEN_APP_HREF } from '../../src/lib/frontPage';
 
 const ENV_KEYS = ['MAIL_PROVIDER', 'BREVO_API_KEY', 'MAIL_FROM_EMAIL', 'MAIL_FROM_NAME', 'MAIL_REPLY_TO', 'APP_BASE_URL'];
@@ -21,6 +21,7 @@ test('the server and the site agree on the addresses', () => {
   assert.equal(server.EMAIL_LINK_PATH, EMAIL_LINK_PATH);
   assert.equal(server.BACK_TO_APP_PATH, BACK_TO_APP_PATH);
   assert.equal(server.OPEN_APP_HREF, OPEN_APP_HREF);
+  assert.equal(server.FROM_PARAM, FROM_PARAM);
   // Where the server says to continue is where the app itself would have said
   for (const task of ['verify', 'reset'] as const) {
     assert.equal(continueUrl(SITE, task, 'app'), emailLinkSettings(SITE, task, true)?.url);
@@ -33,44 +34,40 @@ test("our link carries Firebase's one-time code to our own page", () => {
     'https://routepulse-5701f.firebaseapp.com/__/auth/action?mode=verifyEmail&oobCode=AbC-123_x&apiKey=the-web-key&continueUrl=https%3A%2F%2Fwakaguard.com%2Fopen%3Fafter%3Dverify&lang=en';
   const link = ourEmailLink(fromFirebase, SITE, 'verify', 'app');
 
-  const url = new URL(link);
-  assert.equal(url.origin + url.pathname, 'https://wakaguard.com/confirm');
-  assert.equal(url.searchParams.get('mode'), 'verifyEmail');
-  assert.equal(url.searchParams.get('oobCode'), 'AbC-123_x');
-  assert.equal(url.searchParams.get('continueUrl'), 'https://wakaguard.com/open?after=verify');
-  // Nothing of Firebase's address, and no key, is left in it
-  assert.doesNotMatch(link, /firebaseapp|routepulse|apiKey/);
+  // Short enough to show in full, with nothing of Firebase's address and no key left in it
+  assert.equal(link, 'https://wakaguard.com/confirm?mode=verifyEmail&oobCode=AbC-123_x&from=app');
 
   // The page it opens reads it as the app's own link, and knows the app will answer
-  assert.deepEqual(emailLinkFrom(url.search, SITE), { task: 'verify', code: 'AbC-123_x', appOpens: true });
-  assert.equal(emailTaskIn(new URL(url.searchParams.get('continueUrl')!).search), 'verify');
+  assert.deepEqual(emailLinkFrom(new URL(link).search, SITE), { task: 'verify', code: 'AbC-123_x', appOpens: true });
 });
 
 test('a reset link from the website continues on the website, and the local emulator link works too', () => {
   const fromEmulator = 'http://127.0.0.1:9099/emulator/action?mode=resetPassword&lang=en&oobCode=code42&apiKey=fake-api-key';
   const link = ourEmailLink(fromEmulator, SITE, 'reset', 'web');
+  assert.equal(link, 'https://wakaguard.com/confirm?mode=resetPassword&oobCode=code42');
   assert.deepEqual(emailLinkFrom(new URL(link).search, SITE), { task: 'reset', code: 'code42', appOpens: false });
-  assert.equal(new URL(link).searchParams.get('continueUrl'), 'https://wakaguard.com/?app=1&after=reset');
 
   assert.throws(() => ourEmailLink('https://example.com/__/auth/action?mode=verifyEmail', SITE, 'verify', 'web'), /no one-time code/);
 });
 
 test('each email says what it is for and holds the link, safely', () => {
-  const link = 'https://wakaguard.com/confirm?mode=verifyEmail&oobCode=abc&continueUrl=https%3A%2F%2Fwakaguard.com%2Fopen%3Fafter%3Dverify';
+  const link = 'https://wakaguard.com/confirm?mode=verifyEmail&oobCode=abc&from=app';
   const verify = buildAccountEmail('verify', link);
   assert.equal(verify.subject, 'Confirm your email for WakaGuard');
   assert.ok(verify.text.includes(link));
   assert.match(verify.text, /Inskriba Limited \(RC 9913212\)/);
-  // In the page the "&" of the address is written "&amp;", once on the button and twice as the address to copy
+  // In the page the "&" of the address is written "&amp;", and the address is there once, as text
   const escaped = link.replace(/&/g, '&amp;');
-  assert.equal(verify.html.split(escaped).length - 1, 3);
-  assert.ok(!verify.html.includes('mode=verifyEmail&oobCode'), 'a bare & would break the link in some mail apps');
-  assert.match(verify.html, /Confirm my email/);
+  assert.equal(verify.html.split(escaped).length - 1, 1);
+  assert.ok(!verify.html.includes('mode=verifyEmail&oobCode'), 'a bare & would show wrongly in some mail apps');
+  // Nothing a mail provider could swap for a link of its own
+  assert.doesNotMatch(verify.html + buildAccountEmail('reset', link).html, /<a\b|href=/i);
+  assert.match(verify.html, /To confirm it, tap this link/);
 
   const reset = buildAccountEmail('reset', link);
   assert.equal(reset.subject, 'Reset your WakaGuard password');
   assert.match(reset.text, /Your password stays the same/);
-  assert.match(reset.html, /Choose a new password/);
+  assert.match(reset.html, /tap this link to choose a new one/);
 });
 
 test('no provider chosen means WakaGuard sends nothing itself', () => {
