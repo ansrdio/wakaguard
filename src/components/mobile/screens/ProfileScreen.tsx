@@ -220,7 +220,7 @@ export function ProfileScreen() {
           <div className="absolute inset-x-0 bottom-0 top-20 bg-white rounded-t-3xl overflow-hidden flex flex-col">
             <div className="flex items-center justify-between p-4 border-b border-slate-200">
               <h2 className="text-lg font-bold text-slate-900">My Reports</h2>
-              <button onClick={() => setActiveModal(null)} className="p-2 hover:bg-slate-100 rounded-full">
+              <button onClick={() => setActiveModal(null)} className="p-2 text-slate-600 hover:bg-slate-100 rounded-full">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -251,7 +251,7 @@ export function ProfileScreen() {
           <div className="bg-white rounded-2xl w-full max-w-sm p-6 space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-bold text-slate-900">Settings</h2>
-              <button onClick={() => setActiveModal(null)} className="p-2 hover:bg-slate-100 rounded-full">
+              <button onClick={() => setActiveModal(null)} className="p-2 text-slate-600 hover:bg-slate-100 rounded-full">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -309,7 +309,7 @@ export function ProfileScreen() {
           <div className="bg-white rounded-2xl w-full max-w-sm p-6 space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-bold text-slate-900">Help & Support</h2>
-              <button onClick={() => setActiveModal(null)} className="p-2 hover:bg-slate-100 rounded-full">
+              <button onClick={() => setActiveModal(null)} className="p-2 text-slate-600 hover:bg-slate-100 rounded-full">
                 <X className="w-5 h-5" />
               </button>
             </div>

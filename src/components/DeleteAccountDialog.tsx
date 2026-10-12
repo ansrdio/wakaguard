@@ -71,7 +71,7 @@ export function DeleteAccountDialog({ onClose }: { onClose: () => void }) {
       >
         <div className="flex items-center justify-between">
           <h2 id="delete-account-title" className="text-xl font-bold text-slate-900">Delete your account?</h2>
-          <button type="button" onClick={onClose} aria-label="Close" className="p-2 hover:bg-slate-100 rounded-full">
+          <button type="button" onClick={onClose} aria-label="Close" className="p-2 text-slate-600 hover:bg-slate-100 rounded-full">
             <X className="w-5 h-5" />
           </button>
         </div>

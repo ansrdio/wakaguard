@@ -576,7 +576,7 @@ export function DesktopHome({
               </div>
               <button
                 onClick={() => setShowMyReportsModal(false)}
-                className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+                className="p-2 text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -641,7 +641,7 @@ export function DesktopHome({
               <h2 className="text-xl font-bold text-slate-900">Settings</h2>
               <button
                 onClick={() => setShowSettingsModal(false)}
-                className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+                className="p-2 text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
