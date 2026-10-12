@@ -36,7 +36,7 @@ Planned for Wednesday 14 October 2026, Android and iPhone on the same day.
 - [ ] A screen before the first trip that explains why location is shared
       while the screen is off
 
-### Reported by testers
+### From testers and the first days of use
 
 - [ ] Android: Back goes back one screen everywhere. Today only the Trip map
       answers it; from the report form, report details, filters, the Profile
@@ -50,6 +50,11 @@ Planned for Wednesday 14 October 2026, Android and iPhone on the same day.
       tester's location problem can be diagnosed from a screenshot
 - [ ] Fall back to an approximate position when a precise one does not
       arrive, so a contact sees roughly where the traveller is
+- [ ] "Have you arrived?" reminders: one shortly before a trip's time runs
+      out, and again while the trip stays open after it. Today there is a
+      single "Are you okay?" at the end time, and on the first day of testing
+      trips were left open for hours or ended late (needs the server as well
+      as the app)
 - [x] Close buttons on the pop-ups can be seen in dark mode (Settings, Help,
       My Reports, Delete account)
 
