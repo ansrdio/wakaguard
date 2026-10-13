@@ -21,7 +21,7 @@ before the weekend. Android and iPhone go out on the same day.
 
 | Build | Due | Main contents | Status |
 |---|---|---|---|
-| 22 | Wed 14 Oct | Store requirements (report and block, Terms of Use, location screen); Android Back; location fixes; arrival reminders | Next |
+| 22 | Wed 14 Oct | Store requirements (report and block, Terms of Use, location screen); Android Back; location fixes; arrival reminders | Out on iPhone, with Google for review (Mon 12 Oct, two days early) |
 | 23 | Wed 21 Oct | Sign in with Google and Apple; paid maps; weather; our own road report pictures; "How are you travelling?" with matching tips; reported posts hidden automatically | Planned |
 | 24 | Wed 28 Oct | Sponsor card by state; "please update" switch; service notice; "stop texting me"; vehicle details | Planned |
 | 25 | Wed 4 Nov | Fixes after text alerts are switched on; repeat a usual trip | Planned |
@@ -42,14 +42,19 @@ Mon 12 Oct and end about Mon 26 Oct; text alerts are to be on by Mon 2 Nov.
 
 | | Build | Where |
 |---|---|---|
-| Android | 21 | Google Play closed test. Build 22 is on the internal test and was put forward for the closed test on 12 October |
-| iPhone | 20 | TestFlight, outside testers (builds 15 and 17 were retired on 12 October). Build 22 was uploaded to TestFlight on 12 October; it still has to be given to the outside testers and sent to Apple for review |
+| Android | 21 | Google Play closed test. Build 22 is on the internal test, and the owner sent it to Google for review for the closed test on 12 October; testers get it when Google passes it |
+| iPhone | 22 | TestFlight, outside testers, since 12 October: the owner sent it for review and Apple passed it at once. Build 20 is still there beside it (builds 15 and 17 were retired on 12 October) |
 
-Android 21 and iPhone 20 hold the same features.
+Until Google passes Android 22, iPhone testers are one build ahead of Android
+testers. The two builds 22 hold the same features, with one difference: the
+iPhone one was built a little later and also has the iPhone keyboard fix,
+which Android does not need.
 
 ## Next build: 22
 
 Planned for Wednesday 14 October 2026, Android and iPhone on the same day.
+Finished on Monday 12 October: on TestFlight for iPhone testers that day, and
+with Google for review for Android testers.
 
 ### Required by the stores
 
