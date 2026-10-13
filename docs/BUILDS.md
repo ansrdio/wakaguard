@@ -22,8 +22,8 @@ before the weekend. Android and iPhone go out on the same day.
 | Build | Due | Main contents | Status |
 |---|---|---|---|
 | 22 | Wed 14 Oct | Store requirements (report and block, Terms of Use, location screen); Android Back; location fixes; arrival reminders | Out on both: iPhone and Android, Mon 12 Oct, two days early |
-| 23 | Wed 21 Oct | Sign in with Google and Apple; paid maps; weather; our own road report pictures; "How are you travelling?" with matching tips; reported posts hidden automatically | Planned |
-| 24 | Wed 28 Oct | Sponsor card by state; "please update" switch; service notice; "stop texting me"; vehicle details | Planned |
+| 23 | Wed 21 Oct | Testers' corrections (checklist, exact trip length, delete my own post); "How are you travelling?" with matching tips; our own road report pictures; "keep WakaGuard running" help; paid maps; weather; reported posts hidden automatically | Being built |
+| 24 | Wed 28 Oct | Sign in with Google and Apple; sponsor card by state; "please update" switch; service notice; "stop texting me"; vehicle details; far-away reports marked | Planned |
 | 25 | Wed 4 Nov | Fixes after text alerts are switched on; repeat a usual trip | Planned |
 | 26 | Wed 11 Nov | The launch version | Planned |
 
@@ -157,13 +157,20 @@ quick fixes, so its build numbers are three lower than these.
 
 | Build | Planned | What |
 |---|---|---|
-| 23 | Wed 21 Oct | Sign in with Google and Apple; paid map provider; weather on the Trip screen; our own road report pictures; "How are you travelling?" when starting a trip, with matching tips. If the week is tight, sign-in moves to build 24, since the stores do not require it |
-| 24 | Wed 28 Oct | Sponsor slot, different by state; "please update" switch; service notice; "stop texting me" for contacts; vehicle details on a trip |
+| 23 | Wed 21 Oct | Testers' corrections; "How are you travelling?" when starting a trip, with matching tips; our own road report pictures; "keep WakaGuard running" help; paid map provider; weather on the Trip screen |
+| 24 | Wed 28 Oct | Sign in with Google and Apple (moved from build 23 on 13 October: the stores do not require it, and it is the item most likely to eat a week); sponsor slot, different by state; "please update" switch; service notice; "stop texting me" for contacts; vehicle details on a trip |
 | 25 | Wed 4 Nov | Fixes, after text alerts are switched on; repeat a usual trip |
 | 26 | Wed 11 Nov | The launch version, frozen Friday 13 November |
 
 ### Build 23, in more detail
 
+- [ ] A "keep WakaGuard running" help screen, for phones that stop the app
+      in the background (Tecno, Infinix, itel and some Samsungs do). Brought
+      forward from build 25 on 13 October: on the second morning of testing
+      two more testers' phones stopped sending their position partway through
+      long trips, one after 17 minutes of a four-hour trip. It is the biggest
+      gap in what contacts would see. The cause on each phone is still to be
+      confirmed from "Check my location" screenshots
 - [ ] Weather: one line on the Trip screen, before starting and during a
       trip, saying what to expect where the traveller is ("heavy rain expected
       here in the next two hours, allow extra time"). No weather page and no
@@ -246,10 +253,6 @@ quick fixes, so its build numbers are three lower than these.
       on 13 October; the owner said yes that day)
 - [ ] Build 25. Repeat a usual trip: one tap to start a trip made before, with
       the time it usually takes filled in
-- [ ] Build 25. A "keep WakaGuard running" help screen, if trips on Tecno,
-      Infinix and itel phones show those phones stopping the app in the
-      background. On the first day of testing one long trip went quiet after
-      two and a half hours; the cause is not yet known
 
 ## Server, website and store work before launch
 
