@@ -114,7 +114,9 @@ Raised this week and not in build 22.
 
 ### Server and website, alongside build 22
 
-These go live without an app update, each on the owner's word.
+These go live without an app update, each on the owner's word. All of them
+were released on Monday 12 October, except Africa's Talking, which is in the
+code and stays switched off until it has an approved sender ID.
 
 - [x] Emails: stop mail apps turning the company number in the footer into a
       phone link
@@ -122,7 +124,7 @@ These go live without an app update, each on the owner's word.
       (today it can be dropped, and the next one is up to two minutes away)
 - [x] A second text-message provider (Africa's Talking), ready for the day a
       sender ID is approved
-- [ ] The dark mode close-button fix on the website (already in the code)
+- [x] The dark mode close-button fix on the website
 
 ## Later builds
 
@@ -389,6 +391,7 @@ Changes that went live without an app build.
 
 | Date | What |
 |---|---|
+| Mon 12 Oct | Server: arrival reminders ("5 minutes left", "Is your trip finished?"), a trip's first position accepted at once, the registration number in emails no longer offered as a phone call. Website: everything in build 22's list that is not phone-only, with the Terms of Use page |
 | Sun 11 Oct | The weekly ranking report, a tool run by hand that reads trips and road reports; no change to the app |
 | Sat 10 Oct | Our own account emails switched on (through Brevo); the email-link page; the "go back to the app" notice; the Nearby layout fix |
 | Fri 9 Oct | Front page for first-time visitors; Privacy, Support and Guidelines carry their text in the page; Delete account page and server function; the website's account menu shows who is signed in; texts are addressed to the contact and signed with the company's name |
