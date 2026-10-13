@@ -97,7 +97,7 @@ quick fixes, so its build numbers are three lower than these.
 | Build | Planned | What |
 |---|---|---|
 | 23 | Wed 21 Oct | Sign in with Google and Apple; paid map provider; weather on the Trip screen |
-| 24 | Wed 28 Oct | Sponsor slot; "please update" switch; service notice; "stop texting me" for contacts; vehicle details on a trip |
+| 24 | Wed 28 Oct | Sponsor slot, different by state; "please update" switch; service notice; "stop texting me" for contacts; vehicle details on a trip |
 | 25 | Wed 4 Nov | Fixes, after text alerts are switched on; repeat a usual trip |
 | 26 | Wed 11 Nov | The launch version, frozen Friday 13 November |
 
@@ -113,6 +113,10 @@ quick fixes, so its build numbers are three lower than these.
 
 ### Builds 24 and 25, in more detail
 
+- [ ] Build 24. Sponsor slot by state: the sponsor card can differ by the
+      state the user has chosen, changed from the server without an app
+      update. Marked "Sponsored"; never on the trip screen, the contacts' page
+      or in texts
 - [ ] Build 24. Vehicle details on a trip: the plate number, the bus company
       or the driver's name, added when starting. Contacts see them if the
       traveller does not arrive
@@ -140,9 +144,18 @@ stand; neither exists yet):
       many people's trips combined, never from one person's. Today the app
       only keeps where each trip started and ended and the destination the
       traveller typed. Needs a line on the Privacy page before it starts
-- [ ] Adverts by location: sponsored stops and offers near where a traveller
-      is or along the way. Depends on the directory. The sponsor slot in
-      build 24 is one card for everyone and does not use location
+- [ ] Adverts by location, the way Waze does them (the owner's reference,
+      12 October), in this order:
+      1. Sponsored pins on the Nearby map: a business's branches shown with
+         its logo; a tap opens its card with an offer and directions. Needs
+         only the sponsor's own list of branches, not the directory
+      2. An offer when a trip ends, the moment the traveller has stopped
+      3. A sponsored place at the top when choosing a destination. Needs
+         address lookup and the directory
+      4. Sponsored stops on long trips. Needs the directory
+      With all of them: marked "Sponsored", views and taps counted for the
+      sponsor, chosen by the area the person is in and never by their past
+      trips, and nothing shown while a trip is running
 
 From the roadmap:
 
