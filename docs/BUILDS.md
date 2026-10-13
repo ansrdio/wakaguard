@@ -195,6 +195,20 @@ stand; neither exists yet):
       sponsor, chosen by the area the person is in and never by their past
       trips, and nothing shown while a trip is running
 
+A look of our own, reflecting Nigerian culture (asked for by the owner on
+12 October; a first concept was drawn that day and is waiting for the owner's
+reaction; an illustrator or 3D artist may take it further):
+
+- [ ] Road report pictures of our own (pothole, go-slow, accident, roadwork,
+      hazard, road closed, checkpoint, flood), replacing the emoji used today
+- [ ] The traveller's marker as a vehicle (danfo, keke, okada or car), moving
+      along the map
+- [ ] Colours and patterns drawn from Nigerian design alongside the green:
+      danfo yellow, adire indigo, an adire-style pattern for headers and
+      empty screens
+- [ ] Turn signs and road graphics in the same style, when navigation comes
+- [ ] Movement: the vehicle travelling, pins appearing, the moment of arrival
+
 Navigation (asked for by the owner on 12 October, "at some point"):
 
 - [ ] Step 1, the route without the voice: once a destination can be looked
