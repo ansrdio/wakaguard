@@ -68,6 +68,8 @@ Planned for Wednesday 14 October 2026, Android and iPhone on the same day.
       say which build they have
 - [ ] Android: stop asking for permission to change contacts, which the app
       does not use
+- [ ] iPhone only at launch: stop offering the app for iPad, which would need
+      iPad screenshots and an iPad review. Waiting for the owner's yes
 
 ### Held for a later build
 
@@ -110,6 +112,11 @@ quick fixes, so its build numbers are three lower than these.
       area, so the service never sees where a person is. Before building:
       choose a weather service whose terms allow an app that carries sponsors,
       and add a line to the Privacy page
+- [ ] Emergency numbers corrected: the list shows 199 for both Police and
+      Fire, and a Lagos ambulance line for the whole country. Needs the right
+      numbers confirmed in Nigeria
+- [ ] Error reports from testers' phones, so a crash reaches us without the
+      tester having to say so (nice to have)
 
 ### Builds 24 and 25, in more detail
 
@@ -122,6 +129,37 @@ quick fixes, so its build numbers are three lower than these.
       traveller does not arrive
 - [ ] Build 25. Repeat a usual trip: one tap to start a trip made before, with
       the time it usually takes filled in
+- [ ] Build 25. A "keep WakaGuard running" help screen, if trips on Tecno,
+      Infinix and itel phones show those phones stopping the app in the
+      background. On the first day of testing one long trip went quiet after
+      two and a half hours; the cause is not yet known
+
+## Server, website and store work before launch
+
+From the roadmap, with its dates. None of these needs an app build.
+
+- [ ] By Sun 18 Oct. Proof runs: a long Android trip on mobile data, and a
+      long iPhone trip. (A fresh sign-up is proven: every tester who started
+      one finished it)
+- [ ] By Fri 23 Oct. The old server functions moved; they cannot be updated
+      after Fri 30 Oct
+- [ ] By Fri 23 Oct. Alarms when alerts break (the minute-by-minute check
+      stops, texts fail, the text wallet runs low, spending jumps), and a
+      daily backup
+- [ ] By Fri 23 Oct. How long records are kept, with automatic deletion
+- [ ] By Fri 30 Oct. Store listing drafts and a reviewer account; final by
+      Fri 13 Nov. Wording check: never "emergency service"
+- [ ] Mon 2 Nov. Text alerts switched on, then proven on MTN, Airtel, Glo and
+      9mobile, including a do-not-disturb number
+- [ ] Week of Mon 2 Nov. Security check of the server, and Firebase's app
+      check for the phone apps
+- [ ] By Fri 6 Nov. The go or no-go checklist for Fri 13 Nov
+- [ ] Launch day. "Get WakaGuard" on the page contacts see, and store links
+      on the website
+
+Not builds, and tracked in the roadmap document: the D-U-N-S number and store
+accounts in the company's name, the company's purposes at CAC, the data
+regulator and advert approval, the bank account and sponsor agreement.
 
 ## After launch
 
@@ -174,7 +212,8 @@ Navigation (asked for by the owner on 12 October, "at some point"):
 
 From the roadmap:
 
-- [ ] The weekly ranking inside the app, and invite links
+- [ ] "Who invited you?" and invite links (mid-December)
+- [ ] The weekly ranking inside the app (January)
 - [ ] Address lookup when choosing a destination
 - [ ] Family circle, and a "request a trip" link
 - [ ] USSD, for people without smartphones
@@ -269,6 +308,7 @@ Changes that went live without an app build.
 
 | Date | What |
 |---|---|
+| Sun 11 Oct | The weekly ranking report, a tool run by hand that reads trips and road reports; no change to the app |
 | Sat 10 Oct | Our own account emails switched on (through Brevo); the email-link page; the "go back to the app" notice; the Nearby layout fix |
 | Fri 9 Oct | Front page for first-time visitors; Privacy, Support and Guidelines carry their text in the page; Delete account page and server function; the website's account menu shows who is signed in; texts are addressed to the contact and signed with the company's name |
 | By Thu 8 Oct | The travel safety version of the website and server: trips watched by the server, alerts, the trip map and the contacts' page; About page; Support, Privacy and Guidelines rewritten; the company's name and a contact email that can receive mail |
