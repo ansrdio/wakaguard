@@ -98,7 +98,7 @@ quick fixes, so its build numbers are three lower than these.
 
 | Build | Planned | What |
 |---|---|---|
-| 23 | Wed 21 Oct | Sign in with Google and Apple; paid map provider; weather on the Trip screen |
+| 23 | Wed 21 Oct | Sign in with Google and Apple; paid map provider; weather on the Trip screen; our own road report pictures; "How are you travelling?" when starting a trip |
 | 24 | Wed 28 Oct | Sponsor slot, different by state; "please update" switch; service notice; "stop texting me" for contacts; vehicle details on a trip |
 | 25 | Wed 4 Nov | Fixes, after text alerts are switched on; repeat a usual trip |
 | 26 | Wed 11 Nov | The launch version, frozen Friday 13 November |
@@ -112,6 +112,16 @@ quick fixes, so its build numbers are three lower than these.
       area, so the service never sees where a person is. Before building:
       choose a weather service whose terms allow an app that carries sponsors,
       and add a line to the Privacy page
+- [ ] Road report pictures of our own (pothole, go-slow, accident, roadwork,
+      hazard, road closed, checkpoint, flood), replacing the emoji used today.
+      From the first concept of 12 October; the owner's changes to the
+      drawings come first
+- [ ] "How are you travelling?" when starting a trip: bus or danfo, keke,
+      okada, private car, taxi or ride-hailing, on foot, other. One tap,
+      remembers the last answer, and can be skipped. Kept with the trip, so we
+      learn how people travel, and shown to contacts if the traveller does not
+      arrive. Needs a line on the Privacy page. Vehicle details (plate, bus
+      company, driver) follow in build 24
 - [ ] Emergency numbers corrected: the list shows 199 for both Police and
       Fire, and a Lagos ambulance line for the whole country. Needs the right
       numbers confirmed in Nigeria
@@ -197,12 +207,11 @@ stand; neither exists yet):
 
 A look of our own, reflecting Nigerian culture (asked for by the owner on
 12 October; a first concept was drawn that day and is waiting for the owner's
-reaction; an illustrator or 3D artist may take it further):
+reaction; an illustrator or 3D artist may take it further). The road report
+pictures are in build 23:
 
-- [ ] Road report pictures of our own (pothole, go-slow, accident, roadwork,
-      hazard, road closed, checkpoint, flood), replacing the emoji used today
 - [ ] The traveller's marker as a vehicle (danfo, keke, okada or car), moving
-      along the map
+      along the map, chosen from the answer to "How are you travelling?"
 - [ ] Colours and patterns drawn from Nigerian design alongside the green:
       danfo yellow, adire indigo, an adire-style pattern for headers and
       empty screens
