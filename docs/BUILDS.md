@@ -96,10 +96,20 @@ quick fixes, so its build numbers are three lower than these.
 
 | Build | Planned | What |
 |---|---|---|
-| 23 | Wed 21 Oct | Sign in with Google and Apple; paid map provider |
+| 23 | Wed 21 Oct | Sign in with Google and Apple; paid map provider; weather on the Trip screen |
 | 24 | Wed 28 Oct | Sponsor slot; "please update" switch; service notice; "stop texting me" for contacts |
 | 25 | Wed 4 Nov | Fixes, after text alerts are switched on |
 | 26 | Wed 11 Nov | The launch version, frozen Friday 13 November |
+
+### Build 23, in more detail
+
+- [ ] Weather: one line on the Trip screen, before starting and during a
+      trip, saying what to expect where the traveller is ("heavy rain expected
+      here in the next two hours, allow extra time"). No weather page and no
+      forecasts for other places. Our server asks the weather service by rough
+      area, so the service never sees where a person is. Before building:
+      choose a weather service whose terms allow an app that carries sponsors,
+      and add a line to the Privacy page
 
 ## Released builds
 
