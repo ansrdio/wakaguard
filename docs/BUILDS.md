@@ -122,6 +122,11 @@ quick fixes, so its build numbers are three lower than these.
       learn how people travel, and shown to contacts if the traveller does not
       arrive. Needs a line on the Privacy page. Vehicle details (plate, bus
       company, driver) follow in build 24
+- [ ] Safety tips that match the answer: one short tip on the start form once
+      a way of travelling is chosen, and another on the trip card ("Okada: ask
+      for a helmet and hold on with both hands"). They replace the general
+      tips card on the Trip tab. Tips never hold up starting a trip. The
+      owner approves the wording, checked by someone in Nigeria
 - [ ] Emergency numbers corrected: the list shows 199 for both Police and
       Fire, and a Lagos ambulance line for the whole country. Needs the right
       numbers confirmed in Nigeria
