@@ -213,6 +213,11 @@ quick fixes, so its build numbers are three lower than these.
       tester having to say so (nice to have)
 - [ ] Road report form: when the form is scrolled, a strip of it shows above
       its title bar. Looks untidy, loses nothing (seen on 12 October)
+- [ ] Delete my own report and my own comment. Today only an admin can
+      remove one, so a person who wants a post gone has to delete their whole
+      account. A tester's review of the Privacy page raised it on 13 October
+      (the owner said yes that day). Needs a change to the database rules as
+      well as the app
 - [ ] Safety checklist can never be finished: the Trip screen shows five of
       the ten items but counts all ten, so it stops at "5 of 10 checked". A
       tester reported it on 13 October. Show all ten, or redo the list with
@@ -228,6 +233,12 @@ quick fixes, so its build numbers are three lower than these.
 - [ ] Build 24. Vehicle details on a trip: the plate number, the bus company
       or the driver's name, added when starting. Contacts see them if the
       traveller does not arrive
+- [ ] Build 24. Reports posted from far away are marked, not blocked.
+      Nothing checks where the reporter is today, so a road report can be
+      posted for a place hundreds of kilometres off. People do report things
+      they passed earlier, so the report still goes up, but it shows as not
+      seen first-hand and does not count for the ranking (raised by a tester
+      on 13 October; the owner said yes that day)
 - [ ] Build 25. Repeat a usual trip: one tap to start a trip made before, with
       the time it usually takes filled in
 - [ ] Build 25. A "keep WakaGuard running" help screen, if trips on Tecno,
@@ -257,6 +268,18 @@ From the roadmap, with its dates. None of these needs an app build.
 - [ ] By Fri 6 Nov. The go or no-go checklist for Fri 13 Nov
 - [ ] Launch day. "Get WakaGuard" on the page contacts see, and store links
       on the website
+- [ ] Guidelines page: an example of reporting a checkpoint without accusing
+      anyone. "Checkpoint at Mokola, 20 minute delay" is fine; naming or
+      picturing an officer is not (a tester's suggestion, 13 October; the
+      owner said yes that day)
+- [ ] For the lawyer, with the Terms review: personal data kept on servers
+      outside Nigeria; what exactly gets an account's texting switched off;
+      whether to rule out reporting security operations while they are
+      happening (all three raised by a tester's review on 13 October)
+- [ ] The unused "offline drafts" code uploads a photo as the camera made
+      it, location details included. Nothing in the app uses it; remove it,
+      or make it redraw photos like the report form does, before anything
+      ever does
 
 Not builds, and tracked in the roadmap document: the D-U-N-S number and store
 accounts in the company's name, the company's purposes at CAC, the data
