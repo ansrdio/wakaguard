@@ -42,7 +42,7 @@ Mon 12 Oct and end about Mon 26 Oct; text alerts are to be on by Mon 2 Nov.
 
 | | Build | Where |
 |---|---|---|
-| Android | 21 | Google Play closed test and internal test |
+| Android | 21 | Google Play closed test. Build 22 is on the internal test and was put forward for the closed test on 12 October |
 | iPhone | 20 | TestFlight, outside testers (builds 15 and 17 were retired on 12 October) |
 
 Android 21 and iPhone 20 hold the same features.
