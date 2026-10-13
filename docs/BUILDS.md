@@ -445,6 +445,7 @@ Changes that went live without an app build.
 
 | Date | What |
 |---|---|
+| Tue 13 Oct | Website: the Privacy page now says what really happens to a photo's camera details. The app redraws every photo before upload, which leaves them out; the page had said they "are not reliably removed", and a tester's review read that as the biggest risk |
 | Mon 12 Oct, late evening | Server: the five functions that send texts now word them "Hi <name>, … Powered by Inskriba Limited", the format Termii requires (texting is still off). Website: the same wording in the examples and on the Privacy page; the corrected keyboard handling for iPhones; the final Back design from build 22 |
 | Mon 12 Oct | Server: arrival reminders ("5 minutes left", "Is your trip finished?"), a trip's first position accepted at once, the registration number in emails no longer offered as a phone call. Website: everything in build 22's list that is not phone-only, with the Terms of Use page |
 | Sun 11 Oct | The weekly ranking report, a tool run by hand that reads trips and road reports; no change to the app |
