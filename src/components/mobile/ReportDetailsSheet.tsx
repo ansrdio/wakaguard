@@ -122,7 +122,7 @@ export function ReportDetailsSheet({ report, onClose, onShowToast }: ReportDetai
       <div
         ref={sheetRef}
         // Above the iPhone's keyboard, the sheet stands on the keyboard's top edge
-        style={aboveKeyboard ? { top: 'auto', bottom: window.innerHeight - aboveKeyboard.top - aboveKeyboard.height, maxHeight: aboveKeyboard.height } : undefined}
+        style={aboveKeyboard ? { top: 'auto', bottom: aboveKeyboard.below, maxHeight: aboveKeyboard.height } : undefined}
         className="fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-3xl shadow-2xl max-h-[90vh] flex flex-col animate-in slide-in-from-bottom duration-300"
       >
         {/* Header */}

@@ -4,6 +4,27 @@ import { CSSProperties, useEffect, useRef } from 'react';
 import { useAreaAboveKeyboard } from '@/hooks/useAreaAboveKeyboard';
 
 /**
+ * Moves the box being typed in to the middle of the part of the pop-up that
+ * scrolls, and moves nothing else.
+ *
+ * `scrollIntoView` is not used: on an iPhone it also slides the whole page,
+ * which the keyboard has already slid once, and the pop-up then follows the
+ * page. On a tall form the box ended up above the top of the screen.
+ */
+function bringToMiddle(field: HTMLElement, popUp: HTMLElement) {
+  let scroller: HTMLElement | null = field.parentElement;
+  while (scroller) {
+    const scrolls = /auto|scroll/.test(getComputedStyle(scroller).overflowY) && scroller.scrollHeight > scroller.clientHeight;
+    if (scrolls) break;
+    scroller = scroller === popUp ? null : scroller.parentElement;
+  }
+  if (!scroller) return;
+  const fieldAt = field.getBoundingClientRect();
+  const scrollerAt = scroller.getBoundingClientRect();
+  scroller.scrollTop += fieldAt.top + fieldAt.height / 2 - (scrollerAt.top + scrollerAt.height / 2);
+}
+
+/**
  * Keeps a pop-up above the iPhone's keyboard. Put `ref` and `style` on the
  * element that covers the whole window (the dimmed backdrop): while the
  * keyboard is up it is fitted to the part of the window still in view, can be
@@ -18,10 +39,16 @@ export function useKeyboardSafeOverlay<T extends HTMLElement = HTMLDivElement>()
 
   useEffect(() => {
     if (!area) return;
-    const typingIn = document.activeElement;
-    if (typingIn instanceof HTMLElement && ref.current?.contains(typingIn)) {
-      typingIn.scrollIntoView({ block: 'center', behavior: 'smooth' });
-    }
+    const settle = () => {
+      const typingIn = document.activeElement;
+      if (typingIn instanceof HTMLElement && ref.current?.contains(typingIn)) {
+        bringToMiddle(typingIn, ref.current);
+      }
+    };
+    settle();
+    // The iPhone goes on sliding things for a moment after the keyboard is up
+    const later = setTimeout(settle, 350);
+    return () => clearTimeout(later);
   }, [area]);
 
   const style: CSSProperties | undefined = area

@@ -10,16 +10,23 @@ export interface VisibleArea {
   top: number;
   /** How tall it is */
   height: number;
+  /** How much of the window lies below it */
+  below: number;
 }
 
 /**
  * The part of the window that is still in view while the iPhone's keyboard is
  * up, or null when nothing is covering the window.
  *
- * The iPhone lays its keyboard over the page without making the window any
- * smaller, so anything fixed to the whole window (a dialog and its backdrop)
- * keeps its lower half underneath the keyboard. A dialog that fits itself to
- * this area instead stays in view and can be scrolled.
+ * With the keyboard up, the iPhone keeps the window (and anything fixed to it,
+ * such as a dialog and its backdrop) at its full height and shows only a slice
+ * of it, slid to wherever the box being typed in is. A dialog that fits itself
+ * to that slice stays in view and can be scrolled.
+ *
+ * The slice is measured against the page's own height. It must not be
+ * measured against window.innerHeight: on an iPhone that shrinks along with
+ * the slice, so the two never differ and the keyboard is never noticed (which
+ * is what this did until build 22 was tried on a simulated iPhone).
  *
  * Android makes the window itself shorter for the keyboard, so there the
  * answer is always null and nothing needs to change.
@@ -32,9 +39,16 @@ export function useAreaAboveKeyboard(): VisibleArea | null {
     if (!viewport) return;
 
     const update = () => {
-      const covered = window.innerHeight - viewport.height > KEYBOARD_MIN_HEIGHT;
-      const next = covered ? { top: Math.round(viewport.offsetTop), height: Math.round(viewport.height) } : null;
-      setArea((now) => (now?.top === next?.top && now?.height === next?.height ? now : next));
+      const windowHeight = document.documentElement.clientHeight;
+      // Pinching in also shows a slice of the window; that is not a keyboard
+      const pinched = viewport.scale > 1.01;
+      const covered = !pinched && windowHeight - viewport.height > KEYBOARD_MIN_HEIGHT;
+      const top = Math.round(viewport.offsetTop);
+      const height = Math.round(viewport.height);
+      const next = covered ? { top, height, below: Math.max(0, windowHeight - top - height) } : null;
+      setArea((now) => (
+        now?.top === next?.top && now?.height === next?.height && now?.below === next?.below ? now : next
+      ));
     };
 
     update();
