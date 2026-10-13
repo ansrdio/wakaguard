@@ -139,12 +139,12 @@ code and stays switched off until it has an approved sender ID.
 - [x] A second text-message provider (Africa's Talking), ready for the day a
       sender ID is approved
 - [x] The dark mode close-button fix on the website
-- [ ] Texts reworded to the format Termii requires: they open "Hi <name>,"
+- [x] Texts reworded to the format Termii requires: they open "Hi <name>,"
       (was "Dear") and close "Powered by Inskriba Limited" (was "Inskriba
       Ltd."), matching the sample Termii confirmed on 12 October and the
-      letters to the networks. Done in the code, with the examples on the
-      website; not live until the owner says to update the server and
-      release the website. So that every text opens the same way, a test
+      letters to the networks. Live on the server and the website since the
+      evening of 12 October, on the owner's word. Texting itself is still
+      switched off. So that every text opens the same way, a test
       text's label now comes straight after the greeting, and a contact with
       no usable name is greeted with a plain "Hi," (the owner said yes to
       both on 12 October)
@@ -416,6 +416,7 @@ Changes that went live without an app build.
 
 | Date | What |
 |---|---|
+| Mon 12 Oct, late evening | Server: the five functions that send texts now word them "Hi <name>, … Powered by Inskriba Limited", the format Termii requires (texting is still off). Website: the same wording in the examples and on the Privacy page; the corrected keyboard handling for iPhones; the final Back design from build 22 |
 | Mon 12 Oct | Server: arrival reminders ("5 minutes left", "Is your trip finished?"), a trip's first position accepted at once, the registration number in emails no longer offered as a phone call. Website: everything in build 22's list that is not phone-only, with the Terms of Use page |
 | Sun 11 Oct | The weekly ranking report, a tool run by hand that reads trips and road reports; no change to the app |
 | Sat 10 Oct | Our own account emails switched on (through Brevo); the email-link page; the "go back to the app" notice; the Nearby layout fix |
