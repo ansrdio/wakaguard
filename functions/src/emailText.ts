@@ -102,8 +102,15 @@ export function buildAccountEmail(task: EmailTask, link: string): { subject: str
   ].join('\n');
 
   const shown = escapeHtml(link);
+  // "telephone=no": the iPhone's mail app otherwise turns the company's
+  // registration number into a phone number to call. Links are left alone,
+  // because the app making the address tappable is what the email relies on.
   const html = `<!doctype html>
 <html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="format-detection" content="telephone=no">
+</head>
 <body style="margin:0;padding:24px;background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#0f172a;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;">
     <tr><td style="padding:28px 24px;">

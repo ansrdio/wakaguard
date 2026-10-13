@@ -186,6 +186,50 @@ test('no contacts: trip is still marked overdue, nothing is sent', async () => {
   assert.equal((await logs(uid, 'overdue')).length, 0);
 });
 
+test('a trip with a few minutes left gets a heads-up once, and contacts hear nothing', async () => {
+  const { uid, contactIds } = await makeUser();
+  const now = Date.now();
+  const id = await makeTrip(uid, contactIds, { startTime: ts(now - 26 * MIN), endsAt: ts(now + 4 * MIN) });
+
+  await runMonitor();
+  const first = (await trip(uid, id)).arrivalReminders;
+  assert.equal(first.headsUp, true);
+  assert.equal(first.stillOpenCount, 0);
+
+  await runMonitor();
+  const again = await trip(uid, id);
+  assert.equal(again.arrivalReminders.lastAt.toMillis(), first.lastAt.toMillis(), 'sent a second time');
+  assert.equal(again.overdueWarnedAt, undefined);
+  assert.equal((await logs(uid, 'overdue')).length, 0);
+});
+
+test('a trip left open long after its time is asked about again, without texting anyone', async () => {
+  const { uid, contactIds } = await makeUser();
+  const now = Date.now();
+  const id = await makeTrip(uid, contactIds, {
+    startTime: ts(now - 50 * MIN), endsAt: ts(now - 20 * MIN), overdueAt: ts(now - 15 * MIN), overdueAlertState: 'sent',
+  });
+
+  await runMonitor();
+  await runMonitor();
+
+  assert.equal((await trip(uid, id)).arrivalReminders.stillOpenCount, 1, 'one reminder per fifteen minutes');
+  assert.equal((await logs(uid, 'overdue')).length, 0);
+});
+
+test('test trips and trips extended by an older app get no heads-up', async () => {
+  const { uid, contactIds } = await makeUser();
+  const now = Date.now();
+  const soon = { startTime: ts(now - 26 * MIN), endsAt: ts(now + 4 * MIN) };
+  const testTrip = await makeTrip(uid, contactIds, { ...soon, isTest: true });
+  const extended = await makeTrip(uid, contactIds, { ...soon, extensionCount: 1 });
+
+  await runMonitor();
+
+  assert.equal((await trip(uid, testTrip)).arrivalReminders, undefined);
+  assert.equal((await trip(uid, extended)).arrivalReminders, undefined);
+});
+
 test('trips that are on time, ended, or have no deadline are left alone', async () => {
   const { uid, contactIds } = await makeUser();
   const onTime = await makeTrip(uid, contactIds, { endsAt: ts(Date.now() + 30 * MIN) });

@@ -2,6 +2,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   decideOverdueAction,
+  decideReminder,
+  HEADS_UP_BEFORE_MS,
+  STILL_OPEN_EVERY_MS,
+  MAX_STILL_OPEN_REMINDERS,
   MAX_ALERT_ATTEMPTS,
   OVERDUE_GRACE_MS,
   OVERDUE_MAX_AGE_MS,
@@ -130,3 +134,52 @@ test('markAsTest: labels a test message and leaves a real one alone', () => {
   // Stays in the plain SMS alphabet, so the label does not push a text into the costlier encoding
   assert.ok(isGsm7(TEST_PREFIX));
 });
+
+// ---------------------------------------------------------------------------
+// Reminders to the traveller
+// ---------------------------------------------------------------------------
+
+const START = DEADLINE - 30 * MIN;
+const trip30 = { deadlineMs: DEADLINE, deadlineSetAtMs: START };
+
+test('a heads-up goes out once, five minutes before the time runs out', () => {
+  assert.equal(decideReminder(trip30, DEADLINE - HEADS_UP_BEFORE_MS - MIN), 'none');
+  assert.equal(decideReminder(trip30, DEADLINE - HEADS_UP_BEFORE_MS), 'heads_up');
+  assert.equal(decideReminder(trip30, DEADLINE - MIN), 'heads_up');
+  assert.equal(
+    decideReminder({ ...trip30, sent: { deadlineMs: DEADLINE, headsUp: true } }, DEADLINE - MIN),
+    'none',
+  );
+});
+
+test('no heads-up for a test trip, a very short trip, or a few minutes just added', () => {
+  assert.equal(decideReminder({ ...trip30, isTest: true }, DEADLINE - MIN), 'none');
+  assert.equal(decideReminder({ deadlineMs: DEADLINE, deadlineSetAtMs: DEADLINE - 8 * MIN }, DEADLINE - MIN), 'none');
+  // Extended by an app that does not say when
+  assert.equal(decideReminder({ deadlineMs: DEADLINE, deadlineSetAtMs: null }, DEADLINE - MIN), 'none');
+});
+
+test('time added starts the heads-up afresh for the new deadline', () => {
+  const later = DEADLINE + 30 * MIN;
+  const extended = { deadlineMs: later, deadlineSetAtMs: DEADLINE - MIN, sent: { deadlineMs: DEADLINE, headsUp: true } };
+  assert.equal(decideReminder(extended, later - 10 * MIN), 'none');
+  assert.equal(decideReminder(extended, later - 4 * MIN), 'heads_up');
+});
+
+test('a trip left open is asked about every fifteen minutes, four times in all', () => {
+  assert.equal(decideReminder(trip30, DEADLINE + STILL_OPEN_EVERY_MS - MIN), 'none');
+  assert.equal(decideReminder(trip30, DEADLINE + STILL_OPEN_EVERY_MS), 'still_open');
+
+  const once = { ...trip30, sent: { deadlineMs: DEADLINE, headsUp: true, stillOpenCount: 1 } };
+  assert.equal(decideReminder(once, DEADLINE + STILL_OPEN_EVERY_MS + MIN), 'none');
+  assert.equal(decideReminder(once, DEADLINE + 2 * STILL_OPEN_EVERY_MS), 'still_open');
+
+  const done = { ...trip30, sent: { deadlineMs: DEADLINE, stillOpenCount: MAX_STILL_OPEN_REMINDERS } };
+  assert.equal(decideReminder(done, DEADLINE + 10 * STILL_OPEN_EVERY_MS), 'none');
+});
+
+test('a deadline from long ago is left alone, and a missing one is ignored', () => {
+  assert.equal(decideReminder(trip30, DEADLINE + 13 * 60 * MIN), 'none');
+  assert.equal(decideReminder({ deadlineMs: NaN, deadlineSetAtMs: START }, DEADLINE), 'none');
+});
+

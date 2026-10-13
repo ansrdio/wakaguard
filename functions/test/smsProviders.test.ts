@@ -6,14 +6,15 @@ const ENV_KEYS = [
   'SMS_PROVIDER', 'SMS_FALLBACK_PROVIDER', 'TWILIO_MOCK',
   'TERMII_API_KEY', 'TERMII_SENDER_ID', 'TERMII_BASE_URL', 'TERMII_CHANNEL',
   'TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_FROM_NUMBER',
+  'AFRICASTALKING_USERNAME', 'AFRICASTALKING_API_KEY', 'AFRICASTALKING_SENDER_ID', 'AFRICASTALKING_BASE_URL',
 ];
 const realFetch = globalThis.fetch;
-let calls: Array<{ url: string; body: any }> = [];
+let calls: Array<{ url: string; body: any; headers?: Record<string, string> }> = [];
 
 function mockFetch(respond: (call: number) => { status: number; body: unknown } | Error) {
   calls = [];
   globalThis.fetch = (async (url: any, init: any) => {
-    calls.push({ url: String(url), body: JSON.parse(init.body) });
+    calls.push({ url: String(url), body: JSON.parse(init.body), headers: init.headers });
     const result = respond(calls.length);
     if (result instanceof Error) throw result;
     const text = typeof result.body === 'string' ? result.body : JSON.stringify(result.body);
@@ -137,3 +138,56 @@ test('a batch reports each recipient separately', async () => {
   assert.equal(results.filter((r) => r.sid).length, 1);
   assert.equal(results.filter((r) => r.error).length, 1);
 });
+
+// ---------------------------------------------------------------------------
+// Africa's Talking
+// ---------------------------------------------------------------------------
+
+function useAfricasTalking() {
+  process.env.SMS_PROVIDER = 'africastalking';
+  process.env.AFRICASTALKING_USERNAME = 'wakaguard';
+  process.env.AFRICASTALKING_API_KEY = 'key_456';
+  process.env.AFRICASTALKING_SENDER_ID = 'WakaGuard';
+}
+const recipient = (statusCode: number, status: string, messageId = 'ATXid_1') => ({
+  SMSMessageData: {
+    Message: 'Sent to 1/1 Total Cost: NGN 4.0000',
+    Recipients: [{ statusCode, number: '+2348012345678', status, cost: 'NGN 4.0000', messageId }],
+  },
+});
+
+test("Africa's Talking request matches the documented format", async () => {
+  useAfricasTalking();
+  mockFetch(() => ({ status: 201, body: recipient(101, 'Success') }));
+
+  const result = await sendSms('+2348012345678', 'hello');
+
+  assert.deepEqual(result, { phoneE164: '+2348012345678', sid: 'ATXid_1', provider: 'africastalking' });
+  assert.equal(calls[0].url, 'https://api.africastalking.com/version1/messaging/bulk');
+  assert.deepEqual(calls[0].body, {
+    username: 'wakaguard', message: 'hello', senderId: 'WakaGuard', phoneNumbers: ['+2348012345678'],
+  });
+  assert.equal(calls[0].headers?.apiKey, 'key_456');
+});
+
+test("Africa's Talking refusals inside a successful reply are reported as failures", async () => {
+  useAfricasTalking();
+  for (const [code, status] of [[405, 'InsufficientBalance'], [409, 'DoNotDisturbRejection'], [402, 'InvalidSenderId']] as const) {
+    mockFetch(() => ({ status: 201, body: recipient(code, status, 'None') }));
+    const result = await sendSms('+2348012345678', 'hello');
+    assert.equal(result.sid, undefined);
+    assert.match(result.error ?? '', new RegExp(`${code} ${status}`));
+  }
+
+  mockFetch(() => ({ status: 401, body: 'The supplied authentication is invalid' }));
+  assert.match((await sendSms('+2348012345678', 'hello')).error ?? '', /401.*authentication is invalid/);
+});
+
+test("Africa's Talking settings are checked before anything is sent", async () => {
+  process.env.SMS_PROVIDER = 'africastalking';
+  mockFetch(() => ({ status: 201, body: recipient(101, 'Success') }));
+  const result = await sendSms('+2348012345678', 'hello');
+  assert.match(result.error ?? '', /AFRICASTALKING_USERNAME, AFRICASTALKING_API_KEY, AFRICASTALKING_SENDER_ID/);
+  assert.equal(calls.length, 0);
+});
+

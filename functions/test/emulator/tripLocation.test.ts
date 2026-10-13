@@ -103,6 +103,19 @@ test('emergency trips keep accepting updates', async () => {
   assert.equal((await post({ uid, tripId, key: KEY, lat: 6.7, lng: 4.9 })).body.written, true);
 });
 
+test('a new trip with no position takes its first one at once', async () => {
+  // The app stamps a trip as updated when it is made, even with no position to give
+  const { uid, tripId } = await makeTrip({
+    lastLocation: null, startLocation: null, lastUpdate: admin.firestore.Timestamp.now(),
+  });
+
+  const res = await post({ uid, tripId, key: KEY, lat: 6.7, lng: 4.9 });
+
+  assert.deepEqual(res.body, { ok: true, written: true });
+  const trip = (await db().doc(`users/${uid}/trips/${tripId}`).get()).data()!;
+  assert.deepEqual(trip.startLocation, { lat: 6.7, lng: 4.9 });
+});
+
 test('updates arriving too fast are acknowledged but not written', async () => {
   const { uid, tripId } = await makeTrip();
   await post({ uid, tripId, key: KEY, lat: 6.7, lng: 4.9 });

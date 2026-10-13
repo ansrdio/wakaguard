@@ -1,7 +1,7 @@
 /**
  * SMS sending with a swappable provider.
  *
- * SMS_PROVIDER selects the provider: 'termii', 'twilio' or 'mock'.
+ * SMS_PROVIDER selects the provider: 'termii', 'africastalking', 'twilio' or 'mock'.
  * SMS_FALLBACK_PROVIDER is tried per recipient when the first one fails.
  *
  * A result with an id means the provider accepted the message. It does not
@@ -9,6 +9,7 @@
  */
 
 import { getSetting } from './config';
+import { africasTalkingProvider } from './africasTalking';
 import { termiiProvider } from './termii';
 import { twilioProvider } from './twilio';
 
@@ -38,6 +39,7 @@ const mockProvider: SmsProvider = {
 
 const PROVIDERS: Record<string, SmsProvider> = {
   termii: termiiProvider,
+  africastalking: africasTalkingProvider,
   twilio: twilioProvider,
   mock: mockProvider,
 };

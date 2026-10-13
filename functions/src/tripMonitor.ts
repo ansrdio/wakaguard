@@ -22,6 +22,9 @@ import { AllClearReason, buildAllClearMessage, buildOverdueMessage, buildSosMess
 import { addPathPoint, readPath } from './tripPath';
 import {
   decideOverdueAction,
+  decideReminder,
+  HEADS_UP_BEFORE_MS,
+  ReminderSubject,
   graceMs,
   OverdueAlertState,
   OverdueSubject,
@@ -69,6 +72,17 @@ function toSubject(kind: Kind, data: DocData): OverdueSubject {
   };
 }
 
+function toReminderSubject(data: DocData): ReminderSubject {
+  const sent = data.arrivalReminders;
+  return {
+    deadlineMs: toMillis(data.endsAt) ?? NaN,
+    // A trip extended by an older app, which does not say when, gets no heads-up
+    deadlineSetAtMs: toMillis(data.extendedAt) ?? ((data.extensionCount ?? 0) > 0 ? null : toMillis(data.startTime)),
+    isTest: data.isTest === true,
+    sent: sent ? { deadlineMs: sent.deadlineMs, headsUp: sent.headsUp === true, stillOpenCount: sent.stillOpenCount ?? 0 } : null,
+  };
+}
+
 /** uid is the parent of the subcollection: users/{uid}/trips/{id} */
 function uidFromRef(ref: DocRef): string {
   return ref.parent.parent!.id;
@@ -87,9 +101,10 @@ export const checkOverdueTrips = functions.pubsub
     const oldest = Timestamp.fromMillis(nowMs - OVERDUE_MAX_AGE_MS);
 
     const [trips, timers] = await Promise.all([
+      // Trips are picked up a little before their time, for the heads-up
       db.collectionGroup('trips')
         .where('status', '==', 'active')
-        .where('endsAt', '<=', now)
+        .where('endsAt', '<=', Timestamp.fromMillis(nowMs + HEADS_UP_BEFORE_MS))
         .where('endsAt', '>=', oldest)
         .limit(BATCH_LIMIT)
         .get(),
@@ -110,6 +125,9 @@ export const checkOverdueTrips = functions.pubsub
         const action = decideOverdueAction(toSubject(kind, data), nowMs);
         if (action === 'warn') work.push(safely(() => warnTraveller(doc.ref, kind)));
         if (action === 'alert') work.push(safely(() => alertContacts(doc.ref, kind)));
+        if (kind === 'trip' && decideReminder(toReminderSubject(data), nowMs) !== 'none') {
+          work.push(safely(() => remindTraveller(doc.ref)));
+        }
       });
     };
 
@@ -150,20 +168,71 @@ async function warnTraveller(ref: DocRef, kind: Kind): Promise<void> {
   });
   if (!claimed) return;
 
-  const subSnap = await db.doc(`pushSubscriptions/${uid}`).get();
+  const isTest = claimed.isTest === true;
+  const graceMinutes = Math.round(graceMs({ isTest }) / 60000);
+  await pushToTraveller(uid, {
+    title: isTest ? 'Test trip: are you okay?' : 'Are you okay?',
+    body: `Check in or add time. Your contacts will be alerted in ${graceMinutes} minute${graceMinutes === 1 ? '' : 's'}.`,
+    data: { type: 'overdue_warning', kind, id: ref.id },
+  });
+}
+
+/**
+ * Nearly out of time, or long past it with the trip never ended: nudge the
+ * traveller. What contacts are told is not affected.
+ */
+async function remindTraveller(ref: DocRef): Promise<void> {
+  const db = admin.firestore();
+  const uid = uidFromRef(ref);
+
+  const reminder = await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const data = snap.data();
+    if (!data || !isStillActive('trip', data)) return null;
+    const subject = toReminderSubject(data);
+    const action = decideReminder(subject, Date.now());
+    if (action === 'none') return null;
+
+    const sameDeadline = subject.sent?.deadlineMs === subject.deadlineMs;
+    tx.update(ref, {
+      arrivalReminders: {
+        deadlineMs: subject.deadlineMs,
+        headsUp: action === 'heads_up' || (sameDeadline && subject.sent?.headsUp === true),
+        stillOpenCount: (sameDeadline ? subject.sent?.stillOpenCount ?? 0 : 0) + (action === 'still_open' ? 1 : 0),
+        lastAt: FieldValue.serverTimestamp(),
+      },
+    });
+    return action;
+  });
+  if (!reminder) return;
+
+  await pushToTraveller(uid, reminder === 'heads_up'
+    ? {
+      title: '5 minutes left',
+      body: 'Have you arrived? Tap "I\'ve arrived", or add time if you need longer.',
+      data: { type: 'trip_reminder', kind: 'trip', id: ref.id },
+    }
+    : {
+      title: 'Is your trip finished?',
+      body: 'Your trip is still open, past its time. If you have arrived, tap "I\'ve arrived".',
+      data: { type: 'trip_reminder', kind: 'trip', id: ref.id },
+    });
+}
+
+/** Sends one notification to the traveller's phone, if it is registered for them. Never throws. */
+async function pushToTraveller(
+  uid: string,
+  message: { title: string; body: string; data: Record<string, string> },
+): Promise<void> {
+  const subSnap = await admin.firestore().doc(`pushSubscriptions/${uid}`).get();
   const fcmToken = subSnap.data()?.fcmToken;
   if (!fcmToken) return;
 
-  const isTest = claimed.isTest === true;
-  const graceMinutes = Math.round(graceMs({ isTest }) / 60000);
   try {
     await admin.messaging().send({
       token: fcmToken,
-      notification: {
-        title: isTest ? 'Test trip: are you okay?' : 'Are you okay?',
-        body: `Check in or add time. Your contacts will be alerted in ${graceMinutes} minute${graceMinutes === 1 ? '' : 's'}.`,
-      },
-      data: { type: 'overdue_warning', kind, id: ref.id },
+      notification: { title: message.title, body: message.body },
+      data: message.data,
       // A reminder nobody hears is no use: deliver it at once, with a sound.
       // On Android it goes to the app's own channel, which appears over other
       // apps. A phone whose app has not made that channel yet falls back to
@@ -172,7 +241,7 @@ async function warnTraveller(ref: DocRef, kind: Kind): Promise<void> {
       apns: { headers: { 'apns-priority': '10' }, payload: { aps: { sound: 'default' } } },
     });
   } catch (err) {
-    console.warn(`Overdue warning push failed for ${uid}:`, err);
+    console.warn(`Reminder push failed for ${uid}:`, err);
   }
 }
 

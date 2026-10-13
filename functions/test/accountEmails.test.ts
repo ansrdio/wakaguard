@@ -56,6 +56,8 @@ test('each email says what it is for and holds the link, safely', () => {
   assert.equal(verify.subject, 'Confirm your email for WakaGuard');
   assert.ok(verify.text.includes(link));
   assert.match(verify.text, /Inskriba Limited \(RC 9913212\)/);
+  // The registration number must not be offered as a phone number to call
+  assert.match(verify.html, /<meta name="format-detection" content="telephone=no">/);
   // In the page the "&" of the address is written "&amp;", and the address is there once, as text
   const escaped = link.replace(/&/g, '&amp;');
   assert.equal(verify.html.split(escaped).length - 1, 1);

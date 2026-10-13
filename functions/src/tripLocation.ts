@@ -65,8 +65,10 @@ export const tripLocation = functions.https.onRequest(async (req, res) => {
     return;
   }
 
+  // A new trip is stamped as updated when it is made, position or not, so the
+  // limit must not throw away the first position of a trip that has none
   const lastUpdateMs = trip.lastUpdate?.toMillis?.() ?? 0;
-  if (Date.now() - lastUpdateMs < MIN_WRITE_INTERVAL_MS) {
+  if (trip.lastLocation && Date.now() - lastUpdateMs < MIN_WRITE_INTERVAL_MS) {
     res.status(200).json({ ok: true, written: false });
     return;
   }
