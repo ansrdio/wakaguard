@@ -213,6 +213,11 @@ quick fixes, so its build numbers are three lower than these.
       tester having to say so (nice to have)
 - [ ] Road report form: when the form is scrolled, a strip of it shows above
       its title bar. Looks untidy, loses nothing (seen on 12 October)
+- [ ] Safety checklist can never be finished: the Trip screen shows five of
+      the ten items but counts all ten, so it stops at "5 of 10 checked". A
+      tester reported it on 13 October. Show all ten, or redo the list with
+      "How are you travelling?" in this build, since today's items are all
+      about a car
 
 ### Builds 24 and 25, in more detail
 
