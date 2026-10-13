@@ -218,6 +218,11 @@ quick fixes, so its build numbers are three lower than these.
       account. A tester's review of the Privacy page raised it on 13 October
       (the owner said yes that day). Needs a change to the database rules as
       well as the app
+- [ ] Trip length in 5-minute steps. Under "Other" the minutes can only be
+      0, 15, 30 or 45, so a trip of 2 hours 10 minutes cannot be entered. A
+      tester asked on 13 October to be able to set it exactly. Nothing else
+      depends on quarter-hours: a trip may be any length from 5 minutes to 20
+      hours
 - [ ] Safety checklist can never be finished: the Trip screen shows five of
       the ten items but counts all ten, so it stops at "5 of 10 checked". A
       tester reported it on 13 October. Show all ten, or redo the list with
