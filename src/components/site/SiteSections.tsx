@@ -33,13 +33,13 @@ const STEPS = [
 
 /** What a contact receives when a traveller has not arrived. */
 export const NOT_ARRIVED_TEXT =
-  'Dear Tobi, WakaGuard: Ada has not checked in from a trip to Ibadan, due Tue 4:30 pm. Last location received Tue 4:12 pm: [map link] Track: [trip link] Please call them. Powered by Inskriba Ltd.';
+  'Hi Tobi, WakaGuard: Ada has not checked in from a trip to Ibadan, due Tue 4:30 pm. Last location received Tue 4:12 pm: [map link] Track: [trip link] Please call them. Powered by Inskriba Limited';
 
 // Written out from the server's templates so a reader can see what a contact receives
 const TEXTS = [
   {
     when: 'A traveller shares a trip with a contact',
-    example: 'Dear Tobi, WakaGuard: Ada is sharing a trip to Ibadan with you. Expected arrival Tue 4:30 pm. Follow it: [trip link] Powered by Inskriba Ltd.',
+    example: 'Hi Tobi, WakaGuard: Ada is sharing a trip to Ibadan with you. Expected arrival Tue 4:30 pm. Follow it: [trip link] Powered by Inskriba Limited',
   },
   {
     when: 'A traveller has not arrived',
@@ -47,15 +47,15 @@ const TEXTS = [
   },
   {
     when: 'A traveller presses SOS',
-    example: 'Dear Tobi, WakaGuard SOS: Ada needs help. Location: [map link] Track: [trip link] Call them or 112. Powered by Inskriba Ltd.',
+    example: 'Hi Tobi, WakaGuard SOS: Ada needs help. Location: [map link] Track: [trip link] Call them or 112. Powered by Inskriba Limited',
   },
   {
     when: 'A traveller tells a contact they are fine',
-    example: 'Dear Tobi, WakaGuard: Ada checked in and is OK. Powered by Inskriba Ltd.',
+    example: 'Hi Tobi, WakaGuard: Ada checked in and is OK. Powered by Inskriba Limited',
   },
   {
     when: 'A traveller who was overdue checks in',
-    example: 'Dear Tobi, WakaGuard: Ada has checked in and ended the trip safely. Powered by Inskriba Ltd.',
+    example: 'Hi Tobi, WakaGuard: Ada has checked in and ended the trip safely. Powered by Inskriba Limited',
   },
 ];
 

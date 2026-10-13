@@ -130,15 +130,57 @@ test('addressTo: opens with the contact\'s name and closes with the company\'s',
   const body = buildAllClearMessage({ userName: 'Ada', reason: 'ended' });
   assert.equal(
     addressTo('Tobi', body),
-    'Dear Tobi, WakaGuard: Ada has checked in and ended the trip safely. Powered by Inskriba Ltd.'
+    'Hi Tobi, WakaGuard: Ada has checked in and ended the trip safely. Powered by Inskriba Limited'
   );
 });
 
-test('addressTo: a test label stays in front of the greeting', () => {
+test('the text for a traveller who has not arrived is the sample Termii approved', () => {
+  // Confirmed in writing by Termii on 12 October 2026 and registered with the
+  // sender ID. Friday 16 October 2026, 6:30 pm and 6:10 pm in Lagos.
+  const body = buildOverdueMessage({
+    userName: 'Ade',
+    kind: 'trip',
+    deadlineMs: Date.UTC(2026, 9, 16, 17, 30),
+    destination: 'Ibadan',
+    lat: 7.3775,
+    lng: 3.9471,
+    lastUpdateMs: Date.UTC(2026, 9, 16, 17, 10),
+    token: 'abc123',
+  });
+  assert.equal(
+    addressTo('Tobi', body),
+    'Hi Tobi, WakaGuard: Ade has not checked in from a trip to Ibadan, due Fri 6:30 pm. '
+      + 'Last location received Fri 6:10 pm: https://maps.google.com/?q=7.3775,3.9471 '
+      + 'Track: https://wakaguard.com/s?token=abc123 Please call them. Powered by Inskriba Limited'
+  );
+});
+
+test('every text opens with "Hi" and closes with the company, test or not, named or not', () => {
+  // The format Termii requires: Hi(name), ... Powered by(Company's name)
+  const bodies = [
+    buildSosMessage({ userName: 'Ada' }),
+    buildAllClearMessage({ userName: 'Ada', reason: 'ended' }),
+    buildTripShareMessage({ userName: 'Ada', token: TOKEN, destination: 'Ibadan', endsAtMs: DEADLINE }),
+    buildCheckinMessage({ userName: 'Ada' }),
+    buildOverdueMessage({ userName: 'Ada', kind: 'trip', deadlineMs: DEADLINE, token: TOKEN }),
+  ];
+  for (const body of bodies) {
+    for (const isTest of [false, true]) {
+      for (const name of ['Tobi', '', null]) {
+        const text = addressTo(name, markAsTest(body, isTest));
+        assert.match(text, name ? /^Hi Tobi, / : /^Hi, /, text);
+        assert.match(text, / Powered by Inskriba Limited$/, text);
+        assert.equal(text.includes('WAKAGUARD TEST ALERT. NOT A REAL EMERGENCY.'), isTest, text);
+      }
+    }
+  }
+});
+
+test('addressTo: a test label comes straight after the greeting', () => {
   const body = markAsTest(buildSosMessage({ userName: 'Ada' }), true);
   assert.equal(
     addressTo('Tobi', body),
-    'WAKAGUARD TEST ALERT. NOT A REAL EMERGENCY. Dear Tobi, WakaGuard SOS: Ada needs help. Call them or 112. Powered by Inskriba Ltd.'
+    'Hi Tobi, WAKAGUARD TEST ALERT. NOT A REAL EMERGENCY. WakaGuard SOS: Ada needs help. Call them or 112. Powered by Inskriba Limited'
   );
 });
 
@@ -146,15 +188,15 @@ test('addressTo: a contact\'s name cannot carry a link, a number or a second mes
   const msg = addressTo('Mum. Visit http://evil.example or call +234 803 123 4567 now', 'WakaGuard: Ada has checked in safely.');
   assert.doesNotMatch(msg, /evil\.example/);
   assert.doesNotMatch(msg, /803/);
-  assert.match(msg, /^Dear Mum\./);
-  assert.match(msg, / Powered by Inskriba Ltd\.$/);
+  assert.match(msg, /^Hi Mum\./);
+  assert.match(msg, / Powered by Inskriba Limited$/);
   // The name is the traveller's own label for the contact; it is kept short
-  assert.ok(msg.indexOf(',') <= 'Dear '.length + 20);
+  assert.ok(msg.indexOf(',') <= 'Hi '.length + 20);
 });
 
-test('addressTo: no usable name means no greeting, and the sign-off stays', () => {
+test('addressTo: with no usable name the greeting is a plain "Hi,"', () => {
   for (const name of ['', '   ', null, undefined, 42, 'https://evil.example']) {
-    assert.equal(addressTo(name, 'WakaGuard: Ada has checked in safely.'), 'WakaGuard: Ada has checked in safely. Powered by Inskriba Ltd.');
+    assert.equal(addressTo(name, 'WakaGuard: Ada has checked in safely.'), 'Hi, WakaGuard: Ada has checked in safely. Powered by Inskriba Limited');
   }
 });
 

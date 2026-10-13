@@ -518,7 +518,7 @@ export function StartTripForm({
         </button>
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
           It works like a real trip, only faster. If you don&apos;t end it, your contacts get a text
-          about {TEST_ALERT_GRACE_MINUTES} minute later that begins &quot;WAKAGUARD TEST ALERT&quot;.
+          about {TEST_ALERT_GRACE_MINUTES} minute later that says &quot;WAKAGUARD TEST ALERT&quot;.
         </p>
       </div>
     </section>

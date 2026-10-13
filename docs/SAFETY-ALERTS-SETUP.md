@@ -38,7 +38,18 @@ Termii's compliance rules ask that a notification names the person receiving it 
 and a sender ID is registered against a sample message that cannot be edited afterwards. Every text therefore
 goes out as:
 
-`Dear <contact's name>, WakaGuard: <the message> Powered by Inskriba Ltd.`
+`Hi <contact's name>, WakaGuard: <the message> Powered by Inskriba Limited`
+
+Termii's own wording for the format is "Hi(name), ................Powered by(Company's name)". A sample
+opening "Dear" was rejected on 12 October 2026. The sample they then confirmed in writing, and which the
+sender ID requests and the letters to the four networks carry, is:
+
+`Hi Tobi, WakaGuard: Ade has not checked in from a trip to Ibadan, due Fri 6:30 pm. Last location received
+Fri 6:10 pm: https://maps.google.com/?q=7.3775,3.9470 Track: https://wakaguard.com/s?token=abc123 Please call
+them. Powered by Inskriba Limited`
+
+A unit test (`functions/test/smsText.test.ts`) builds this text from the real template, so the two cannot
+drift apart unnoticed.
 
 The greeting and the sign-off are added per contact by `addressTo` in `functions/src/templates.ts`, so the
 message builders and the log keep the shared body. If the wording of the sign-off or the greeting changes,
@@ -101,7 +112,7 @@ The traveller's trip map and the page a contact opens from the trip link draw th
 "Try a 2-minute test trip instead" on the start form runs the real alert path with shorter waits, so the whole thing can be watched in a few minutes without alarming anyone.
 
 - The trip is marked `isTest`. It lasts 2 minutes, and contacts are texted about a minute after that instead of five (`TEST_OVERDUE_GRACE_MS`).
-- Every text about it (the trip link, "I'm okay", the overdue alert, the SOS and the follow-up) begins `WAKAGUARD TEST ALERT. NOT A REAL EMERGENCY.`
+- Every text about it (the trip link, "I'm okay", the overdue alert, the SOS and the follow-up) says `WAKAGUARD TEST ALERT. NOT A REAL EMERGENCY.` straight after the greeting (`Hi Tobi, WAKAGUARD TEST ALERT. ...`), so that test texts open the way Termii approved. A contact with no usable name is greeted `Hi,`.
 - The SOS dialog does not offer the call to 112 during a test trip, and the page a contact opens says it is a test and hides its own Call 112 button.
 - Nothing else differs. A test trip uses the same monitor, the same triggers, the same limits and the same SMS provider as a real one, and its texts are charged like any others.
 

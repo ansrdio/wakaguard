@@ -136,7 +136,7 @@ export function ActiveTripCard({
 
         {trip.isTest && (
           <div className="mx-5 mb-4 bg-amber-100 border border-amber-300 rounded-xl p-3 text-sm text-amber-900">
-            <span className="font-semibold">Test trip.</span> Every text about it begins &quot;WAKAGUARD TEST ALERT&quot;,
+            <span className="font-semibold">Test trip.</span> Every text about it says &quot;WAKAGUARD TEST ALERT&quot;,
             and 112 is not called.
           </div>
         )}

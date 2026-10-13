@@ -133,8 +133,8 @@ export default function SupportPage() {
                   Yes. Under the start button, tap &quot;Try a {TEST_TRIP_MINUTES}-minute test trip
                   instead&quot;. It works like a real trip with shorter waits: the trip
                   lasts {TEST_TRIP_MINUTES} minutes and, if you do not end it, your contacts are texted
-                  about {TEST_ALERT_GRACE_MINUTES} minute after that. Every text about a test trip begins
-                  &quot;WAKAGUARD TEST ALERT. NOT A REAL EMERGENCY.&quot;, the page your contact opens says it
+                  about {TEST_ALERT_GRACE_MINUTES} minute after that. Every text about a test trip says
+                  &quot;WAKAGUARD TEST ALERT. NOT A REAL EMERGENCY.&quot; straight after the greeting, the page your contact opens says it
                   is a test, and SOS does not call 112 during a test trip. These are real texts to real phones,
                   so let your contacts know before you try it.
                 </p>

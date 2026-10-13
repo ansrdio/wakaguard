@@ -46,7 +46,7 @@ function hasLocation(p: { lat?: number | null; lng?: number | null }): p is { la
 // Test trips
 // -------------------------------------------------------------------------
 
-/** Starts every text sent for a test trip, so nobody takes it for a real alert */
+/** Put on every text sent for a test trip, right after the greeting, so nobody takes it for a real alert */
 export const TEST_PREFIX = 'WAKAGUARD TEST ALERT. NOT A REAL EMERGENCY. ';
 
 /** Label a message as a test when it belongs to a test trip */
@@ -58,28 +58,34 @@ export function markAsTest(body: string, isTest: boolean | null | undefined): st
 // Who the text is to, and who it is from
 // -------------------------------------------------------------------------
 
-/** The registered company behind WakaGuard, named at the end of every text */
-export const SIGN_OFF = 'Powered by Inskriba Ltd.';
+/**
+ * The registered company behind WakaGuard, named at the end of every text: its
+ * full registered name, with no full stop after it.
+ */
+export const SIGN_OFF = 'Powered by Inskriba Limited';
 
 /** The contact's name is the traveller's own label for them; keep the greeting short */
 const GREETING_NAME_LENGTH = 20;
 
 /**
  * Address a message to the person receiving it and sign it with the company's
- * name: "Dear Tobi, WakaGuard: ... Powered by Inskriba Ltd."
+ * name: "Hi Tobi, WakaGuard: ... Powered by Inskriba Limited"
  *
- * The SMS provider's compliance rules (Termii, October 2026) ask for both in
- * every notification, and the sender ID is registered with a sample in this
- * shape. A text that leaves them out may not be carried.
+ * This is the format Termii requires ("Hi(name), ... Powered by(Company's
+ * name)"). They rejected a sample that opened "Dear" on 12 October 2026 and
+ * confirmed this one in writing; the sender ID is registered against it, and
+ * the same wording is in the letters sent to the four networks. A text in any
+ * other shape may not be carried.
  *
- * A test label stays at the very front, ahead of the greeting. A contact with
- * no usable name gets no greeting rather than "Dear ,".
+ * So every text opens the same way, whoever it is to and whatever it is
+ * about: a test label comes straight after the greeting, not before it, and a
+ * contact with no usable name is greeted with a plain "Hi,".
  */
 export function addressTo(recipientName: unknown, body: string): string {
   const label = body.startsWith(TEST_PREFIX) ? TEST_PREFIX : '';
   const rest = body.slice(label.length);
   const name = sanitizeName(recipientName).slice(0, GREETING_NAME_LENGTH).trim();
-  return `${label}${name ? `Dear ${name}, ` : ''}${rest} ${SIGN_OFF}`;
+  return `${name ? `Hi ${name}, ` : 'Hi, '}${label}${rest} ${SIGN_OFF}`;
 }
 
 // -------------------------------------------------------------------------
