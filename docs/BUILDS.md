@@ -14,6 +14,30 @@ code and carry the same build number when they hold the same features. Changes
 to the website and the server go live on their own, without a new app build,
 and are listed separately.
 
+## When each build is due
+
+One build a week, finished on Wednesday night Arizona time so testers have it
+before the weekend. Android and iPhone go out on the same day.
+
+| Build | Due | Main contents | Status |
+|---|---|---|---|
+| 22 | Wed 14 Oct | Store requirements (report and block, Terms of Use, location screen); Android Back; location fixes; arrival reminders | Next |
+| 23 | Wed 21 Oct | Sign in with Google and Apple; paid maps; weather; our own road report pictures; "How are you travelling?" with matching tips | Planned |
+| 24 | Wed 28 Oct | Sponsor card by state; "please update" switch; service notice; "stop texting me"; vehicle details | Planned |
+| 25 | Wed 4 Nov | Fixes after text alerts are switched on; repeat a usual trip | Planned |
+| 26 | Wed 11 Nov | The launch version | Planned |
+
+| After the last build | Date |
+|---|---|
+| Launch version frozen; go or no-go | Fri 13 Nov |
+| Sent to Apple and Google, held for release | Mon 16 Nov |
+| Both stores approved | by Fri 27 Nov |
+| Public launch | Tue 1 Dec (Monday evening in Arizona) |
+| Nothing new for two weeks, fixes only | until Mon 14 Dec |
+
+Other dates that decide the launch: Google's 14 days with 12 testers began on
+Mon 12 Oct and end about Mon 26 Oct; text alerts are to be on by Mon 2 Nov.
+
 ## Live now (Monday 12 October 2026)
 
 | | Build | Where |
@@ -98,7 +122,7 @@ quick fixes, so its build numbers are three lower than these.
 
 | Build | Planned | What |
 |---|---|---|
-| 23 | Wed 21 Oct | Sign in with Google and Apple; paid map provider; weather on the Trip screen; our own road report pictures; "How are you travelling?" when starting a trip |
+| 23 | Wed 21 Oct | Sign in with Google and Apple; paid map provider; weather on the Trip screen; our own road report pictures; "How are you travelling?" when starting a trip, with matching tips. If the week is tight, sign-in moves to build 24, since the stores do not require it |
 | 24 | Wed 28 Oct | Sponsor slot, different by state; "please update" switch; service notice; "stop texting me" for contacts; vehicle details on a trip |
 | 25 | Wed 4 Nov | Fixes, after text alerts are switched on; repeat a usual trip |
 | 26 | Wed 11 Nov | The launch version, frozen Friday 13 November |
@@ -127,6 +151,20 @@ quick fixes, so its build numbers are three lower than these.
       for a helmet and hold on with both hands"). They replace the general
       tips card on the Trip tab. Tips never hold up starting a trip. The
       owner approves the wording, checked by someone in Nigeria
+
+      Draft tips, written on 12 October and not yet approved:
+
+      | Travelling by | Draft tips |
+      |---|---|
+      | Bus or danfo | Board at a recognised park, not by the roadside. Note the plate number before you sit. If something feels wrong about the other passengers, wait for the next one. |
+      | Keke | Agree the fare and the route before you get in. Keep your bag on your lap, away from the open side. |
+      | Okada | Ask for a helmet and hold on with both hands. Avoid okada at night and in the rain. |
+      | Private car | Check fuel, tyres and water before a long trip. Take a break every two hours. Avoid driving between cities at night. |
+      | Taxi or ride-hailing | Check the plate and the driver match before you get in. Sit in the back. |
+      | On foot | Stay on busy, well-lit roads. Keep your phone in your pocket when crossing. |
+
+      With weather in the same build, a tip can follow the forecast ("Rain
+      expected. Okada is risky on wet roads").
 - [ ] Emergency numbers corrected: the list shows 199 for both Police and
       Fire, and a Lagos ambulance line for the whole country. Needs the right
       numbers confirmed in Nigeria
