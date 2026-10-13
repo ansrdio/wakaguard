@@ -97,8 +97,8 @@ quick fixes, so its build numbers are three lower than these.
 | Build | Planned | What |
 |---|---|---|
 | 23 | Wed 21 Oct | Sign in with Google and Apple; paid map provider; weather on the Trip screen |
-| 24 | Wed 28 Oct | Sponsor slot; "please update" switch; service notice; "stop texting me" for contacts |
-| 25 | Wed 4 Nov | Fixes, after text alerts are switched on |
+| 24 | Wed 28 Oct | Sponsor slot; "please update" switch; service notice; "stop texting me" for contacts; vehicle details on a trip |
+| 25 | Wed 4 Nov | Fixes, after text alerts are switched on; repeat a usual trip |
 | 26 | Wed 11 Nov | The launch version, frozen Friday 13 November |
 
 ### Build 23, in more detail
@@ -110,6 +110,46 @@ quick fixes, so its build numbers are three lower than these.
       area, so the service never sees where a person is. Before building:
       choose a weather service whose terms allow an app that carries sponsors,
       and add a line to the Privacy page
+
+### Builds 24 and 25, in more detail
+
+- [ ] Build 24. Vehicle details on a trip: the plate number, the bus company
+      or the driver's name, added when starting. Contacts see them if the
+      traveller does not arrive
+- [ ] Build 25. Repeat a usual trip: one tap to start a trip made before, with
+      the time it usually takes filled in
+
+## After launch
+
+Agreed as wanted, not yet given a build. Nothing here is started.
+
+From the first week of testing (agreed 12 October):
+
+- [ ] One-tap road reports: "Checkpoint", "Accident", "Bad road", "Flooding"
+      as buttons that report where the traveller is
+- [ ] Battery level in the alert, so contacts know when a phone was about to
+      go off
+- [ ] Check-ins on long trips: "Still okay?" every couple of hours
+- [ ] Nigerian languages for the alert texts and the main screens: Pidgin,
+      Yoruba, Hausa, Igbo
+
+Places and adverts by location (the owner asked on 12 October where these
+stand; neither exists yet):
+
+- [ ] A directory of places (landmarks, businesses, bus parks), built from
+      many people's trips combined, never from one person's. Today the app
+      only keeps where each trip started and ended and the destination the
+      traveller typed. Needs a line on the Privacy page before it starts
+- [ ] Adverts by location: sponsored stops and offers near where a traveller
+      is or along the way. Depends on the directory. The sponsor slot in
+      build 24 is one card for everyone and does not use location
+
+From the roadmap:
+
+- [ ] The weekly ranking inside the app, and invite links
+- [ ] Address lookup when choosing a destination
+- [ ] Family circle, and a "request a trip" link
+- [ ] USSD, for people without smartphones
 
 ## Released builds
 
