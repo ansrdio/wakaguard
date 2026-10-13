@@ -337,6 +337,22 @@ pictures are in build 23:
 - [ ] Turn signs and road graphics in the same style, when navigation comes
 - [ ] Movement: the vehicle travelling, pins appearing, the moment of arrival
 
+Reasons to come back (the owner's idea on 13 October, from a post about
+hiding prizes around Lagos for people to find; agreed that day). The hunting
+itself is left out: nothing is collected while a person is moving.
+
+- [ ] The weekly ranking with sponsor prizes, by state: points for a road
+      report that others confirm and for being first to confirm someone
+      else's, never for the number of reports alone. A sponsor can fund one
+      bigger prize for a week ("top reporter in Lagos"). Run by hand, as in
+      the beta, until it is built into the app (see "From the roadmap")
+- [ ] Sponsored safe stops: a partner filling station, motor park or
+      restaurant is marked on the map, and ending a trip there earns a
+      reward. Goes with the sponsor card of build 24 and the adverts by
+      location above
+- [ ] Before any prize is announced: the lawyer to say what approval a
+      promotion with prizes needs in Nigeria
+
 Navigation (asked for by the owner on 12 October, "at some point"):
 
 - [ ] Step 1, the route without the voice: once a destination can be looked
