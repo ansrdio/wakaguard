@@ -2,10 +2,15 @@
  * @fileoverview What the phone's Back button closes
  *
  * Everything that opens over a screen (a sheet, a pop-up, a tab other than the
- * first) registers here as a layer. While any layer is open, one extra step
- * sits on the browser history, so Back lands on that step instead of leaving
- * the app, and the newest layer closes. The Android app goes back through the
- * web history first (MainActivity), so this is all it needs.
+ * first) registers here as a layer, and each layer puts one step of its own on
+ * the browser history. Back takes the newest step off, and the layer it stood
+ * for closes. The Android app goes back through the web history before it
+ * leaves (MainActivity), so this is all it needs.
+ *
+ * A step is only ever added when a layer opens, which follows a tap. Android
+ * skips history steps that a page adds without one (so that pages cannot trap
+ * the Back button), and a step added from inside the Back handler was being
+ * skipped on a real phone: the second Back in a row left the app.
  *
  * @module backLayers
  */
@@ -28,28 +33,17 @@ export interface BackWindow {
 
 export function createBackLayers(win: BackWindow) {
   const stack: Layer[] = [];
-  // Our step is on the history
-  let armed = false;
-  // We asked the history to drop our step, and it has not answered yet
-  let undoing = false;
+  // Steps we have asked the history to take off, which it has not done yet
+  let undoing = 0;
   let listening = false;
 
-  const arm = () => {
-    if (armed) return;
-    const state = win.history.state && typeof win.history.state === 'object' ? win.history.state : {};
-    win.history.pushState({ ...state, [STEP_KEY]: true }, '');
-    armed = true;
-  };
-
   const onPop = () => {
-    armed = false;
-    if (undoing) {
-      undoing = false;
-    } else {
-      // Back was pressed: close the newest layer
-      stack.pop()?.close();
+    if (undoing > 0) {
+      undoing--;
+      return;
     }
-    if (stack.length > 0) arm();
+    // Back was pressed and took the newest step with it: close its layer
+    stack.pop()?.close();
   };
 
   /**
@@ -64,18 +58,16 @@ export function createBackLayers(win: BackWindow) {
       win.addEventListener('popstate', onPop);
       listening = true;
     }
-    // While a step is being dropped, onPop adds the new one when that finishes
-    if (!undoing) arm();
+    const state = win.history.state && typeof win.history.state === 'object' ? win.history.state : {};
+    win.history.pushState({ ...state, [STEP_KEY]: true }, '');
 
     return () => {
       const index = stack.indexOf(layer);
-      if (index === -1) return; // Back already closed it
+      if (index === -1) return; // Back already closed it, and its step went with it
       stack.splice(index, 1);
-      // Nothing left open: take our step off, or the next Back would do nothing
-      if (stack.length === 0 && armed && !undoing) {
-        undoing = true;
-        win.history.back();
-      }
+      // Closed from the screen: take its step off, or a later Back would do nothing
+      undoing++;
+      win.history.back();
     };
   };
 }

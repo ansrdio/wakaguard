@@ -49,13 +49,30 @@ test('Back closes the newest layer first, one at a time', () => {
   open(() => closed.push('sheet'));
   open(() => closed.push('pop-up'));
 
+  assert.equal(steps(), 3, 'one step for each thing that is open');
   pressBack();
   assert.deepEqual(closed, ['pop-up']);
-  assert.equal(steps(), 1, 'still something open, so Back stays in the app');
+  assert.equal(steps(), 2, 'still two things open, so Back stays in the app twice more');
   pressBack();
   pressBack();
   assert.deepEqual(closed, ['pop-up', 'sheet', 'tab']);
   assert.equal(steps(), 0);
+});
+
+test('pressing Back never adds a step', () => {
+  // Android skips steps a page adds without a tap, so a step added while
+  // handling Back would be lost and the next Back would leave the app
+  const { win, pressBack } = fakeWindow();
+  let pushes = 0;
+  const pushState = win.history.pushState.bind(win.history);
+  win.history.pushState = (state: unknown) => { pushes++; pushState(state); };
+  const open = createBackLayers(win);
+  open(() => {});
+  open(() => {});
+  assert.equal(pushes, 2);
+
+  pressBack();
+  assert.equal(pushes, 2);
 });
 
 test('closing from the screen leaves no dead Back press behind', () => {
