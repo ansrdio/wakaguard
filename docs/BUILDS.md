@@ -157,6 +157,21 @@ stand; neither exists yet):
       sponsor, chosen by the area the person is in and never by their past
       trips, and nothing shown while a trip is running
 
+Navigation (asked for by the owner on 12 October, "at some point"):
+
+- [ ] Step 1, the route without the voice: once a destination can be looked
+      up, work out the route and how long it should take, fill in the trip's
+      length from it, draw it on the trip map and the contacts' page, and
+      notice when a traveller has left it or stopped for long. Needs address
+      lookup and a routing service
+- [ ] Step 2, turn-by-turn with spoken directions inside the app. A large
+      piece of work with a running cost: it needs a navigation kit built into
+      the Android and iPhone apps themselves. Until then the app hands over to
+      Google Maps for directions
+- [ ] Before either: when the paid map provider is chosen for build 23, prefer
+      one that also offers routing and navigation, so the maps do not have to
+      be changed twice
+
 From the roadmap:
 
 - [ ] The weekly ranking inside the app, and invite links
