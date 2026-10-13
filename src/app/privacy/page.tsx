@@ -24,7 +24,7 @@ export default function PrivacyPage() {
           </div>
 
           <p className="text-gray-600 mb-8">
-            Last Updated: October 9, 2026
+            Last Updated: October 13, 2026
           </p>
 
           <section className="mb-8">
@@ -135,7 +135,7 @@ export default function PrivacyPage() {
               <li>Photos are compressed and resized before upload (max 1600px width, ≤600KB)</li>
               <li>Photos are stored in Firebase Storage</li>
               <li>Photo URLs are publicly accessible to display on reports</li>
-              <li>Details your camera embeds in a photo (EXIF data, which can include GPS coordinates) are not reliably removed</li>
+              <li>Redrawing a photo for upload leaves out the details your camera embeds in the file (EXIF data, which can include GPS coordinates). What the photo itself shows is not changed</li>
             </ul>
             <p className="text-gray-700 leading-relaxed mb-6">
               <strong>Important:</strong> Do not include photos with identifiable people, license plates,
