@@ -3,9 +3,11 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, Check, Clock, Loader2, MapPin, MapPinOff, Users } from 'lucide-react';
+import { ArrowLeft, Check, Clock, Loader2, Users } from 'lucide-react';
 import { Trip, TripStatus } from '@/lib/types';
 import { TEST_TRIP_MINUTES, describeLocationStatus, describeTimeLeft, formatClock, joinNames } from '@/lib/tripPlanning';
+import { TripLocationLine } from '@/components/mobile/trip/TripLocationLine';
+import { getDeviceId, sendsTripLocation } from '@/lib/deviceId';
 import { readTripPath } from '@/lib/tripPath';
 import { describeTripAlert, watcherCaption } from '@/lib/alertOutcome';
 import { useSharedTrip } from '@/hooks/useSharedTrip';
@@ -58,7 +60,6 @@ export function TripMapScreen({ trip, watcherNames, processing, onClose, onArriv
   const timeLeft = endsAtMs != null ? describeTimeLeft(endsAtMs, nowMs) : null;
   const pill = PILLS[isEmergency ? 'emergency' : timeLeft?.state ?? 'active'];
   const location = describeLocationStatus(trip.lastUpdate?.toMillis() ?? null, !!trip.lastLocation, nowMs);
-  const LocationIcon = location.state === 'fresh' ? MapPin : MapPinOff;
   // A quarter of an hour more would end a two-minute test
   const extraMinutes = trip.isTest ? TEST_TRIP_MINUTES : 15;
 
@@ -102,14 +103,13 @@ export function TripMapScreen({ trip, watcherNames, processing, onClose, onArriv
               {' '}· {timeLeft.text}
             </p>
           )}
-          <p
-            className={`flex items-start gap-1.5 text-sm mt-1 ${
-              location.state === 'fresh' ? 'text-slate-600 dark:text-slate-300' : 'text-amber-800 dark:text-amber-300 font-medium'
-            }`}
-          >
-            <LocationIcon className="w-4 h-4 mt-0.5 flex-shrink-0" aria-hidden="true" />
-            {location.text}
-          </p>
+          <TripLocationLine
+            trip={trip}
+            nowMs={nowMs}
+            sendsHere={sendsTripLocation(trip.trackingDeviceId, getDeviceId())}
+            className="mt-1 !gap-1.5"
+            iconClassName="w-4 h-4 mt-0.5"
+          />
         </div>
       </div>
 

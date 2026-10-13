@@ -167,6 +167,7 @@ export function LandingPage({ onOpenApp }: { onOpenApp: () => void }) {
           </div>
           <nav aria-label="More about WakaGuard" className="flex flex-col gap-2">
             <Link href="/about" className="hover:underline">About</Link>
+            <Link href="/terms" className="hover:underline">Terms of use</Link>
             <Link href="/privacy" className="hover:underline">Privacy policy</Link>
             <Link href="/support" className="hover:underline">Support</Link>
             <Link href="/guidelines" className="hover:underline">Guidelines</Link>

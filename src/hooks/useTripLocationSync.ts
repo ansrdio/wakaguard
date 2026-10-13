@@ -22,7 +22,9 @@ import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db, EMULATOR_HOST, usingEmulators } from '@/lib/firebase';
 import { useAuthedUser } from '@/hooks/useAuthedUser';
 import { calculateDistance } from '@/lib/geo';
-import { HEARTBEAT_MS, LocationFix, SentFix, shouldSendFix, tripLocationEndpoint } from '@/lib/tripLocation';
+import {
+  HEARTBEAT_MS, LocationFix, ROUGH_CHECK_MS, SentFix, shouldSendFix, tripLocationEndpoint, wantsRoughFix,
+} from '@/lib/tripLocation';
 import { getDeviceId, sendsTripLocation } from '@/lib/deviceId';
 import { Trip } from '@/lib/types';
 
@@ -89,6 +91,7 @@ export function useTripLocationSync(
     let latest: LocationFix | null = null;
     let problemReported = false;
     let stopped = false;
+    let lastFixAt: number | null = null;
 
     const reportProblem = (problem: TripLocationProblem) => {
       if (problemReported) return;
@@ -100,6 +103,7 @@ export function useTripLocationSync(
       if (stopped) return;
       latest = fix;
       const now = Date.now();
+      lastFixAt = now;
       if (!shouldSendFix(lastSent, fix, now, distance)) return;
 
       const previous = lastSent;
@@ -116,6 +120,18 @@ export function useTripLocationSync(
         console.error('Error syncing trip location:', error);
       }
     };
+
+    // Both sources below ask for precise positions. When none has come for a
+    // while, ask once for a rough one, which the phone can usually give at once.
+    const roughFallback = setInterval(() => {
+      if (stopped || !wantsRoughFix(lastFixAt, Date.now())) return;
+      if (typeof navigator === 'undefined' || !navigator.geolocation) return;
+      navigator.geolocation.getCurrentPosition(
+        (p) => offer({ lat: p.coords.latitude, lng: p.coords.longitude, accuracy: p.coords.accuracy }),
+        () => {},
+        { enableHighAccuracy: false, maximumAge: 2 * 60 * 1000, timeout: ROUGH_CHECK_MS }
+      );
+    }, ROUGH_CHECK_MS);
 
     // ---- Native: background-capable watcher --------------------------------
     if (isNative) {
@@ -152,12 +168,14 @@ export function useTripLocationSync(
 
       return () => {
         stopped = true;
+        clearInterval(roughFallback);
         if (watcherId) BackgroundGeolocation.removeWatcher({ id: watcherId });
       };
     }
 
     // ---- Browser: foreground only -----------------------------------------
     if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      clearInterval(roughFallback);
       reportProblem('unavailable');
       return;
     }
@@ -181,6 +199,7 @@ export function useTripLocationSync(
 
     return () => {
       stopped = true;
+      clearInterval(roughFallback);
       navigator.geolocation.clearWatch(watchId);
       clearInterval(heartbeat);
     };

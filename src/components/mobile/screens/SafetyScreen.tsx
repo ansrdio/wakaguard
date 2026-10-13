@@ -8,6 +8,10 @@ import {
   ChevronDown, ChevronUp
 } from 'lucide-react';
 import { useSafety } from '@/hooks/useSafety';
+import { useBackToClose } from '@/hooks/useBackToClose';
+import { useKeyboardSafeOverlay } from '@/hooks/useKeyboardSafeOverlay';
+import { hasSeenLocationExplanation, rememberLocationExplanation } from '@/lib/locationConsent';
+import { LocationExplanation } from '@/components/mobile/trip/LocationExplanation';
 import { askToShowNotifications } from '@/lib/nativeNotifications';
 import { MAX_TRUSTED_CONTACTS, formatDuration, joinNames } from '@/lib/tripPlanning';
 import { reachedServer } from '@/lib/firestoreWrites';
@@ -133,22 +137,11 @@ export function SafetyScreen({ onReportRoad }: { /** Open the road report form *
   // Derived from the trip so the share options survive an app restart mid-trip
   const shareUrl = activeTrip ? buildShareLink(activeTrip.id) : null;
 
-  // The trip on a map. Opening it adds a step to the browser history, so the
-  // phone's Back button closes the map instead of leaving the app.
+  // The trip on a map. The phone's Back button closes it instead of leaving the app.
   const [tripMapOpen, setTripMapOpen] = useState(false);
-  const openTripMap = () => {
-    window.history.pushState({ wakaguardTripMap: true }, '');
-    setTripMapOpen(true);
-  };
-  const closeTripMap = () => {
-    if (window.history.state?.wakaguardTripMap) window.history.back();
-    else setTripMapOpen(false);
-  };
-  useEffect(() => {
-    const onBack = () => setTripMapOpen(false);
-    window.addEventListener('popstate', onBack);
-    return () => window.removeEventListener('popstate', onBack);
-  }, []);
+  const openTripMap = () => setTripMapOpen(true);
+  const closeTripMap = () => setTripMapOpen(false);
+  useBackToClose(tripMapOpen, closeTripMap);
 
   // Starting or ending a trip swaps what is at the top of the screen, so bring it back into view
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -173,6 +166,11 @@ export function SafetyScreen({ onReportRoad }: { /** Open the road report form *
   const [newContactPhone, setNewContactPhone] = useState('');
   const [phoneContacts, setPhoneContacts] = useState<{ name: string; phone: string }[]>([]);
   const [showContactPicker, setShowContactPicker] = useState(false);
+  useBackToClose(activeModal !== null, () => setActiveModal(null));
+  useBackToClose(showContactPicker, () => setShowContactPicker(false));
+  // Both have boxes to type in, which the iPhone's keyboard would otherwise cover
+  const { ref: contactsRef, style: contactsStyle } = useKeyboardSafeOverlay();
+  const { ref: pickerRef, style: pickerStyle } = useKeyboardSafeOverlay();
   const [contactSearch, setContactSearch] = useState('');
   
   // Collapsible sections
@@ -312,9 +310,18 @@ export function SafetyScreen({ onReportRoad }: { /** Open the road report form *
   };
 
   // Share via WhatsApp (Trip)
+  // The first trip on this phone waits for the traveller to read how their
+  // location is used. It must come before the phone's own permission question.
+  const [awaitingLocationConsent, setAwaitingLocationConsent] = useState<StartTripRequest | null>(null);
+  useBackToClose(awaitingLocationConsent !== null, () => setAwaitingLocationConsent(null));
+
   const handleStartTrip = async (request: StartTripRequest) => {
     if (!requireAccount('start safe trip')) return;
     if (!uid || isAnonymous) return;
+    if (!hasSeenLocationExplanation()) {
+      setAwaitingLocationConsent(request);
+      return;
+    }
     setProcessing(true);
 
     // The name goes into texts to contacts, so save it before the trip exists.
@@ -911,6 +918,18 @@ export function SafetyScreen({ onReportRoad }: { /** Open the road report form *
         )}
       </div>
 
+      {awaitingLocationConsent && (
+        <LocationExplanation
+          onCancel={() => setAwaitingLocationConsent(null)}
+          onContinue={() => {
+            const request = awaitingLocationConsent;
+            rememberLocationExplanation();
+            setAwaitingLocationConsent(null);
+            void handleStartTrip(request);
+          }}
+        />
+      )}
+
       {activeTrip && tripMapOpen && (
         <TripMapScreen
           trip={activeTrip}
@@ -1027,7 +1046,7 @@ export function SafetyScreen({ onReportRoad }: { /** Open the road report form *
 
       {/* Trusted Contacts Modal */}
       {activeModal === 'contacts' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+        <div ref={contactsRef} style={contactsStyle} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
           <div className="bg-white rounded-2xl w-full max-w-sm max-h-[80vh] overflow-hidden flex flex-col">
             <div className="flex items-center justify-between p-4 border-b border-slate-200">
               <h2 className="text-xl font-bold text-slate-900">Trusted Contacts</h2>
@@ -1122,7 +1141,7 @@ export function SafetyScreen({ onReportRoad }: { /** Open the road report form *
 
       {/* Phone Contacts Picker Modal */}
       {showContactPicker && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50">
+        <div ref={pickerRef} style={pickerStyle} className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50">
           <div className="bg-white rounded-2xl w-full max-w-sm max-h-[80vh] overflow-hidden flex flex-col">
             <div className="flex items-center justify-between p-4 border-b border-slate-200">
               <h2 className="text-lg font-bold text-slate-900">Select Contact</h2>

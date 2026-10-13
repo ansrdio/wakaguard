@@ -1,13 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { X, Navigation, Share2, ThumbsUp, ThumbsDown, Flag, MessageCircle, CheckCircle, XCircle, Send } from 'lucide-react';
-import { Report, FlagReason } from '@/lib/types';
+import { useKeyboardSafeOverlay } from '@/hooks/useKeyboardSafeOverlay';
+import { X, Navigation, Share2, ThumbsUp, ThumbsDown, MessageCircle, CheckCircle, XCircle, Send } from 'lucide-react';
+import { Report } from '@/lib/types';
 import { useAuthedUser } from '@/hooks/useAuthedUser';
 import { useRequireAccount } from '@/hooks/useRequireAccount';
 import { AuthModal } from '@/components/AuthModal';
 import { useComments } from '@/hooks/useComments';
-import { flagReport } from '@/lib/actions';
+import { PostActions } from '@/components/mobile/PostActions';
 import { useVote } from '@/hooks/useVote';
 import { useReportResolution } from '@/hooks/useReportResolution';
 import { buildReportLink } from '@/lib/appUrl';
@@ -21,7 +22,7 @@ interface ReportDetailsSheetProps {
 export function ReportDetailsSheet({ report, onClose, onShowToast }: ReportDetailsSheetProps) {
   const { uid, isAnonymous } = useAuthedUser();
   const { requireAccount, showAuthModal, closeAuthModal } = useRequireAccount({ uid, isAnonymous });
-  const [flagging, setFlagging] = useState(false);
+  const { ref: sheetRef, area: aboveKeyboard } = useKeyboardSafeOverlay();
   const [commentText, setCommentText] = useState('');
   const [showComments, setShowComments] = useState(false);
 
@@ -83,20 +84,6 @@ export function ReportDetailsSheet({ report, onClose, onShowToast }: ReportDetai
     }
   };
 
-  const handleFlag = async () => {
-    if (!requireAccount('flag report')) return;
-    if (!uid || flagging) return;
-    
-    setFlagging(true);
-    try {
-      await flagReport(report.id, uid, FlagReason.INAPPROPRIATE, 'Flagged from mobile');
-      onShowToast('Report flagged', 'success');
-    } catch (error) {
-      onShowToast('Failed to flag', 'error');
-    } finally {
-      setFlagging(false);
-    }
-  };
 
   const handleConfirmStatus = async (status: 'resolved' | 'still_there') => {
     if (!requireAccount('confirm status')) return;
@@ -132,7 +119,12 @@ export function ReportDetailsSheet({ report, onClose, onShowToast }: ReportDetai
       />
 
       {/* Sheet */}
-      <div className="fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-3xl shadow-2xl max-h-[90vh] flex flex-col animate-in slide-in-from-bottom duration-300">
+      <div
+        ref={sheetRef}
+        // Above the iPhone's keyboard, the sheet stands on the keyboard's top edge
+        style={aboveKeyboard ? { top: 'auto', bottom: window.innerHeight - aboveKeyboard.top - aboveKeyboard.height, maxHeight: aboveKeyboard.height } : undefined}
+        className="fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-3xl shadow-2xl max-h-[90vh] flex flex-col animate-in slide-in-from-bottom duration-300"
+      >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-4 border-b border-slate-200">
           <h2 className="text-lg font-semibold text-slate-900 capitalize">
@@ -300,6 +292,18 @@ export function ReportDetailsSheet({ report, onClose, onShowToast }: ReportDetai
                         <span className="text-xs text-slate-500">
                           {comment.createdAt?.toDate?.()?.toLocaleDateString() || 'Just now'}
                         </span>
+                        {comment.uid !== uid && (
+                          <PostActions
+                            kind="comment"
+                            targetId={comment.id}
+                            reportId={report.id}
+                            authorUid={comment.uid}
+                            viewerUid={uid}
+                            requireAccount={requireAccount}
+                            onShowToast={onShowToast}
+                            compact
+                          />
+                        )}
                       </div>
                     ))
                   )}
@@ -308,15 +312,17 @@ export function ReportDetailsSheet({ report, onClose, onShowToast }: ReportDetai
             )}
           </div>
 
-          {/* Flag Button */}
-          <button
-            onClick={handleFlag}
-            disabled={flagging || !uid}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2 text-red-600 border border-red-200 rounded-xl hover:bg-red-50 transition-colors text-sm font-medium disabled:opacity-50"
-          >
-            <Flag className="w-4 h-4" />
-            Flag Report
-          </button>
+          {/* Report it to us, or stop seeing this person's posts */}
+          <PostActions
+            kind="report"
+            targetId={report.id}
+            reportId={report.id}
+            authorUid={report.uid}
+            viewerUid={uid}
+            requireAccount={requireAccount}
+            onShowToast={onShowToast}
+            onBlocked={onClose}
+          />
         </div>
       </div>
       <AuthModal isOpen={showAuthModal} onClose={closeAuthModal} />

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useKeyboardSafeOverlay } from '@/hooks/useKeyboardSafeOverlay';
 import { X, MapPin, Navigation, Loader2, Upload, Image as ImageIcon } from 'lucide-react';
 import { collection, addDoc, serverTimestamp, Timestamp, doc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -39,6 +40,7 @@ export function CreateReportModal({ isOpen, onClose, defaultState, initialLocati
   const MAX_PHOTO_MB = 5;
   const { uid, isAnonymous } = useAuthedUser();
   const { requireAccount, showAuthModal, closeAuthModal } = useRequireAccount({ uid, isAnonymous });
+  const { ref: overlayRef, style: overlayStyle } = useKeyboardSafeOverlay();
   const { awardPoints } = useUserStats(uid);
   const [submitting, setSubmitting] = useState(false);
   const [useGPS, setUseGPS] = useState(false);
@@ -417,7 +419,7 @@ export function CreateReportModal({ isOpen, onClose, defaultState, initialLocati
         />
       )}
 
-      <div className="fixed inset-0 z-[5000] flex items-start justify-center p-4 pt-8 pb-28 bg-black/50 overflow-y-auto">
+      <div ref={overlayRef} style={overlayStyle} className="fixed inset-0 z-[5000] flex items-start justify-center p-4 pt-8 pb-28 bg-black/50 overflow-y-auto">
         <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl relative z-[5001]">
         <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
           <h2 className="text-xl font-bold text-gray-900">Create New Report</h2>

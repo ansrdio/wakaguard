@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { useKeyboardSafeOverlay } from '@/hooks/useKeyboardSafeOverlay';
+import { TermsAgreement, TERMS_NOT_AGREED } from '@/components/TermsAgreement';
 import { X, Mail, Loader2, Eye, EyeOff } from 'lucide-react';
 import { 
   signInWithEmailAndPassword, 
@@ -22,13 +24,20 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  const { ref: overlayRef, style: overlayStyle } = useKeyboardSafeOverlay();
 
   if (!isOpen) return null;
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (mode === 'signup' && !agreedToTerms) {
+      setError(TERMS_NOT_AGREED);
+      return;
+    }
     setLoading(true);
     setError(null);
     setSuccess(null);
@@ -77,7 +86,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+    <div ref={overlayRef} style={overlayStyle} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl max-w-md w-full p-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
@@ -150,6 +159,12 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                   )}
                 </button>
               </div>
+            </div>
+          )}
+
+          {mode === 'signup' && (
+            <div className="rounded-xl bg-slate-50 p-3">
+              <TermsAgreement agreed={agreedToTerms} onChange={setAgreedToTerms} />
             </div>
           )}
 

@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { AlertTriangle, Check, ChevronRight, Clock, Loader2, Map as MapIcon, MapPin, MapPinOff, Navigation, Phone, Share2, ShieldCheck } from 'lucide-react';
+import { AlertTriangle, Check, ChevronRight, Clock, Loader2, Map as MapIcon, Navigation, Phone, Share2, ShieldCheck } from 'lucide-react';
 import { Trip, TripStatus } from '@/lib/types';
-import { describeLocationStatus, describeTimeLeft, formatClock, initialsOf, joinNames } from '@/lib/tripPlanning';
+import { describeTimeLeft, formatClock, initialsOf, joinNames } from '@/lib/tripPlanning';
+import { TripLocationLine } from '@/components/mobile/trip/TripLocationLine';
 import { describeTripAlert, watcherCaption } from '@/lib/alertOutcome';
 
 interface ActiveTripCardProps {
@@ -109,8 +110,6 @@ export function ActiveTripCard({
   const tone = TONES[isEmergency ? 'emergency' : timeLeft?.state ?? 'active'];
   const shortOfTime = !isEmergency && (timeLeft?.state === 'endingSoon' || timeLeft?.state === 'overdue');
   const extendOptions = trip.isTest ? TEST_EXTEND_OPTIONS : EXTEND_OPTIONS;
-  const location = describeLocationStatus(trip.lastUpdate?.toMillis() ?? null, !!trip.lastLocation, nowMs);
-  const LocationIcon = location.state === 'fresh' ? MapPin : MapPinOff;
   const canExtend = endsAtMs != null && !isEmergency;
   // What the server recorded about texting this trip's contacts; the card says that and no more
   const alert = describeTripAlert(trip);
@@ -187,17 +186,7 @@ export function ActiveTripCard({
         </div>
 
         {/* Location */}
-        <div
-          className={`${divider} px-5 py-4 flex items-start gap-3 text-sm ${
-            location.state === 'fresh' ? 'text-slate-600 dark:text-slate-300' : 'text-amber-800 dark:text-amber-300 font-medium'
-          }`}
-        >
-          <LocationIcon
-            className={`w-5 h-5 flex-shrink-0 ${location.state === 'fresh' ? 'text-brand-600 dark:text-brand-300' : ''}`}
-            aria-hidden="true"
-          />
-          <span>{location.text}</span>
-        </div>
+        <TripLocationLine trip={trip} nowMs={nowMs} sendsHere={!locationFromElsewhere} className={`${divider} px-5 py-4`} />
 
         {locationFromElsewhere && (
           <div className="px-5 pb-4">

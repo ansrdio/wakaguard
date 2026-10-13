@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { HEARTBEAT_MS, MIN_INTERVAL_MS, shouldSendFix } from '../../src/lib/tripLocation';
+import { HEARTBEAT_MS, MIN_INTERVAL_MS, shouldSendFix, ROUGH_AFTER_MS, wantsRoughFix } from '../../src/lib/tripLocation';
 
 const far = () => 500;
 const near = () => 5;
@@ -27,4 +27,11 @@ test('a stationary phone still sends a heartbeat', () => {
 
 test('invalid coordinates are never sent', () => {
   assert.equal(shouldSendFix(null, { lat: NaN, lng: 3.3 }, T0, near), false);
+});
+
+test('a rough position is asked for when no position has come, or none for a while', () => {
+  const now = 1_000_000;
+  assert.equal(wantsRoughFix(null, now), true);
+  assert.equal(wantsRoughFix(now - ROUGH_AFTER_MS + 1, now), false);
+  assert.equal(wantsRoughFix(now - ROUGH_AFTER_MS, now), true);
 });

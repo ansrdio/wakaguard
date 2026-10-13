@@ -11,6 +11,11 @@ export const HEARTBEAT_MS = 2 * 60 * 1000;
 /** Movement that justifies a send before the heartbeat */
 export const MIN_MOVE_METERS = 50;
 
+/** With no position for this long, a rough one from the network is asked for */
+export const ROUGH_AFTER_MS = 40 * 1000;
+/** How often to see whether a rough position is needed */
+export const ROUGH_CHECK_MS = 20 * 1000;
+
 export interface LocationFix {
   lat: number;
   lng: number;
@@ -38,6 +43,15 @@ export function shouldSendFix(
   if (elapsed < MIN_INTERVAL_MS) return false;
   if (elapsed >= HEARTBEAT_MS) return true;
   return distanceMeters(prev, next) >= MIN_MOVE_METERS;
+}
+
+/**
+ * Whether to ask the phone for a rough position. Precise positions can stop
+ * coming, or never start, indoors or on a phone with weak GPS; a contact is
+ * better off seeing roughly where the traveller is than nothing.
+ */
+export function wantsRoughFix(lastFixAtMs: number | null, nowMs: number): boolean {
+  return lastFixAtMs == null || nowMs - lastFixAtMs >= ROUGH_AFTER_MS;
 }
 
 /**

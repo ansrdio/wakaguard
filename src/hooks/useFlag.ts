@@ -5,6 +5,7 @@ import { doc, getDoc, setDoc, serverTimestamp, runTransaction } from 'firebase/f
 import { db } from '@/lib/firebase';
 import { useAuthedUser } from '@/hooks/useAuthedUser';
 import { FlagTargetType } from '@/lib/types';
+import { flagReasonFor } from '@/lib/flagReasons';
 import { makeFlagId } from '@/lib/rules';
 
 export function useFlag(targetType: FlagTargetType, targetId: string, reportId?: string) {
@@ -64,12 +65,15 @@ export function useFlag(targetType: FlagTargetType, targetId: string, reportId?:
           throw new Error('Flag already exists');
         }
 
-        // Create flag document
-        const flagData: any = {
+        // The shape the database rules accept, and the moderation page reads:
+        // one of a few fixed reasons, with the person's own words alongside
+        const flagData: Record<string, unknown> = {
           targetType,
           targetId,
-          uid,
-          reason: reason.trim(),
+          reporterId: uid,
+          reason: flagReasonFor(reason),
+          details: reason.trim().slice(0, 500),
+          status: 'pending',
           createdAt: serverTimestamp(),
         };
 

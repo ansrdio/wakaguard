@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { TermsAgreement, TERMS_NOT_AGREED } from '@/components/TermsAgreement';
 import { OnboardingTutorial } from './OnboardingTutorial';
 import { Bell, BellOff, Loader2, ChevronRight, Mail, Eye, EyeOff } from 'lucide-react';
 import Image from 'next/image';
@@ -33,6 +34,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [authSuccess, setAuthSuccess] = useState<string | null>(null);
 
   useEffect(() => {
@@ -68,6 +70,10 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (authMode === 'signup' && !agreedToTerms) {
+      setAuthError(TERMS_NOT_AGREED);
+      return;
+    }
     setAuthLoading(true);
     setAuthError(null);
     setAuthSuccess(null);
@@ -278,6 +284,12 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                     )}
                   </button>
                 </div>
+              </div>
+            )}
+
+            {authMode === 'signup' && (
+              <div className="rounded-2xl bg-slate-50 p-3">
+                <TermsAgreement agreed={agreedToTerms} onChange={setAgreedToTerms} />
               </div>
             )}
 

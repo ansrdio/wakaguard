@@ -457,17 +457,17 @@ export function useSafety(): UseSafetyReturn {
       let lastLocation: { lat: number; lng: number; accuracy: number; updatedAt: Timestamp } | null = null;
       // The browser's own timeout is not always honoured (a phone can leave the
       // request unanswered), so the wait has its own limit as well.
-      const position = await settleWithin(
-        new Promise<GeolocationPosition>((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject, {
-            enableHighAccuracy: true,
-            maximumAge: 60000,
-            timeout: 5000,
-          });
-        }),
-        START_LOCATION_WAIT_MS,
-        null
-      );
+      const ask = (precise: boolean) => new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: precise,
+          maximumAge: precise ? 60000 : 5 * 60000,
+          timeout: 5000,
+        });
+      });
+      // A rough position is asked for alongside the precise one, so falling
+      // back to it (indoors, or on a phone with weak GPS) costs no extra wait
+      const rough = settleWithin(ask(false), START_LOCATION_WAIT_MS, null);
+      const position = (await settleWithin(ask(true), START_LOCATION_WAIT_MS, null)) ?? (await rough);
       if (position) {
         lastLocation = {
           lat: position.coords.latitude,
@@ -590,6 +590,8 @@ export function useSafety(): UseSafetyReturn {
         ...update,
         extensionCount: increment(1),
         extendedMinutes: increment(minutes),
+        // Lets the server tell time just added from a deadline set long ago
+        extendedAt: serverTimestamp(),
       }));
       updateDoc(doc(db, 'sharedTrips', activeTrip.id), update).catch(() => {});
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc, arrayRemove, arrayUnion } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuthedUser } from '@/hooks/useAuthedUser';
 
@@ -11,27 +11,26 @@ export function useBlockedUsers() {
   const [loading, setLoading] = useState(true);
   const [blocking, setBlocking] = useState(false);
 
+  // Listened to, not read once: the list is used by several parts of the app
+  // at the same time, and blocking in one must hide posts in the others
   useEffect(() => {
     if (!uid) {
+      setBlockedUids([]);
       setLoading(false);
       return;
     }
 
-    const fetchBlockedUsers = async () => {
-      try {
-        const userDoc = await getDoc(doc(db, 'users', uid));
-        if (userDoc.exists()) {
-          const data = userDoc.data();
-          setBlockedUids(data.blockedUids || []);
-        }
-      } catch (err) {
-        console.error('Error fetching blocked users:', err);
-      } finally {
+    return onSnapshot(
+      doc(db, 'users', uid),
+      (snapshot) => {
+        setBlockedUids(snapshot.data()?.blockedUids || []);
         setLoading(false);
-      }
-    };
-
-    fetchBlockedUsers();
+      },
+      (err) => {
+        console.error('Error fetching blocked users:', err);
+        setLoading(false);
+      },
+    );
   }, [uid]);
 
   const blockUser = async (targetUid: string) => {
@@ -64,6 +63,21 @@ export function useBlockedUsers() {
     }
   };
 
+  const unblockUser = async (targetUid: string) => {
+    if (!uid) return { success: false, error: 'Please sign in first' };
+    setBlocking(true);
+    try {
+      await updateDoc(doc(db, 'users', uid), { blockedUids: arrayRemove(targetUid) });
+      setBlockedUids(prev => prev.filter((blocked) => blocked !== targetUid));
+      return { success: true };
+    } catch (err) {
+      console.error('Error unblocking user:', err);
+      return { success: false, error: 'Could not unblock. Please try again.' };
+    } finally {
+      setBlocking(false);
+    }
+  };
+
   const isBlocked = (targetUid: string) => {
     return blockedUids.includes(targetUid);
   };
@@ -73,6 +87,7 @@ export function useBlockedUsers() {
     loading,
     blocking,
     blockUser,
+    unblockUser,
     isBlocked,
   };
 }

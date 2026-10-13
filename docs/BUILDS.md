@@ -22,7 +22,7 @@ before the weekend. Android and iPhone go out on the same day.
 | Build | Due | Main contents | Status |
 |---|---|---|---|
 | 22 | Wed 14 Oct | Store requirements (report and block, Terms of Use, location screen); Android Back; location fixes; arrival reminders | Next |
-| 23 | Wed 21 Oct | Sign in with Google and Apple; paid maps; weather; our own road report pictures; "How are you travelling?" with matching tips | Planned |
+| 23 | Wed 21 Oct | Sign in with Google and Apple; paid maps; weather; our own road report pictures; "How are you travelling?" with matching tips; reported posts hidden automatically | Planned |
 | 24 | Wed 28 Oct | Sponsor card by state; "please update" switch; service notice; "stop texting me"; vehicle details | Planned |
 | 25 | Wed 4 Nov | Fixes after text alerts are switched on; repeat a usual trip | Planned |
 | 26 | Wed 11 Nov | The launch version | Planned |
@@ -53,28 +53,33 @@ Planned for Wednesday 14 October 2026, Android and iPhone on the same day.
 
 ### Required by the stores
 
-- [ ] Report and block inside the phone app, for road reports and comments
-      (today this exists only on the website's report page)
-- [ ] Terms of Use page, agreed to when signing up. The owner approves the
-      wording, then the lawyer reviews it
-- [ ] A screen before the first trip that explains why location is shared
+- [x] Report and block inside the phone app, for road reports and comments:
+      "Report" with a reason and "Block this person" on every report and
+      comment, and a "Blocked people" list under Settings where a block can be
+      undone (blocking used to be one-way, and only on the website)
+- [x] Terms of Use page, agreed to when signing up (a box to tick on both
+      sign-up forms). The owner approved the wording on 13 October; the
+      lawyer's review is still to come. Agreement is not yet
+      recorded on the server, and people who already have accounts are not
+      asked; both need a change to the database rules, for a later build
+- [x] A screen before the first trip that explains why location is shared
       while the screen is off
 
 ### From testers and the first days of use
 
-- [ ] Android: Back goes back one screen everywhere. Today only the Trip map
+- [x] Android: Back goes back one screen everywhere. Today only the Trip map
       answers it; from the report form, report details, filters, the Profile
       pop-ups and the other tabs, Back puts the whole app in the background
-- [ ] Location that cannot be read: say plainly what is wrong (permission off,
+- [x] Location that cannot be read: say plainly what is wrong (permission off,
       the phone's location switched off, or no position yet) and keep it on
       screen with a button that opens the phone's settings. Today a message
       shows for six seconds and then only "No location sent yet"
-- [ ] A "Check my location" screen that shows what the phone reports
+- [x] A "Check my location" screen that shows what the phone reports
       (permission, location switch, last position and how accurate), so a
       tester's location problem can be diagnosed from a screenshot
-- [ ] Fall back to an approximate position when a precise one does not
+- [x] Fall back to an approximate position when a precise one does not
       arrive, so a contact sees roughly where the traveller is
-- [ ] "Have you arrived?" reminders: one shortly before a trip's time runs
+- [x] "Have you arrived?" reminders: one shortly before a trip's time runs
       out, and again while the trip stays open after it. Today there is a
       single "Are you okay?" at the end time, and on the first day of testing
       trips were left open for hours or ended late (needs the server as well
@@ -84,16 +89,15 @@ Planned for Wednesday 14 October 2026, Android and iPhone on the same day.
 
 ### Tidying
 
-- [ ] Hide the old Level and Points card on Profile, which contradicts the
+- [x] Hide the old Level and Points card on Profile, which contradicts the
       weekly ranking
-- [ ] Keep the other pop-ups above the iPhone keyboard (sign-in, report,
+- [x] Keep the other pop-ups above the iPhone keyboard (sign-in, report,
       state picker, the safety screens), as was done for Delete account
-- [ ] Show the build number beside the version on Profile, so a tester can
+- [x] Show the build number beside the version on Profile, so a tester can
       say which build they have
-- [ ] Android: stop asking for permission to change contacts, which the app
-      does not use
-- [ ] iPhone only at launch: stop offering the app for iPad, which would need
-      iPad screenshots and an iPad review. Waiting for the owner's yes
+- [x] iPhone only at launch: the app is no longer offered for iPad, which
+      would need iPad screenshots and an iPad review (the owner said yes on
+      12 October). An iPad can still install it and runs it phone-sized
 
 ### Held for a later build
 
@@ -102,16 +106,21 @@ Raised this week and not in build 22.
 - [ ] Road report form: make placing the pin easier when the phone's location
       is not found (a tester gave up on a report because of this)
 - [ ] Android: a proper icon on the trip notification (it is a plain square)
+- [ ] Android: stop asking for permission to change contacts, which the app
+      does not use. Taken out of build 22: the contacts plugin asks for
+      reading and changing together, so removing one line would break
+      "choose from your phone's contacts". The right fix is Android's own
+      contact picker, which needs no contacts permission at all
 
 ### Server and website, alongside build 22
 
 These go live without an app update, each on the owner's word.
 
-- [ ] Emails: stop mail apps turning the company number in the footer into a
+- [x] Emails: stop mail apps turning the company number in the footer into a
       phone link
-- [ ] Trips: accept a trip's first position even in its first ten seconds
+- [x] Trips: accept a trip's first position even in its first ten seconds
       (today it can be dropped, and the next one is up to two minutes away)
-- [ ] A second text-message provider (Africa's Talking), ready for the day a
+- [x] A second text-message provider (Africa's Talking), ready for the day a
       sender ID is approved
 - [ ] The dark mode close-button fix on the website (already in the code)
 
@@ -165,6 +174,12 @@ quick fixes, so its build numbers are three lower than these.
 
       With weather in the same build, a tip can follow the forecast ("Rain
       expected. Okada is risky on wet roads").
+- [ ] Automatic hiding: once three different accounts report a road report
+      or a comment, it is hidden from everyone at once and waits in a review
+      list, where it can be removed for good or put back. Today nothing hides
+      a post, however often it is reported, until someone removes it by hand
+      on the moderation page. A server change, so it works on every build
+      (the owner said yes on 12 October)
 - [ ] Emergency numbers corrected: the list shows 199 for both Police and
       Fire, and a Lagos ambulance line for the whole country. Needs the right
       numbers confirmed in Nigeria

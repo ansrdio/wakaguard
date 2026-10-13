@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { useKeyboardSafeOverlay } from '@/hooks/useKeyboardSafeOverlay';
+import { FLAG_CHOICES } from '@/lib/flagReasons';
 import { X, Flag, AlertTriangle } from 'lucide-react';
 
 interface FlagModalProps {
@@ -10,14 +12,7 @@ interface FlagModalProps {
   targetType: 'report' | 'comment';
 }
 
-const FLAG_REASONS = [
-  'Spam or misleading',
-  'Inappropriate content',
-  'Harassment or hate speech',
-  'False information',
-  'Duplicate report',
-  'Other',
-];
+const FLAG_REASONS = FLAG_CHOICES.map((choice) => choice.label);
 
 export function FlagModal({ isOpen, onClose, onSubmit, targetType }: FlagModalProps) {
   const [selectedReason, setSelectedReason] = useState('');
@@ -62,10 +57,12 @@ export function FlagModal({ isOpen, onClose, onSubmit, targetType }: FlagModalPr
     }
   };
 
+  const { ref: overlayRef, style: overlayStyle } = useKeyboardSafeOverlay();
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
+    <div ref={overlayRef} style={overlayStyle} className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black bg-opacity-50">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
         <div className="border-b border-gray-200 p-4 flex items-center justify-between">
           <div className="flex items-center gap-2">

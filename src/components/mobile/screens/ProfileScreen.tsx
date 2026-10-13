@@ -5,8 +5,6 @@ import { User, LogOut, Settings, HelpCircle, Shield, FileText, ChevronRight, Map
 import { useAuthedUser } from '@/hooks/useAuthedUser';
 import { useRequireAccount } from '@/hooks/useRequireAccount';
 import { useMyReports } from '@/hooks/useMyReports';
-import { useUserStats } from '@/hooks/useUserStats';
-import { USER_LEVELS, BADGES } from '@/lib/types';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useTheme } from '@/contexts/ThemeContext';
 import { signOut } from 'firebase/auth';
@@ -16,17 +14,22 @@ import { AuthModal } from '@/components/AuthModal';
 import { DeleteAccountDialog } from '@/components/DeleteAccountDialog';
 import Link from 'next/link';
 import { COMPANY_NAME } from '@/lib/company';
+import { useBackToClose } from '@/hooks/useBackToClose';
+import { versionLabel } from '@/lib/appVersion';
+import { LocationCheck } from '@/components/mobile/LocationCheck';
+import { BlockedPeople } from '@/components/mobile/BlockedPeople';
+import { Capacitor } from '@capacitor/core';
 
-type ModalType = 'myReports' | 'settings' | 'help' | 'deleteAccount' | null;
+type ModalType = 'myReports' | 'settings' | 'help' | 'deleteAccount' | 'location' | null;
 
 export function ProfileScreen() {
   const { uid, isAnonymous, email, displayName, username } = useAuthedUser();
   const { requireAccount, showAuthModal, openAuthModal, closeAuthModal } = useRequireAccount({ uid, isAnonymous });
   const { reports: myReports, loading: reportsLoading, count: reportCount } = useMyReports();
-  const { stats, getLevelTitle } = useUserStats(uid);
   const { isSupported: pushSupported, isSubscribed, permission, subscribe, unsubscribe, loading: pushLoading } = usePushNotifications();
   const { theme, toggleTheme, isDark } = useTheme();
   const [activeModal, setActiveModal] = useState<ModalType>(null);
+  useBackToClose(activeModal !== null, () => setActiveModal(null));
   
   const handleSignOut = async () => {
     try {
@@ -75,39 +78,6 @@ export function ProfileScreen() {
           </button>
         )}
       </div>
-
-      {/* Level & Points Card */}
-      {uid && !isAnonymous && stats && (
-        <div className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl p-4 text-white">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <p className="text-sm opacity-80">Level {stats.level}</p>
-              <p className="text-lg font-bold">{getLevelTitle(stats.level)}</p>
-            </div>
-            <div className="text-right">
-              <p className="text-2xl font-bold">{stats.points}</p>
-              <p className="text-sm opacity-80">points</p>
-            </div>
-          </div>
-          {/* Progress to next level */}
-          {stats.level < 6 && (
-            <div>
-              <div className="flex justify-between text-xs opacity-80 mb-1">
-                <span>Progress to Level {stats.level + 1}</span>
-                <span>{USER_LEVELS[stats.level]?.points - stats.points} pts needed</span>
-              </div>
-              <div className="h-2 bg-white/20 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-white rounded-full transition-all"
-                  style={{ 
-                    width: `${Math.min(100, ((stats.points - USER_LEVELS[stats.level - 1].points) / (USER_LEVELS[stats.level].points - USER_LEVELS[stats.level - 1].points)) * 100)}%` 
-                  }}
-                />
-              </div>
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Stats Cards */}
       {uid && !isAnonymous && (
@@ -161,6 +131,19 @@ export function ProfileScreen() {
         </button>
 
         <button
+          onClick={() => setActiveModal('location')}
+          className="w-full p-4 bg-white border border-slate-200 rounded-xl text-left hover:bg-slate-50 transition-colors flex items-center justify-between"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-brand-100 rounded-xl flex items-center justify-center">
+              <MapPin className="w-5 h-5 text-brand-700" />
+            </div>
+            <span className="text-slate-900 font-medium">Check my location</span>
+          </div>
+          <ChevronRight className="w-5 h-5 text-slate-400" />
+        </button>
+
+        <button
           onClick={() => setActiveModal('help')}
           className="w-full p-4 bg-white border border-slate-200 rounded-xl text-left hover:bg-slate-50 transition-colors flex items-center justify-between"
         >
@@ -209,8 +192,11 @@ export function ProfileScreen() {
         </p>
         <p className="text-xs text-slate-500">WakaGuard is a product of {COMPANY_NAME}.</p>
         <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-          <span className="text-xs text-slate-500">Version 1.2.0</span>
-          <Link href="/privacy" className="text-xs text-blue-600 hover:underline">Privacy Policy</Link>
+          <span className="text-xs text-slate-500">{versionLabel(Capacitor.isNativePlatform())}</span>
+          <span className="flex gap-3">
+            <Link href="/terms" className="text-xs text-blue-600 hover:underline">Terms of Use</Link>
+            <Link href="/privacy" className="text-xs text-blue-600 hover:underline">Privacy Policy</Link>
+          </span>
         </div>
       </div>
 
@@ -248,7 +234,7 @@ export function ProfileScreen() {
       {/* Settings Modal */}
       {activeModal === 'settings' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-white rounded-2xl w-full max-w-sm p-6 space-y-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm p-6 space-y-4 max-h-[85vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-bold text-slate-900">Settings</h2>
               <button onClick={() => setActiveModal(null)} className="p-2 text-slate-600 hover:bg-slate-100 rounded-full">
@@ -298,10 +284,14 @@ export function ProfileScreen() {
                   <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${isDark ? 'translate-x-6' : 'translate-x-1'}`} />
                 </button>
               </div>
+
+              {uid && !isAnonymous && <BlockedPeople />}
             </div>
           </div>
         </div>
       )}
+
+      {activeModal === 'location' && <LocationCheck onClose={() => setActiveModal(null)} />}
 
       {/* Help Modal */}
       {activeModal === 'help' && (

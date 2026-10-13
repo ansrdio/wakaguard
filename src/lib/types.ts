@@ -365,6 +365,8 @@ export interface Trip {
   /** How many times time was added, and how much in total */
   extensionCount?: number;
   extendedMinutes?: number;
+  /** When time was last added */
+  extendedAt?: Timestamp;
   /** Set by the server when the trip passed endsAt without a check-in */
   overdueAt?: Timestamp | null;
   /** Server-managed delivery state of the overdue alert */
