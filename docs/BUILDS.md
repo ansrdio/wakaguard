@@ -93,6 +93,15 @@ Planned for Wednesday 14 October 2026, Android and iPhone on the same day.
       weekly ranking
 - [x] Keep the other pop-ups above the iPhone keyboard (sign-in, report,
       state picker, the safety screens), as was done for Delete account
+- [x] The keyboard handling now actually runs on iPhones. The owner found on
+      12 October that tapping Description in the road report form sent the
+      box too high. A simulated iPhone showed why: the app compared the
+      keyboard against a height that shrinks along with it on an iPhone, so
+      it never noticed the keyboard at all, and the earlier Delete account
+      fix only looked right because the iPhone slid the page by itself.
+      Checked on the simulated iPhone for the report form and sign-in, and
+      by the owner on a real iPhone for the report form, the comment box and
+      Delete account (all three worked, 12 October)
 - [x] Show the build number beside the version on Profile, so a tester can
       say which build they have
 - [x] iPhone only at launch: the app is no longer offered for iPad, which
@@ -125,6 +134,15 @@ code and stays switched off until it has an approved sender ID.
 - [x] A second text-message provider (Africa's Talking), ready for the day a
       sender ID is approved
 - [x] The dark mode close-button fix on the website
+- [ ] Texts reworded to the format Termii requires: they open "Hi <name>,"
+      (was "Dear") and close "Powered by Inskriba Limited" (was "Inskriba
+      Ltd."), matching the sample Termii confirmed on 12 October and the
+      letters to the networks. Done in the code, with the examples on the
+      website; not live until the owner says to update the server and
+      release the website. So that every text opens the same way, a test
+      text's label now comes straight after the greeting, and a contact with
+      no usable name is greeted with a plain "Hi," (the owner said yes to
+      both on 12 October)
 
 ## Later builds
 
@@ -187,6 +205,8 @@ quick fixes, so its build numbers are three lower than these.
       numbers confirmed in Nigeria
 - [ ] Error reports from testers' phones, so a crash reaches us without the
       tester having to say so (nice to have)
+- [ ] Road report form: when the form is scrolled, a strip of it shows above
+      its title bar. Looks untidy, loses nothing (seen on 12 October)
 
 ### Builds 24 and 25, in more detail
 
