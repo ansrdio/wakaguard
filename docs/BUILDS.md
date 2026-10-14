@@ -643,7 +643,9 @@ for the 15-minute wait.
       like the path, and the Privacy page says so. Asking "Are you okay?"
       when someone leaves the route stays after launch: it needs real trips
       to set without false alarms. Depends on Mapbox confirming in writing
-      that its terms allow spoken directions without its native kit
+      that its terms allow spoken directions without its native kit (the
+      owner asked Mapbox on 14 October; the account sign-up failed that day
+      and is to be tried again)
 
 ## Server, website and store work before launch
 
