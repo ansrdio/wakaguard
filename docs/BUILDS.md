@@ -22,7 +22,7 @@ before the weekend. Android and iPhone go out on the same day.
 | Build | Due | Main contents | Status |
 |---|---|---|---|
 | 22 | Wed 14 Oct | Store requirements (report and block, Terms of Use, location screen); Android Back; location fixes; arrival reminders | Out on both: iPhone and Android, Mon 12 Oct, two days early |
-| 23 | Wed 21 Oct | Testers' corrections (checklist, exact trip length, delete my own post); "How are you travelling?" with matching tips; our own road report pictures; "keep WakaGuard running" help; weather (paid maps moved to build 24: Mapbox); reported posts hidden automatically | Being built |
+| 23 | Wed 21 Oct | Testers' corrections (checklist, exact trip length, delete my own post); "How are you travelling?" with matching tips; our own road report pictures; "keep WakaGuard running" help; weather (paid maps moved to build 24: Mapbox); reported posts hidden automatically | Uploaded Wed 14 Oct, a week early: Android internal test live; closed test and TestFlight sent for review by the owner |
 | 24 | Wed 28 Oct | Sign in with Google and Apple; sponsor card by state; "please update" switch; service notice; "stop texting me"; vehicle details; far-away reports marked; Mapbox maps; destination search by address | Planned |
 | 25 | Wed 4 Nov | Fixes after text alerts are switched on; directions on the trip (route, trip length from it, spoken directions), as a beta | Planned |
 | 26 | Wed 11 Nov | The launch version | Planned |
@@ -907,6 +907,7 @@ Changes that went live without an app build.
 
 | Date | What |
 |---|---|
+| Wed 14 Oct, afternoon in Arizona | Build 23's server and website, on the owner's word, from `fc175d7`: the fault reports' expiry rule (indexes); all 26 functions in the code, by name: five new (`checkQuietTrips`, `onCommentUpdate`, `onFlagCreated`, `onReportDeleted`, `weatherAhead`), the two comment counters replaced (now on Node 22) and the rest brought up to date, so every tester now gets the 15-minute wait, the last warning and the location nudge, and phones on build 23 the reminder buttons; `createReport` alone stays on Node 20. Then the website. Phone builds 23 uploaded the same hour |
 | Wed 14 Oct, evening | Database rules: build 23's, on the owner's word, first in build 23's release order. Additions only (the travel mode on the contacts' page, the app build with a phone's notification token, fault reports), plus one limit build 22 never meets: a comment's author may only remove it, not change its status otherwise. Needed at once because build 23 on the owner's phones could not save their notification token without it |
 | Wed 14 Oct, evening | Server: `onTripUpdated` only, which now records the farthest a running trip goes from its start, for the ranking's round trips. Nothing testers see changes |
 | Wed 14 Oct, later | Website: every browser now gets the website first at wakaguard.com. A browser that had been through the first-run screens used to go straight into the app, so a Termii reviewer who had tried the old site might never see the page about the product and the company. The phone apps, the site added to a home screen, "Open the app" links (?app) and a tab where "Open the app" was pressed still go straight in. Testers who use WakaGuard in a browser now tap "Open the app" once per visit. From commit `32bc855` alone, in the clean copy |
