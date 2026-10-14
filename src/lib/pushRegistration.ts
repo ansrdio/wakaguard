@@ -15,11 +15,12 @@
  * @module pushRegistration
  */
 
-import { Capacitor } from '@capacitor/core';
+import { Capacitor, PluginListenerHandle } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { settleWithin } from '@/lib/timeLimit';
+import { APP_BUILD } from '@/lib/appVersion';
 
 const OPT_OUT_KEY = 'wakaguard_push_opt_out';
 
@@ -33,6 +34,8 @@ const CHECK_WAIT_MS = 3000;
 export const REMINDER_CHANNEL_ID = 'trip_reminders';
 
 let listening = false;
+/** This file's own listeners, so they can be removed without touching anyone else's */
+let ownListeners: PluginListenerHandle[] = [];
 let signedInUid: string | null = null;
 let channelReady = false;
 
@@ -64,8 +67,14 @@ export function setPushOptOut(optedOut: boolean): void {
   } catch {
     // No storage: the choice lasts until the app restarts
   }
-  // Profile removes every notification listener when it switches off
-  if (optedOut) listening = false;
+  // Switched off: stop saving tokens. Only this file's listeners go; the app's
+  // others (a reminder's buttons, in MobileHome) must keep working
+  if (optedOut) {
+    const leaving = ownListeners;
+    ownListeners = [];
+    listening = false;
+    for (const listener of leaving) void listener.remove().catch(() => {});
+  }
 }
 
 function hasOptedOut(): boolean {
@@ -81,11 +90,17 @@ async function saveToken(uid: string, token: string): Promise<void> {
   const existing = await getDoc(ref);
   const platform = Capacitor.getPlatform();
 
+  // The build tells the server whether this app can draw reminders with buttons
+  // (functions/src/reminderPush.ts). It is saved with the token it belongs to: an
+  // older app on another phone, signed in to the same account, replaces the token
+  // but not the build, and the server must not believe the build for that phone.
   if (!existing.exists()) {
     await setDoc(ref, {
       uid,
       fcmToken: token,
       platform,
+      appBuild: APP_BUILD,
+      appBuildToken: token,
       location: null,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
@@ -93,8 +108,9 @@ async function saveToken(uid: string, token: string): Promise<void> {
     return;
   }
   // Tokens rarely change; do not rewrite the document on every launch
-  if (existing.data().fcmToken === token && existing.data().platform === platform) return;
-  await setDoc(ref, { fcmToken: token, platform, updatedAt: serverTimestamp() }, { merge: true });
+  const saved = existing.data();
+  if (saved.fcmToken === token && saved.platform === platform && saved.appBuild === APP_BUILD && saved.appBuildToken === token) return;
+  await setDoc(ref, { fcmToken: token, platform, appBuild: APP_BUILD, appBuildToken: token, updatedAt: serverTimestamp() }, { merge: true });
 }
 
 /**
@@ -115,15 +131,15 @@ export async function registerForPush(uid: string): Promise<void> {
     signedInUid = uid;
     if (!listening) {
       listening = true;
-      await PushNotifications.addListener('registration', (token) => {
+      ownListeners.push(await PushNotifications.addListener('registration', (token) => {
         if (!signedInUid) return;
         saveToken(signedInUid, token.value).catch((error) =>
           console.warn('Could not save the notification token:', error)
         );
-      });
-      await PushNotifications.addListener('registrationError', (error) => {
+      }));
+      ownListeners.push(await PushNotifications.addListener('registrationError', (error) => {
         console.warn('This phone could not register for notifications:', error);
-      });
+      }));
     }
     await PushNotifications.register();
   } catch (error) {

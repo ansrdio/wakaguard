@@ -1,8 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { User, LogOut, Settings, HelpCircle, Shield, FileText, ChevronRight, MapPin, ThumbsUp, MessageCircle, Loader2, ExternalLink, Bell, Moon, X, Sun, LogIn, Trash2 } from 'lucide-react';
+import { User, LogOut, Settings, HelpCircle, Shield, FileText, ChevronRight, MapPin, ThumbsUp, MessageCircle, Loader2, ExternalLink, Bell, Moon, X, Sun, LogIn, Trash2, BatteryCharging } from 'lucide-react';
 import { useAuthedUser } from '@/hooks/useAuthedUser';
+import { DeleteOwnPost } from '@/components/mobile/DeleteOwnPost';
+import { KeepRunningHelp } from '@/components/mobile/KeepRunningHelp';
 import { useRequireAccount } from '@/hooks/useRequireAccount';
 import { useMyReports } from '@/hooks/useMyReports';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
@@ -20,11 +22,13 @@ import { LocationCheck } from '@/components/mobile/LocationCheck';
 import { BlockedPeople } from '@/components/mobile/BlockedPeople';
 import { Capacitor } from '@capacitor/core';
 
-type ModalType = 'myReports' | 'settings' | 'help' | 'deleteAccount' | 'location' | null;
+type ModalType = 'myReports' | 'settings' | 'help' | 'deleteAccount' | 'location' | 'keepRunning' | null;
 
 export function ProfileScreen() {
   const { uid, isAnonymous, email, displayName, username } = useAuthedUser();
   const { requireAccount, showAuthModal, openAuthModal, closeAuthModal } = useRequireAccount({ uid, isAnonymous });
+  // How the last delete in My Reports went
+  const [myReportsNote, setMyReportsNote] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const { reports: myReports, loading: reportsLoading, count: reportCount } = useMyReports();
   const { isSupported: pushSupported, isSubscribed, permission, subscribe, unsubscribe, loading: pushLoading } = usePushNotifications();
   const { theme, toggleTheme, isDark } = useTheme();
@@ -144,6 +148,19 @@ export function ProfileScreen() {
         </button>
 
         <button
+          onClick={() => setActiveModal('keepRunning')}
+          className="w-full p-4 bg-white border border-slate-200 rounded-xl text-left hover:bg-slate-50 transition-colors flex items-center justify-between"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+              <BatteryCharging className="w-5 h-5 text-blue-700" />
+            </div>
+            <span className="text-slate-900 font-medium">Keep WakaGuard running</span>
+          </div>
+          <ChevronRight className="w-5 h-5 text-slate-400" />
+        </button>
+
+        <button
           onClick={() => setActiveModal('help')}
           className="w-full p-4 bg-white border border-slate-200 rounded-xl text-left hover:bg-slate-50 transition-colors flex items-center justify-between"
         >
@@ -211,6 +228,16 @@ export function ProfileScreen() {
               </button>
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-3 touch-pan-y" style={{ WebkitOverflowScrolling: 'touch' }}>
+              {myReportsNote && (
+                <p
+                  role="status"
+                  className={`rounded-xl px-3 py-2 text-sm ${
+                    myReportsNote.type === 'error' ? 'bg-red-50 text-red-800' : 'bg-brand-50 text-brand-800'
+                  }`}
+                >
+                  {myReportsNote.message}
+                </p>
+              )}
               {reportsLoading ? (
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
@@ -223,7 +250,12 @@ export function ProfileScreen() {
                 </div>
               ) : (
                 myReports.map((report) => (
-                  <ReportCard key={report.id} report={report} getStatusColor={getStatusColor} />
+                  <ReportCard
+                    key={report.id}
+                    report={report}
+                    getStatusColor={getStatusColor}
+                    onShowNote={(message, type) => setMyReportsNote({ message, type })}
+                  />
                 ))
               )}
             </div>
@@ -292,6 +324,7 @@ export function ProfileScreen() {
       )}
 
       {activeModal === 'location' && <LocationCheck onClose={() => setActiveModal(null)} />}
+      {activeModal === 'keepRunning' && <KeepRunningHelp onClose={() => setActiveModal(null)} />}
 
       {/* Help Modal */}
       {activeModal === 'help' && (
@@ -342,7 +375,12 @@ export function ProfileScreen() {
 }
 
 // Report Card Component
-function ReportCard({ report, getStatusColor }: { report: Report; getStatusColor: (status: ReportStatus) => string }) {
+function ReportCard({ report, getStatusColor, onShowNote }: {
+  report: Report;
+  getStatusColor: (status: ReportStatus) => string;
+  /** Says how a delete went, in the list itself */
+  onShowNote: (message: string, type: 'success' | 'error') => void;
+}) {
   return (
     <div className="bg-slate-50 rounded-2xl p-4 space-y-3">
       <div className="flex items-start justify-between">
@@ -368,9 +406,12 @@ function ReportCard({ report, getStatusColor }: { report: Report; getStatusColor
           {report.commentCount || 0}
         </span>
       </div>
-      <p className="text-xs text-slate-400">
-        {report.createdAt?.toDate?.()?.toLocaleDateString() || 'Recently'}
-      </p>
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-slate-400">
+          {report.createdAt?.toDate?.()?.toLocaleDateString() || 'Recently'}
+        </p>
+        <DeleteOwnPost kind="report" targetId={report.id} authorUid={report.uid} onShowToast={onShowNote} compact />
+      </div>
     </div>
   );
 }

@@ -34,9 +34,16 @@ import { useRecentPosition } from '@/hooks/useRecentPosition';
 import { useRequireAccount } from '@/hooks/useRequireAccount';
 import { collection, deleteDoc, doc, getDoc, getDocs, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { TripStatus } from '@/lib/types';
 import { Capacitor } from '@capacitor/core';
 import { shareSafeTripLink } from '@/lib/share';
 import { AuthModal } from '@/components/AuthModal';
+import { TRAVEL_MODES, TravelMode, isTravelMode, lastTravelMode, tipsFor, travelModeLabel } from '@/lib/travelMode';
+import { TravelPicture } from '@/components/pictures/Pictures';
+import { hasDoneKeepRunning, rememberKeepRunningDone, shouldOfferKeepRunning } from '@/lib/keepRunning';
+import { KeepRunningHelp } from '@/components/mobile/KeepRunningHelp';
+import { pickPhoneContact } from '@/lib/contactPicker';
+import { BUTTON_ADDS_MINUTES, forgetPendingPress, noteDeadlineAtPress, TripNotificationAction } from '@/lib/tripNotificationActions';
 
 type ModalType = 'sos' | 'contacts' | 'emergency' | null;
 
@@ -55,57 +62,13 @@ const EMERGENCY_CONTACTS = [
   { name: 'NEMA', number: '0800CALLNEMA', icon: AlertCircle, color: 'amber', description: 'Emergency Management Agency' },
 ];
 
-// Safety Tips
-const SAFETY_TIPS = [
-  {
-    title: 'Before Your Trip',
-    tips: [
-      'Check your vehicle\'s tires, brakes, and lights',
-      'Ensure you have enough fuel for your journey',
-      'Share your travel plans with family or friends',
-      'Check weather and road conditions',
-      'Carry a fully charged phone and car charger',
-    ]
-  },
-  {
-    title: 'While Driving',
-    tips: [
-      'Always wear your seatbelt',
-      'Avoid using your phone while driving',
-      'Maintain safe following distance',
-      'Obey speed limits and traffic signs',
-      'Take breaks every 2 hours on long trips',
-    ]
-  },
-  {
-    title: 'Night Driving',
-    tips: [
-      'Ensure all lights are working properly',
-      'Reduce speed and increase following distance',
-      'Avoid staring at oncoming headlights',
-      'Be extra cautious at intersections',
-      'If tired, pull over and rest',
-    ]
-  },
-  {
-    title: 'Emergency Situations',
-    tips: [
-      'Stay calm and pull over safely if possible',
-      'Turn on hazard lights immediately',
-      'Call emergency services (112)',
-      'Don\'t leave your vehicle unless necessary',
-      'Use WakaGuard to report and alert others',
-    ]
-  },
-];
-
-// Road Safety Checklist
+// A checklist for a private car, where the driver is the one who can check these
 const SAFETY_CHECKLIST = [
-  { id: 'tires', label: 'Checked tire pressure and condition', category: 'Vehicle' },
+  { id: 'tires', label: 'Checked tyre pressure and condition', category: 'Vehicle' },
   { id: 'brakes', label: 'Tested brakes', category: 'Vehicle' },
   { id: 'lights', label: 'All lights working', category: 'Vehicle' },
   { id: 'fuel', label: 'Sufficient fuel', category: 'Vehicle' },
-  { id: 'documents', label: 'License and registration available', category: 'Documents' },
+  { id: 'documents', label: "Driver's licence and vehicle papers available", category: 'Documents' },
   { id: 'insurance', label: 'Valid insurance', category: 'Documents' },
   { id: 'phone', label: 'Phone fully charged', category: 'Emergency' },
   { id: 'contacts', label: 'Emergency contacts updated', category: 'Emergency' },
@@ -113,8 +76,14 @@ const SAFETY_CHECKLIST = [
   { id: 'water', label: 'Water and snacks for long trips', category: 'Comfort' },
 ];
 
-export function SafetyScreen({ onReportRoad }: { /** Open the road report form */ onReportRoad?: () => void } = {}) {
-  const { uid, isAnonymous, displayName } = useAuthedUser();
+export function SafetyScreen({ onReportRoad, notificationAction = null, onNotificationActionDone }: {
+  /** Open the road report form */
+  onReportRoad?: () => void;
+  /** A button pressed on a trip reminder, to carry out once the trip has loaded */
+  notificationAction?: TripNotificationAction | null;
+  onNotificationActionDone?: () => void;
+} = {}) {
+  const { uid, ready: authReady, isAnonymous, displayName } = useAuthedUser();
   const { requireAccount, showAuthModal, openAuthModal, closeAuthModal } = useRequireAccount({ uid, isAnonymous });
   const {
     activeTrip,
@@ -164,17 +133,23 @@ export function SafetyScreen({ onReportRoad }: { /** Open the road report form *
   const untextableCount = trustedContacts.length - textableContacts.length;
   const [newContactName, setNewContactName] = useState('');
   const [newContactPhone, setNewContactPhone] = useState('');
-  const [phoneContacts, setPhoneContacts] = useState<{ name: string; phone: string }[]>([]);
-  const [showContactPicker, setShowContactPicker] = useState(false);
   useBackToClose(activeModal !== null, () => setActiveModal(null));
-  useBackToClose(showContactPicker, () => setShowContactPicker(false));
-  // Both have boxes to type in, which the iPhone's keyboard would otherwise cover
+  // It has boxes to type in, which the iPhone's keyboard would otherwise cover
   const { ref: contactsRef, style: contactsStyle } = useKeyboardSafeOverlay();
-  const { ref: pickerRef, style: pickerStyle } = useKeyboardSafeOverlay();
-  const [contactSearch, setContactSearch] = useState('');
-  
+
   // Collapsible sections
   const [tipsExpanded, setTipsExpanded] = useState(false);
+  // On phones known to close apps in the background, the steps that stop that
+  // are put in front of the person once, without waiting for a trip to go quiet
+  const [keepRunningDue, setKeepRunningDue] = useState(() => (
+    typeof navigator !== 'undefined'
+    && shouldOfferKeepRunning(Capacitor.getPlatform(), navigator.userAgent, hasDoneKeepRunning())
+  ));
+  const [showKeepRunning, setShowKeepRunning] = useState(false);
+  useBackToClose(showKeepRunning, () => setShowKeepRunning(false));
+  // Whose tips the card shows: the one tapped there, else this trip's, else last time's
+  const [tipsModeChosen, setTipsModeChosen] = useState<TravelMode | null>(null);
+  const [rememberedMode, setRememberedMode] = useState<TravelMode | null>(() => lastTravelMode());
   const [checkedItems, setCheckedItems] = useState<string[]>([]);
   
   // Load trusted contacts
@@ -315,9 +290,14 @@ export function SafetyScreen({ onReportRoad }: { /** Open the road report form *
   const [awaitingLocationConsent, setAwaitingLocationConsent] = useState<StartTripRequest | null>(null);
   useBackToClose(awaitingLocationConsent !== null, () => setAwaitingLocationConsent(null));
 
+  const tipsMode: TravelMode | null = tipsModeChosen
+    ?? (isTravelMode(activeTrip?.travelMode) ? activeTrip.travelMode : rememberedMode);
+
   const handleStartTrip = async (request: StartTripRequest) => {
     if (!requireAccount('start safe trip')) return;
     if (!uid || isAnonymous) return;
+    setRememberedMode(request.travelMode);
+    setTipsModeChosen(null);
     if (!hasSeenLocationExplanation()) {
       setAwaitingLocationConsent(request);
       return;
@@ -347,6 +327,7 @@ export function SafetyScreen({ onReportRoad }: { /** Open the road report form *
       destinationLabel: request.destination,
       trustedContactIds: request.contactIds,
       isTest: request.isTest,
+      travelMode: request.travelMode,
     });
 
     if (!result.success || !result.tripId) {
@@ -399,9 +380,10 @@ export function SafetyScreen({ onReportRoad }: { /** Open the road report form *
     }
   };
 
-  const handleEndSafeTrip = async () => {
-    if (!requireAccount('end safe trip')) return;
-    if (!uid || isAnonymous) return;
+  /** Ends the trip; true once it has been ended (or saved on the phone to be sent) */
+  const handleEndSafeTrip = async (): Promise<boolean> => {
+    if (!requireAccount('end safe trip')) return false;
+    if (!uid || isAnonymous) return false;
     const currentShareUrl = shareUrl;
     const currentDestination = activeTrip?.destination;
     // The server follows up with contacts only if it texted them, so only then is one promised
@@ -436,10 +418,12 @@ export function SafetyScreen({ onReportRoad }: { /** Open the road report form *
     } else {
       showToast(result.error || 'Failed to end trip', 'error');
     }
+    return result.success;
   };
 
-  const handleExtendTrip = async (minutes: number) => {
-    if (!uid || isAnonymous) return;
+  /** Adds time; true once it has been added (or saved on the phone to be sent) */
+  const handleExtendTrip = async (minutes: number): Promise<boolean> => {
+    if (!uid || isAnonymous) return false;
     setProcessing(true);
     const result = await extendSafeTrip(minutes);
     setProcessing(false);
@@ -450,7 +434,55 @@ export function SafetyScreen({ onReportRoad }: { /** Open the road report form *
     } else {
       showToast(result.error || 'Failed to add time', 'error');
     }
+    return result.success;
   };
+
+  // "I've arrived" or "+15 min" pressed on a reminder: the same as the buttons on
+  // the trip card, for that trip only. The screen may have just opened, so the
+  // trip is waited for; only the trip itself, read from the database, can say it
+  // has ended. An old reminder never ends an SOS.
+  useEffect(() => {
+    if (!notificationAction || !authReady) return;
+    const done = () => onNotificationActionDone?.();
+    if (!uid || isAnonymous || notificationAction.action === 'open') {
+      done();
+      return;
+    }
+    if (activeTrip?.id === notificationAction.tripId && activeTrip.status === TripStatus.ACTIVE) {
+      if (processing) return;
+      done();
+      const deadline = activeTrip.endsAt?.toMillis() ?? null;
+      // Begun before the app reloaded, and the time has already moved: it was added then
+      if (notificationAction.action === 'add15' && notificationAction.deadlineMs != null && deadline !== notificationAction.deadlineMs) {
+        forgetPendingPress();
+        return;
+      }
+      noteDeadlineAtPress(deadline);
+      // The press stays kept on the phone until this has worked, in case the app reloads meanwhile
+      void (notificationAction.action === 'arrived' ? handleEndSafeTrip() : handleExtendTrip(BUTTON_ADDS_MINUTES))
+        .then((worked) => { if (worked) forgetPendingPress(); });
+      return;
+    }
+    let current = true;
+    void getDoc(doc(db, 'users', uid, 'trips', notificationAction.tripId)).then((trip) => {
+      const status = trip.data()?.status;
+      // Still running: this screen has not loaded it yet, and runs this again when it has
+      if (!current || status === TripStatus.ACTIVE) return;
+      done();
+      forgetPendingPress();
+      showToast(
+        status === TripStatus.EMERGENCY
+          ? 'Your SOS is still on. To end it, use the trip card.'
+          : 'That trip has already ended.',
+        'success'
+      );
+    }).catch(() => {});
+    return () => {
+      current = false;
+    };
+    // Runs once per press: the press is cleared as soon as it is taken up
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notificationAction, authReady, uid, isAnonymous, activeTrip, processing]);
 
   const handleSendFromHere = async () => {
     if (!uid || isAnonymous) return;
@@ -490,57 +522,19 @@ export function SafetyScreen({ onReportRoad }: { /** Open the road report form *
 
   // Pick contact from phone
   const handlePickFromPhone = async () => {
-    // DIAGNOSTIC: Check platform detection
-    console.log('platform:', Capacitor.getPlatform());
-    console.log('isNativePlatform:', Capacitor.isNativePlatform());
-
-    // Try Capacitor Contacts plugin first on native
+    // In the app: the phone's own contacts screen. The person picks one number
+    // and only that entry reaches the app, so no permission to read contacts is needed.
     if (Capacitor.isNativePlatform()) {
-      setProcessing(true);
       try {
-        const { Contacts } = await import('@capacitor-community/contacts');
-        
-        // Request permission and check result
-        const perm = await Contacts.requestPermissions();
-        console.log('Permission result:', perm);
-        
-        if (perm.contacts !== 'granted') {
-          showToast('Contacts permission denied. Please enable in Settings.', 'error');
-          setProcessing(false);
-          return;
+        const picked = await pickPhoneContact();
+        if (picked) {
+          setNewContactName(picked.name);
+          setNewContactPhone(picked.phone);
+          showToast('Contact selected - tap Add to save', 'success');
         }
-        
-        // Get all contacts
-        const result = await Contacts.getContacts({
-          projection: {
-            name: true,
-            phones: true,
-          }
-        });
-        console.log('Got contacts:', result.contacts?.length);
-
-        if (result.contacts && result.contacts.length > 0) {
-          // Filter contacts with phone numbers and map to simple format
-          const contactsWithPhones: { name: string; phone: string }[] = result.contacts
-            .filter((c: any) => c.phones && c.phones.length > 0)
-            .map((c: any) => ({
-              name: c.name?.display || c.name?.given || 'Unknown',
-              phone: c.phones![0].number || ''
-            }))
-            .filter((c: any) => c.phone)
-            .sort((a: any, b: any) => a.name.localeCompare(b.name));
-          
-          setPhoneContacts(contactsWithPhones);
-          setShowContactPicker(true);
-          setContactSearch('');
-        } else {
-          showToast('No contacts found', 'error');
-        }
-      } catch (error: any) {
-        console.error('Contacts error:', error);
-        showToast(`Contact error: ${error.message || 'Unknown'}`, 'error');
-      } finally {
-        setProcessing(false);
+      } catch (error) {
+        console.error('Contact picker error:', error);
+        showToast('Could not open your contacts. Enter the name and number below.', 'error');
       }
       return;
     }
@@ -755,6 +749,41 @@ export function SafetyScreen({ onReportRoad }: { /** Open the road report form *
 
   return (
     <div ref={scrollRef} className="absolute inset-0 overflow-y-auto px-4 pt-4 pb-28 space-y-4 bg-slate-50 dark:bg-slate-900 touch-pan-y" style={{ marginTop: 'calc(env(safe-area-inset-top, 0px) + 56px)', WebkitOverflowScrolling: 'touch' }}>
+      {keepRunningDue && (
+        <section
+          aria-labelledby="keep-running-card-title"
+          className="rounded-3xl border border-amber-300 bg-amber-50 dark:bg-amber-950 dark:border-amber-700 p-5"
+        >
+          <h2 id="keep-running-card-title" className="font-bold text-amber-950 dark:text-amber-50">
+            Your phone may stop WakaGuard when you leave the app
+          </h2>
+          <p className="mt-1 text-sm text-amber-900 dark:text-amber-100">
+            Infinix, Tecno and itel phones close apps to save battery. If that happens during a trip, your contacts
+            stop seeing where you are. A few settings, changed once, prevent it.
+          </p>
+          <div className="mt-4 flex gap-2">
+            <button
+              type="button"
+              onClick={() => setShowKeepRunning(true)}
+              className="flex-1 py-2.5 rounded-xl bg-amber-900 text-white font-semibold hover:bg-amber-950"
+            >
+              Show me how
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                rememberKeepRunningDone();
+                setKeepRunningDue(false);
+              }}
+              className="flex-1 py-2.5 rounded-xl bg-white text-amber-950 font-semibold border border-amber-300 hover:bg-amber-100"
+            >
+              I&apos;ve done this
+            </button>
+          </div>
+        </section>
+      )}
+      {showKeepRunning && <KeepRunningHelp onClose={() => setShowKeepRunning(false)} />}
+
       {/* ============================================ */}
       {/* 1. THE TRIP: start form, or the trip in progress */}
       {/* ============================================ */}
@@ -863,8 +892,10 @@ export function SafetyScreen({ onReportRoad }: { /** Open the road report form *
             <Lightbulb className="w-5 h-5" aria-hidden="true" />
           </span>
           <span className="flex-1 min-w-0">
-            <span className={moreTitle}>Safety tips and checklist</span>
-            <span className={moreSub}>{checkedItems.length} of {SAFETY_CHECKLIST.length} checked</span>
+            <span className={moreTitle}>Safety tips</span>
+            <span className={moreSub}>
+              {tipsMode ? `For ${travelModeLabel(tipsMode).toLowerCase()}` : 'For the way you travel'}
+            </span>
           </span>
           {tipsExpanded
             ? <ChevronUp className="w-5 h-5 text-slate-400" aria-hidden="true" />
@@ -873,47 +904,84 @@ export function SafetyScreen({ onReportRoad }: { /** Open the road report form *
 
         {tipsExpanded && (
           <div className="p-4 space-y-4">
-            <div>
-              <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Before you set off</h4>
-              <div className="space-y-2">
-                {SAFETY_CHECKLIST.slice(0, 5).map((item) => {
-                  const done = checkedItems.includes(item.id);
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => handleToggleChecklist(item.id)}
-                      aria-pressed={done}
-                      className={`w-full flex items-center gap-3 p-2.5 rounded-xl text-left transition-colors ${
-                        done
-                          ? 'bg-brand-50 dark:bg-brand-900/40'
-                          : 'bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-700'
-                      }`}
-                    >
-                      <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                        done ? 'bg-brand-600 border-brand-600' : 'border-slate-300 dark:border-slate-500'
-                      }`}>
-                        {done && <Check className="w-3 h-3 text-white" />}
-                      </span>
-                      <span className={`text-sm ${done ? 'text-brand-800 dark:text-brand-100' : 'text-slate-700 dark:text-slate-200'}`}>
-                        {item.label}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+            <div className="grid grid-cols-4 gap-2" role="group" aria-label="Show tips for">
+              {TRAVEL_MODES.filter((mode) => mode.id !== 'other').map((mode) => {
+                const selected = tipsMode === mode.id;
+                return (
+                  <button
+                    key={mode.id}
+                    type="button"
+                    aria-pressed={selected}
+                    aria-label={mode.label}
+                    onClick={() => setTipsModeChosen(mode.id)}
+                    className={`flex flex-col items-center gap-1 rounded-xl px-1 pt-2 pb-1.5 border-2 transition-colors ${
+                      selected
+                        ? 'border-brand-600 bg-brand-50 dark:bg-brand-900/40'
+                        : 'border-transparent bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-700'
+                    }`}
+                  >
+                    <TravelPicture mode={mode.id} size={32} />
+                    <span className={`text-xs font-medium leading-tight text-center ${
+                      selected ? 'text-brand-800 dark:text-brand-100' : 'text-slate-700 dark:text-slate-200'
+                    }`}>
+                      {mode.short}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
 
-            <div>
-              <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Quick tips</h4>
+            {tipsFor(tipsMode).length > 0 ? (
               <ul className="space-y-2">
-                {SAFETY_TIPS[0].tips.slice(0, 3).map((tip, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300">
+                {tipsFor(tipsMode).map((tip) => (
+                  <li key={tip} className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300">
                     <CheckCircle2 className="w-4 h-4 text-brand-600 dark:text-brand-300 flex-shrink-0 mt-0.5" aria-hidden="true" />
                     {tip}
                   </li>
                 ))}
               </ul>
-            </div>
+            ) : (
+              <p className="text-sm text-slate-600 dark:text-slate-300">
+                Tap how you are travelling to see the tips for it.
+              </p>
+            )}
+
+            {tipsMode === 'car' && (
+              <div>
+                <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
+                  Before you set off
+                  <span className="font-normal text-slate-500 dark:text-slate-400">
+                    {' '}({checkedItems.filter((id) => SAFETY_CHECKLIST.some((item) => item.id === id)).length} of {SAFETY_CHECKLIST.length} checked)
+                  </span>
+                </h4>
+                <div className="space-y-2">
+                  {SAFETY_CHECKLIST.map((item) => {
+                    const done = checkedItems.includes(item.id);
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => handleToggleChecklist(item.id)}
+                        aria-pressed={done}
+                        className={`w-full flex items-center gap-3 p-2.5 rounded-xl text-left transition-colors ${
+                          done
+                            ? 'bg-brand-50 dark:bg-brand-900/40'
+                            : 'bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-700'
+                        }`}
+                      >
+                        <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                          done ? 'bg-brand-600 border-brand-600' : 'border-slate-300 dark:border-slate-500'
+                        }`}>
+                          {done && <Check className="w-3 h-3 text-white" />}
+                        </span>
+                        <span className={`text-sm ${done ? 'text-brand-800 dark:text-brand-100' : 'text-slate-700 dark:text-slate-200'}`}>
+                          {item.label}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -1133,56 +1201,6 @@ export function SafetyScreen({ onReportRoad }: { /** Open the road report form *
                     </div>
                   ))}
                 </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Phone Contacts Picker Modal */}
-      {showContactPicker && (
-        <div ref={pickerRef} style={pickerStyle} className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-white rounded-2xl w-full max-w-sm max-h-[80vh] overflow-hidden flex flex-col">
-            <div className="flex items-center justify-between p-4 border-b border-slate-200">
-              <h2 className="text-lg font-bold text-slate-900">Select Contact</h2>
-              <button onClick={() => setShowContactPicker(false)} className="p-2 hover:bg-slate-100 rounded-full">
-                <X className="w-5 h-5 text-slate-700" />
-              </button>
-            </div>
-            <div className="p-3 border-b border-slate-100">
-              <input
-                type="text"
-                value={contactSearch}
-                onChange={(e) => setContactSearch(e.target.value)}
-                placeholder="Search contacts..."
-                className="w-full px-4 py-2 border border-slate-200 rounded-xl text-sm"
-              />
-            </div>
-            <div className="overflow-y-auto flex-1 p-2">
-              {phoneContacts
-                .filter(c => c.name.toLowerCase().includes(contactSearch.toLowerCase()) || c.phone.includes(contactSearch))
-                .map((contact, index) => (
-                  <button
-                    key={index}
-                    onClick={() => {
-                      setNewContactName(contact.name);
-                      setNewContactPhone(contact.phone.replace(/\s/g, ''));
-                      setShowContactPicker(false);
-                      showToast('Contact selected - tap Add to save', 'success');
-                    }}
-                    className="w-full flex items-center gap-3 p-3 hover:bg-slate-50 rounded-xl text-left"
-                  >
-                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                      <Users className="w-5 h-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-slate-900">{contact.name}</p>
-                      <p className="text-xs text-slate-500">{contact.phone}</p>
-                    </div>
-                  </button>
-                ))}
-              {phoneContacts.filter(c => c.name.toLowerCase().includes(contactSearch.toLowerCase()) || c.phone.includes(contactSearch)).length === 0 && (
-                <p className="text-center text-slate-500 py-8">No contacts found</p>
               )}
             </div>
           </div>

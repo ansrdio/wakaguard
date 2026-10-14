@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { useFlags, FlagWithContent } from '@/hooks/useFlags';
-import { doc, updateDoc } from 'firebase/firestore';
+import { collection, doc, getDocs, query, updateDoc, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Report, Comment, FlagTargetType, ReportStatus, CommentStatus } from '@/lib/types';
 import { Shield, AlertTriangle, CheckCircle, XCircle, Clock, Trash2, Eye } from 'lucide-react';
@@ -31,11 +31,22 @@ export default function AdminModPage() {
     return 'Just now';
   };
 
+  // Putting a post back marks the reports of it as dealt with. Only reports
+  // still waiting count towards hiding a post (functions/src/autoHide.ts), so
+  // it then takes three new people to hide it again.
+  const dismissReportsOf = async (targetType: 'report' | 'comment', targetId: string) => {
+    const waiting = await getDocs(query(collection(db, 'flags'), where('targetId', '==', targetId), where('status', '==', 'pending')));
+    await Promise.all(waiting.docs
+      .filter((flag) => flag.get('targetType') === targetType)
+      .map((flag) => updateDoc(flag.ref, { status: 'dismissed' })));
+  };
+
   const handleReportAction = async (reportId: string, status: ReportStatus) => {
     setActionLoading(reportId);
     try {
       await updateDoc(doc(db, 'reports', reportId), { status });
-      setToast({ type: 'success', message: `Report status updated to ${status}` });
+      if (status === ReportStatus.ACTIVE) await dismissReportsOf('report', reportId);
+      setToast({ type: 'success', message: status === ReportStatus.ACTIVE ? 'Report put back on the map' : `Report status updated to ${status}` });
     } catch (err) {
       console.error('Error updating report:', err);
       setToast({ type: 'error', message: 'Failed to update report status' });
@@ -44,13 +55,12 @@ export default function AdminModPage() {
     }
   };
 
-  const handleCommentAction = async (commentId: string) => {
+  const handleCommentAction = async (commentId: string, status: CommentStatus = CommentStatus.REMOVED) => {
     setActionLoading(commentId);
     try {
-      await updateDoc(doc(db, 'comments', commentId), { 
-        status: CommentStatus.REMOVED 
-      });
-      setToast({ type: 'success', message: 'Comment removed' });
+      await updateDoc(doc(db, 'comments', commentId), { status });
+      if (status === CommentStatus.ACTIVE) await dismissReportsOf('comment', commentId);
+      setToast({ type: 'success', message: status === CommentStatus.ACTIVE ? 'Comment put back' : 'Comment removed' });
     } catch (err) {
       console.error('Error removing comment:', err);
       setToast({ type: 'error', message: 'Failed to remove comment' });
@@ -296,6 +306,11 @@ function ReportPreview({
             {report.status}
           </span>
         </div>
+        {report.status === ReportStatus.FLAGGED && (report as { hiddenBy?: string }).hiddenBy === 'reports' && (
+          <p className="mb-2 rounded-lg bg-orange-50 px-3 py-2 text-sm text-orange-800">
+            Hidden from everyone automatically, after three different people reported it. Put it back or mark it expired.
+          </p>
+        )}
         <p className="text-gray-700 mb-2">{report.description}</p>
         <p className="text-sm text-gray-500">
           📍 {report.location.lat.toFixed(6)}, {report.location.lng.toFixed(6)}
@@ -310,6 +325,13 @@ function ReportPreview({
         >
           View Full Report
         </Link>
+        <button
+          onClick={() => onAction(report.id, ReportStatus.ACTIVE)}
+          disabled={loading || report.status === ReportStatus.ACTIVE}
+          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+        >
+          Put Back
+        </button>
         <button
           onClick={() => onAction(report.id, ReportStatus.RESOLVED)}
           disabled={loading || report.status === ReportStatus.RESOLVED}
@@ -344,7 +366,7 @@ function CommentPreview({
 }: { 
   comment: Comment; 
   reportId?: string;
-  onAction: (id: string) => void;
+  onAction: (id: string, status?: CommentStatus) => void;
   loading: boolean;
 }) {
   return (
@@ -374,6 +396,13 @@ function CommentPreview({
             View Report
           </Link>
         )}
+        <button
+          onClick={() => onAction(comment.id, CommentStatus.ACTIVE)}
+          disabled={loading || comment.status === CommentStatus.ACTIVE}
+          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+        >
+          Put Back
+        </button>
         <button
           onClick={() => onAction(comment.id)}
           disabled={loading || comment.status === CommentStatus.REMOVED}

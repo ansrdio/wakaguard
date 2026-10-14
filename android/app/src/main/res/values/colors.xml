@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- WakaGuard green, for the icon and the app's name on a notification -->
+    <color name="notification_green">#11763F</color>
+</resources>

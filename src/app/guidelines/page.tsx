@@ -93,7 +93,7 @@ export default function GuidelinesPage() {
               </p>
               <ul className="list-disc list-inside text-red-800 space-y-1">
                 <li>Names, addresses, or phone numbers</li>
-                <li>License plate numbers</li>
+                <li>Number plates</li>
                 <li>Photos of people&apos;s faces</li>
                 <li>Accusations against specific individuals or businesses</li>
                 <li>Personally identifiable information (PII)</li>
@@ -133,7 +133,7 @@ export default function GuidelinesPage() {
               <li>Graphic violence or gore</li>
               <li>Nudity or sexual content</li>
               <li>Photos containing identifiable people without consent</li>
-              <li>Photos with visible license plates</li>
+              <li>Photos with visible number plates</li>
             </ul>
           </section>
 

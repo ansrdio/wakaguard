@@ -188,7 +188,7 @@ export async function detectStateFromGeolocation(): Promise<GeolocationResult> {
       // State detected but not in our list (might be outside Nigeria)
       return {
         state: null,
-        error: `Detected location (${stateName}) is not a recognized Nigerian state`,
+        error: `Detected location (${stateName}) is not a recognised Nigerian state`,
       };
     }
 
@@ -300,7 +300,7 @@ export async function detectStateFromGeolocationGoogle(): Promise<GeolocationRes
     if (!normalizedState) {
       return {
         state: null,
-        error: `Detected location (${stateName}) is not a recognized Nigerian state`,
+        error: `Detected location (${stateName}) is not a recognised Nigerian state`,
       };
     }
 

@@ -117,7 +117,10 @@ export default function SupportPage() {
                   Your contacts are not texted the moment your arrival time passes. At that time the trip shows
                   as overdue and, in the phone app with notifications allowed, you get a reminder asking
                   &quot;Are you okay?&quot;. You then have {ALERT_GRACE_MINUTES} minutes to tap &quot;Add
-                  time&quot; (15 minutes, 30 minutes or an hour) or &quot;I&apos;ve arrived&quot;. If the trip is
+                  time&quot; (15 minutes, 30 minutes or an hour) or &quot;I&apos;ve arrived&quot;. Five minutes
+                  before the end of that wait, a last reminder says your contacts are about to be texted. The
+                  reminders have &quot;I&apos;ve arrived&quot; and &quot;+15 min&quot; buttons on them, so you can
+                  answer without finding the app. If the trip is
                   still running when the {ALERT_GRACE_MINUTES} minutes are up, your contacts are texted. Our
                   server checks once a minute, so the text can follow up to a minute or so later. It is sent by
                   the server, not by your phone, so it goes out even if your phone is off or out of coverage by
@@ -345,7 +348,7 @@ export default function SupportPage() {
                   <ul className="list-disc list-inside text-gray-700 mb-3 space-y-1">
                     <li>Device type and operating system version</li>
                     <li>Steps to reproduce the issue</li>
-                    <li>Expected vs. actual behavior</li>
+                    <li>What you expected, and what happened instead</li>
                     <li>Screenshots if applicable</li>
                   </ul>
                   <p className="text-gray-700">

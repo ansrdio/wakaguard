@@ -8,7 +8,7 @@
  */
 
 /** Minutes after the expected arrival before contacts are alerted. Matches OVERDUE_GRACE_MS on the server. */
-export const ALERT_GRACE_MINUTES = 5;
+export const ALERT_GRACE_MINUTES = 15;
 
 /** A test trip: the same steps as a real one, with waits short enough to watch (see the server's TEST_OVERDUE_GRACE_MS) */
 export const TEST_TRIP_MINUTES = 2;

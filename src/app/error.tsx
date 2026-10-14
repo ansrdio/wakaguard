@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { errorText, isLocalStoreFailure, restartPage } from '@/lib/localStore';
+import { sendErrorReport } from '@/lib/sendErrorReport';
 
 /**
  * Shown in place of a screen that has crashed. Without it the app shows one
@@ -15,6 +16,7 @@ import { errorText, isLocalStoreFailure, restartPage } from '@/lib/localStore';
 export default function ScreenError({ error }: { error: Error & { digest?: string } }) {
   useEffect(() => {
     console.error(`A screen crashed: ${errorText(error)}`);
+    sendErrorReport(error, `${window.location.pathname} (screen crashed)`);
     if (isLocalStoreFailure(error)) {
       restartPage('a screen crashed because the data kept on the phone stopped answering');
     }

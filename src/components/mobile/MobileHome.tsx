@@ -21,6 +21,9 @@ import { useSafety } from '@/hooks/useSafety';
 import { useTripLocationSync } from '@/hooks/useTripLocationSync';
 import { useEffect } from 'react';
 import { useBackToClose } from '@/hooks/useBackToClose';
+import { Capacitor } from '@capacitor/core';
+import { PushNotifications } from '@capacitor/push-notifications';
+import { firstTimePressed, pendingPress, readTripNotificationAction, rememberPendingPress, TripNotificationAction } from '@/lib/tripNotificationActions';
 
 interface MobileHomeProps {
   rawReports: Report[];
@@ -48,7 +51,9 @@ export function MobileHome({
   const [homeTab] = useState<MobileTab>(() =>
     auth?.currentUser && !auth.currentUser.isAnonymous ? 'safety' : 'map'
   );
-  const [activeTab, setActiveTab] = useState<MobileTab>(homeTab);
+  // A reminder's button pressed just before the app reloaded itself is carried out now
+  const [pressAtStart] = useState<TripNotificationAction | null>(() => pendingPress());
+  const [activeTab, setActiveTab] = useState<MobileTab>(pressAtStart ? 'safety' : homeTab);
   const [filters, setFilters] = useState<ReportFilters>({});
   const [sortBy, setSortBy] = useState<'recent' | 'upvoted' | 'nearest'>('recent');
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
@@ -58,6 +63,24 @@ export function MobileHome({
   const [showFilterSheet, setShowFilterSheet] = useState(false);
   const [showStateSelector, setShowStateSelector] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  // A button pressed on a trip reminder ("I've arrived", "+15 min"), for the Trip screen to carry out
+  const [tripAction, setTripAction] = useState<TripNotificationAction | null>(pressAtStart);
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    // Capacitor keeps a press that opened the app until this listener is added
+    const listener = PushNotifications.addListener('pushNotificationActionPerformed', (performed) => {
+      const action = readTripNotificationAction(performed);
+      if (!action || !firstTimePressed(action)) return;
+      rememberPendingPress(action);
+      setShowCreateModal(false);
+      setActiveTab('safety');
+      setTripAction(action);
+    });
+    return () => {
+      void listener.then((handle) => handle.remove());
+    };
+  }, []);
 
   // The phone's Back button: first back to the screen the app opened on, then
   // one step for each thing opened over it
@@ -362,7 +385,13 @@ export function MobileHome({
   // Render tab content
   const renderContent = () => {
     if (activeTab === 'safety') {
-      return <SafetyScreen onReportRoad={() => setShowCreateModal(true)} />;
+      return (
+        <SafetyScreen
+          onReportRoad={() => setShowCreateModal(true)}
+          notificationAction={tripAction}
+          onNotificationActionDone={() => setTripAction(null)}
+        />
+      );
     }
 
     if (activeTab === 'profile') {

@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { errorText, isLocalStoreFailure, restartPage } from '@/lib/localStore';
+import { sendErrorReport } from '@/lib/sendErrorReport';
 
 /**
  * The same as error.tsx, for a crash in the frame every screen sits in (the
@@ -11,6 +12,7 @@ import { errorText, isLocalStoreFailure, restartPage } from '@/lib/localStore';
 export default function AppError({ error }: { error: Error & { digest?: string } }) {
   useEffect(() => {
     console.error(`The app crashed: ${errorText(error)}`);
+    sendErrorReport(error, `${window.location.pathname} (app crashed)`);
     if (isLocalStoreFailure(error)) {
       restartPage('the app crashed because the data kept on the phone stopped answering');
     }

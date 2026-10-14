@@ -75,7 +75,8 @@ export default function PrivacyPage() {
               We store the latest position and the time we received it, and during the trip we build a path of
               where your phone has been (up to 240 points) for the trip map. We also store the destination you
               typed, your expected arrival time, the points where the trip started and ended, and any time you
-              added.
+              added. If you answer &quot;How are you travelling?&quot; when you start a trip, that answer is stored
+              with the trip. You can leave it unanswered.
             </p>
             <p className="text-gray-700 leading-relaxed mb-6">
               Your phone stops sending its location when the trip ends.
@@ -93,6 +94,7 @@ export default function PrivacyPage() {
               <li><strong>Create a road report:</strong> the location you set for the report is shown publicly on the map</li>
               <li><strong>Tap &quot;Use my location&quot; when choosing your state, or set a report&apos;s location:</strong> the coordinates are sent to OpenStreetMap&apos;s look-up service to turn them into a state or an address</li>
               <li><strong>Switch on push notifications in Profile:</strong> your position at that moment is saved, so that we can notify you about new road reports within about 10 km of it</li>
+              <li><strong>Open the Trip screen, or have a trip running:</strong> if you have already allowed WakaGuard to use your location, your rough area, rounded to about 10 km, is sent to our server to look up the weather there. It is not saved with your account. The app never asks for your location just for the weather</li>
             </ul>
             <p className="text-gray-700 leading-relaxed mb-6">
               Showing your own position on the map happens on your device and is not sent to us.
@@ -138,7 +140,7 @@ export default function PrivacyPage() {
               <li>Redrawing a photo for upload leaves out the details your camera embeds in the file (EXIF data, which can include GPS coordinates). What the photo itself shows is not changed</li>
             </ul>
             <p className="text-gray-700 leading-relaxed mb-6">
-              <strong>Important:</strong> Do not include photos with identifiable people, license plates,
+              <strong>Important:</strong> Do not include photos with identifiable people, number plates,
               or other personal information without consent.
             </p>
 
@@ -168,6 +170,7 @@ export default function PrivacyPage() {
               <li>The name you entered for alerts and the destination you typed</li>
               <li>Your phone&apos;s last reported position, when we received it, and the path it has reported during this trip</li>
               <li>Your expected arrival time, and whether you are overdue or have sent an SOS</li>
+              <li>How you said you were travelling (for example by bus or okada), but only once you are overdue or have sent an SOS, and only if you answered that question</li>
             </ul>
             <p className="text-gray-700 leading-relaxed mb-4">
               The link stops working when you end the trip. If a trip is never ended, the link expires by
@@ -348,6 +351,7 @@ export default function PrivacyPage() {
               <li><strong>Public Display:</strong> Reports, comments, and photos are publicly visible to all users</li>
               <li><strong>Service Providers:</strong> We use Firebase (Google) for sign-in, data storage, hosting and notifications, and Termii and the mobile networks for SMS. These providers may process data on servers outside Nigeria</li>
               <li><strong>Maps:</strong> Map images are loaded by your device from OpenStreetMap, which sees your IP address and the area you are viewing. Location links in texts and on the trip page open in Google Maps</li>
+              <li><strong>Weather:</strong> Our server asks MET Norway (the Norwegian Meteorological Institute) for the forecast for your rough area, about 10 km across. MET Norway is not told who asked or where exactly you are. The forecasts shown in the app are data from MET Norway</li>
               <li><strong>Legal Requirements:</strong> We may disclose data if required by law or to protect rights and safety</li>
               <li><strong>Moderation:</strong> Flagged content is reviewed by administrators</li>
             </ul>

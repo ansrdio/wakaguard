@@ -7,6 +7,7 @@ import { useBackToClose } from '@/hooks/useBackToClose';
 import { useBlockedUsers } from '@/hooks/useBlockedUsers';
 import { useFlag } from '@/hooks/useFlag';
 import { FlagTargetType } from '@/lib/types';
+import { DeleteOwnPost } from '@/components/mobile/DeleteOwnPost';
 
 interface PostActionsProps {
   /** A road report or a comment on one */
@@ -22,15 +23,37 @@ interface PostActionsProps {
   onShowToast: (message: string, type: 'success' | 'error') => void;
   /** Called once the author has been blocked, so the post can be taken off the screen */
   onBlocked?: () => void;
+  /** Called once the viewer has deleted their own post, so the screen showing it can close */
+  onDeleted?: () => void;
   /** Small text links under a comment, or full-width buttons under a report */
   compact?: boolean;
 }
 
 /**
- * "Report" and "Block" for something another person posted. Reporting sends it
- * to us to review; blocking hides everything that person posts from the viewer.
+ * What a person can do about a post. For someone else's: "Report", which sends
+ * it to us to review, and "Block", which hides everything that person posts
+ * from the viewer. For their own: "Delete".
  */
-export function PostActions({
+export function PostActions(props: PostActionsProps) {
+  const { kind, targetId, authorUid, viewerUid, onShowToast, onDeleted, compact = false } = props;
+  if (authorUid && authorUid === viewerUid) {
+    return (
+      <div className={compact ? 'flex items-center gap-4 mt-2' : 'flex gap-2'}>
+        <DeleteOwnPost
+          kind={kind}
+          targetId={targetId}
+          authorUid={authorUid}
+          onShowToast={onShowToast}
+          onDeleted={onDeleted}
+          compact={compact}
+        />
+      </div>
+    );
+  }
+  return <OthersPostActions {...props} />;
+}
+
+function OthersPostActions({
   kind, targetId, reportId, authorUid, viewerUid, requireAccount, onShowToast, onBlocked, compact = false,
 }: PostActionsProps) {
   const { hasFlagged, submitFlag } = useFlag(

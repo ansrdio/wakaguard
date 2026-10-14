@@ -11,6 +11,7 @@ import { NigerianState, STATE_CENTERS, NIGERIA_CENTER } from '@/lib/nigerianStat
 import { useLeafletResizeObserver } from '@/hooks/useLeafletInvalidateSize';
 import { getLandmarksByState, getLandmarkIcon, Landmark } from '@/lib/landmarks';
 import { MapLegend } from '@/components/MapLegend';
+import { reportPictureSvg } from '@/lib/pictures';
 
 const icon = L.icon({
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
@@ -31,22 +32,23 @@ const severityColors: Record<Severity, string> = {
   [Severity.LOW]: '#16a34a',
 };
 
-function createCustomIcon(severity: Severity, isSelected: boolean) {
+// A report's pin is the picture for its kind. How serious it is shows as the
+// ring around the picture, in the colours the legend explains.
+function createCustomIcon(type: string, severity: Severity, isSelected: boolean) {
   const color = severityColors[severity];
-  const size = 30;
-  
+  const size = 34;
+
   return L.divIcon({
     html: `
       <div style="
         width: ${size}px;
         height: ${size}px;
-        background-color: ${color};
-        border: 3px solid white;
-        border-radius: 50%;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-        ${isSelected ? 'box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5), 0 2px 8px rgba(0,0,0,0.3);' : ''}
+        border-radius: 10px;
+        overflow: hidden;
+        line-height: 0;
+        box-shadow: 0 0 0 2px white, 0 0 0 5px ${color}, 0 3px 8px rgba(0,0,0,0.35)${isSelected ? ', 0 0 0 9px rgba(59, 130, 246, 0.55)' : ''};
         transition: all 0.2s;
-      "></div>
+      ">${reportPictureSvg(type, size)}</div>
     `,
     className: 'custom-marker',
     iconSize: [size, size],
@@ -131,6 +133,22 @@ interface MapControllerProps {
   shouldFollowUser: boolean;
 }
 
+/**
+ * Moves the map, gliding when it can be seen. A map behind another tab has no
+ * size, and Leaflet's glide then works out a position of NaN and throws, which
+ * took the whole screen down (seen in a local test on 14 October 2026). Such a
+ * map is set in place instead, and no failed move is allowed to crash a screen.
+ */
+function moveMap(map: ReturnType<typeof useMap>, center: [number, number], zoom: number, duration: number) {
+  try {
+    const size = map.getSize();
+    if (size.x > 0 && size.y > 0) map.flyTo(center, zoom, { duration });
+    else map.setView(center, zoom, { animate: false });
+  } catch (error) {
+    console.warn('The map could not move:', error);
+  }
+}
+
 function MapController({ selectedReportId, reports, userLocation, selectedState, shouldFollowUser }: MapControllerProps) {
   const map = useMap();
   const mapRef = useRef(map);
@@ -148,6 +166,14 @@ function MapController({ selectedReportId, reports, userLocation, selectedState,
     }, 100);
     return () => clearTimeout(timer);
   }, [map]);
+
+  // And whenever the map's box changes size, as when its tab is shown again
+  useEffect(() => {
+    if (typeof ResizeObserver === 'undefined') return;
+    const watcher = new ResizeObserver(() => map.invalidateSize());
+    watcher.observe(map.getContainer());
+    return () => watcher.disconnect();
+  }, [map]);
   
   // Priority 1: Selected report
   useEffect(() => {
@@ -155,9 +181,7 @@ function MapController({ selectedReportId, reports, userLocation, selectedState,
       const report = reports.find(r => r.id === selectedReportId);
       if (report) {
         lastNavRef.current = 'report';
-        map.flyTo([report.location.lat, report.location.lng], 14, {
-          duration: 0.5
-        });
+        moveMap(map, [report.location.lat, report.location.lng], 14, 0.5);
       }
     } else {
       // Clear report nav when deselected
@@ -171,9 +195,7 @@ function MapController({ selectedReportId, reports, userLocation, selectedState,
   useEffect(() => {
     if (userLocation && shouldFollowUser && lastNavRef.current !== 'report') {
       lastNavRef.current = 'user';
-      map.flyTo([userLocation.lat, userLocation.lng], 15, {
-        duration: 1
-      });
+      moveMap(map, [userLocation.lat, userLocation.lng], 15, 1);
     }
   }, [userLocation, shouldFollowUser, map]);
 
@@ -187,9 +209,7 @@ function MapController({ selectedReportId, reports, userLocation, selectedState,
     ) {
       const center = STATE_CENTERS[selectedState];
       lastNavRef.current = 'state';
-      map.flyTo([center.lat, center.lng], center.zoom, {
-        duration: 1
-      });
+      moveMap(map, [center.lat, center.lng], center.zoom, 1);
     }
   }, [selectedState, map]);
 
@@ -392,7 +412,9 @@ const MapView = memo(function MapView({ reports, selectedReportId, onMarkerClick
           <Marker
             key={report.id}
             position={[report.location.lat, report.location.lng]}
-            icon={createCustomIcon(report.severity, report.id === selectedReportId)}
+            icon={createCustomIcon(report.type, report.severity, report.id === selectedReportId)}
+            // A report matters more than the landmark it happens to be beside
+            zIndexOffset={1000}
             eventHandlers={{
               click: () => onMarkerClick(report.id)
             }}

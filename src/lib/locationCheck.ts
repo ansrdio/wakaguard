@@ -158,3 +158,75 @@ export function tryForPosition(precise: boolean, timeoutMs = 20000): Promise<Fix
     );
   });
 }
+
+export interface FoundPosition {
+  lat: number;
+  lng: number;
+  /** How far out the position may be, in metres */
+  accuracy: number;
+  /** True when it places the phone in a neighbourhood, not at a spot on a road */
+  rough: boolean;
+}
+
+/** Past this many metres a position is a neighbourhood, not a spot on a road */
+export const ROUGH_FROM_METRES = 200;
+
+const secondsWord = (seconds: number) => `${seconds} second${seconds === 1 ? '' : 's'}`;
+
+/**
+ * One try at a position, in words for the check screen. A position found but
+ * rougher than ROUGH_FROM_METRES is not counted as good: a tester's phone
+ * found itself only to within 2,900 m (13 October 2026), which is too far out
+ * for a contact to find anyone, and the screen gave it a green tick.
+ */
+export function describeFix(result: FixResult | null): { text: string; good: boolean | null } {
+  if (!result) return { text: 'Looking…', good: null };
+  if (!result.found) return { text: result.seconds < 1 ? 'Not found' : `Not found after ${secondsWord(result.seconds)}`, good: false };
+  if (result.accuracy == null) return { text: `Found in ${secondsWord(result.seconds)}`, good: true };
+  const rough = result.accuracy > ROUGH_FROM_METRES;
+  const within = `to within ${result.accuracy.toLocaleString('en-GB')} m`;
+  return {
+    text: `Found in ${secondsWord(result.seconds)}, ${rough ? `but only ${within}` : within}`,
+    good: !rough,
+  };
+}
+
+function positionOnce(precise: boolean, timeoutMs: number): Promise<GeolocationPosition | null> {
+  return new Promise((resolve) => {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      resolve(null);
+      return;
+    }
+    // Some phones never answer at all, so the wait has its own limit
+    const giveUp = setTimeout(() => resolve(null), timeoutMs + 2000);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        clearTimeout(giveUp);
+        resolve(position);
+      },
+      () => {
+        clearTimeout(giveUp);
+        resolve(null);
+      },
+      // A rough position a minute old is still the right neighbourhood
+      { enableHighAccuracy: precise, maximumAge: precise ? 0 : 60000, timeout: timeoutMs },
+    );
+  });
+}
+
+/**
+ * Where the phone is, for pinning something to the map. Tries for an exact
+ * position and settles for a rough one, which a person can then correct by
+ * hand; null when the phone gives neither.
+ */
+export async function findPosition(preciseMs = 12000, roughMs = 8000): Promise<FoundPosition | null> {
+  const position = (await positionOnce(true, preciseMs)) ?? (await positionOnce(false, roughMs));
+  if (!position) return null;
+  const accuracy = Math.round(position.coords.accuracy);
+  return {
+    lat: position.coords.latitude,
+    lng: position.coords.longitude,
+    accuracy,
+    rough: accuracy > ROUGH_FROM_METRES,
+  };
+}

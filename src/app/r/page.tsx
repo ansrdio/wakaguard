@@ -17,10 +17,11 @@ import { Toast } from '@/components/ui/Toast';
 import { FlagTargetType } from '@/lib/types';
 import { 
   ArrowLeft, MapPin, Calendar, Clock, ThumbsUp, ThumbsDown, 
-  MessageCircle, Flag, Share2, AlertCircle, CheckCircle, Navigation, Ban 
+  MessageCircle, Flag, Share2, AlertCircle, CheckCircle, Ban
 } from 'lucide-react';
 import Link from 'next/link';
 import { buildReportLink } from '@/lib/appUrl';
+import { showInMapsUrl } from '@/lib/mapsLink';
 
 function ReportDetailContent() {
   const searchParams = useSearchParams();
@@ -156,26 +157,9 @@ function ReportDetailContent() {
     }
   };
 
-  const handleNavigate = () => {
+  const handleShowInMaps = () => {
     if (!report) return;
-
-    const { lat, lng } = report.location;
-    const coords = `${lat},${lng}`;
-
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    const isAndroid = /Android/.test(navigator.userAgent);
-
-    let mapsUrl;
-
-    if (isIOS) {
-      mapsUrl = `maps://maps.apple.com/?q=${lat},${lng}`;
-    } else if (isAndroid) {
-      mapsUrl = `geo:${lat},${lng}?q=${lat},${lng}`;
-    } else {
-      mapsUrl = `https://www.google.com/maps/search/?api=1&query=${coords}`;
-    }
-
-    window.open(mapsUrl, '_blank');
+    window.open(showInMapsUrl(report.location.lat, report.location.lng, navigator.userAgent), '_blank');
   };
 
   const handleShare = async () => {
@@ -283,10 +267,10 @@ function ReportDetailContent() {
               {report.type}
             </h1>
             <span className={`px-3 py-1 rounded-lg font-medium text-sm ${
-              report.severity === 'critical' ? 'bg-red-500 text-white' :
-              report.severity === 'high' ? 'bg-orange-500 text-white' :
-              report.severity === 'medium' ? 'bg-yellow-500 text-white' :
-              'bg-green-500 text-white'
+              report.severity === 'critical' ? 'bg-red-600 text-white' :
+              report.severity === 'high' ? 'bg-orange-600 text-white' :
+              report.severity === 'medium' ? 'bg-yellow-400 text-slate-900' :
+              'bg-green-600 text-white'
             }`}>
               {report.severity}
             </span>
@@ -330,11 +314,11 @@ function ReportDetailContent() {
               Location
             </h2>
             <button
-              onClick={handleNavigate}
+              onClick={handleShowInMaps}
               className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
             >
-              <Navigation className="w-4 h-4" />
-              Navigate
+              <MapPin className="w-4 h-4" aria-hidden="true" />
+              Show in Maps
             </button>
           </div>
           {report.location.address ? (
@@ -498,11 +482,11 @@ function ReportDetailContent() {
           <div className="space-y-3">
             <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
               <span className="text-sm text-gray-600">Status</span>
-              <span className="text-sm font-medium capitalize">{report.status}</span>
+              <span className="text-sm font-medium text-gray-900 capitalize">{report.status}</span>
             </div>
             <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
               <span className="text-sm text-gray-600">Expiration</span>
-              <span className="text-sm font-medium">{formatExpiry(report.expiresAt)}</span>
+              <span className="text-sm font-medium text-gray-900">{formatExpiry(report.expiresAt)}</span>
             </div>
             
             {reportFlagged ? (

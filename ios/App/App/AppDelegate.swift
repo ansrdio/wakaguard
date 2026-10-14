@@ -2,6 +2,7 @@ import UIKit
 import Capacitor
 import FirebaseCore
 import FirebaseMessaging
+import UserNotifications
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -15,7 +16,20 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         if Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist") != nil {
             FirebaseApp.configure()
         }
+        declareTripReminderButtons()
         return true
+    }
+
+    // The trip reminders ("5 minutes left", "Are you okay?") come in this category
+    // (TRIP_REMINDER_CATEGORY in functions/src/reminderPush.ts) and get these two
+    // buttons. Each opens the app, which asks for Face ID or the passcode first on
+    // a locked phone; Capacitor passes the button on and the app does what the
+    // same button on the Trip screen does (src/lib/tripNotificationActions.ts).
+    private func declareTripReminderButtons() {
+        let arrived = UNNotificationAction(identifier: "arrived", title: "I've arrived", options: [.foreground])
+        let addTime = UNNotificationAction(identifier: "add15", title: "+15 min", options: [.foreground])
+        let reminder = UNNotificationCategory(identifier: "TRIP_REMINDER", actions: [arrived, addTime], intentIdentifiers: [], options: [])
+        UNUserNotificationCenter.current().setNotificationCategories([reminder])
     }
 
     // The server sends notifications through Firebase, which needs its own token.

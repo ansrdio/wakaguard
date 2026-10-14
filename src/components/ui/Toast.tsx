@@ -34,7 +34,7 @@ export function Toast({ message, type, onClose, duration = 3000 }: ToastProps) {
 
   return (
     <div
-      className={`fixed top-4 left-1/2 -translate-x-1/2 z-[8000] max-w-md w-full mx-4 ${styles[type]} border rounded-2xl shadow-lg p-4 animate-in slide-in-from-top duration-300`}
+      className={`fixed top-4 left-1/2 -translate-x-1/2 z-[10050] max-w-md w-full mx-4 ${styles[type]} border rounded-2xl shadow-lg p-4 animate-in slide-in-from-top duration-300`}
     >
       <div className="flex items-start gap-3">
         <div className="flex-shrink-0">{icons[type]}</div>

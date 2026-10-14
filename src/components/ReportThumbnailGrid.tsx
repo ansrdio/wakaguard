@@ -3,6 +3,7 @@
 import { MapPin, ThumbsUp, MessageCircle, Clock, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { Report, ReportStatus, ReportType } from '@/lib/types';
 import Image from 'next/image';
+import { ReportPicture } from '@/components/pictures/Pictures';
 
 interface ReportThumbnailGridProps {
   reports: Report[];
@@ -19,17 +20,6 @@ const typeColors: Record<ReportType, string> = {
   [ReportType.HAZARD]: 'bg-rose-500',
   [ReportType.CLOSURE]: 'bg-gray-500',
   [ReportType.OTHER]: 'bg-slate-500',
-};
-
-const typeIcons: Record<ReportType, string> = {
-  [ReportType.CHECKPOINT]: '🚔',
-  [ReportType.POTHOLE]: '🕳️',
-  [ReportType.ACCIDENT]: '🚗',
-  [ReportType.TRAFFIC]: '🚦',
-  [ReportType.ROADWORK]: '🏗️',
-  [ReportType.HAZARD]: '⚠️',
-  [ReportType.CLOSURE]: '🚧',
-  [ReportType.OTHER]: '📍',
 };
 
 export function ReportThumbnailGrid({ reports, onSelectReport, selectedReportId }: ReportThumbnailGridProps) {
@@ -78,7 +68,7 @@ export function ReportThumbnailGrid({ reports, onSelectReport, selectedReportId 
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center">
-                <span className="text-4xl opacity-50">{typeIcons[report.type]}</span>
+                <ReportPicture type={report.type} size={56} />
               </div>
             )}
             

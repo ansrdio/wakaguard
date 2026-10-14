@@ -6,6 +6,11 @@ import { Trip, TripStatus } from '@/lib/types';
 import { describeTimeLeft, formatClock, initialsOf, joinNames } from '@/lib/tripPlanning';
 import { TripLocationLine } from '@/components/mobile/trip/TripLocationLine';
 import { describeTripAlert, watcherCaption } from '@/lib/alertOutcome';
+import { isTravelMode, tipOnTheWay, travelModeLabel } from '@/lib/travelMode';
+import { TravelPicture } from '@/components/pictures/Pictures';
+import { WeatherLine } from '@/components/mobile/trip/WeatherLine';
+import { useWeatherAhead } from '@/hooks/useWeatherAhead';
+import { hoursToLookAhead } from '@/lib/weatherWords';
 
 interface ActiveTripCardProps {
   trip: Trip;
@@ -111,6 +116,8 @@ export function ActiveTripCard({
   const shortOfTime = !isEmergency && (timeLeft?.state === 'endingSoon' || timeLeft?.state === 'overdue');
   const extendOptions = trip.isTest ? TEST_EXTEND_OPTIONS : EXTEND_OPTIONS;
   const canExtend = endsAtMs != null && !isEmergency;
+  // The weather here until the arrival time; not during an emergency, when nothing else should compete
+  const weather = useWeatherAhead(!isEmergency, hoursToLookAhead(endsAtMs != null ? (endsAtMs - nowMs) / 60000 : 180));
   // What the server recorded about texting this trip's contacts; the card says that and no more
   const alert = describeTripAlert(trip);
 
@@ -184,6 +191,23 @@ export function ActiveTripCard({
             </p>
           )}
         </div>
+
+        {weather && (
+          <div className={`${divider} px-5 py-4`}>
+            <WeatherLine ahead={weather} travelMode={isTravelMode(trip.travelMode) ? trip.travelMode : null} />
+          </div>
+        )}
+
+        {/* How, when the traveller said, with a tip for the road */}
+        {isTravelMode(trip.travelMode) && (
+          <div className={`${divider} px-5 py-4 flex items-center gap-3`}>
+            <TravelPicture mode={trip.travelMode} size={36} />
+            <p className="min-w-0 text-sm text-slate-600 dark:text-slate-300">
+              <span className="block font-semibold text-slate-900 dark:text-white">{travelModeLabel(trip.travelMode)}</span>
+              {tipOnTheWay(trip.travelMode)}
+            </p>
+          </div>
+        )}
 
         {/* Location */}
         <TripLocationLine trip={trip} nowMs={nowMs} sendsHere={!locationFromElsewhere} className={`${divider} px-5 py-4`} />

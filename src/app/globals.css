@@ -32,6 +32,21 @@
 }
 
 /*
+ * Text typed in a box is dark unless the box says otherwise. Boxes take their
+ * text colour from the page, which is near-white in dark mode, while most of
+ * them sit on white sheets: in dark mode their words could not be seen (a
+ * tester, 13 October 2026). A box styled for dark mode sets its own colour,
+ * which wins over this.
+ */
+@layer base {
+  input,
+  select,
+  textarea {
+    color: var(--color-slate-900);
+  }
+}
+
+/*
  * The built front page holds the landing page and the app's loader. Until the
  * app's scripts have decided which one this visitor gets, these two rules pick
  * for them: the script in the page's head marks <html> for anyone already

@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { doc, getDoc, setDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
-import { Capacitor } from '@capacitor/core';
+import { Capacitor, PluginListenerHandle } from '@capacitor/core';
 import { setPushOptOut } from '@/lib/pushRegistration';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { Geolocation } from '@capacitor/geolocation';
@@ -18,6 +18,8 @@ interface PushNotificationState {
 
 export function usePushNotifications() {
   const { uid } = useAuthedUser();
+  // Its own listener, so switching off removes this and nothing else
+  const registrationErrorListener = useRef<PluginListenerHandle | null>(null);
   const [state, setState] = useState<PushNotificationState>({
     isSupported: false,
     isSubscribed: false,
@@ -93,8 +95,9 @@ export function usePushNotifications() {
       setState(prev => ({ ...prev, permission: 'granted' }));
       setPushOptOut(false);
 
-      await PushNotifications.register();
-
+      // Listen first, then ask. On an iPhone that already has a token the answer
+      // can come at once, and an answer that comes before anyone listens is lost:
+      // the switch then never turned back on (seen on 14 October 2026)
       const tokenListener = await PushNotifications.addListener('registration', async (token) => {
         console.log('Push registration success, token:', token.value);
 
@@ -149,10 +152,13 @@ export function usePushNotifications() {
         }
       });
 
-      await PushNotifications.addListener('registrationError', (error) => {
+      registrationErrorListener.current?.remove().catch(() => {});
+      registrationErrorListener.current = await PushNotifications.addListener('registrationError', (error) => {
         console.error('Push registration error:', error);
         setState(prev => ({ ...prev, loading: false }));
       });
+
+      await PushNotifications.register();
 
       return { success: true };
 
@@ -175,7 +181,11 @@ export function usePushNotifications() {
         await deleteDoc(doc(db, 'pushSubscriptions', uid));
       }
 
-      await PushNotifications.removeAllListeners();
+      // Only the listeners for registering go (this hook's, and lib/pushRegistration's
+      // through setPushOptOut). Removing them all also took away the reminder
+      // buttons' listener, so a press did nothing until the app restarted.
+      await registrationErrorListener.current?.remove().catch(() => {});
+      registrationErrorListener.current = null;
       // Remembered, so the automatic registration does not put the token back
       setPushOptOut(true);
 

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Info, X } from 'lucide-react';
+import { ReportPicture } from '@/components/pictures/Pictures';
 
 // A little above the map's bottom edge, and clear of anything lying over it (see lib/mobileLayout.ts)
 const ABOVE_MAP_EDGE = { bottom: 'calc(1rem + var(--map-bottom-clear, 0px))' };
@@ -19,7 +20,19 @@ export function MapLegend() {
     { level: 'Critical', color: 'bg-red-500', description: 'Immediate danger' },
     { level: 'High', color: 'bg-orange-500', description: 'Major hazard' },
     { level: 'Medium', color: 'bg-amber-400', description: 'Moderate issue' },
-    { level: 'Low', color: 'bg-blue-500', description: 'Minor issue' },
+    // Green, as the ring round a pin on the map is (MapView's severityColors)
+    { level: 'Low', color: 'bg-green-600', description: 'Minor issue' },
+  ];
+
+  const kinds = [
+    { type: 'checkpoint', label: 'Checkpoint' },
+    { type: 'pothole', label: 'Pothole' },
+    { type: 'accident', label: 'Accident' },
+    { type: 'traffic', label: 'Heavy traffic' },
+    { type: 'roadwork', label: 'Construction' },
+    { type: 'closure', label: 'Roadblock' },
+    { type: 'hazard', label: 'Hazard' },
+    { type: 'other', label: 'Other' },
   ];
 
   if (!isOpen) {
@@ -42,7 +55,7 @@ export function MapLegend() {
       style={ABOVE_MAP_EDGE}
     >
       <div className="flex items-center justify-between mb-2">
-        <h4 className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">Severity</h4>
+        <h4 className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">The ring round a pin</h4>
         <button
           onClick={() => setIsOpen(false)}
           className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors"
@@ -64,6 +77,18 @@ export function MapLegend() {
             </div>
           </div>
         ))}
+      </div>
+
+      <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-700">
+        <h4 className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-2">The picture on a pin</h4>
+        <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+          {kinds.map((kind) => (
+            <div key={kind.type} className="flex items-center gap-2">
+              <ReportPicture type={kind.type} size={20} />
+              <span className="text-xs text-slate-700 dark:text-slate-300">{kind.label}</span>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-700">

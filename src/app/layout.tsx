@@ -5,6 +5,7 @@ import 'leaflet/dist/leaflet.css';
 import { AuthProvider } from '@/components/AuthProvider';
 import { ServiceWorkerProvider } from '@/components/ServiceWorkerProvider';
 import { NativeSetup } from '@/components/NativeSetup';
+import { ErrorReporting } from '@/components/ErrorReporting';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { IN_APP_SCRIPT } from '@/lib/frontPage';
 
@@ -61,6 +62,7 @@ export default function RootLayout({
       </head>
       <body className={`${inter.className} min-h-screen bg-slate-50 dark:bg-dark-bg transition-colors`} suppressHydrationWarning>
         <NativeSetup />
+        <ErrorReporting />
         <ThemeProvider>
           <AuthProvider>
             <ServiceWorkerProvider>

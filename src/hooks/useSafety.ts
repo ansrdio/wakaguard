@@ -37,6 +37,8 @@ export interface SafeTripOptions {
   destinationLabel?: string;
   /** A test trip: the server waits less before alerting, and labels every text as a test */
   isTest?: boolean;
+  /** How the traveller is travelling (an id from lib/travelMode.ts), when they said */
+  travelMode?: string | null;
 }
 
 /**
@@ -501,6 +503,8 @@ export function useSafety(): UseSafetyReturn {
         // Signed in on two phones, only this one sends the trip's positions
         trackingDeviceId: getDeviceId(),
         ...(options.isTest ? { isTest: true } : {}),
+        // Kept with the private trip only. The page contacts open does not get it from the app
+        ...(options.travelMode ? { travelMode: options.travelMode } : {}),
         // Planned versus actual, for learning how long trips really take
         startLocation: lastLocation ? { lat: lastLocation.lat, lng: lastLocation.lng } : null,
         extensionCount: 0,

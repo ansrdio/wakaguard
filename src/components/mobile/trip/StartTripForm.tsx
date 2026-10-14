@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { AlertTriangle, Check, Loader2, Navigation, Plus, UserPlus } from 'lucide-react';
+import { AlertTriangle, Check, Lightbulb, Loader2, Navigation, Plus, UserPlus } from 'lucide-react';
 import {
   ALERT_GRACE_MINUTES,
   ARRIVAL_PRESETS,
@@ -20,6 +20,11 @@ import {
   validateTripPlan,
 } from '@/lib/tripPlanning';
 import { canBeTexted } from '@/lib/contactPhone';
+import { TRAVEL_MODES, TravelMode, lastTravelMode, rememberTravelMode, tipBeforeSettingOff } from '@/lib/travelMode';
+import { TravelPicture } from '@/components/pictures/Pictures';
+import { WeatherLine } from '@/components/mobile/trip/WeatherLine';
+import { useWeatherAhead } from '@/hooks/useWeatherAhead';
+import { hoursToLookAhead } from '@/lib/weatherWords';
 
 export interface TripContact {
   id: string;
@@ -38,6 +43,8 @@ export interface StartTripRequest {
   textContacts: boolean;
   /** A short trial run: same steps, and every text about it says it is a test */
   isTest: boolean;
+  /** How they are travelling, or null when the question was left unanswered */
+  travelMode: TravelMode | null;
 }
 
 interface StartTripFormProps {
@@ -61,7 +68,8 @@ interface StartTripFormProps {
 }
 
 const CUSTOM_HOURS = Array.from({ length: MAX_TRIP_MINUTES / 60 + 1 }, (_, h) => h);
-const CUSTOM_MINUTES = [0, 15, 30, 45];
+// Every five minutes, so "2 hours 10 minutes" can be said exactly (a tester asked on 13 October)
+const CUSTOM_MINUTES = Array.from({ length: 12 }, (_, step) => step * 5);
 
 const inputClass =
   'w-full px-4 py-3 border border-slate-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900 ' +
@@ -89,6 +97,10 @@ export function StartTripForm({
   const [destination, setDestination] = useState('');
   const [durationMinutes, setDurationMinutes] = useState<number>(DEFAULT_TRIP_MINUTES);
   const [customOpen, setCustomOpen] = useState(false);
+  // Starts on last time's answer, so most trips need no tap here at all
+  const [travelMode, setTravelMode] = useState<TravelMode | null>(() => lastTravelMode());
+  // The weather here for as long as the trip is planned to take
+  const weather = useWeatherAhead(true, hoursToLookAhead(durationMinutes));
   // Contacts are selected unless switched off, so one added a moment ago is included
   const [deselectedIds, setDeselectedIds] = useState<string[]>([]);
   const [name, setName] = useState(alertName);
@@ -157,7 +169,8 @@ export function StartTripForm({
       setRefusals((n) => n + 1);
       return;
     }
-    onStart({ ...plan, textContacts, isTest: false });
+    rememberTravelMode(travelMode);
+    onStart({ ...plan, textContacts, isTest: false, travelMode });
   };
 
   // A test needs everything a real trip needs except a length, which is fixed
@@ -168,7 +181,8 @@ export function StartTripForm({
       setRefusals((n) => n + 1);
       return;
     }
-    onStart({ ...plan, durationMinutes: TEST_TRIP_MINUTES, textContacts, isTest: true });
+    rememberTravelMode(travelMode);
+    onStart({ ...plan, durationMinutes: TEST_TRIP_MINUTES, textContacts, isTest: true, travelMode });
   };
 
   // Said again beside the buttons, where the person's thumb is
@@ -187,6 +201,7 @@ export function StartTripForm({
         <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">
           If you don&apos;t arrive, the people you choose get a text with your last location.
         </p>
+        <WeatherLine ahead={weather} travelMode={travelMode} className="mt-3" />
       </div>
 
       {/* Where */}
@@ -275,6 +290,45 @@ export function StartTripForm({
             Arrive by <span className="font-semibold text-slate-900 dark:text-white">{formatClock(arriveByMs, nowMs)}</span>
             {' '}({formatDuration(durationMinutes)}). If the trip is still running {ALERT_GRACE_MINUTES} minutes after
             that, your contacts are texted, even if your phone is off.
+          </p>
+        )}
+      </div>
+
+      {/* How. Never asked for: a trip starts the same with or without an answer */}
+      <div>
+        <p className={labelClass} id="trip-travel-label">
+          How are you travelling? <span className="font-normal text-slate-500 dark:text-slate-400">(optional)</span>
+        </p>
+        <div className="grid grid-cols-4 gap-2" role="group" aria-labelledby="trip-travel-label">
+          {TRAVEL_MODES.map((mode) => {
+            const selected = travelMode === mode.id;
+            return (
+              <button
+                key={mode.id}
+                type="button"
+                aria-pressed={selected}
+                aria-label={mode.label}
+                onClick={() => setTravelMode(selected ? null : mode.id)}
+                className={`flex flex-col items-center gap-1 rounded-xl px-1 pt-2 pb-1.5 border-2 transition-colors ${
+                  selected
+                    ? 'border-brand-600 bg-brand-50 dark:bg-brand-900/40'
+                    : 'border-transparent bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600'
+                }`}
+              >
+                <TravelPicture mode={mode.id} size={36} />
+                <span className={`text-xs font-medium leading-tight text-center ${
+                  selected ? 'text-brand-800 dark:text-brand-100' : 'text-slate-700 dark:text-slate-200'
+                }`}>
+                  {mode.short}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        {tipBeforeSettingOff(travelMode) && (
+          <p className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300 mt-2" aria-live="polite">
+            <Lightbulb className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" aria-hidden="true" />
+            {tipBeforeSettingOff(travelMode)}
           </p>
         )}
       </div>

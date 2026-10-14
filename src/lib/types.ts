@@ -169,6 +169,8 @@ export interface Vote {
 export enum CommentStatus {
   ACTIVE = 'active',
   REMOVED = 'removed',
+  /** Hidden by the server after several people reported it, until someone has looked at it */
+  HIDDEN = 'hidden',
 }
 
 export interface Comment {
@@ -235,6 +237,8 @@ export interface SharedTrip {
   path?: TripPathPoint[];
   /** A test trip: the page says so, and nobody should be alarmed by it */
   isTest?: boolean;
+  /** How the traveller said they were travelling. Written by the server once contacts are alerted */
+  travelMode?: string;
 }
 
 export interface TripPathPoint {
@@ -381,6 +385,8 @@ export interface Trip {
   sosAlertTotal?: number;
   /** A test trip: short timer, and every text about it says it is a test */
   isTest?: boolean;
+  /** How the traveller said they were travelling (an id from lib/travelMode.ts), when they said */
+  travelMode?: string;
 
   cancellationReason?: string;
 }

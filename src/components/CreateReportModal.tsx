@@ -14,8 +14,10 @@ import { ReportType, Severity, ReportStatus, VerificationStatus, CheckpointType,
 import { NigerianState, STATE_CENTERS } from '@/lib/nigerianStates';
 import { computeExpiry } from '@/lib/rules';
 import { compressImage, validateImageFile } from '@/lib/imageCompression';
+import { ReportPicture } from '@/components/pictures/Pictures';
 import { checkForDuplicates, checkRateLimit } from '@/lib/actions';
 import { reverseGeocode } from '@/lib/geocoding';
+import { findPosition } from '@/lib/locationCheck';
 import { Toast, ToastType } from '@/components/ui/Toast';
 import dynamic from 'next/dynamic';
 
@@ -45,6 +47,10 @@ export function CreateReportModal({ isOpen, onClose, defaultState, initialLocati
   const [submitting, setSubmitting] = useState(false);
   const [useGPS, setUseGPS] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(false);
+  // What to say about the pin when the phone could not place it exactly
+  const [placeNote, setPlaceNote] = useState<string | null>(null);
+  // Once the person has put the pin somewhere, the form stops saying where it started
+  const [pinMoved, setPinMoved] = useState(false);
   const [selectedPhotos, setSelectedPhotos] = useState<File[]>([]);
   const [photoPreviewUrls, setPhotoPreviewUrls] = useState<string[]>([]);
   const [uploadProgress, setUploadProgress] = useState<string>('');
@@ -98,6 +104,8 @@ export function CreateReportModal({ isOpen, onClose, defaultState, initialLocati
         checkpointTip: '',
       });
       setUseGPS(false);
+      setPlaceNote(null);
+      setPinMoved(false);
       setSelectedPhotos([]);
       setPhotoPreviewUrls([]);
       setUploadProgress('');
@@ -111,55 +119,49 @@ export function CreateReportModal({ isOpen, onClose, defaultState, initialLocati
     };
   }, [photoPreviewUrls]);
 
+  // Finds the phone and puts the pin there. A phone that can only say roughly
+  // where it is still gets the pin into the right neighbourhood; one that
+  // cannot say at all leaves the pin where it was, with the reason on screen
+  // for as long as it is true, not in a message that disappears.
   const handleUseGPS = async () => {
-    if (!navigator.geolocation) {
-      setToast({ type: 'error', message: 'GPS is not supported by your browser' });
+    setGpsLoading(true);
+    setPlaceNote(null);
+    const found = await findPosition();
+    if (!found) {
+      setGpsLoading(false);
+      setPlaceNote('Your location could not be found. Move the map until the pin is on the spot.');
       return;
     }
 
-    setGpsLoading(true);
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const lat = position.coords.latitude;
-        const lng = position.coords.longitude;
-        
-        // Get address via reverse geocoding
-        setGeocoding(true);
-        const address = await reverseGeocode(lat, lng);
-        setGeocoding(false);
-        
-        setFormData({
-          ...formData,
-          location: {
-            lat,
-            lng,
-            address: address || '',
-          },
-        });
-        setUseGPS(true);
-        setGpsLoading(false);
-        setShowLocationConfirm(true);
-      },
-      (error) => {
-        console.error('GPS error:', error);
-        setToast({ type: 'error', message: 'Failed to get your location. Please try selecting on the map.' });
-        setGpsLoading(false);
-      }
-    );
+    setFormData((now) => ({ ...now, location: { lat: found.lat, lng: found.lng, address: '' } }));
+    setUseGPS(true);
+    setGpsLoading(false);
+    setPlaceNote(found.rough ? 'This is only a rough position. Move the map until the pin is on the spot.' : null);
+    setShowLocationConfirm(true);
+
+    setGeocoding(true);
+    const address = await reverseGeocode(found.lat, found.lng);
+    setGeocoding(false);
+    setFormData((now) => (now.location.lat === found.lat && now.location.lng === found.lng
+      ? { ...now, location: { ...now.location, address: address || '' } }
+      : now));
   };
 
+  // The pin's place is taken at once. Its address is filled in when it has been
+  // looked up, unless the pin has been moved again by then.
   const handleLocationSelect = async (lat: number, lng: number) => {
-    // Get address via reverse geocoding
+    setFormData((now) => ({ ...now, location: { lat, lng, address: '' } }));
+    setUseGPS(false);
+    setPinMoved(true);
+    setPlaceNote(null);
+    setShowLocationConfirm(true);
+
     setGeocoding(true);
     const address = await reverseGeocode(lat, lng);
     setGeocoding(false);
-    
-    setFormData({
-      ...formData,
-      location: { lat, lng, address: address || '' },
-    });
-    setUseGPS(false);
-    setShowLocationConfirm(true);
+    setFormData((now) => (now.location.lat === lat && now.location.lng === lng
+      ? { ...now, location: { ...now.location, address: address || '' } }
+      : now));
   };
 
   const handleConfirmLocation = () => {
@@ -419,9 +421,13 @@ export function CreateReportModal({ isOpen, onClose, defaultState, initialLocati
         />
       )}
 
-      <div ref={overlayRef} style={overlayStyle} className="fixed inset-0 z-[5000] flex items-start justify-center p-4 pt-8 pb-28 bg-black/50 overflow-y-auto">
+      {/* In front of the tab bar (z-[9999]): a tap on a tab while writing a report used to change the screen behind the form */}
+      <div ref={overlayRef} style={overlayStyle} className="fixed inset-0 z-[10000] flex items-start justify-center p-4 pt-8 pb-[calc(2.5rem+env(safe-area-inset-bottom))] bg-black/50 overflow-y-auto">
         <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl relative z-[5001]">
-        <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
+        {/* The window around the form scrolls, and it has space above the form.
+            Sticking at the top of that space, not below it, keeps the form from
+            showing through above its own title once it is scrolled. */}
+        <div className="sticky -top-8 z-10 bg-white rounded-t-2xl border-b border-gray-200 p-4 flex items-center justify-between">
           <h2 className="text-xl font-bold text-gray-900">Create New Report</h2>
           <button
             onClick={onClose}
@@ -440,14 +446,14 @@ export function CreateReportModal({ isOpen, onClose, defaultState, initialLocati
             </label>
             <div className="grid grid-cols-2 gap-3">
               {[
-                { type: ReportType.CHECKPOINT, label: 'Checkpoint', emoji: '🚔' },
-                { type: ReportType.POTHOLE, label: 'Pothole', emoji: '🕳️' },
-                { type: ReportType.ACCIDENT, label: 'Accident', emoji: '🚗' },
-                { type: ReportType.TRAFFIC, label: 'Heavy Traffic', emoji: '🚦' },
-                { type: ReportType.ROADWORK, label: 'Construction', emoji: '🚧' },
-                { type: ReportType.CLOSURE, label: 'Roadblock', emoji: '⛔' },
-                { type: ReportType.HAZARD, label: 'Hazard', emoji: '⚠️' },
-              ].map(({ type, label, emoji }) => (
+                { type: ReportType.CHECKPOINT, label: 'Checkpoint' },
+                { type: ReportType.POTHOLE, label: 'Pothole' },
+                { type: ReportType.ACCIDENT, label: 'Accident' },
+                { type: ReportType.TRAFFIC, label: 'Heavy Traffic' },
+                { type: ReportType.ROADWORK, label: 'Construction' },
+                { type: ReportType.CLOSURE, label: 'Roadblock' },
+                { type: ReportType.HAZARD, label: 'Hazard' },
+              ].map(({ type, label }) => (
                 <button
                   key={type}
                   type="button"
@@ -461,7 +467,7 @@ export function CreateReportModal({ isOpen, onClose, defaultState, initialLocati
                     }
                   `}
                 >
-                  <div className="text-2xl mb-1">{emoji}</div>
+                  <ReportPicture type={type} size={40} className="mb-2" />
                   <div className="text-sm font-medium text-slate-900">{label}</div>
                 </button>
               ))}
@@ -481,12 +487,12 @@ export function CreateReportModal({ isOpen, onClose, defaultState, initialLocati
                   onClick={() => setFormData({ ...formData, severity })}
                   disabled={submitting}
                   className={`
-                    px-4 py-2 rounded-lg font-medium text-sm capitalize transition-all
+                    px-1 py-2 rounded-lg font-medium text-sm text-center whitespace-nowrap capitalize transition-all
                     ${formData.severity === severity
-                      ? severity === Severity.CRITICAL ? 'bg-red-500 text-white'
-                        : severity === Severity.HIGH ? 'bg-orange-500 text-white'
-                        : severity === Severity.MEDIUM ? 'bg-yellow-500 text-white'
-                        : 'bg-green-500 text-white'
+                      ? severity === Severity.CRITICAL ? 'bg-red-600 text-white'
+                        : severity === Severity.HIGH ? 'bg-orange-600 text-white'
+                        : severity === Severity.MEDIUM ? 'bg-yellow-400 text-slate-900'
+                        : 'bg-green-600 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }
                   `}
@@ -540,7 +546,7 @@ export function CreateReportModal({ isOpen, onClose, defaultState, initialLocati
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   {[
-                    { check: CheckpointCheck.LICENSE, label: "Driver's License" },
+                    { check: CheckpointCheck.LICENSE, label: "Driver's licence" },
                     { check: CheckpointCheck.VEHICLE_PAPERS, label: 'Vehicle Papers' },
                     { check: CheckpointCheck.INSURANCE, label: 'Insurance' },
                     { check: CheckpointCheck.ROAD_WORTHINESS, label: 'Road Worthiness' },
@@ -720,24 +726,32 @@ export function CreateReportModal({ isOpen, onClose, defaultState, initialLocati
                 ) : (
                   <Navigation className="w-4 h-4" />
                 )}
-                Use My GPS
+                Use my location
               </button>
             </div>
-            
+
             <div className="text-sm text-gray-600 mb-2">
-              {useGPS ? (
+              {placeNote ? (
+                <p role="status" className="text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">{placeNote}</p>
+              ) : useGPS ? (
                 <div className="flex items-center gap-2 text-green-600">
                   <MapPin className="w-4 h-4" />
-                  <span>Using your current location</span>
+                  <span>Using your current location. Move the map if the pin is not quite on the spot.</span>
                 </div>
+              ) : initialLocation || pinMoved ? (
+                <span>Move the map until the pin is on the spot.</span>
               ) : (
-                <span>Click on the map to set location</span>
+                <span>
+                  The pin starts in the middle of {defaultState}. Tap &quot;Use my location&quot;, or move the map until
+                  the pin is on the spot.
+                </span>
               )}
             </div>
 
             <LocationPicker
               location={formData.location}
               onLocationSelect={handleLocationSelect}
+              startsFarOut={!initialLocation}
             />
 
             {formData.location.address && (
@@ -806,7 +820,10 @@ export function CreateReportModal({ isOpen, onClose, defaultState, initialLocati
         </form>
       </div>
     </div>
-      <AuthModal isOpen={showAuthModal} onClose={closeAuthModal} />
+      {/* Asked for by the form, so drawn in front of it; on its own it sits under the form and a guest's tap seemed to do nothing */}
+      <div className="relative z-[10010]">
+        <AuthModal isOpen={showAuthModal} onClose={closeAuthModal} />
+      </div>
     </>
   );
 }

@@ -9,6 +9,8 @@ import { TripStatus } from '@/lib/types';
 import { isTripExpired } from '@/lib/safety';
 import { formatClock } from '@/lib/tripPlanning';
 import { readTripPath, tripTitle } from '@/lib/tripPath';
+import { isTravelMode, travelModeLabel } from '@/lib/travelMode';
+import { TravelPicture } from '@/components/pictures/Pictures';
 import { useSharedTrip } from '@/hooks/useSharedTrip';
 
 // Leaflet needs the browser, so the map is left out of the prerendered page
@@ -217,6 +219,17 @@ function SharedTripContent() {
                   <p className={`text-lg font-bold ${isOverdue ? 'text-red-700' : 'text-slate-900'}`}>
                     {formatClock(endsAtMs, nowMs)}
                   </p>
+                </div>
+              </div>
+            )}
+
+            {/* Only there once contacts have been alerted, and only if the traveller said */}
+            {isTravelMode(trip.travelMode) && (
+              <div className="p-4 flex items-center gap-3">
+                <TravelPicture mode={trip.travelMode} size={32} />
+                <div>
+                  <p className="text-sm text-slate-500">Travelling by</p>
+                  <p className="text-lg font-bold text-slate-900">{travelModeLabel(trip.travelMode)}</p>
                 </div>
               </div>
             )}

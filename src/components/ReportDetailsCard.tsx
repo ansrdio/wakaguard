@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Report, FlagReason } from '@/lib/types';
-import { X, MapPin, Calendar, ThumbsUp, ThumbsDown, MessageCircle, Flag, AlertCircle, Share2, Navigation, CheckCircle, XCircle, Send, Users } from 'lucide-react';
+import { X, MapPin, Calendar, ThumbsUp, ThumbsDown, MessageCircle, Flag, AlertCircle, Share2, CheckCircle, XCircle, Send, Users } from 'lucide-react';
 import { useAuthedUser } from '@/hooks/useAuthedUser';
 import { useRequireAccount } from '@/hooks/useRequireAccount';
 import { AuthModal } from '@/components/AuthModal';
@@ -11,6 +11,7 @@ import { useComments } from '@/hooks/useComments';
 import { useReportResolution } from '@/hooks/useReportResolution';
 import { useVote } from '@/hooks/useVote';
 import { buildReportLink } from '@/lib/appUrl';
+import { showInMapsUrl } from '@/lib/mapsLink';
 
 interface ReportDetailsCardProps {
   report: Report | null;
@@ -84,24 +85,8 @@ export function ReportDetailsCard({ report, onClose }: ReportDetailsCardProps) {
     setFlagging(false);
   };
 
-  const handleNavigate = () => {
-    const { lat, lng } = report.location;
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    
-    let url;
-    if (isIOS) {
-      // Apple Maps on iOS
-      url = `maps://maps.apple.com/?daddr=${lat},${lng}`;
-    } else if (isMobile) {
-      // Google Maps on Android
-      url = `geo:${lat},${lng}?q=${lat},${lng}`;
-    } else {
-      // Google Maps web on desktop
-      url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
-    }
-    
-    window.open(url, '_blank');
+  const handleShowInMaps = () => {
+    window.open(showInMapsUrl(report.location.lat, report.location.lng, navigator.userAgent), '_blank');
   };
 
   const handleAddComment = async () => {
@@ -502,14 +487,12 @@ export function ReportDetailsCard({ report, onClose }: ReportDetailsCardProps) {
           </button>
         </div>
         
-        {/* Navigate Button */}
-        <button 
-          onClick={handleNavigate}
+        <button
+          onClick={handleShowInMaps}
           className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 transition-colors font-medium mb-3"
-          aria-label="Navigate to location"
         >
-          <Navigation className="w-4 h-4" />
-          Navigate
+          <MapPin className="w-4 h-4" aria-hidden="true" />
+          Show in Maps
         </button>
         
         {/* Community Status Verification */}

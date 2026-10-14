@@ -1,5 +1,6 @@
 package com.wakaguard.app;
 
+import android.content.Intent;
 import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
@@ -17,9 +18,37 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        forgetPressedReminderWhenRebuilt(savedInstanceState);
+        // The app's own plugin has to be named before the bridge starts
+        registerPlugin(ContactPickerPlugin.class);
         super.onCreate(savedInstanceState);
         keepWebViewClearOfSystemBars();
         goBackInsideTheAppFirst();
+    }
+
+    /**
+     * A reminder's button may have been what started the app. When Android later
+     * rebuilds the app from that same start (after closing it in the background,
+     * or reopening it from recent apps) it would hand over the press again, and
+     * "+15 min" would add time twice. Only the first start carries the press.
+     */
+    private void forgetPressedReminderWhenRebuilt(Bundle savedInstanceState) {
+        Intent start = getIntent();
+        if (start == null || !start.hasExtra("wg_action")) return;
+        boolean rebuilt = savedInstanceState != null
+            || (start.getFlags() & Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY) != 0;
+        if (rebuilt) setIntent(new Intent(start).replaceExtras(new Bundle()));
+    }
+
+    /**
+     * A trip reminder's button opens the app here (also on a cold start, when
+     * BridgeActivity passes the starting intent through). The app carries out
+     * the press; the reminder itself is taken off the screen.
+     */
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        TripReminderMessagingService.dismissPressedReminder(this, intent);
     }
 
     /**

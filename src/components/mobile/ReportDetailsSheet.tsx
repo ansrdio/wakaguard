@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { useKeyboardSafeOverlay } from '@/hooks/useKeyboardSafeOverlay';
-import { X, Navigation, Share2, ThumbsUp, ThumbsDown, MessageCircle, CheckCircle, XCircle, Send } from 'lucide-react';
+import { ReportPicture } from '@/components/pictures/Pictures';
+import { X, MapPin, Share2, ThumbsUp, ThumbsDown, MessageCircle, CheckCircle, XCircle, Send } from 'lucide-react';
 import { Report } from '@/lib/types';
 import { useAuthedUser } from '@/hooks/useAuthedUser';
 import { useRequireAccount } from '@/hooks/useRequireAccount';
@@ -12,6 +13,7 @@ import { PostActions } from '@/components/mobile/PostActions';
 import { useVote } from '@/hooks/useVote';
 import { useReportResolution } from '@/hooks/useReportResolution';
 import { buildReportLink } from '@/lib/appUrl';
+import { showInMapsUrl } from '@/lib/mapsLink';
 
 interface ReportDetailsSheetProps {
   report: Report | null;
@@ -32,21 +34,8 @@ export function ReportDetailsSheet({ report, onClose, onShowToast }: ReportDetai
 
   if (!report) return null;
 
-  const handleNavigate = () => {
-    const { lat, lng } = report.location;
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    
-    let url;
-    if (isIOS) {
-      url = `maps://maps.apple.com/?daddr=${lat},${lng}`;
-    } else if (isMobile) {
-      url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
-    } else {
-      url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
-    }
-    
-    window.open(url, '_blank');
+  const handleShowInMaps = () => {
+    window.open(showInMapsUrl(report.location.lat, report.location.lng, navigator.userAgent), '_blank');
   };
 
   const handleShare = async () => {
@@ -127,7 +116,8 @@ export function ReportDetailsSheet({ report, onClose, onShowToast }: ReportDetai
       >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-4 border-b border-slate-200">
-          <h2 className="text-lg font-semibold text-slate-900 capitalize">
+          <h2 className="flex items-center gap-3 text-lg font-semibold text-slate-900 capitalize">
+            <ReportPicture type={report.type} size={36} />
             {report.type.replace('_', ' ')}
           </h2>
           <button
@@ -188,11 +178,11 @@ export function ReportDetailsSheet({ report, onClose, onShowToast }: ReportDetai
           {/* Primary Actions */}
           <div className="space-y-2">
             <button
-              onClick={handleNavigate}
+              onClick={handleShowInMaps}
               className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors"
             >
-              <Navigation className="w-4 h-4" />
-              Navigate
+              <MapPin className="w-4 h-4" aria-hidden="true" />
+              Show in Maps
             </button>
 
             <div className="grid grid-cols-2 gap-2">
@@ -292,18 +282,17 @@ export function ReportDetailsSheet({ report, onClose, onShowToast }: ReportDetai
                         <span className="text-xs text-slate-500">
                           {comment.createdAt?.toDate?.()?.toLocaleDateString() || 'Just now'}
                         </span>
-                        {comment.uid !== uid && (
-                          <PostActions
-                            kind="comment"
-                            targetId={comment.id}
-                            reportId={report.id}
-                            authorUid={comment.uid}
-                            viewerUid={uid}
-                            requireAccount={requireAccount}
-                            onShowToast={onShowToast}
-                            compact
-                          />
-                        )}
+                        {/* Report and Block on someone else's comment; Delete on the viewer's own */}
+                        <PostActions
+                          kind="comment"
+                          targetId={comment.id}
+                          reportId={report.id}
+                          authorUid={comment.uid}
+                          viewerUid={uid}
+                          requireAccount={requireAccount}
+                          onShowToast={onShowToast}
+                          compact
+                        />
                       </div>
                     ))
                   )}
@@ -322,6 +311,7 @@ export function ReportDetailsSheet({ report, onClose, onShowToast }: ReportDetai
             requireAccount={requireAccount}
             onShowToast={onShowToast}
             onBlocked={onClose}
+            onDeleted={onClose}
           />
         </div>
       </div>
