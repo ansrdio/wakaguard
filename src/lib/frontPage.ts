@@ -3,10 +3,16 @@ import { Capacitor } from '@capacitor/core';
 /**
  * Who gets the landing page and who goes straight into the app.
  *
- * The front page of wakaguard.com explains WakaGuard to someone who has never
- * used it there. Everyone else is "in the app": the phone apps, the site added
- * to a home screen, a browser that has been through the first-run screens, and
- * a visitor who has pressed "Open the app" in this tab.
+ * In a browser, the front page of wakaguard.com is the website, explaining
+ * WakaGuard and the company behind it. "In the app" are the phone apps, the
+ * site added to a home screen, a link that asks for the app (?app), and a tab
+ * where "Open the app" has been pressed, which stays in the app until closed.
+ *
+ * A browser that had been through the first-run screens used to go straight
+ * into the app on every visit. Since 14 October 2026 it gets the website first
+ * like anyone else: Termii, which carries our texts, checks that wakaguard.com
+ * shows the product and its company, and a reviewer who had tried the old
+ * site was taken into the app instead.
  */
 
 // Set by the first-run screens (OnboardingFlow) once they are finished or skipped
@@ -30,7 +36,6 @@ export function visitorIsInApp(): boolean {
       (navigator as Navigator & { standalone?: boolean }).standalone === true ||
       window.matchMedia('(display-mode: standalone)').matches ||
       new URLSearchParams(window.location.search).has('app') ||
-      localStorage.getItem(FIRST_RUN_DONE_KEY) !== null ||
       sessionStorage.getItem(OPENED_APP_KEY) !== null
     );
   } catch {
@@ -94,4 +99,4 @@ export function forgetAccountDeleted(): void {
  * above. Keep the two the same. It also counts someone whose account has just
  * been deleted: they are about to be shown a confirmation, not the landing page.
  */
-export const IN_APP_SCRIPT = `(function(){try{var w=window,c=w.Capacitor,m=w.webkit&&w.webkit.messageHandlers;if(w.androidBridge||(m&&m.bridge)||(c&&c.isNativePlatform&&c.isNativePlatform())||navigator.standalone===true||w.matchMedia('(display-mode: standalone)').matches||/[?&]app(=|&|$)/.test(location.search)||localStorage.getItem('${FIRST_RUN_DONE_KEY}')!==null||sessionStorage.getItem('${OPENED_APP_KEY}')!==null||sessionStorage.getItem('${ACCOUNT_DELETED_KEY}')!==null)document.documentElement.setAttribute('${IN_APP_ATTRIBUTE}','')}catch(e){}})()`;
+export const IN_APP_SCRIPT = `(function(){try{var w=window,c=w.Capacitor,m=w.webkit&&w.webkit.messageHandlers;if(w.androidBridge||(m&&m.bridge)||(c&&c.isNativePlatform&&c.isNativePlatform())||navigator.standalone===true||w.matchMedia('(display-mode: standalone)').matches||/[?&]app(=|&|$)/.test(location.search)||sessionStorage.getItem('${OPENED_APP_KEY}')!==null||sessionStorage.getItem('${ACCOUNT_DELETED_KEY}')!==null)document.documentElement.setAttribute('${IN_APP_ATTRIBUTE}','')}catch(e){}})()`;
