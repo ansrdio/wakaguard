@@ -39,6 +39,7 @@ import {
 } from 'firebase/firestore';
 import { getStorage, FirebaseStorage, connectStorageEmulator } from 'firebase/storage';
 import { RESTART_GAP_MS, errorText, isLocalStoreFailure, restartPage } from './localStore';
+import { setConnectionRestart } from './firestoreWrites';
 import { settleWithin } from './timeLimit';
 
 /**
@@ -136,6 +137,32 @@ if (typeof window !== 'undefined') {
     connectFirestoreEmulator(db, EMULATOR_HOST, 8080);
     connectStorageEmulator(storage, EMULATOR_HOST, 9199);
     console.info('Using the local Firebase emulators');
+  }
+
+  // A save that has not reached the server in a few seconds restarts the
+  // connection (see firestoreWrites.ts). Saves stuck at the same moment share
+  // one restart. Queued writes are kept and sent as usual.
+  if (isFirstInit) {
+    let restarting: Promise<void> | null = null;
+    setConnectionRestart(() => {
+      restarting ??= (async () => {
+        try {
+          await disableNetwork(db).catch((err) => {
+            console.warn(`Could not pause the data connection after a stuck save: ${errorText(err)}`);
+          });
+          // Never leave the connection switched off: try twice, then load the page again
+          const on = () => enableNetwork(db).then(() => null, (err: unknown) => err);
+          const failed = (await on()) && (await on());
+          if (failed) {
+            console.warn(`Could not resume the data connection after a stuck save: ${errorText(failed)}`);
+            restartPage('a save was stuck and the data connection could not be restarted');
+          }
+        } finally {
+          restarting = null;
+        }
+      })();
+      return restarting;
+    });
   }
 
   // A phone pauses the page's connections while the app is in the background.

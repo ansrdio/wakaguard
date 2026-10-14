@@ -14,7 +14,7 @@ import { hasSeenLocationExplanation, rememberLocationExplanation } from '@/lib/l
 import { LocationExplanation } from '@/components/mobile/trip/LocationExplanation';
 import { askToShowNotifications } from '@/lib/nativeNotifications';
 import { MAX_TRUSTED_CONTACTS, formatDuration, joinNames } from '@/lib/tripPlanning';
-import { reachedServer } from '@/lib/firestoreWrites';
+import { reachedServer, retryStuckSaves } from '@/lib/firestoreWrites';
 import { StartTripForm, StartTripRequest } from '@/components/mobile/trip/StartTripForm';
 import { ActiveTripCard } from '@/components/mobile/trip/ActiveTripCard';
 import { TripMapScreen } from '@/components/mobile/trip/TripMapScreen';
@@ -32,7 +32,7 @@ import {
 import { useAuthedUser } from '@/hooks/useAuthedUser';
 import { useRecentPosition } from '@/hooks/useRecentPosition';
 import { useRequireAccount } from '@/hooks/useRequireAccount';
-import { collection, deleteDoc, doc, getDoc, getDocs, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDoc, getDocs, serverTimestamp, setDoc, updateDoc, waitForPendingWrites } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { TripStatus } from '@/lib/types';
 import { Capacitor } from '@capacitor/core';
@@ -185,6 +185,21 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
   const showToast = (message: string, type: 'success' | 'error') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
+  };
+
+  // "I've arrived" or extra time saved on the phone but not yet received by the
+  // server. Until it is, the server goes by what it last knew and may alert the
+  // contacts, so this stays on screen until it lands, and its arrival is told.
+  const [unsentChange, setUnsentChange] = useState<'end' | 'extend' | null>(null);
+  const waitUntilReceived = (change: 'end' | 'extend') => {
+    setUnsentChange(change);
+    waitForPendingWrites(db).then(
+      () => {
+        setUnsentChange((now) => (now === change ? null : now));
+        showToast(change === 'end' ? 'WakaGuard has your arrival now. Trip ended.' : 'WakaGuard has your extra time now.', 'success');
+      },
+      () => {}
+    );
   };
 
   // The phone's latest position, kept ready for SOS and "I'm okay" messages.
@@ -396,7 +411,7 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
     setActiveModal(null);
     
     if (result.success && result.pending) {
-      showToast('Saved on this phone. Until it is back online, your contacts could still be alerted.', 'error');
+      waitUntilReceived('end');
     } else if (result.success) {
       showToast(
         !contactsWereTexted
@@ -428,7 +443,7 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
     const result = await extendSafeTrip(minutes);
     setProcessing(false);
     if (result.success && result.pending) {
-      showToast('Saved on this phone. The extra time applies once you are back online.', 'error');
+      waitUntilReceived('extend');
     } else if (result.success) {
       showToast(`Added ${minutes} minutes`, 'success');
     } else {
@@ -749,6 +764,31 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
 
   return (
     <div ref={scrollRef} className="absolute inset-0 overflow-y-auto px-4 pt-4 pb-28 space-y-4 bg-slate-50 dark:bg-slate-900 touch-pan-y" style={{ marginTop: 'calc(env(safe-area-inset-top, 0px) + 56px)', WebkitOverflowScrolling: 'touch' }}>
+      {unsentChange && (
+        <section
+          role="status"
+          aria-labelledby="unsent-change-title"
+          className="rounded-3xl border border-amber-300 bg-amber-50 dark:bg-amber-950 dark:border-amber-700 p-5"
+        >
+          <h2 id="unsent-change-title" className="font-bold text-amber-950 dark:text-amber-50">
+            {unsentChange === 'end'
+              ? 'Your arrival has not reached WakaGuard yet'
+              : 'Your extra time has not reached WakaGuard yet'}
+          </h2>
+          <p className="mt-1 text-sm text-amber-900 dark:text-amber-100">
+            {unsentChange === 'end'
+              ? 'Until it does, your contacts could still be alerted. Keep WakaGuard open: it is sent by itself as soon as the connection works.'
+              : 'Until it does, your contacts could still be alerted at the old time. Keep WakaGuard open: it is sent by itself as soon as the connection works.'}
+          </p>
+          <button
+            type="button"
+            onClick={() => void retryStuckSaves()}
+            className="mt-4 w-full py-2.5 rounded-xl bg-amber-900 text-white font-semibold hover:bg-amber-950"
+          >
+            Try again now
+          </button>
+        </section>
+      )}
       {keepRunningDue && (
         <section
           aria-labelledby="keep-running-card-title"

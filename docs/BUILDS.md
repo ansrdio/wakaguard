@@ -539,6 +539,34 @@ someone in trouble.
       on the owner's word on 14 October, so it counts for the rest of week 1,
       and the first live trip recorded its farthest point the same day
 
+- [x] An "I've arrived" that took 17 minutes to reach the server. A tester's
+      problem report (iPhone 11, build 22, Wednesday 14 October about 7:20 am
+      Nigeria time) said the trip "refused to end". The trip record shows it:
+      time added at 07:13 reached the server at once; the phone's positions
+      stopped at 07:19, when the tester says they ended it; the server, not
+      knowing, warned at 07:22 and marked the trip overdue at 07:27 (no text,
+      texting is off); the end arrived at 07:37. The phone had ended the trip
+      on its own side while the save sat in the queue, with signal. Today the
+      connection is restarted only when the app comes back from the
+      background. Now: a save that has not reached the server in 5 seconds
+      restarts the connection and waits 7 seconds more (every save that waits
+      on the server: start, end, add time, contacts, checkpoint); and an
+      arrival or extra time still not received stays on the Trip screen ("Your
+      arrival has not reached WakaGuard yet", with "Try again now") until it
+      lands, then says so. The SOS is not changed: restarting the connection
+      just before the phone's dialler opens could delay it on an iPhone. The
+      fuller fix, sending an arrival and extra time by the same route as the
+      positions as well, is for the week of 19 October, before texting is on.
+      6 new unit tests. Tried on the owner's Galaxy the same afternoon with a
+      2-minute test trip and Wi-Fi switched off: "I've arrived" emptied the
+      Trip screen at once (as the tester saw), the notice came up after about
+      12 seconds, and two seconds after Wi-Fi came back it read "WakaGuard has
+      your arrival now. Trip ended." (shown only once the server has it).
+      A second run: "+5 min" offline gave the extra-time notice, "Try again
+      now" while still offline kept it up, and Wi-Fi back on gave "WakaGuard
+      has your extra time now." with the arrival moved 5 minutes; then the
+      arrival offline and back on, as before
+
 **A second reviewer read the newest code (14 October), and what it found is
 corrected:**
 - A press of "I've arrived" on a reminder that opened the Trip screen could
@@ -585,8 +613,8 @@ the others changed in `tripMonitor`); (4) the website; (5) the phone builds to
 the stores. The server and the phone builds should follow each other closely,
 for the 15-minute wait.
 
-**Final builds, Wednesday 14 October (afternoon in Arizona):** made from
-`257314e` with the live settings. Android `WakaGuard-1.2.0-23.aab`, version
+**Final builds, Wednesday 14 October (afternoon in Arizona):** made with the
+live settings from `257314e`, then made again with the stuck-save fix above. Android `WakaGuard-1.2.0-23.aab`, version
 code 23, signed with the upload key; the same code installed on the owner's
 Galaxy by cable and checked there: the app opens in the app, not the
 website; the start form gives the 15-minute wording and "How are you
