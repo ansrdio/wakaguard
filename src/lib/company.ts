@@ -9,4 +9,4 @@ export const COMPANY_ADDRESS =
   'Dapo Allied Building, SW8/785 Elewura, beside Zenith Bank, opposite Ibadan/Lagos Expressway Roundabout, Challenge, Ibadan, Oyo State, Nigeria';
 
 /** Where people can write to the company about WakaGuard */
-export const CONTACT_EMAIL = 'info@ansrd.io';
+export const CONTACT_EMAIL = 'info@inskriba.com';
