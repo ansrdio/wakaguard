@@ -21,7 +21,8 @@ import {
   runTransaction,
   updateDoc,
   deleteDoc,
-  deleteField
+  deleteField,
+  serverTimestamp
 } from 'firebase/firestore';
 import {
   getStorage,
@@ -168,6 +169,27 @@ async function runStep(
       recordResult(name, 'FAIL', error);
     }
   }
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function errorReportData(overrides: Record<string, unknown> = {}) {
+  return {
+    message: 'TypeError: a made-up fault for the rules test',
+    stack: 'at test (made-up.js:1:1)',
+    where: '/ (screen crashed)',
+    build: 23,
+    version: '1.2.0',
+    platform: 'android',
+    device: 'Android 14 · Test phone',
+    createdAt: serverTimestamp(),
+    deleteAfter: Timestamp.fromMillis(Date.now() + 30 * DAY_MS),
+    ...overrides
+  };
+}
+
+async function createErrorReport(ctx: AppContext, id: string, overrides: Record<string, unknown> = {}) {
+  await setDoc(doc(ctx.db, 'errorReports', id), errorReportData(overrides));
 }
 
 async function signInAnonymous(ctx: AppContext) {
@@ -448,6 +470,30 @@ async function sharedTripUpdateWhileOverdue(ctx: AppContext, token: string) {
 
 // The server adds the path travelled and the traveller's name (functions/src/tripMonitor.ts).
 // Written here as the Admin SDK would, bypassing rules.
+/** Changes a comment's status the way the server does when several people have reported it */
+async function adminSetCommentStatus(commentId: string, status: string) {
+  const url = `http://127.0.0.1:8080/v1/projects/${getProjectId()}/databases/(default)/documents/comments/${commentId}`
+    + '?updateMask.fieldPaths=status';
+  const response = await fetch(url, {
+    method: 'PATCH',
+    headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fields: { status: { stringValue: status } } })
+  });
+  if (!response.ok) throw new Error(`Could not set the comment's status: ${response.status}`);
+}
+
+/** Puts how the traveller is travelling on the shared trip, as the server does when contacts are alerted */
+async function adminAddTravelMode(token: string) {
+  const url = `http://127.0.0.1:8080/v1/projects/${getProjectId()}/databases/(default)/documents/sharedTrips/${token}`
+    + '?updateMask.fieldPaths=travelMode';
+  const response = await fetch(url, {
+    method: 'PATCH',
+    headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fields: { travelMode: { stringValue: 'okada' } } })
+  });
+  if (!response.ok) throw new Error(`Could not add the way of travelling: ${response.status}`);
+}
+
 async function adminAddPathAndName(token: string) {
   const url = `http://127.0.0.1:8080/v1/projects/${getProjectId()}/databases/(default)/documents/sharedTrips/${token}`
     + '?updateMask.fieldPaths=path&updateMask.fieldPaths=name';
@@ -559,6 +605,11 @@ async function pushSubCreate(ctx: AppContext, uid: string) {
     createdAt: Timestamp.now(),
     updatedAt: Timestamp.now()
   });
+}
+
+/** The app says which build it is, so the server knows whether it can draw reminders with buttons */
+async function pushSubSaveBuild(ctx: AppContext, uid: string, appBuild: unknown) {
+  await setDoc(doc(ctx.db, 'pushSubscriptions', uid), { fcmToken: `token_${uid}`, platform: 'android', appBuild, appBuildToken: `token_${uid}`, updatedAt: Timestamp.now() }, { merge: true });
 }
 
 async function pushSubGet(ctx: AppContext, uid: string) {
@@ -955,6 +1006,10 @@ async function run() {
     await runStep('User: update shared trip after the server added a path and a name', () =>
       sharedTripUpdateAfterServerFields(user, ids.tripId)
     );
+    await runStep('Server: add how they are travelling to shared trip', () => adminAddTravelMode(ids.tripId));
+    await runStep('User: update shared trip after the server added how they are travelling', () =>
+      sharedTripUpdateAfterServerFields(user, ids.tripId)
+    );
     await runStep('User: changing the shared trip path denied', () =>
       sharedTripChangePath(user, ids.tripId), true
     );
@@ -1009,6 +1064,8 @@ async function run() {
     );
     await runStep('User: get push subscription', () => pushSubGet(user, userUid));
     await runStep('User: update push location', () => pushSubUpdateLocation(user, userUid));
+    await runStep('User: save the app build with the push subscription', () => pushSubSaveBuild(user, userUid, 23));
+    await runStep('User: an app build that is not a number denied', () => pushSubSaveBuild(user, userUid, '23'), true);
 
     await runStep('Read: guest can read report', () => readReport(guest));
     await runStep('Read: guest can read comment', () => readComment(guest));
@@ -1062,6 +1119,48 @@ async function run() {
       'User: sharedTrip create bad lat/lng denied',
       () => sharedTripCreateBadLatLng(user, userUid, badLatLngToken),
       true
+    );
+
+    // --- A comment hidden after reports, and deleting your own posts ---
+    // These come last: they remove the report and the comment the steps above use.
+    await runStep('Server: hide the comment', () => adminSetCommentStatus(ids.commentId, 'hidden'));
+    await runStep(
+      'User: putting their own hidden comment back denied',
+      () => updateDoc(doc(user.db, 'comments', ids.commentId), { status: 'active' }),
+      true
+    );
+    await runStep(
+      'User: editing their own hidden comment denied',
+      () => updateDoc(doc(user.db, 'comments', ids.commentId), { text: 'Edited while hidden' }),
+      true
+    );
+    await runStep(
+      'User2: deleting user1 comment denied',
+      () => deleteDoc(doc(user2.db, 'comments', ids.commentId)),
+      true
+    );
+    await runStep(
+      'User2: deleting user1 report denied',
+      () => deleteDoc(doc(user2.db, 'reports', ids.reportId)),
+      true
+    );
+    await runStep('User: delete own comment', () => deleteDoc(doc(user.db, 'comments', ids.commentId)));
+    await runStep('User: delete own report', () => deleteDoc(doc(user.db, 'reports', ids.reportId)));
+
+    const faultId = `fault-${Date.now()}`;
+    await runStep('Guest: save a fault report', () => createErrorReport(guest, `${faultId}-guest`));
+    await runStep('User: save a fault report', () => createErrorReport(user, faultId));
+    await runStep('User: reading a fault report denied', async () => { await getDoc(doc(user.db, 'errorReports', faultId)); }, true);
+    await runStep('User: changing a fault report denied', () => updateDoc(doc(user.db, 'errorReports', faultId), { message: 'changed' }), true);
+    await runStep('User: deleting a fault report denied', () => deleteDoc(doc(user.db, 'errorReports', faultId)), true);
+    await runStep('User: a fault report naming the account denied', () =>
+      createErrorReport(user, `${faultId}-uid`, { uid: userUid }), true
+    );
+    await runStep('User: a fault report with a long message denied', () =>
+      createErrorReport(user, `${faultId}-long`, { message: 'x'.repeat(301) }), true
+    );
+    await runStep('User: a fault report kept for a year denied', () =>
+      createErrorReport(user, `${faultId}-year`, { deleteAfter: Timestamp.fromMillis(Date.now() + 365 * DAY_MS) }), true
     );
   } finally {
     await signOut(guest.auth).catch(() => undefined);

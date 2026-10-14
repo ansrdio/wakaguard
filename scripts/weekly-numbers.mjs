@@ -37,6 +37,13 @@ export const POINTS = { realTrip: 3, roadReport: 2, firstTestTrip: 2, problemRep
 export const DAILY_LIMIT = { realTrips: 2, roadReports: 3 };
 export const MIN_TRIP_MS = 10 * MINUTE;
 export const MIN_TRIP_METRES = 500;
+/**
+ * From this moment (midnight starting Thursday 15 October 2026, Nigeria time,
+ * after the testers were told), a trip that ran past the wait before contacts
+ * are texted earns nothing. A third of beta trips did, which would have been a
+ * false alarm to someone's family once texting is on.
+ */
+export const LATE_TRIP_RULE_FROM_MS = Date.UTC(2026, 9, 14, 23, 0);
 
 export const REASONS = {
   notEnded: 'not ended by the traveller',
@@ -45,6 +52,7 @@ export const REASONS = {
   noLocation: 'no location',
   didNotMove: 'did not move',
   overLimit: 'over the daily limit',
+  wentOverdue: 'ended after contacts would have been texted',
   flagged: 'flagged',
   noUpvote: 'no upvote from another tester',
 };
@@ -89,12 +97,16 @@ export function metresBetween(a, b) {
 
 /**
  * Why a trip the traveller ended earns nothing, or null when it passes every
- * rule except the daily limit. Going overdue first does not matter.
+ * rule except the daily limit. Going overdue counts against a trip from
+ * LATE_TRIP_RULE_FROM_MS (added time clears it, as it re-arms the alarm).
  */
 export function tripProblem(trip) {
   if (trip.startMs == null || trip.endMs - trip.startMs < MIN_TRIP_MS) return REASONS.tooShort;
+  if (trip.overdueMs != null && trip.startMs >= LATE_TRIP_RULE_FROM_MS) return REASONS.wentOverdue;
   if (!isPlace(trip.startLocation) || !isPlace(trip.endLocation)) return REASONS.noLocation;
-  if (metresBetween(trip.startLocation, trip.endLocation) < MIN_TRIP_METRES) return REASONS.didNotMove;
+  // A round trip ends where it began, so the farthest it went counts too (recorded since 14 October 2026)
+  const went = Math.max(metresBetween(trip.startLocation, trip.endLocation), trip.farthestM ?? 0);
+  if (went < MIN_TRIP_METRES) return REASONS.didNotMove;
   return null;
 }
 
@@ -441,7 +453,7 @@ export async function collect(db, { fromMs, toMs }) {
   const [users, trips, alerts, reports] = await Promise.all([
     db.collection('users').select('username').get(),
     db.collectionGroup('trips')
-      .select('status', 'startTime', 'endTime', 'isTest', 'startLocation', 'endLocation', 'overdueAt')
+      .select('status', 'startTime', 'endTime', 'isTest', 'startLocation', 'endLocation', 'overdueAt', 'farthestFromStartM')
       .get(),
     db.collectionGroup('alerts').select('type', 'createdAt', 'tripId').get(),
     db.collection('reports')
@@ -473,6 +485,7 @@ export async function collect(db, { fromMs, toMs }) {
       startLocation: doc.get('startLocation') || null,
       endLocation: doc.get('endLocation') || null,
       overdueMs: at(doc.get('overdueAt')),
+      farthestM: typeof doc.get('farthestFromStartM') === 'number' ? doc.get('farthestFromStartM') : null,
     })),
     alerts: alerts.docs.filter(ownerOf).map((doc) => ({
       uid: ownerOf(doc),

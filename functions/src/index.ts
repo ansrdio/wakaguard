@@ -7,8 +7,13 @@ export { sendSafetySms } from './safetySms';
 export { deleteMyAccount } from './accountDeletion';
 export { sendPasswordResetEmail, sendVerificationEmail } from './accountEmails';
 export { tripLocation } from './tripLocation';
+export { onReportDeleted } from './reportCleanup';
+export { onFlagCreated } from './autoHide';
+export { onCommentCreate, onCommentDelete, onCommentUpdate } from './commentCount';
+export { weatherAhead } from './weather';
 export {
   checkOverdueTrips,
+  checkQuietTrips,
   onTripUpdated,
   onSafetyTimerUpdated,
   onSOSAlert,

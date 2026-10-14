@@ -8,8 +8,13 @@ import {
   MAX_STILL_OPEN_REMINDERS,
   MAX_ALERT_ATTEMPTS,
   OVERDUE_GRACE_MS,
+  LAST_WARNING_BEFORE_MS,
   OVERDUE_MAX_AGE_MS,
   STALE_CLAIM_MS,
+  decideQuietNudge,
+  MAX_QUIET_NUDGES,
+  QUIET_AFTER_MS,
+  QUIET_NUDGE_EVERY_MS,
 } from '../src/overdueLogic';
 import { buildAllClearMessage, buildOverdueMessage, buildSosMessage, markAsTest, TEST_PREFIX } from '../src/templates';
 import { isGsm7 } from '../src/smsText';
@@ -36,7 +41,7 @@ test('contacts are alerted after the grace period, even if the warning was never
 test('a delivered or final alert is not repeated', () => {
   for (const state of ['sent', 'partial', 'blocked', 'no_contacts'] as const) {
     assert.equal(
-      decideOverdueAction({ deadlineMs: DEADLINE, overdueAlertState: state, overdueAlertAttempts: 1 }, DEADLINE + 10 * MIN),
+      decideOverdueAction({ deadlineMs: DEADLINE, overdueAlertState: state, overdueAlertAttempts: 1 }, DEADLINE + OVERDUE_GRACE_MS + 5 * MIN),
       'none',
       state
     );
@@ -44,7 +49,7 @@ test('a delivered or final alert is not repeated', () => {
 });
 
 test('a failed alert is retried up to the attempt limit', () => {
-  const at = DEADLINE + 10 * MIN;
+  const at = DEADLINE + OVERDUE_GRACE_MS + 5 * MIN;
   assert.equal(
     decideOverdueAction({ deadlineMs: DEADLINE, overdueAlertState: 'failed', overdueAlertAttempts: 1 }, at),
     'alert'
@@ -110,15 +115,33 @@ test('all-clear and SOS messages name the traveller', () => {
 // Test trips
 // ---------------------------------------------------------------------------
 
-test('test trip: contacts are alerted after one minute, a real trip after five', () => {
+test('test trip: contacts are alerted after one minute, a real trip after fifteen', () => {
   const now = Date.now();
   const lateBy = (ms: number, isTest: boolean) =>
-    decideOverdueAction({ deadlineMs: now - ms, isTest, overdueWarnedAtMs: now - ms }, now);
+    decideOverdueAction({ deadlineMs: now - ms, isTest, overdueWarnedAtMs: now - ms, lastWarnedAtMs: now - ms }, now);
 
+  assert.equal(OVERDUE_GRACE_MS, 15 * MIN);
   assert.equal(lateBy(30 * 1000, true), 'none', 'warned already, still inside the minute');
   assert.equal(lateBy(61 * 1000, true), 'alert');
   assert.equal(lateBy(61 * 1000, false), 'none');
-  assert.equal(lateBy(5 * 60 * 1000 + 1000, false), 'alert');
+  assert.equal(lateBy(6 * MIN, false), 'none', 'five minutes late is no longer enough');
+  assert.equal(lateBy(15 * MIN + 1000, false), 'alert');
+});
+
+test('five minutes before contacts are texted, the traveller is told so, once', () => {
+  const warned = { deadlineMs: DEADLINE, overdueWarnedAtMs: DEADLINE + 30 * 1000 };
+  assert.equal(decideOverdueAction(warned, DEADLINE + 9 * MIN), 'none');
+  assert.equal(decideOverdueAction(warned, DEADLINE + OVERDUE_GRACE_MS - LAST_WARNING_BEFORE_MS), 'last_warning');
+  assert.equal(decideOverdueAction(warned, DEADLINE + 12 * MIN), 'last_warning', 'a late run still sends it');
+  assert.equal(decideOverdueAction({ ...warned, lastWarnedAtMs: DEADLINE + 10 * MIN }, DEADLINE + 12 * MIN), 'none');
+  assert.equal(decideOverdueAction({ ...warned, lastWarnedAtMs: DEADLINE + 10 * MIN }, DEADLINE + OVERDUE_GRACE_MS), 'alert');
+  // The first warning always comes first, even when the monitor runs late
+  assert.equal(decideOverdueAction({ deadlineMs: DEADLINE }, DEADLINE + 11 * MIN), 'warn');
+});
+
+test('a test trip, whose whole wait is a minute, gets no last warning', () => {
+  const now = Date.now();
+  assert.equal(decideOverdueAction({ deadlineMs: now - 40 * 1000, isTest: true, overdueWarnedAtMs: now - 30 * 1000 }, now), 'none');
 });
 
 test('test trip: the traveller is warned at the deadline, exactly as on a real trip', () => {
@@ -166,13 +189,15 @@ test('time added starts the heads-up afresh for the new deadline', () => {
   assert.equal(decideReminder(extended, later - 4 * MIN), 'heads_up');
 });
 
-test('a trip left open is asked about every fifteen minutes, four times in all', () => {
-  assert.equal(decideReminder(trip30, DEADLINE + STILL_OPEN_EVERY_MS - MIN), 'none');
-  assert.equal(decideReminder(trip30, DEADLINE + STILL_OPEN_EVERY_MS), 'still_open');
+test('a trip left open is asked about every fifteen minutes after contacts are texted, four times in all', () => {
+  const alerted = DEADLINE + OVERDUE_GRACE_MS;
+  assert.equal(decideReminder(trip30, alerted), 'none', 'not in the same minute as the alert');
+  assert.equal(decideReminder(trip30, alerted + STILL_OPEN_EVERY_MS - MIN), 'none');
+  assert.equal(decideReminder(trip30, alerted + STILL_OPEN_EVERY_MS), 'still_open');
 
   const once = { ...trip30, sent: { deadlineMs: DEADLINE, headsUp: true, stillOpenCount: 1 } };
-  assert.equal(decideReminder(once, DEADLINE + STILL_OPEN_EVERY_MS + MIN), 'none');
-  assert.equal(decideReminder(once, DEADLINE + 2 * STILL_OPEN_EVERY_MS), 'still_open');
+  assert.equal(decideReminder(once, alerted + STILL_OPEN_EVERY_MS + MIN), 'none');
+  assert.equal(decideReminder(once, alerted + 2 * STILL_OPEN_EVERY_MS), 'still_open');
 
   const done = { ...trip30, sent: { deadlineMs: DEADLINE, stillOpenCount: MAX_STILL_OPEN_REMINDERS } };
   assert.equal(decideReminder(done, DEADLINE + 10 * STILL_OPEN_EVERY_MS), 'none');
@@ -183,3 +208,58 @@ test('a deadline from long ago is left alone, and a missing one is ignored', () 
   assert.equal(decideReminder({ deadlineMs: NaN, deadlineSetAtMs: START }, DEADLINE), 'none');
 });
 
+
+// ---------------------------------------------------------------------------
+// A phone that has stopped sending its position
+// ---------------------------------------------------------------------------
+
+// A two-hour trip that started an hour ago
+const QUIET_START = DEADLINE - 120 * MIN;
+const NOW = DEADLINE - 60 * MIN;
+const quietFor = (minutes: number, over: object = {}) => ({
+  startMs: QUIET_START, lastHeardMs: NOW - minutes * MIN, deadlineMs: DEADLINE, ...over,
+});
+
+test('ten minutes of silence, and not a minute less, is told to the traveller', () => {
+  assert.equal(QUIET_AFTER_MS, 10 * MIN);
+  assert.equal(decideQuietNudge(quietFor(9), NOW), false);
+  assert.equal(decideQuietNudge(quietFor(10), NOW), true);
+  assert.equal(decideQuietNudge(quietFor(45), NOW), true);
+});
+
+test('a trip that never sent a position is counted from its start', () => {
+  assert.equal(decideQuietNudge({ startMs: NOW - 9 * MIN, lastHeardMs: null, deadlineMs: DEADLINE }, NOW), false);
+  assert.equal(decideQuietNudge({ startMs: NOW - 11 * MIN, lastHeardMs: null, deadlineMs: DEADLINE }, NOW), true);
+});
+
+test('the same silence is told again every twenty minutes, three times in all', () => {
+  assert.equal(QUIET_NUDGE_EVERY_MS, 20 * MIN);
+  assert.equal(MAX_QUIET_NUDGES, 3);
+  const heardMs = NOW - 40 * MIN;
+  const told = (count: number, minutesAgo: number) =>
+    quietFor(40, { sent: { heardMs, count, lastAtMs: NOW - minutesAgo * MIN } });
+  assert.equal(decideQuietNudge(told(1, 19), NOW), false);
+  assert.equal(decideQuietNudge(told(1, 20), NOW), true);
+  assert.equal(decideQuietNudge(told(2, 20), NOW), true);
+  assert.equal(decideQuietNudge(told(3, 60), NOW), false);
+});
+
+test('a position arriving ends the silence, and the next one starts afresh', () => {
+  // Told three times about an earlier silence, then heard from, then quiet again
+  const earlier = { heardMs: NOW - 90 * MIN, count: 3, lastAtMs: NOW - 30 * MIN };
+  assert.equal(decideQuietNudge(quietFor(12, { sent: earlier }), NOW), true);
+  assert.equal(decideQuietNudge(quietFor(2, { sent: earlier }), NOW), false);
+});
+
+test('nothing is sent on a test trip, or close to the time, or after it', () => {
+  assert.equal(decideQuietNudge(quietFor(30, { isTest: true }), NOW), false);
+  // Five minutes from the end the "5 minutes left" reminder takes over
+  assert.equal(decideQuietNudge({ startMs: QUIET_START, lastHeardMs: DEADLINE - 40 * MIN, deadlineMs: DEADLINE }, DEADLINE - 5 * MIN), false);
+  assert.equal(decideQuietNudge({ startMs: QUIET_START, lastHeardMs: DEADLINE - 40 * MIN, deadlineMs: DEADLINE }, DEADLINE - 6 * MIN), true);
+  assert.equal(decideQuietNudge({ startMs: QUIET_START, lastHeardMs: DEADLINE - 40 * MIN, deadlineMs: DEADLINE }, DEADLINE + 20 * MIN), false);
+});
+
+test('a trip with nothing to go on is left alone', () => {
+  assert.equal(decideQuietNudge({ startMs: null, lastHeardMs: null, deadlineMs: DEADLINE }, NOW), false);
+  assert.equal(decideQuietNudge({ startMs: QUIET_START, lastHeardMs: NOW - 30 * MIN, deadlineMs: NaN }, NOW), false);
+});

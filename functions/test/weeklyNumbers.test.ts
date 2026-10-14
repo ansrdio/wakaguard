@@ -85,13 +85,40 @@ test('a real trip the traveller ended earns 3 points', () => {
   ]);
 });
 
-test('a trip that went overdue and was then ended still counts', () => {
+test('a trip that went overdue before the testers were told still counts', () => {
   const result = score({
     users: users('ada'),
     trips: [trip('uid-ada', MONDAY, { overdueMs: MONDAY + 30 * MIN, endMs: MONDAY + 50 * MIN })],
   });
   assert.equal(rowFor(result, 'ada')?.total, 3);
   assert.equal(result.health.realOverdue, 1);
+});
+
+test('from Thursday 15 October, a trip that ran past the wait before contacts are texted earns nothing', () => {
+  // Thursday 15 October, 09:00 in Nigeria
+  const thursday = Date.UTC(2026, 9, 15, 8);
+  const result = score({
+    users: users('ada'),
+    trips: [
+      trip('uid-ada', thursday, { overdueMs: thursday + 60 * MIN, endMs: thursday + 70 * MIN }),
+      trip('uid-ada', thursday + 3 * HOUR),
+    ],
+  });
+  assert.equal(rowFor(result, 'ada')?.total, 3, 'only the trip ended in time counts');
+  assert.deepEqual(checkFor(result, 'ada')?.trips.rejected, { 'ended after contacts would have been texted': 1 });
+});
+
+test('a round trip counts by how far it went, not by where it ended', () => {
+  const result = score({
+    users: users('ada'),
+    trips: [
+      trip('uid-ada', MONDAY, { endLocation: NEAR_IKEJA, farthestM: 2400 }),
+      trip('uid-ada', MONDAY + 3 * HOUR, { endLocation: NEAR_IKEJA, farthestM: 300 }),
+      trip('uid-ada', MONDAY + 6 * HOUR, { endLocation: NEAR_IKEJA }),
+    ],
+  });
+  assert.deepEqual(checkFor(result, 'ada')?.trips.rejected, { 'did not move': 2 });
+  assert.equal(rowFor(result, 'ada')?.total, 3);
 });
 
 test('trips that break a rule earn nothing and say why', () => {

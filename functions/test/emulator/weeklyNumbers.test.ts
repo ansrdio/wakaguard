@@ -69,7 +69,7 @@ test('reads only what the ranking needs and scores it', async () => {
   assert.equal(mine.length, 3);
   assert.ok(!data.trips.some((trip: { id: string }) => trip.id === `legacy-${run}`), 'a trip outside users/{uid} was read');
   assert.deepEqual(Object.keys(mine[0]).sort(), [
-    'endLocation', 'endMs', 'id', 'isTest', 'overdueMs', 'startLocation', 'startMs', 'status', 'uid',
+    'endLocation', 'endMs', 'farthestM', 'id', 'isTest', 'overdueMs', 'startLocation', 'startMs', 'status', 'uid',
   ]);
   assert.deepEqual(
     Object.keys(data.reports.find((report: { id: string }) => report.id === `report-${run}`)).sort(),
@@ -77,11 +77,14 @@ test('reads only what the ranking needs and scores it', async () => {
   );
 
   const result = scoreWeek(data, { fromMs: FROM, toMs: TO });
+  // The real trip went overdue, which earns nothing since 15 October 2026
   assert.deepEqual(result.ranking.find((row: Named) => row.name === ada), {
-    name: ada, realTrips: 1, roadReports: 1, firstTestTrip: true, problemReports: 0, total: 7,
+    name: ada, realTrips: 0, roadReports: 1, firstTestTrip: true, problemReports: 0, total: 4,
   });
   const check: Check = result.checks.find((item: Named) => item.name === ada);
-  assert.deepEqual(check.trips, { inThePeriod: 2, counted: 1, rejected: { 'too short': 1 } });
+  assert.deepEqual(check.trips, {
+    inThePeriod: 2, counted: 0, rejected: { 'too short': 1, 'ended after contacts would have been texted': 1 },
+  });
   assert.deepEqual(check.reports.confirmed[0].upvoters, [tunde]);
   assert.equal(result.health.realOverdue, 1);
   assert.equal(result.health.sosInTestTrip, 1);

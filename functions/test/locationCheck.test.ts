@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { adviseOnLocation, PhoneLocation } from '../../src/lib/locationCheck';
+import { adviseOnLocation, describeFix, PhoneLocation } from '../../src/lib/locationCheck';
 import { describeLocationStatus } from '../../src/lib/tripPlanning';
 
 const NOW = Date.UTC(2026, 9, 12, 8, 0);
@@ -62,4 +62,66 @@ test('rough location only is pointed out even while positions arrive', () => {
 
 test('all well says so and offers nothing', () => {
   assert.deepEqual(adviseOnLocation(fresh, phone(), true), { tone: 'fine', text: fresh.text, action: null });
+});
+
+// ---------------------------------------------------------------------------
+// Finding the phone, to pin a road report
+// ---------------------------------------------------------------------------
+
+type Answer = { lat: number; lng: number; accuracy: number } | null;
+
+// Node has a navigator of its own that cannot simply be assigned over
+const setNavigator = (value: unknown) =>
+  Object.defineProperty(globalThis, 'navigator', { value, configurable: true, writable: true });
+
+/** A phone that answers a precise request with one thing and a rough request with another */
+function phoneThatAnswers(precise: Answer, rough: Answer) {
+  const asked: boolean[] = [];
+  setNavigator({
+    geolocation: {
+      getCurrentPosition(ok: (p: unknown) => void, fail: () => void, options: { enableHighAccuracy: boolean }) {
+        asked.push(options.enableHighAccuracy);
+        const answer = options.enableHighAccuracy ? precise : rough;
+        if (answer) ok({ coords: { latitude: answer.lat, longitude: answer.lng, accuracy: answer.accuracy } });
+        else fail();
+      },
+    },
+  });
+  return asked;
+}
+
+test('an exact position is used as it is, and the rough one is not asked for', async () => {
+  const { findPosition } = await import('../../src/lib/locationCheck');
+  const asked = phoneThatAnswers({ lat: 6.5, lng: 3.4, accuracy: 12.4 }, { lat: 1, lng: 1, accuracy: 3000 });
+  assert.deepEqual(await findPosition(50, 50), { lat: 6.5, lng: 3.4, accuracy: 12, rough: false });
+  assert.deepEqual(asked, [true]);
+});
+
+test('with no exact position, a rough one is used and marked as rough', async () => {
+  const { findPosition } = await import('../../src/lib/locationCheck');
+  const asked = phoneThatAnswers(null, { lat: 6.6, lng: 3.3, accuracy: 2900 });
+  assert.deepEqual(await findPosition(50, 50), { lat: 6.6, lng: 3.3, accuracy: 2900, rough: true });
+  assert.deepEqual(asked, [true, false]);
+});
+
+test('a phone that gives neither is reported as not found, not as an error', async () => {
+  const { findPosition } = await import('../../src/lib/locationCheck');
+  phoneThatAnswers(null, null);
+  assert.equal(await findPosition(50, 50), null);
+  setNavigator({});
+  assert.equal(await findPosition(50, 50), null);
+});
+
+test('the check screen counts a position as good only when it is close enough to find someone', () => {
+  assert.deepEqual(describeFix({ found: true, seconds: 1, accuracy: 23 }), { text: 'Found in 1 second, to within 23 m', good: true });
+  assert.deepEqual(describeFix({ found: true, seconds: 2, accuracy: 200 }), { text: 'Found in 2 seconds, to within 200 m', good: true });
+  // A tester's phone found by masts only (13 October 2026) used to get a green tick
+  assert.deepEqual(describeFix({ found: true, seconds: 2, accuracy: 2900 }), { text: 'Found in 2 seconds, but only to within 2,900 m', good: false });
+});
+
+test('the check screen says how long it waited, in good English', () => {
+  assert.deepEqual(describeFix(null), { text: 'Looking…', good: null });
+  assert.deepEqual(describeFix({ found: false, seconds: 0, accuracy: null }), { text: 'Not found', good: false });
+  assert.deepEqual(describeFix({ found: false, seconds: 1, accuracy: null }), { text: 'Not found after 1 second', good: false });
+  assert.deepEqual(describeFix({ found: false, seconds: 20, accuracy: null }), { text: 'Not found after 20 seconds', good: false });
 });

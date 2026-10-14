@@ -225,6 +225,9 @@ service cloud.firestore {
         && request.resource.data.text.size() > 0
         && request.resource.data.text.size() <= 500
         && request.resource.data.status in ['active','removed']
+        // The author may take their comment down, never put back one that was
+        // removed, or hidden after other people reported it
+        && (request.resource.data.status == resource.data.status || request.resource.data.status == 'removed')
       );
 
       allow delete: if isAuthenticated() && resource.data.uid == request.auth.uid;
@@ -400,7 +403,7 @@ service cloud.firestore {
       function isValidSharedTrip(d) {
         return d.keys().hasOnly([
           'uid','tripId','status','expiresAt','lastLocation','lastUpdate','destination','createdAt',
-          'endsAt','overdueAt','path','name','isTest'
+          'endsAt','overdueAt','path','name','isTest','travelMode'
         ])
         && d.uid is string
         && d.tripId is string
@@ -414,6 +417,7 @@ service cloud.firestore {
         && (!('overdueAt' in d) || d.overdueAt == null || d.overdueAt is timestamp)
         && (!('name' in d) || (d.name is string && d.name.size() <= 60))
         && (!('isTest' in d) || d.isTest is bool)
+        && (!('travelMode' in d) || (d.travelMode is string && d.travelMode.size() <= 20))
         && (!('path' in d) || (d.path is list && d.path.size() <= 300))
         && (!('lastLocation' in d) || d.lastLocation == null || (
           d.lastLocation is map
@@ -426,7 +430,7 @@ service cloud.firestore {
         ));
       }
 
-      // The path travelled and the traveller's name are written by the server
+      // The path travelled, the traveller's name and how they are travelling are written by the server
       // (functions/src/tripMonitor.ts). They are in the list of allowed keys
       // because an update is checked against the whole document, and without
       // them every later write by the app (add time, arrive, SOS) would be
@@ -465,12 +469,14 @@ service cloud.firestore {
       function isValidPushSub(data) {
         return data is map
           && data.keys().hasOnly([
-            'uid','fcmToken','platform','location','alertMode','zones','states','createdAt','updatedAt','locationUpdatedAt'
+            'uid','fcmToken','platform','appBuild','appBuildToken','location','alertMode','zones','states','createdAt','updatedAt','locationUpdatedAt'
           ])
           && data.uid == request.auth.uid
           && data.fcmToken is string
           && data.fcmToken.size() > 0
           && data.platform in ['android','ios','web']
+          && (!('appBuild' in data) || (data.appBuild is int && data.appBuild > 0 && data.appBuild < 100000))
+          && (!('appBuildToken' in data) || (data.appBuildToken is string && data.appBuildToken.size() <= 4096))
           && (!('alertMode' in data) || isValidAlertMode(data.alertMode))
           && (!('location' in data) || data.location == null || isValidLatLngMap(data.location))
           && (!('zones' in data) || data.zones == null || isValidZones(data.zones))
@@ -510,6 +516,29 @@ service cloud.firestore {
     match /users/{userId}/rateLimits/{docId} {
       allow read: if isOwner(userId) && isAuthenticated();
       allow write: if false;
+    }
+
+    // -------------------------------------------------------------------------
+    // Fault reports from the app (src/lib/errorReports.ts). Any signed-in app,
+    // guests included, may add one; nobody can read or change one from the app.
+    // No account is named in them. The database deletes each after about 30 days.
+    // -------------------------------------------------------------------------
+    match /errorReports/{reportId} {
+      allow create: if isSignedIn()
+        && request.resource.data.keys().hasOnly(['message', 'stack', 'where', 'build', 'version', 'platform', 'device', 'createdAt', 'deleteAfter'])
+        && request.resource.data.message is string && request.resource.data.message.size() <= 300
+        && request.resource.data.stack is string && request.resource.data.stack.size() <= 2000
+        && request.resource.data.where is string && request.resource.data.where.size() <= 60
+        && request.resource.data.build is int
+        && request.resource.data.version is string && request.resource.data.version.size() <= 20
+        && request.resource.data.platform in ['android', 'ios', 'web']
+        && request.resource.data.device is string && request.resource.data.device.size() <= 60
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.deleteAfter is timestamp
+        // About 30 days, with room for a phone whose date is wrong or a report sent late
+        && request.resource.data.deleteAfter > request.time + duration.value(1, 'd')
+        && request.resource.data.deleteAfter < request.time + duration.value(60, 'd');
+      allow read, update, delete: if false;
     }
   }
 }

@@ -186,6 +186,12 @@
           "queryScope": "COLLECTION"
         }
       ]
+    },
+    {
+      "collectionGroup": "errorReports",
+      "fieldPath": "deleteAfter",
+      "ttl": true,
+      "indexes": []
     }
   ]
 }

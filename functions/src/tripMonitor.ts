@@ -7,6 +7,8 @@
  *
  * - checkOverdueTrips: runs every minute, warns the traveller at the deadline and
  *   alerts trusted contacts after the grace period.
+ * - checkQuietTrips: runs every two minutes and tells a traveller whose phone
+ *   has stopped sending its position, so they can open the app again.
  * - onTripUpdated / onSafetyTimerUpdated: tell contacts when an overdue person
  *   checks in, extends or ends the trip.
  * - onSOSAlert: sends SOS messages to trusted contacts.
@@ -19,11 +21,15 @@ import { checkAndIncrementRateLimit } from './rateLimit';
 import { getNumberSetting } from './config';
 import { deliverSafetySms, DeliveryResult, getSenderProfile, getTrustedContacts, Recipient, UNKNOWN_NAME } from './safetyDelivery';
 import { AllClearReason, buildAllClearMessage, buildOverdueMessage, buildSosMessage, markAsTest } from './templates';
-import { addPathPoint, readPath } from './tripPath';
+import { addPathPoint, distanceMeters, readPath } from './tripPath';
+import { buildTravellerPush, TravellerMessage } from './reminderPush';
 import {
   decideOverdueAction,
+  decideQuietNudge,
   decideReminder,
   HEADS_UP_BEFORE_MS,
+  LAST_WARNING_BEFORE_MS,
+  QuietSubject,
   ReminderSubject,
   graceMs,
   OverdueAlertState,
@@ -38,11 +44,6 @@ type Kind = 'trip' | 'timer';
 
 const BATCH_LIMIT = 200;
 
-/**
- * The Android notification channel the app makes for the "Are you okay?"
- * reminder (REMINDER_CHANNEL_ID in src/lib/pushRegistration.ts). The two must match.
- */
-const REMINDER_CHANNEL_ID = 'trip_reminders';
 
 /** Once contacts are alerted, keep the share link readable for this long. */
 const OVERDUE_LINK_MS = 72 * 60 * 60 * 1000;
@@ -65,6 +66,7 @@ function toSubject(kind: Kind, data: DocData): OverdueSubject {
     deadlineMs: toMillis(data[deadlineField(kind)]) ?? NaN,
     shouldNotifyContacts: data.shouldNotifyContacts,
     overdueWarnedAtMs: toMillis(data.overdueWarnedAt),
+    lastWarnedAtMs: toMillis(data.overdueLastWarnedAt),
     overdueAlertState: data.overdueAlertState ?? null,
     overdueAlertAttempts: data.overdueAlertAttempts ?? 0,
     overdueAlertClaimedAtMs: toMillis(data.overdueAlertClaimedAt),
@@ -80,6 +82,17 @@ function toReminderSubject(data: DocData): ReminderSubject {
     deadlineSetAtMs: toMillis(data.extendedAt) ?? ((data.extensionCount ?? 0) > 0 ? null : toMillis(data.startTime)),
     isTest: data.isTest === true,
     sent: sent ? { deadlineMs: sent.deadlineMs, headsUp: sent.headsUp === true, stillOpenCount: sent.stillOpenCount ?? 0 } : null,
+  };
+}
+
+function toQuietSubject(data: DocData): QuietSubject {
+  const sent = data.quietNudges;
+  return {
+    startMs: toMillis(data.startTime),
+    lastHeardMs: toMillis(data.lastUpdate),
+    deadlineMs: toMillis(data.endsAt) ?? NaN,
+    isTest: data.isTest === true,
+    sent: sent ? { heardMs: sent.heardMs ?? null, count: sent.count ?? 0, lastAtMs: toMillis(sent.lastAt) } : null,
   };
 }
 
@@ -124,6 +137,7 @@ export const checkOverdueTrips = functions.pubsub
 
         const action = decideOverdueAction(toSubject(kind, data), nowMs);
         if (action === 'warn') work.push(safely(() => warnTraveller(doc.ref, kind)));
+        if (action === 'last_warning') work.push(safely(() => lastWarnTraveller(doc.ref, kind)));
         if (action === 'alert') work.push(safely(() => alertContacts(doc.ref, kind)));
         if (kind === 'trip' && decideReminder(toReminderSubject(data), nowMs) !== 'none') {
           work.push(safely(() => remindTraveller(doc.ref)));
@@ -178,6 +192,35 @@ async function warnTraveller(ref: DocRef, kind: Kind): Promise<void> {
 }
 
 /**
+ * Five minutes before contacts are texted: say so plainly, once. Added on 14
+ * October 2026 with the longer wait, so that the wait ends with a warning
+ * nobody can mistake for another reminder.
+ */
+async function lastWarnTraveller(ref: DocRef, kind: Kind): Promise<void> {
+  const db = admin.firestore();
+  const uid = uidFromRef(ref);
+
+  const claimed = await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const data = snap.data();
+    if (!data || !isStillActive(kind, data)) return null;
+    if (decideOverdueAction(toSubject(kind, data), Date.now()) !== 'last_warning') return null;
+    tx.update(ref, { overdueLastWarnedAt: FieldValue.serverTimestamp() });
+    return data;
+  });
+  if (!claimed) return;
+
+  const minutes = Math.round(LAST_WARNING_BEFORE_MS / 60000);
+  await pushToTraveller(uid, {
+    title: `Your contacts will be texted in ${minutes} minutes`,
+    body: kind === 'trip'
+      ? 'If you are safe, tap "I\'ve arrived". If you need longer, add time.'
+      : 'If you are safe, check in on your timer in the app.',
+    data: { type: 'overdue_last_warning', kind, id: ref.id },
+  });
+}
+
+/**
  * Nearly out of time, or long past it with the trip never ended: nudge the
  * traveller. What contacts are told is not affected.
  */
@@ -219,27 +262,91 @@ async function remindTraveller(ref: DocRef): Promise<void> {
     });
 }
 
+// -----------------------------------------------------------------------------
+// A phone that has stopped sending its position
+// -----------------------------------------------------------------------------
+
+/**
+ * Kept apart from checkOverdueTrips on purpose: that function is what alerts
+ * contacts, and nothing added for a reminder should be able to slow it or
+ * stop it.
+ *
+ * Reads every running trip that is not close to its time, with the index the
+ * overdue check already uses. That is a handful of trips today. If there are
+ * ever more than QUIET_BATCH_LIMIT running at once, ask instead for trips by
+ * how long ago they were heard from, which needs an index of its own.
+ */
+const QUIET_BATCH_LIMIT = 500;
+
+export const checkQuietTrips = functions.pubsub
+  .schedule('every 2 minutes')
+  .onRun(async () => {
+    const db = admin.firestore();
+    const nowMs = Date.now();
+
+    const trips = await db.collectionGroup('trips')
+      .where('status', '==', 'active')
+      .where('endsAt', '>', Timestamp.fromMillis(nowMs + HEADS_UP_BEFORE_MS))
+      .limit(QUIET_BATCH_LIMIT)
+      .get();
+
+    const work: Array<Promise<void>> = [];
+    trips.forEach((doc) => {
+      const data = doc.data();
+      if (!isStillActive('trip', data)) return;
+      if (decideQuietNudge(toQuietSubject(data), nowMs)) work.push(safely(() => nudgeQuietTraveller(doc.ref)));
+    });
+    await Promise.all(work);
+    if (trips.size === QUIET_BATCH_LIMIT) {
+      console.warn(`checkQuietTrips read ${QUIET_BATCH_LIMIT} trips, its limit: some running trips were not looked at`);
+    }
+    return null;
+  });
+
+async function nudgeQuietTraveller(ref: DocRef): Promise<void> {
+  const db = admin.firestore();
+  const uid = uidFromRef(ref);
+
+  const nudged = await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const data = snap.data();
+    if (!data || !isStillActive('trip', data)) return false;
+    const subject = toQuietSubject(data);
+    if (!decideQuietNudge(subject, Date.now())) return false;
+
+    const heardMs = subject.lastHeardMs ?? subject.startMs;
+    const sameSilence = subject.sent?.heardMs === heardMs;
+    tx.update(ref, {
+      quietNudges: {
+        heardMs,
+        count: (sameSilence ? subject.sent?.count ?? 0 : 0) + 1,
+        lastAt: FieldValue.serverTimestamp(),
+      },
+    });
+    return true;
+  });
+  if (!nudged) return;
+
+  await pushToTraveller(uid, {
+    title: 'Your location has stopped sharing',
+    body: 'WakaGuard has not received your position for a while. Open the app so your contacts can see where you are.',
+    // Its own type: opening the app is the point, so it carries no buttons
+    data: { type: 'location_stopped', kind: 'trip', id: ref.id },
+  });
+}
+
 /** Sends one notification to the traveller's phone, if it is registered for them. Never throws. */
-async function pushToTraveller(
-  uid: string,
-  message: { title: string; body: string; data: Record<string, string> },
-): Promise<void> {
-  const subSnap = await admin.firestore().doc(`pushSubscriptions/${uid}`).get();
-  const fcmToken = subSnap.data()?.fcmToken;
-  if (!fcmToken) return;
+async function pushToTraveller(uid: string, message: TravellerMessage): Promise<void> {
+  const subscription = (await admin.firestore().doc(`pushSubscriptions/${uid}`).get()).data();
+  const fcmToken = subscription?.fcmToken;
+  if (typeof fcmToken !== 'string' || !fcmToken) return;
 
   try {
-    await admin.messaging().send({
-      token: fcmToken,
-      notification: { title: message.title, body: message.body },
-      data: message.data,
-      // A reminder nobody hears is no use: deliver it at once, with a sound.
-      // On Android it goes to the app's own channel, which appears over other
-      // apps. A phone whose app has not made that channel yet falls back to
-      // Firebase's default one.
-      android: { priority: 'high', notification: { sound: 'default', channelId: REMINDER_CHANNEL_ID } },
-      apns: { headers: { 'apns-priority': '10' }, payload: { aps: { sound: 'default' } } },
-    });
+    // Reminders about the trip's time carry "I've arrived" and "+15 min" (reminderPush.ts)
+    await admin.messaging().send(buildTravellerPush(
+      { fcmToken, platform: subscription?.platform, appBuild: subscription?.appBuild, appBuildToken: subscription?.appBuildToken },
+      message,
+    ));
   } catch (err) {
     console.warn(`Reminder push failed for ${uid}:`, err);
   }
@@ -280,7 +387,7 @@ async function alertContacts(ref: DocRef, kind: Kind): Promise<void> {
     await Promise.all([
       ref.update({ expiresAt: keepUntil }),
       db.doc(`sharedTrips/${ref.id}`).set(
-        { overdueAt: FieldValue.serverTimestamp(), expiresAt: keepUntil },
+        { overdueAt: FieldValue.serverTimestamp(), expiresAt: keepUntil, ...travelModeForContacts(claimed) },
         { merge: true }
       ),
     ]);
@@ -372,6 +479,7 @@ async function alertContacts(ref: DocRef, kind: Kind): Promise<void> {
 const OVERDUE_RESET = () => ({
   overdueAt: FieldValue.delete(),
   overdueWarnedAt: FieldValue.delete(),
+  overdueLastWarnedAt: FieldValue.delete(),
   overdueAlertState: FieldValue.delete(),
   overdueAlertSent: FieldValue.delete(),
   overdueAlertTotal: FieldValue.delete(),
@@ -423,6 +531,23 @@ async function sendAllClearOnce(ref: DocRef, contactIds: string[] | null, reason
 const isOpenStatus = (status: unknown) => status === 'active' || status === 'emergency';
 
 /**
+ * The ways of travelling the app offers when a trip is started. Must match
+ * TRAVEL_MODES in src/lib/travelMode.ts (functions/test/travelMode.test.ts checks).
+ */
+export const TRAVEL_MODE_IDS = ['bus', 'keke', 'okada', 'car', 'taxi', 'foot', 'other'];
+
+/**
+ * How the traveller said they were travelling, for the page their contacts
+ * open. It is put there only once contacts are being told something is wrong
+ * (overdue, or an SOS): until then it stays with the private trip. Anything
+ * that is not one of the app's own choices is left out.
+ */
+export function travelModeForContacts(trip: DocData | undefined): { travelMode?: string } {
+  const mode = trip?.travelMode;
+  return typeof mode === 'string' && TRAVEL_MODE_IDS.includes(mode) ? { travelMode: mode } : {};
+}
+
+/**
  * Keep the public share document's path up to date, and put the traveller's
  * name on it.
  *
@@ -433,6 +558,30 @@ const isOpenStatus = (status: unknown) => status === 'active' || status === 'eme
  * The path is removed when the trip ends. The share link stops working then,
  * and a record of where someone went should not outlive its use.
  */
+/**
+ * The farthest a running trip has gone from where it started, in metres
+ * (farthestFromStartM on the private trip). The beta ranking counts a trip
+ * that went 500 m or more: a round trip, to the market and home again, ends
+ * where it began, and was counted as "did not move" when only its two ends
+ * were compared (11 trips in the first week). The route itself is deleted when
+ * a trip ends, so this one number is kept instead.
+ */
+async function recordFarthest(tripRef: DocRef, before: DocData, after: DocData): Promise<void> {
+  if (!isOpenStatus(after.status)) return;
+  const here = readLocation(after.lastLocation);
+  const start = readLocation(after.startLocation);
+  if (!here || !start || toMillis(after.lastUpdate) === toMillis(before.lastUpdate)) return;
+  const metres = Math.round(distanceMeters(start, here));
+  if (metres <= (typeof after.farthestFromStartM === 'number' ? after.farthestFromStartM : 0)) return;
+
+  // Two positions close together must not leave the nearer one recorded
+  await admin.firestore().runTransaction(async (tx) => {
+    const now = (await tx.get(tripRef)).data();
+    const sofar = typeof now?.farthestFromStartM === 'number' ? now.farthestFromStartM : 0;
+    if (now && metres > sofar) tx.update(tripRef, { farthestFromStartM: metres });
+  });
+}
+
 async function recordPath(tripRef: DocRef, before: DocData, after: DocData): Promise<void> {
   const db = admin.firestore();
   const sharedRef = db.doc(`sharedTrips/${tripRef.id}`);
@@ -502,6 +651,8 @@ export const onTripUpdated = functions.firestore
     // Never let the map get in the way of the alerts below
     await recordPath(ref, before, after)
       .catch((err) => console.error(`Could not update the path of trip ${ref.id}`, err));
+    await recordFarthest(ref, before, after)
+      .catch((err) => console.error(`Could not record how far trip ${ref.id} went`, err));
 
     // Traveller ended the trip themselves (not the hourly auto-expiry)
     const endedByUser = after.status === 'completed'
@@ -650,7 +801,7 @@ export const onSOSAlert = functions
         const update = { expiresAt: keepUntil, ...(stillOpen ? { status: 'emergency' } : {}) };
         await Promise.all([
           tripRef.update({ ...update, sosAlertState: 'sending' }),
-          db.doc(`sharedTrips/${tripId}`).set(update, { merge: true }),
+          db.doc(`sharedTrips/${tripId}`).set({ ...update, ...travelModeForContacts(trip) }, { merge: true }),
         ]);
       }
     }

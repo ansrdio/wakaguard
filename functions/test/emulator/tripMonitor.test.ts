@@ -14,13 +14,17 @@ import type { AddressInfo } from 'node:net';
 import * as admin from 'firebase-admin';
 import {
   checkOverdueTrips,
+  checkQuietTrips,
   onTripUpdated,
   onSafetyTimerUpdated,
   onSOSAlert,
   sendSafetySms,
 } from '../../src/index';
+import { OVERDUE_GRACE_MS } from '../../src/overdueLogic';
 
 const MIN = 60 * 1000;
+/** Far enough past a trip's time that contacts are alerted */
+const PAST_GRACE = OVERDUE_GRACE_MS + 5 * MIN;
 const ts = (ms: number) => admin.firestore.Timestamp.fromMillis(ms);
 const db = () => admin.firestore();
 let seq = 0;
@@ -128,7 +132,7 @@ test('trip just past its deadline: traveller is warned, contacts are not alerted
 
 test('trip past the grace period: contacts are alerted exactly once and the link is kept alive', async () => {
   const { uid, contactIds } = await makeUser({ contacts: 2 });
-  const id = await makeTrip(uid, contactIds, { endsAt: ts(Date.now() - 10 * MIN) });
+  const id = await makeTrip(uid, contactIds, { endsAt: ts(Date.now() - PAST_GRACE) });
 
   await runMonitor();
   await runMonitor();
@@ -157,7 +161,7 @@ test('trip past the grace period: contacts are alerted exactly once and the link
 
 test('only the contacts chosen for the trip are alerted', async () => {
   const { uid, contactIds } = await makeUser({ contacts: 2 });
-  await makeTrip(uid, [contactIds[0]], { endsAt: ts(Date.now() - 10 * MIN) });
+  await makeTrip(uid, [contactIds[0]], { endsAt: ts(Date.now() - PAST_GRACE) });
 
   await runMonitor();
 
@@ -167,7 +171,7 @@ test('only the contacts chosen for the trip are alerted', async () => {
 
 test('no more than five contacts are ever messaged', async () => {
   const { uid, contactIds } = await makeUser({ contacts: 8 });
-  await makeTrip(uid, contactIds, { endsAt: ts(Date.now() - 10 * MIN) });
+  await makeTrip(uid, contactIds, { endsAt: ts(Date.now() - PAST_GRACE) });
 
   await runMonitor();
 
@@ -178,7 +182,7 @@ test('no more than five contacts are ever messaged', async () => {
 
 test('no contacts: trip is still marked overdue, nothing is sent', async () => {
   const { uid } = await makeUser({ contacts: 0 });
-  const id = await makeTrip(uid, [], { endsAt: ts(Date.now() - 10 * MIN) });
+  const id = await makeTrip(uid, [], { endsAt: ts(Date.now() - PAST_GRACE) });
 
   await runMonitor();
 
@@ -207,7 +211,8 @@ test('a trip left open long after its time is asked about again, without texting
   const { uid, contactIds } = await makeUser();
   const now = Date.now();
   const id = await makeTrip(uid, contactIds, {
-    startTime: ts(now - 50 * MIN), endsAt: ts(now - 20 * MIN), overdueAt: ts(now - 15 * MIN), overdueAlertState: 'sent',
+    // Contacts were texted at the end of the wait; the first reminder follows fifteen minutes later
+    startTime: ts(now - 80 * MIN), endsAt: ts(now - OVERDUE_GRACE_MS - 20 * MIN), overdueAt: ts(now - 20 * MIN), overdueAlertState: 'sent',
   });
 
   await runMonitor();
@@ -233,7 +238,7 @@ test('test trips and trips extended by an older app get no heads-up', async () =
 test('trips that are on time, ended, or have no deadline are left alone', async () => {
   const { uid, contactIds } = await makeUser();
   const onTime = await makeTrip(uid, contactIds, { endsAt: ts(Date.now() + 30 * MIN) });
-  const ended = await makeTrip(uid, contactIds, { endsAt: ts(Date.now() - 10 * MIN), status: 'completed' });
+  const ended = await makeTrip(uid, contactIds, { endsAt: ts(Date.now() - PAST_GRACE), status: 'completed' });
   const open = await makeTrip(uid, contactIds, { endsAt: null });
 
   await runMonitor();
@@ -248,7 +253,7 @@ test('trips that are on time, ended, or have no deadline are left alone', async 
 
 test('adding time after an alert re-arms the alarm and tells contacts', async () => {
   const { uid, contactIds } = await makeUser();
-  const id = await makeTrip(uid, contactIds, { endsAt: ts(Date.now() - 10 * MIN) });
+  const id = await makeTrip(uid, contactIds, { endsAt: ts(Date.now() - PAST_GRACE) });
   await runMonitor();
 
   const newEnd = Date.now() + 30 * MIN;
@@ -264,14 +269,14 @@ test('adding time after an alert re-arms the alarm and tells contacts', async ()
   assert.match(clear[0].messageBody, /Ada has checked in and extended the trip/);
 
   // Missing the new deadline alerts again
-  await db().doc(`users/${uid}/trips/${id}`).update({ endsAt: ts(Date.now() - 6 * MIN) });
+  await db().doc(`users/${uid}/trips/${id}`).update({ endsAt: ts(Date.now() - PAST_GRACE) });
   await runMonitor();
   assert.equal((await logs(uid, 'overdue')).length, 2);
 });
 
 test('ending an alerted trip tells contacts once', async () => {
   const { uid, contactIds } = await makeUser();
-  const id = await makeTrip(uid, contactIds, { endsAt: ts(Date.now() - 10 * MIN) });
+  const id = await makeTrip(uid, contactIds, { endsAt: ts(Date.now() - PAST_GRACE) });
   await runMonitor();
 
   const path = `users/${uid}/trips/${id}`;
@@ -298,7 +303,7 @@ test('ending a trip that was never alerted sends nothing', async () => {
 
 test('standalone timer: alerted when expired, all-clear on check-in; trip-linked timers are ignored', async () => {
   const { uid } = await makeUser();
-  const base = { uid, acknowledged: false, shouldNotifyContacts: true, expiresAt: ts(Date.now() - 10 * MIN) };
+  const base = { uid, acknowledged: false, shouldNotifyContacts: true, expiresAt: ts(Date.now() - PAST_GRACE) };
   await db().doc(`users/${uid}/safetyTimers/alone`).set(base);
   await db().doc(`users/${uid}/safetyTimers/linked`).set({ ...base, tripId: 'some_trip' });
 
@@ -322,7 +327,7 @@ test('standalone timer: alerted when expired, all-clear on check-in; trip-linked
 
 test('accounts without a verified email, and disabled accounts, do not send SMS', async () => {
   const unverified = await makeUser({ emailVerified: false });
-  const tripId = await makeTrip(unverified.uid, unverified.contactIds, { endsAt: ts(Date.now() - 10 * MIN) });
+  const tripId = await makeTrip(unverified.uid, unverified.contactIds, { endsAt: ts(Date.now() - PAST_GRACE) });
   await runMonitor();
   assert.equal((await trip(unverified.uid, tripId)).overdueAlertState, 'blocked');
   assert.equal((await logs(unverified.uid, 'overdue')).length, 0);
@@ -342,7 +347,7 @@ test('accounts without a verified email, and disabled accounts, do not send SMS'
 
 test('the name in a message is the real name, cleaned of links', async () => {
   const { uid, contactIds } = await makeUser({ displayName: 'Ada Obi http://evil.example/x' });
-  await makeTrip(uid, contactIds, { endsAt: ts(Date.now() - 10 * MIN) });
+  await makeTrip(uid, contactIds, { endsAt: ts(Date.now() - PAST_GRACE) });
 
   await runMonitor();
 
@@ -354,7 +359,7 @@ test('the name in a message is the real name, cleaned of links', async () => {
 test('the name the user chose for alerts is used ahead of the sign-in name and handle', async () => {
   const { uid, contactIds } = await makeUser({ displayName: 'Adaeze Okonkwo-Williams' });
   await db().doc(`users/${uid}`).update({ alertName: 'Ada (Chidi\'s wife) www.evil.example' });
-  await makeTrip(uid, contactIds, { endsAt: ts(Date.now() - 10 * MIN) });
+  await makeTrip(uid, contactIds, { endsAt: ts(Date.now() - PAST_GRACE) });
 
   await runMonitor();
 
@@ -365,7 +370,7 @@ test('the name the user chose for alerts is used ahead of the sign-in name and h
 test('a user cannot make the server send unlimited messages', async () => {
   const { uid, contactIds } = await makeUser({ contacts: 5 });
   for (let i = 0; i < 5; i++) {
-    await makeTrip(uid, contactIds, { endsAt: ts(Date.now() - 10 * MIN) });
+    await makeTrip(uid, contactIds, { endsAt: ts(Date.now() - PAST_GRACE) });
   }
 
   await runMonitor();
@@ -389,7 +394,7 @@ test('the daily cap holds across hours', async () => {
     dayStart: ts(Date.now() - 3 * 60 * MIN),
     dayCount: 48,
   });
-  const id = await makeTrip(uid, contactIds, { endsAt: ts(Date.now() - 10 * MIN) });
+  const id = await makeTrip(uid, contactIds, { endsAt: ts(Date.now() - PAST_GRACE) });
 
   await runMonitor();
 
@@ -421,6 +426,27 @@ test('positions build a path on the share document, starting from where the trip
   assert.deepEqual(path.map((p: any) => [p.lat, p.lng]), [[6.6, 3.35], [6.61, 3.35], [6.62, 3.35]]);
   assert.equal(path[0].at, now - 10 * MIN);
   assert.equal(path[2].at, now - 3 * MIN);
+});
+
+test('a round trip records the farthest it went from the start', async () => {
+  const { uid, contactIds } = await makeUser();
+  const now = Date.now();
+  const id = await makeTrip(uid, contactIds, {
+    endsAt: ts(now + 30 * MIN),
+    startTime: ts(now - 20 * MIN),
+    startLocation: { lat: 6.6, lng: 3.35 },
+  });
+  const farthest = async () => (await db().doc(`users/${uid}/trips/${id}`).get()).get('farthestFromStartM');
+
+  await moveTo(uid, id, 6.61, 3.35, now - 15 * MIN);
+  await moveTo(uid, id, 6.62, 3.35, now - 10 * MIN);
+  const outThere = await farthest();
+  assert.ok(outThere > 2150 && outThere < 2300, `about 2.2 km out, got ${outThere}`);
+
+  // Coming home again does not shrink it
+  await moveTo(uid, id, 6.605, 3.35, now - 5 * MIN);
+  await moveTo(uid, id, 6.6001, 3.35, now - 1 * MIN);
+  assert.equal(await farthest(), outThere);
 });
 
 test('standing still, repeated events and late events do not grow the path', async () => {
@@ -669,7 +695,7 @@ test('the callable refuses free-form and SOS messages, guests and unverified acc
 
 test('overdue alert: the trip records how many contacts a text was sent for', async () => {
   const { uid, contactIds } = await makeUser({ contacts: 2 });
-  const id = await makeTrip(uid, contactIds, { endsAt: ts(Date.now() - 10 * MIN) });
+  const id = await makeTrip(uid, contactIds, { endsAt: ts(Date.now() - PAST_GRACE) });
 
   await runMonitor();
 
@@ -682,7 +708,7 @@ test('overdue alert: the trip records how many contacts a text was sent for', as
 test('overdue alert with no contact that can be texted: the trip says nobody was told', async () => {
   const { uid } = await makeUser({ contacts: 0 });
   await db().doc(`users/${uid}/trustedContacts/old`).set({ name: 'Old Contact', phone: '(202)5550123' });
-  const id = await makeTrip(uid, ['old'], { endsAt: ts(Date.now() - 10 * MIN) });
+  const id = await makeTrip(uid, ['old'], { endsAt: ts(Date.now() - PAST_GRACE) });
 
   await runMonitor();
 
@@ -695,7 +721,7 @@ test('overdue alert with no contact that can be texted: the trip says nobody was
 
 test('adding time after an alert clears the recorded outcome', async () => {
   const { uid, contactIds } = await makeUser();
-  const id = await makeTrip(uid, contactIds, { endsAt: ts(Date.now() - 10 * MIN) });
+  const id = await makeTrip(uid, contactIds, { endsAt: ts(Date.now() - PAST_GRACE) });
   await runMonitor();
   assert.equal((await trip(uid, id)).overdueAlertSent, 1);
 
@@ -806,4 +832,87 @@ test('real trip: no text is labelled as a test', async () => {
     assert.equal(sent.length, 1, type);
     assert.doesNotMatch(sent[0].messageBody, /TEST/, type);
   }
+});
+
+// ---------------------------------------------------------------------------
+// A phone that has stopped sending its position
+// ---------------------------------------------------------------------------
+
+const runQuietCheck = () => (checkQuietTrips as any).run({}, {});
+
+test('a trip gone quiet for ten minutes is told once, and again only after twenty more', async () => {
+  const { uid, contactIds } = await makeUser();
+  const now = Date.now();
+  const heard = now - 12 * MIN;
+  const id = await makeTrip(uid, contactIds, { startTime: ts(now - 40 * MIN), endsAt: ts(now + 80 * MIN), lastUpdate: ts(heard) });
+
+  await runQuietCheck();
+  const first = (await trip(uid, id)).quietNudges;
+  assert.equal(first.count, 1);
+  assert.equal(first.heardMs, heard);
+
+  await runQuietCheck();
+  assert.equal((await trip(uid, id)).quietNudges.count, 1, 'told twice within two minutes');
+
+  // Twenty minutes on, still nothing from the phone
+  await db().doc(`users/${uid}/trips/${id}`).update({ 'quietNudges.lastAt': ts(now - 21 * MIN) });
+  await runQuietCheck();
+  assert.equal((await trip(uid, id)).quietNudges.count, 2);
+  // Contacts are told nothing, and the trip is not marked overdue
+  assert.equal((await logs(uid, 'overdue')).length, 0);
+  assert.equal((await trip(uid, id)).overdueWarnedAt, undefined);
+});
+
+test('a trip heard from lately, a test trip and a trip near its time are left alone', async () => {
+  const { uid, contactIds } = await makeUser();
+  const now = Date.now();
+  const fresh = await makeTrip(uid, contactIds, { startTime: ts(now - 40 * MIN), endsAt: ts(now + 80 * MIN), lastUpdate: ts(now - 3 * MIN) });
+  const testTrip = await makeTrip(uid, contactIds, { startTime: ts(now - 40 * MIN), endsAt: ts(now + 80 * MIN), lastUpdate: ts(now - 30 * MIN), isTest: true });
+  const nearlyDue = await makeTrip(uid, contactIds, { startTime: ts(now - 40 * MIN), endsAt: ts(now + 4 * MIN), lastUpdate: ts(now - 30 * MIN) });
+  const ended = await makeTrip(uid, contactIds, { startTime: ts(now - 40 * MIN), endsAt: ts(now + 80 * MIN), lastUpdate: ts(now - 30 * MIN), status: 'completed' });
+
+  await runQuietCheck();
+
+  for (const id of [fresh, testTrip, nearlyDue, ended]) {
+    assert.equal((await trip(uid, id)).quietNudges, undefined, id);
+  }
+});
+
+test('once the phone is heard from again, a new silence is told afresh', async () => {
+  const { uid, contactIds } = await makeUser();
+  const now = Date.now();
+  const id = await makeTrip(uid, contactIds, {
+    startTime: ts(now - 100 * MIN), endsAt: ts(now + 80 * MIN), lastUpdate: ts(now - 11 * MIN),
+    // Told three times, the most allowed, about a silence that ended when a position came
+    quietNudges: { heardMs: now - 90 * MIN, count: 3, lastAt: ts(now - 30 * MIN) },
+  });
+
+  await runQuietCheck();
+
+  const after = (await trip(uid, id)).quietNudges;
+  assert.equal(after.count, 1);
+  assert.equal(after.heardMs, now - 11 * MIN);
+});
+
+// ---------------------------------------------------------------------------
+// How the traveller is travelling, on the page contacts open
+// ---------------------------------------------------------------------------
+
+test('contacts see how the traveller is travelling only once they are alerted', async () => {
+  const { uid, contactIds } = await makeUser();
+  const now = Date.now();
+  const onTime = await makeTrip(uid, contactIds, { startTime: ts(now - 20 * MIN), endsAt: ts(now + 40 * MIN), travelMode: 'okada' });
+  const overdue = await makeTrip(uid, contactIds, { startTime: ts(now - 60 * MIN), endsAt: ts(now - PAST_GRACE), travelMode: 'okada' });
+  const notSaid = await makeTrip(uid, contactIds, { startTime: ts(now - 60 * MIN), endsAt: ts(now - PAST_GRACE) });
+  const notAChoice = await makeTrip(uid, contactIds, { startTime: ts(now - 60 * MIN), endsAt: ts(now - PAST_GRACE), travelMode: 'canoe' });
+
+  await runMonitor();
+  await runMonitor();
+
+  const page = async (id: string) => (await db().doc(`sharedTrips/${id}`).get()).data()!;
+  assert.equal((await page(onTime)).travelMode, undefined, 'shown before anything was wrong');
+  assert.ok((await page(overdue)).overdueAt);
+  assert.equal((await page(overdue)).travelMode, 'okada');
+  assert.equal((await page(notSaid)).travelMode, undefined);
+  assert.equal((await page(notAChoice)).travelMode, undefined);
 });
