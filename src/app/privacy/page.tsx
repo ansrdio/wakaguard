@@ -151,6 +151,16 @@ export default function PrivacyPage() {
               reminder when a trip passes its arrival time and, if you switch on push notifications in Profile,
               notices about new road reports nearby.
             </p>
+
+            <h3 className="text-xl font-semibold text-gray-800 mb-3">When Something Goes Wrong in the App</h3>
+            <p className="text-gray-700 leading-relaxed mb-6">
+              If a screen in the app crashes, or something fails that the app did not expect, the app sends us a
+              short fault report so that we can fix it: what failed and where in the app, the app&apos;s build
+              number, and the kind of phone and its system version (for example &quot;Android 11 · Infinix
+              X688B&quot;). It is not linked to your account and does not include your location or your contacts.
+              Numbers, links and long codes are removed from it before it is sent. Fault reports are deleted
+              automatically after 30 days.
+            </p>
           </section>
 
           <section className="mb-8 bg-blue-50 p-6 rounded-lg border border-blue-200">
@@ -269,6 +279,7 @@ export default function PrivacyPage() {
               <li>Enable community voting and commenting</li>
               <li>Moderate content and enforce community guidelines</li>
               <li>Prevent abuse and spam (including SMS rate limiting)</li>
+              <li>Find and fix faults in the app, from the fault reports described above</li>
               <li>Improve the app based on usage patterns, for example by comparing planned and actual journey times</li>
             </ul>
           </section>
