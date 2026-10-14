@@ -38,6 +38,21 @@ before the weekend. Android and iPhone go out on the same day.
 Other dates that decide the launch: Google's 14 days with 12 testers began on
 Mon 12 Oct and end about Mon 26 Oct; text alerts are to be on by Mon 2 Nov.
 
+**Decided by the owner on 14 October:**
+- Maps: **Mapbox**, for the map pictures, address lookup, routes and
+  navigation. The map pictures change in build 24 (build 23 still uses
+  OpenStreetMap's). How well Mapbox finds Nigerian addresses is still to be
+  tested before we rely on it
+- The week of 19 October, left free because build 23 went out a week early,
+  goes to the server safety work due Fri 23 Oct (alarms, backup, record
+  deletion, the last old function), not to bringing build 24 forward
+- The morning weather notification goes only on days with something worth
+  knowing, not every day
+- Pidgin covers the main screens only
+- Turn-by-turn navigation: the owner wants it at launch, as a reason for
+  people to come back to the app. How much of it fits before Fri 13 Nov,
+  and what moves out to make room, is being decided
+
 ## Live now (Tuesday 13 October 2026)
 
 | | Build | Where |
@@ -582,14 +597,15 @@ for the 15-minute wait.
       off and lose the trip reminders with them (one switch on an iPhone).
       Tapping it opens the start form. It needs a rough area (about 10 km)
       kept from the last weather look-up, a line on the Privacy page, and its
-      own switch in Profile. Open: every morning or only notable days; its
-      language is decided with the languages below
+      own switch in Profile. Only on notable days (the owner, 14 October);
+      its language is decided with the languages below
 - [ ] Build 25, closer to the freeze. Nigerian languages, Pidgin first, then
       perhaps Yoruba, Hausa and Igbo (the owner, 14 October, moving the Pidgin
       weather lines out of build 23). A large piece of work: the app's words
       are written into each screen, not kept in one place to translate, and
       each language needs a native speaker to write and check it. A Pidgin
-      draft of the weather lines exists (the review page of 14 October)
+      draft of the weather lines exists (the review page of 14 October).
+      Pidgin covers the main screens only (the owner, 14 October)
 - [ ] Build 24. Vehicle details on a trip: the plate number, the bus company
       or the driver's name, added when starting. Contacts see them if the
       traveller does not arrive
@@ -715,9 +731,11 @@ Navigation (asked for by the owner on 12 October, "at some point"):
       piece of work with a running cost: it needs a navigation kit built into
       the Android and iPhone apps themselves. Until then the app hands over to
       Google Maps for directions
-- [ ] Before either: when the paid map provider is chosen for build 23, prefer
-      one that also offers routing and navigation, so the maps do not have to
-      be changed twice
+- [x] Before either: choose a map provider that also offers routing and
+      navigation, so the maps do not have to be changed twice. Mapbox,
+      chosen by the owner on 14 October
+- [ ] The owner wants turn-by-turn at launch (14 October). Which steps fit
+      before Fri 13 Nov is being decided
 
 From the roadmap:
 
