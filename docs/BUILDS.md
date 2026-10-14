@@ -22,7 +22,7 @@ before the weekend. Android and iPhone go out on the same day.
 | Build | Due | Main contents | Status |
 |---|---|---|---|
 | 22 | Wed 14 Oct | Store requirements (report and block, Terms of Use, location screen); Android Back; location fixes; arrival reminders | Out on both: iPhone and Android, Mon 12 Oct, two days early |
-| 23 | Wed 21 Oct | Testers' corrections (checklist, exact trip length, delete my own post); "How are you travelling?" with matching tips; our own road report pictures; "keep WakaGuard running" help; paid maps; weather; reported posts hidden automatically | Being built |
+| 23 | Wed 21 Oct | Testers' corrections (checklist, exact trip length, delete my own post); "How are you travelling?" with matching tips; our own road report pictures; "keep WakaGuard running" help; weather (paid maps moved to build 24: Mapbox); reported posts hidden automatically | Being built |
 | 24 | Wed 28 Oct | Sign in with Google and Apple; sponsor card by state; "please update" switch; service notice; "stop texting me"; vehicle details; far-away reports marked; Mapbox maps; destination search by address | Planned |
 | 25 | Wed 4 Nov | Fixes after text alerts are switched on; directions on the trip (route, trip length from it, spoken directions), as a beta | Planned |
 | 26 | Wed 11 Nov | The launch version | Planned |
@@ -195,7 +195,7 @@ quick fixes, so its build numbers are three lower than these.
 
 | Build | Planned | What |
 |---|---|---|
-| 23 | Wed 21 Oct | Testers' corrections; "How are you travelling?" when starting a trip, with matching tips; our own road report pictures; "keep WakaGuard running" help; paid map provider; weather on the Trip screen |
+| 23 | Wed 21 Oct | Testers' corrections; "How are you travelling?" when starting a trip, with matching tips; our own road report pictures; "keep WakaGuard running" help; weather on the Trip screen (the paid map provider moved to build 24: Mapbox) |
 | 24 | Wed 28 Oct | Sign in with Google and Apple (moved from build 23 on 13 October: the stores do not require it, and it is the item most likely to eat a week); sponsor slot, different by state; "please update" switch; service notice; "stop texting me" for contacts; vehicle details on a trip; Mapbox maps; destination search by address |
 | 25 | Wed 4 Nov | Fixes, after text alerts are switched on; directions on the trip, beta |
 | 26 | Wed 11 Nov | The launch version, frozen Friday 13 November |
@@ -584,6 +584,21 @@ buttons, `checkQuietTrips`, `onFlagCreated`, `onReportDeleted`,
 the others changed in `tripMonitor`); (4) the website; (5) the phone builds to
 the stores. The server and the phone builds should follow each other closely,
 for the 15-minute wait.
+
+**Final builds, Wednesday 14 October (afternoon in Arizona):** made from
+`257314e` with the live settings. Android `WakaGuard-1.2.0-23.aab`, version
+code 23, signed with the upload key; the same code installed on the owner's
+Galaxy by cable and checked there: the app opens in the app, not the
+website; the start form gives the 15-minute wording and "How are you
+travelling?"; Profile reads "Version 1.2.0 (build 23)"; Nearby loads; no
+errors in the phone's log. The weather line stays empty until `weatherAhead`
+is live, and the app says nothing when it fails. iPhone
+`WakaGuard-1.2.0-23.xcarchive`, 1.2.0 (23). The server needs 26 functions
+from the code, by name: five new (`checkQuietTrips`, `onCommentUpdate`,
+`onFlagCreated`, `onReportDeleted`, `weatherAhead`), two replacing old ones
+whose code was never in this repository (`onCommentCreate`,
+`onCommentDelete`, on Node 20 until now), and the rest brought up to date.
+`createReport` is left alone
 
 ### Builds 24 and 25, in more detail
 
