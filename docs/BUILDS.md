@@ -23,8 +23,8 @@ before the weekend. Android and iPhone go out on the same day.
 |---|---|---|---|
 | 22 | Wed 14 Oct | Store requirements (report and block, Terms of Use, location screen); Android Back; location fixes; arrival reminders | Out on both: iPhone and Android, Mon 12 Oct, two days early |
 | 23 | Wed 21 Oct | Testers' corrections (checklist, exact trip length, delete my own post); "How are you travelling?" with matching tips; our own road report pictures; "keep WakaGuard running" help; paid maps; weather; reported posts hidden automatically | Being built |
-| 24 | Wed 28 Oct | Sign in with Google and Apple; sponsor card by state; "please update" switch; service notice; "stop texting me"; vehicle details; far-away reports marked | Planned |
-| 25 | Wed 4 Nov | Fixes after text alerts are switched on; repeat a usual trip | Planned |
+| 24 | Wed 28 Oct | Sign in with Google and Apple; sponsor card by state; "please update" switch; service notice; "stop texting me"; vehicle details; far-away reports marked; Mapbox maps; destination search by address | Planned |
+| 25 | Wed 4 Nov | Fixes after text alerts are switched on; directions on the trip (route, trip length from it, spoken directions), as a beta | Planned |
 | 26 | Wed 11 Nov | The launch version | Planned |
 
 | After the last build | Date |
@@ -49,9 +49,17 @@ Mon 12 Oct and end about Mon 26 Oct; text alerts are to be on by Mon 2 Nov.
 - The morning weather notification goes only on days with something worth
   knowing, not every day
 - Pidgin covers the main screens only
-- Turn-by-turn navigation: the owner wants it at launch, as a reason for
-  people to come back to the app. How much of it fits before Fri 13 Nov,
-  and what moves out to make room, is being decided
+- Turn-by-turn navigation at launch, as a reason for people to come back
+  to the app, in a lighter form than the full native kit (which does not
+  fit before Fri 13 Nov): Mapbox maps and destination search in build 24;
+  directions on the trip in build 25, marked Beta, behind a server switch
+  so it can be hidden without a new build; full native navigation from
+  January to April 2027. To make room, Pidgin moves to January and "repeat
+  a usual trip" to after launch. Two checks this week decide whether the
+  spoken part goes ahead: Mapbox's written answer on whether its terms
+  allow it without their native kit, and a test of how well Mapbox finds
+  Nigerian places. If either fails, the launch gets the route and its time,
+  and directions still open Google Maps
 
 ## Live now (Tuesday 13 October 2026)
 
@@ -188,8 +196,8 @@ quick fixes, so its build numbers are three lower than these.
 | Build | Planned | What |
 |---|---|---|
 | 23 | Wed 21 Oct | Testers' corrections; "How are you travelling?" when starting a trip, with matching tips; our own road report pictures; "keep WakaGuard running" help; paid map provider; weather on the Trip screen |
-| 24 | Wed 28 Oct | Sign in with Google and Apple (moved from build 23 on 13 October: the stores do not require it, and it is the item most likely to eat a week); sponsor slot, different by state; "please update" switch; service notice; "stop texting me" for contacts; vehicle details on a trip |
-| 25 | Wed 4 Nov | Fixes, after text alerts are switched on; repeat a usual trip |
+| 24 | Wed 28 Oct | Sign in with Google and Apple (moved from build 23 on 13 October: the stores do not require it, and it is the item most likely to eat a week); sponsor slot, different by state; "please update" switch; service notice; "stop texting me" for contacts; vehicle details on a trip; Mapbox maps; destination search by address |
+| 25 | Wed 4 Nov | Fixes, after text alerts are switched on; directions on the trip, beta |
 | 26 | Wed 11 Nov | The launch version, frozen Friday 13 November |
 
 ### Build 23, in more detail
@@ -599,7 +607,8 @@ for the 15-minute wait.
       kept from the last weather look-up, a line on the Privacy page, and its
       own switch in Profile. Only on notable days (the owner, 14 October);
       its language is decided with the languages below
-- [ ] Build 25, closer to the freeze. Nigerian languages, Pidgin first, then
+- [ ] January 2027 (moved from build 25 on 14 October, to make room for
+      directions). Nigerian languages, Pidgin first, then
       perhaps Yoruba, Hausa and Igbo (the owner, 14 October, moving the Pidgin
       weather lines out of build 23). A large piece of work: the app's words
       are written into each screen, not kept in one place to translate, and
@@ -615,8 +624,26 @@ for the 15-minute wait.
       they passed earlier, so the report still goes up, but it shows as not
       seen first-hand and does not count for the ranking (raised by a tester
       on 13 October; the owner said yes that day)
-- [ ] Build 25. Repeat a usual trip: one tap to start a trip made before, with
-      the time it usually takes filled in
+- [ ] After launch (moved from build 25 on 14 October, to make room for
+      directions). Repeat a usual trip: one tap to start a trip made before,
+      with the time it usually takes filled in
+- [ ] Build 24. Mapbox map pictures in place of OpenStreetMap's, on the phone
+      apps and the website (the owner chose Mapbox on 14 October)
+- [ ] Build 24. Destination search by address when starting a trip, with
+      Mapbox. Typing a destination freely still works. A search result is
+      only kept for the trip unless Mapbox's paid "permanent" option is
+      bought; check the terms before saving anything
+- [ ] Build 24. A switch on the server that hides directions without a new
+      build, alongside the "please update" switch
+- [ ] Build 25. Directions on the trip, marked Beta (the owner, 14 October):
+      the route drawn on the trip map and on the contacts' page; the trip's
+      length filled in from the route's time; the next turn shown and spoken
+      ("In 200 metres, turn left") while the screen is on; a new route when
+      the traveller leaves it. The route is kept only while the trip runs,
+      like the path, and the Privacy page says so. Asking "Are you okay?"
+      when someone leaves the route stays after launch: it needs real trips
+      to set without false alarms. Depends on Mapbox confirming in writing
+      that its terms allow spoken directions without its native kit
 
 ## Server, website and store work before launch
 
@@ -734,8 +761,8 @@ Navigation (asked for by the owner on 12 October, "at some point"):
 - [x] Before either: choose a map provider that also offers routing and
       navigation, so the maps do not have to be changed twice. Mapbox,
       chosen by the owner on 14 October
-- [ ] The owner wants turn-by-turn at launch (14 October). Which steps fit
-      before Fri 13 Nov is being decided
+- [ ] At launch, a lighter form (the owner, 14 October): see builds 24 and
+      25 above. Step 2 proper, with the native kit, January to April 2027
 
 From the roadmap:
 
