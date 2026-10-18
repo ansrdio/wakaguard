@@ -684,8 +684,11 @@ whose code was never in this repository (`onCommentCreate`,
       time-sensitive from the server), which break through Focus and stay on
       the lock screen, and the same distinctive sound. Check how the
       repeat reminders behave with Android's newer notification cooldown.
-      Built: WakaGuard's own sound (a rising three-note chime played twice,
-      1.8 s, made for us, so no licence) in res/raw and in the iPhone app; on
+      Built: WakaGuard's own sound, an agogo bell (the two-tone bell of
+      highlife and Afrobeat) playing a 12/8 pattern twice, 2.4 s, made for us,
+      so no licence (the owner chose it on 18 October over a plain chime and
+      over a version ending on a talking drum), in res/raw and in the iPhone
+      app; on
       Android a new "Trip alerts" channel (high importance, that sound, a
       buzz-pause pattern of 0.7 s three times, alarm category) made when the
       app starts; on iPhone the Time Sensitive entitlement, and from the server
