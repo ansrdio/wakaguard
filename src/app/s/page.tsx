@@ -73,7 +73,10 @@ function Notice({ title, children }: { title: string; children: React.ReactNode 
  * has been, where it last reported, and whether they are overdue.
  */
 function SharedTripContent() {
-  const token = useSearchParams().get('token') || '';
+  // Links in texts use t. Older links use token, and a text network has been
+  // seen rewriting "token" to "code" on the way, so all three are read
+  const params = useSearchParams();
+  const token = params.get('t') || params.get('token') || params.get('code') || '';
   const { shared: trip, loading, failed } = useSharedTrip(token || null);
 
   const [nowMs, setNowMs] = useState(() => Date.now());

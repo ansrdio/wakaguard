@@ -23,8 +23,11 @@ export function buildMapsLink(lat: number, lng: number): string {
   return `https://maps.google.com/?q=${coord(lat)},${coord(lng)}`;
 }
 
+// "t", not "token": on 18 October 2026 a test text sent with "s?token=..."
+// arrived as "s?code=...", rewritten on the way (the word looks like a bank's
+// one-time code). The contacts' page reads t, token and code.
 export function buildShareLink(token: string): string {
-  return `${baseUrl()}/s?token=${encodeURIComponent(token)}`;
+  return `${baseUrl()}/s?t=${encodeURIComponent(token)}`;
 }
 
 /** Format a time for contacts in Nigeria, e.g. "Tue 4:30 pm". */
@@ -59,17 +62,18 @@ export function markAsTest(body: string, isTest: boolean | null | undefined): st
 // -------------------------------------------------------------------------
 
 /**
- * The registered company behind WakaGuard, named at the end of every text: its
- * full registered name, with no full stop after it.
+ * The business named at the end of every text, as in the sample Termii approved
+ * with the sender ID "OE Alert" on 15 October 2026. Termii requires every text
+ * on that sender ID to end this way. No full stop after it.
  */
-export const SIGN_OFF = 'Powered by Inskriba Limited';
+export const SIGN_OFF = 'Powered by WakaGuard';
 
 /** The contact's name is the traveller's own label for them; keep the greeting short */
 const GREETING_NAME_LENGTH = 20;
 
 /**
  * Address a message to the person receiving it and sign it with the company's
- * name: "Hi Tobi, WakaGuard: ... Powered by Inskriba Limited"
+ * name: "Hi Tobi, WakaGuard: ... Powered by WakaGuard"
  *
  * This is the format Termii requires ("Hi(name), ... Powered by(Company's
  * name)"). They rejected a sample that opened "Dear" on 12 October 2026 and

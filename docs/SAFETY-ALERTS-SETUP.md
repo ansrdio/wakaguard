@@ -38,7 +38,7 @@ Termii's compliance rules ask that a notification names the person receiving it 
 and a sender ID is registered against a sample message that cannot be edited afterwards. Every text therefore
 goes out as:
 
-`Hi <contact's name>, WakaGuard: <the message> Powered by Inskriba Limited`
+`Hi <contact's name>, WakaGuard: <the message> Powered by WakaGuard`
 
 Termii's own wording for the format is "Hi(name), ................Powered by(Company's name)". A sample
 opening "Dear" was rejected on 12 October 2026. The sample they then confirmed in writing, and which the
@@ -46,7 +46,17 @@ sender ID requests and the letters to the four networks carry, is:
 
 `Hi Tobi, WakaGuard: Ade has not checked in from a trip to Ibadan, due Fri 6:30 pm. Last location received
 Fri 6:10 pm: https://maps.google.com/?q=7.3775,3.9470 Track: https://wakaguard.com/s?token=abc123 Please call
-them. Powered by Inskriba Limited`
+them. Powered by WakaGuard`
+
+On 15 October 2026 Termii approved its assigned sender ID **OE Alert** and switched on the DND route for it,
+against a sample that ends "Powered by WakaGuard". Termii's conditions: send with `from: OE Alert` and
+`channel: dnd` (the DND route works only through the API, not from the Termii dashboard), keep to the approved
+format, and always name the business in the text. So `TERMII_SENDER_ID="OE Alert"` and `TERMII_CHANNEL=dnd`,
+and every text ends "Powered by WakaGuard".
+
+The first test text from OE Alert (18 October 2026) arrived with its trip link changed from `s?token=test` to
+`s?code=test`: the word "token" is rewritten on the way. Trip links in texts therefore use `s?t=...`, and the
+contacts' page reads `t`, `token` and `code`.
 
 A unit test (`functions/test/smsText.test.ts`) builds this text from the real template, so the two cannot
 drift apart unnoticed.

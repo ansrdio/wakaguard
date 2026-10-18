@@ -72,7 +72,7 @@ test('a hostile destination cannot put a link or a second message into an alert'
   assert.doesNotMatch(msg, /803/);
   // Only our own links remain
   const links = msg.match(/https?:\/\/\S+/g) || [];
-  assert.deepEqual(links, [`https://wakaguard.com/s?token=${TOKEN}`]);
+  assert.deepEqual(links, [`https://wakaguard.com/s?t=${TOKEN}`]);
 });
 
 test('a hostile check-in note is quoted, stripped of links and capped', () => {
@@ -101,7 +101,7 @@ test('SOS message labels an old position as last known, and a fresh one as the l
 
 test('trip share and SOS all-clear messages read correctly', () => {
   const share = buildTripShareMessage({ userName: 'Ada', token: TOKEN, destination: 'Benin City', endsAtMs: DEADLINE });
-  assert.match(share, /^WakaGuard: Ada is sharing a trip to Benin City with you\. Expected arrival Tue 4:30\s?pm\. Follow it: https:\/\/wakaguard\.com\/s\?token=/i);
+  assert.match(share, /^WakaGuard: Ada is sharing a trip to Benin City with you\. Expected arrival Tue 4:30\s?pm\. Follow it: https:\/\/wakaguard\.com\/s\?t=/i);
 
   const clear = buildAllClearMessage({ userName: 'Ada', reason: 'sos_ended' });
   assert.match(clear, /ended the SOS alert in the app\. Please call them to confirm they are safe\.$/);
@@ -130,7 +130,7 @@ test('addressTo: opens with the contact\'s name and closes with the company\'s',
   const body = buildAllClearMessage({ userName: 'Ada', reason: 'ended' });
   assert.equal(
     addressTo('Tobi', body),
-    'Hi Tobi, WakaGuard: Ada has checked in and ended the trip safely. Powered by Inskriba Limited'
+    'Hi Tobi, WakaGuard: Ada has checked in and ended the trip safely. Powered by WakaGuard'
   );
 });
 
@@ -151,7 +151,7 @@ test('the text for a traveller who has not arrived is the sample Termii approved
     addressTo('Tobi', body),
     'Hi Tobi, WakaGuard: Ade has not checked in from a trip to Ibadan, due Fri 6:30 pm. '
       + 'Last location received Fri 6:10 pm: https://maps.google.com/?q=7.3775,3.9471 '
-      + 'Track: https://wakaguard.com/s?token=abc123 Please call them. Powered by Inskriba Limited'
+      + 'Track: https://wakaguard.com/s?t=abc123 Please call them. Powered by WakaGuard'
   );
 });
 
@@ -169,7 +169,7 @@ test('every text opens with "Hi" and closes with the company, test or not, named
       for (const name of ['Tobi', '', null]) {
         const text = addressTo(name, markAsTest(body, isTest));
         assert.match(text, name ? /^Hi Tobi, / : /^Hi, /, text);
-        assert.match(text, / Powered by Inskriba Limited$/, text);
+        assert.match(text, / Powered by WakaGuard$/, text);
         assert.equal(text.includes('WAKAGUARD TEST ALERT. NOT A REAL EMERGENCY.'), isTest, text);
       }
     }
@@ -180,7 +180,7 @@ test('addressTo: a test label comes straight after the greeting', () => {
   const body = markAsTest(buildSosMessage({ userName: 'Ada' }), true);
   assert.equal(
     addressTo('Tobi', body),
-    'Hi Tobi, WAKAGUARD TEST ALERT. NOT A REAL EMERGENCY. WakaGuard SOS: Ada needs help. Call them or 112. Powered by Inskriba Limited'
+    'Hi Tobi, WAKAGUARD TEST ALERT. NOT A REAL EMERGENCY. WakaGuard SOS: Ada needs help. Call them or 112. Powered by WakaGuard'
   );
 });
 
@@ -189,14 +189,14 @@ test('addressTo: a contact\'s name cannot carry a link, a number or a second mes
   assert.doesNotMatch(msg, /evil\.example/);
   assert.doesNotMatch(msg, /803/);
   assert.match(msg, /^Hi Mum\./);
-  assert.match(msg, / Powered by Inskriba Limited$/);
+  assert.match(msg, / Powered by WakaGuard$/);
   // The name is the traveller's own label for the contact; it is kept short
   assert.ok(msg.indexOf(',') <= 'Hi '.length + 20);
 });
 
 test('addressTo: with no usable name the greeting is a plain "Hi,"', () => {
   for (const name of ['', '   ', null, undefined, 42, 'https://evil.example']) {
-    assert.equal(addressTo(name, 'WakaGuard: Ada has checked in safely.'), 'Hi, WakaGuard: Ada has checked in safely. Powered by Inskriba Limited');
+    assert.equal(addressTo(name, 'WakaGuard: Ada has checked in safely.'), 'Hi, WakaGuard: Ada has checked in safely. Powered by WakaGuard');
   }
 });
 

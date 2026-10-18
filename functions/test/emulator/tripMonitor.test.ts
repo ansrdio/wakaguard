@@ -148,7 +148,7 @@ test('trip past the grace period: contacts are alerted exactly once and the link
   assert.equal(sent[0].provider, 'mock');
   assert.match(sent[0].messageBody, /Ada has not checked in from a trip to Benin City/);
   assert.match(sent[0].messageBody, /maps\.google\.com\/\?q=6\.7,4\.9/);
-  assert.match(sent[0].messageBody, new RegExp(`/s\\?token=${id}`));
+  assert.match(sent[0].messageBody, new RegExp(`/s\\?t=${id}`));
 
   const shared = (await db().doc(`sharedTrips/${id}`).get()).data()!;
   assert.ok(shared.overdueAt, 'public page shows overdue');
@@ -654,7 +654,7 @@ test('trip share SMS describes the caller\'s own trip', async () => {
   assert.equal(result.success, true);
   assert.equal(result.sent, 2);
   const body = (await logs(uid, 'trip_share'))[0].messageBody as string;
-  assert.match(body, /^WakaGuard: Ada is sharing a trip to Benin City with you\. Expected arrival .+ Follow it: https:\/\/wakaguard\.com\/s\?token=/);
+  assert.match(body, /^WakaGuard: Ada is sharing a trip to Benin City with you\. Expected arrival .+ Follow it: https:\/\/wakaguard\.com\/s\?t=/);
 });
 
 test('trip share is refused for another user\'s trip, an ended trip or a malformed token', async () => {

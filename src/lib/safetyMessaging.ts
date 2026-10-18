@@ -73,7 +73,8 @@ function buildMapsLink(lat: number, lng: number): string {
 
 /** Public page where contacts follow a trip. The trip id is the token. */
 export function buildShareLink(token: string): string {
-  return `${BASE_URL}/s?token=${encodeURIComponent(token)}`;
+  // "t" rather than "token", which text networks rewrite (see functions/src/templates.ts)
+  return `${BASE_URL}/s?t=${encodeURIComponent(token)}`;
 }
 
 export function buildSosShareText(lat: number, lng: number, address?: string, token?: string): string {
