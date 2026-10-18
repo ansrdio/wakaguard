@@ -693,7 +693,13 @@ whose code was never in this repository (`onCommentCreate`,
       once. Release order: rules and the new index, then `stopTexts`,
       `onTrustedContactWrite` and the changed texting functions, then the
       website. Also: `tripAction` now answers the website's browser check,
-      so the backup route works on the website too
+      so the backup route works on the website too. Privacy page wording
+      approved by the owner on 18 October (in the working copy): what we
+      store for a contact now includes whether they asked for no texts;
+      "Opting Out" gains the trip-page stop as its first way, and a paragraph
+      on what we keep (number, when, which trip link) and that travellers see
+      the mark and that contact is not told about their trips, SOS included.
+      Change "Last Updated" on the day the website is released
 - [x] Build 24 (done in code 18 October; not yet on a phone). The "please
       update" switch and a notice for everyone, both from one database
       document, `config/app`, that anyone can read and nobody can write from
