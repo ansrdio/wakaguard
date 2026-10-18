@@ -20,7 +20,9 @@ import { useBackToClose } from '@/hooks/useBackToClose';
 import { versionLabel } from '@/lib/appVersion';
 import { LocationCheck } from '@/components/mobile/LocationCheck';
 import { BlockedPeople } from '@/components/mobile/BlockedPeople';
+import { MorningWeatherSwitch } from '@/components/mobile/MorningWeatherSwitch';
 import { Capacitor } from '@capacitor/core';
+import { AppNotices } from '@/components/mobile/AppNotices';
 
 type ModalType = 'myReports' | 'settings' | 'help' | 'deleteAccount' | 'location' | 'keepRunning' | null;
 
@@ -59,6 +61,7 @@ export function ProfileScreen() {
 
   return (
     <div className="absolute inset-0 overflow-y-auto px-4 pt-20 pb-28 space-y-5 bg-slate-50 dark:bg-slate-900 touch-pan-y" style={{ marginTop: 'calc(env(safe-area-inset-top, 0px) + 56px)', WebkitOverflowScrolling: 'touch' }}>
+      <AppNotices />
       {/* Profile Header */}
       <div className="text-center">
         <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full mx-auto mb-4 flex items-center justify-center shadow-lg">
@@ -316,6 +319,8 @@ export function ProfileScreen() {
                   <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${isDark ? 'translate-x-6' : 'translate-x-1'}`} />
                 </button>
               </div>
+
+              {uid && !isAnonymous && <MorningWeatherSwitch uid={uid} />}
 
               {uid && !isAnonymous && <BlockedPeople />}
             </div>

@@ -19,6 +19,21 @@ export const MAX_TRUSTED_CONTACTS = 5;
 
 export const MIN_TRIP_MINUTES = 5;
 export const MAX_TRIP_MINUTES = 20 * 60;
+/**
+ * Most time that can be added at once, in "More time…". The same limit the
+ * server's backup route takes (MAX_EXTEND_MINUTES in functions/src/tripActionPlan.ts).
+ */
+export const MAX_EXTRA_MINUTES = 12 * 60;
+/** "More time…" is chosen in steps of this many minutes, as a trip's length is */
+export const EXTRA_TIME_STEP = 5;
+
+/** Hours and minutes chosen in "More time…" as minutes to add, or null if that is not a choice */
+export function readExtraMinutes(hours: number, minutes: number): number | null {
+  const total = hours * 60 + minutes;
+  return Number.isInteger(total) && total >= EXTRA_TIME_STEP && total <= MAX_EXTRA_MINUTES && total % EXTRA_TIME_STEP === 0
+    ? total
+    : null;
+}
 
 /** The server trims longer values before they go into a message */
 export const MAX_DESTINATION_LENGTH = 40;

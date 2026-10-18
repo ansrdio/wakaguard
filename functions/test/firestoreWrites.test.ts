@@ -56,3 +56,19 @@ test('a restart that never finishes does not hold the screen', async () => {
   const took = Date.now() - started;
   assert.ok(took >= RESTART_LIMIT_MS && took < RESTART_LIMIT_MS + 1000, `took ${took} ms`);
 });
+
+test('a stuck save with a backup counts as arrived when the backup gets through', async () => {
+  restarts();
+  let backups = 0;
+  const ok = await reachedServer(new Promise(() => {}), 10, 50, async () => { backups++; return true; });
+  assert.equal(ok, true);
+  assert.equal(backups, 1);
+});
+
+test('a backup that fails leaves the save queued, and a save in time never uses it', async () => {
+  restarts();
+  assert.equal(await reachedServer(new Promise(() => {}), 10, 30, async () => false), false);
+  let used = false;
+  assert.equal(await reachedServer(after(2, 'ok'), 50, 50, async () => { used = true; return true; }), true);
+  assert.equal(used, false);
+});

@@ -106,18 +106,29 @@ test('trip share and SOS all-clear messages read correctly', () => {
   assert.match(clear, /ended the SOS alert in the app\. Please call them to confirm they are safe\.$/);
 });
 
+test('the arrival text names the destination when there is one, cleaned', () => {
+  assert.equal(
+    buildAllClearMessage({ userName: 'Ada', reason: 'arrived', destination: 'Benin City' }),
+    'WakaGuard: Ada has arrived safely and ended their trip to Benin City.'
+  );
+  assert.equal(buildAllClearMessage({ userName: 'Ada', reason: 'arrived' }), 'WakaGuard: Ada has arrived safely and ended their trip.');
+  assert.doesNotMatch(buildAllClearMessage({ userName: 'Ada', reason: 'arrived', destination: 'see https://x.example' }), /https?:/);
+});
+
 test('every message fits in two SMS segments with the longest allowed inputs', () => {
   const userName = sanitizeName('W'.repeat(60));
   const destination = 'D'.repeat(80);
   const at = { lat: -12.345678, lng: -123.456789 };
   const bodies = [
-    buildOverdueMessage({ userName, kind: 'trip', deadlineMs: DEADLINE, destination, ...at, lastUpdateMs: DEADLINE, token: TOKEN }),
+    buildOverdueMessage({ userName, kind: 'trip', deadlineMs: DEADLINE, destination, ...at, lastUpdateMs: DEADLINE, token: TOKEN, plate: 'P'.repeat(12) }),
+    buildSosMessage({ userName, ...at, locationAtMs: DEADLINE, token: TOKEN, plate: 'P'.repeat(12) }),
     buildOverdueMessage({ userName, kind: 'timer', deadlineMs: DEADLINE }),
     buildSosMessage({ userName, ...at, locationAtMs: DEADLINE, token: TOKEN }),
     buildTripShareMessage({ userName, token: TOKEN, destination, endsAtMs: DEADLINE }),
     buildCheckinMessage({ userName, message: 'm'.repeat(300), ...at }),
     buildAllClearMessage({ userName, reason: 'extended', newDeadlineMs: DEADLINE }),
     buildAllClearMessage({ userName, reason: 'sos_ended' }),
+    buildAllClearMessage({ userName, reason: 'arrived', destination }),
   ];
   for (const body of bodies) {
     assert.ok(isGsm7(body), `not GSM-7: ${body}`);

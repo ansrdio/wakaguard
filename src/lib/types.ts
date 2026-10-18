@@ -125,6 +125,8 @@ export interface Report {
   };
   /** User-provided description of the hazard */
   description: string;
+  /** Posted from more than 30 km away (lib/reportDistance.ts): not seen on the spot, and no ranking points */
+  postedFarAway?: boolean;
   /** @deprecated Use photoUrls instead */
   imageUrl?: string;
   /** Array of Firebase Storage URLs for photos */
@@ -239,6 +241,8 @@ export interface SharedTrip {
   isTest?: boolean;
   /** How the traveller said they were travelling. Written by the server once contacts are alerted */
   travelMode?: string;
+  /** The vehicle's plate and details (lib/vehicle.ts). Written by the server once contacts are alerted */
+  vehicle?: { plate?: string; details?: string };
 }
 
 export interface TripPathPoint {
@@ -296,6 +300,11 @@ export interface TrustedContact {
   notifyOnCheckIn?: boolean;
   /** Notify on trip shares (default: true) */
   notifyOnTripShare?: boolean;
+  /**
+   * Set by the server when this number asked for no more WakaGuard texts,
+   * from the trip page (functions/src/textOptOut.ts). They are never texted.
+   */
+  smsOptedOut?: boolean;
   createdAt: Timestamp;
 }
 
@@ -387,6 +396,10 @@ export interface Trip {
   isTest?: boolean;
   /** How the traveller said they were travelling (an id from lib/travelMode.ts), when they said */
   travelMode?: string;
+  /** "Text them when I arrive": the server texts the contacts when the trip ends with "I've arrived" */
+  textOnArrival?: boolean;
+  /** What they are riding in, if they said (lib/vehicle.ts) */
+  vehicle?: { plate?: string; details?: string };
 
   cancellationReason?: string;
 }

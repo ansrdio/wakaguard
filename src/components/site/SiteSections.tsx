@@ -22,7 +22,7 @@ const STEPS = [
   {
     icon: Check,
     title: 'Arrive, and it ends',
-    text: 'Tap "I\'ve arrived" and the trip closes. The trip link stops working.',
+    text: 'Tap "I\'ve arrived" and the trip closes. The trip link stops working. If you ticked "Text them when I arrive", your contacts get a text saying you arrived.',
   },
   {
     icon: BellRing,
@@ -56,6 +56,10 @@ const TEXTS = [
   {
     when: 'A traveller who was overdue checks in',
     example: 'Hi Tobi, WakaGuard: Ada has checked in and ended the trip safely. Powered by WakaGuard',
+  },
+  {
+    when: 'A traveller arrives and asked for their contacts to be told',
+    example: 'Hi Tobi, WakaGuard: Ada has arrived safely and ended their trip to Ibadan. Powered by WakaGuard',
   },
 ];
 

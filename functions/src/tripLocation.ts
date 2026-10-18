@@ -18,9 +18,9 @@ import { timingSafeEqual } from 'crypto';
 /** Updates arriving faster than this are acknowledged but not written. */
 const MIN_WRITE_INTERVAL_MS = 10 * 1000;
 
-const ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
+export const ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
 
-function keysMatch(expected: unknown, provided: unknown): boolean {
+export function keysMatch(expected: unknown, provided: unknown): boolean {
   if (typeof expected !== 'string' || typeof provided !== 'string') return false;
   if (expected.length < 32) return false;
   const a = Buffer.from(expected);

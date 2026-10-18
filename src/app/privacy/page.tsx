@@ -51,6 +51,7 @@ export default function PrivacyPage() {
             </p>
             <ul className="list-disc list-inside text-gray-700 mb-4 space-y-2">
               <li>Your email address, which you must verify, and a password. Sign-in is handled by Firebase Authentication, a Google service; we do not store your password ourselves</li>
+              <li>If you sign in with Google or Apple instead, no password: we receive the name and email address on that account. With Apple you can hide your email, and we then receive an address that Apple forwards to you</li>
               <li>A username you choose</li>
               <li>The name you enter for alerts (&quot;Your name, as they know you&quot;), which appears in texts to your contacts and on your trip page</li>
               <li>A random ID for each phone or browser you use, so that only one device sends a trip&apos;s location</li>
@@ -78,6 +79,11 @@ export default function PrivacyPage() {
               added. If you answer &quot;How are you travelling?&quot; when you start a trip, that answer is stored
               with the trip. You can leave it unanswered.
             </p>
+            <p className="text-gray-700 leading-relaxed mb-4">
+              You can also add vehicle details to a trip: a plate number, and the bus company, the driver&apos;s
+              name or the vehicle&apos;s colour. They are stored with the trip and are optional. Add someone
+              else&apos;s name only as you would tell it to your contacts yourself.
+            </p>
             <p className="text-gray-700 leading-relaxed mb-6">
               Your phone stops sending its location when the trip ends.
             </p>
@@ -94,7 +100,7 @@ export default function PrivacyPage() {
               <li><strong>Create a road report:</strong> the location you set for the report is shown publicly on the map</li>
               <li><strong>Tap &quot;Use my location&quot; when choosing your state, or set a report&apos;s location:</strong> the coordinates are sent to OpenStreetMap&apos;s look-up service to turn them into a state or an address</li>
               <li><strong>Switch on push notifications in Profile:</strong> your position at that moment is saved, so that we can notify you about new road reports within about 10 km of it</li>
-              <li><strong>Open the Trip screen, or have a trip running:</strong> if you have already allowed WakaGuard to use your location, your rough area, rounded to about 10 km, is sent to our server to look up the weather there. It is not saved with your account. The app never asks for your location just for the weather</li>
+              <li><strong>While the app is open on your screen:</strong> if you have already allowed WakaGuard to use your location, your rough area, rounded to about 10 km, is sent to our server to look up the weather there. Unless you switch off Morning weather in Settings, we keep that rough area (never your exact position) for the morning weather notification: each look-up replaces it, and it is deleted after 30 days without one, when you switch Morning weather off, or when you delete your account. The app never asks for your location just for the weather</li>
             </ul>
             <p className="text-gray-700 leading-relaxed mb-6">
               Showing your own position on the map happens on your device and is not sent to us.
@@ -107,6 +113,7 @@ export default function PrivacyPage() {
             <ul className="list-disc list-inside text-gray-700 mb-4 space-y-2">
               <li>The name and mobile number you enter for them</li>
               <li>Which contacts you chose for each trip</li>
+              <li>Whether they have asked WakaGuard to stop texting their number</li>
             </ul>
             <p className="text-gray-700 leading-relaxed mb-4">
               If you choose &quot;From phone&quot;, the app reads your phone&apos;s contact list on your device so
@@ -149,7 +156,9 @@ export default function PrivacyPage() {
               If you allow notifications in the phone app, we store a token that identifies your device to
               Google&apos;s and Apple&apos;s notification services. We use it to send the &quot;Are you okay?&quot;
               reminder when a trip passes its arrival time and, if you switch on push notifications in Profile,
-              notices about new road reports nearby.
+              notices about new road reports nearby. On days with rain, storms, fog or great heat expected in
+              your rough area, we also send a morning weather notification at about 6:30 am Nigeria time; switch
+              it off with Morning weather in Settings.
             </p>
 
             <h3 className="text-xl font-semibold text-gray-800 mb-3">When Something Goes Wrong in the App</h3>
@@ -181,6 +190,7 @@ export default function PrivacyPage() {
               <li>Your phone&apos;s last reported position, when we received it, and the path it has reported during this trip</li>
               <li>Your expected arrival time, and whether you are overdue or have sent an SOS</li>
               <li>How you said you were travelling (for example by bus or okada), but only once you are overdue or have sent an SOS, and only if you answered that question</li>
+              <li>The vehicle details you added (plate number, and the bus company, driver or colour), on the same terms: only once you are overdue or have sent an SOS</li>
             </ul>
             <p className="text-gray-700 leading-relaxed mb-4">
               The link stops working when you end the trip. If a trip is never ended, the link expires by
@@ -194,6 +204,7 @@ export default function PrivacyPage() {
               <li><strong>Overdue alert:</strong> sent by our server {ALERT_GRACE_MINUTES} minutes after your arrival time if the trip is still running, without any further action from you</li>
               <li><strong>SOS alert:</strong> when you press SOS</li>
               <li><strong>&quot;I&apos;m okay&quot;:</strong> when you tap it</li>
+              <li><strong>Arrival:</strong> when you tap &quot;I&apos;ve arrived&quot;, if you ticked &quot;Text them when I arrive&quot; when you started the trip</li>
               <li><strong>Follow-ups:</strong> when you add time or end a trip after your contacts were alerted</li>
             </ul>
             <p className="text-gray-700 leading-relaxed mb-4">
@@ -204,6 +215,7 @@ export default function PrivacyPage() {
             <ul className="list-disc list-inside text-gray-700 mb-4 space-y-2">
               <li>The name you entered for alerts</li>
               <li>Depending on the message: your destination, your expected arrival time, your last known location as a Google Maps link with the time we received it, and the trip link</li>
+              <li>In an overdue or SOS alert, the vehicle&apos;s plate number if you added one</li>
               <li>Each message is addressed to the contact by the name you saved for them, says it is from WakaGuard, and ends &quot;Powered by WakaGuard&quot;. Texts about a test trip say &quot;WAKAGUARD TEST ALERT. NOT A REAL EMERGENCY.&quot; straight after the greeting.</li>
             </ul>
 
@@ -230,10 +242,18 @@ export default function PrivacyPage() {
               Recipients of SMS messages can:
             </p>
             <ul className="list-disc list-inside text-gray-700 mb-4 space-y-2">
+              <li><strong>Stop all WakaGuard texts to their number</strong> from the trip page that our texts link to, even after the trip has ended. They enter the number the text came to and, if it is one of that trip&apos;s contacts, we stop texting it, for that traveller and for anyone else who has saved the same number. They can turn texts back on the same way.</li>
               <li>Ask you to remove them from your trusted contacts list</li>
               <li>Block the sending number on their device</li>
               <li>Contact us at <a href={`mailto:${CONTACT_EMAIL}`} className="text-blue-600 hover:underline">{CONTACT_EMAIL}</a> to request removal</li>
             </ul>
+            <p className="text-gray-700 leading-relaxed mb-4">
+              When someone stops texts, we keep their phone number, when they stopped (or turned texts back
+              on), and which trip link they used, so that we never text that number by mistake and can answer
+              them if they ask. Anyone who has saved that number as a trusted contact sees that the contact
+              asked not to be texted. That contact is not told about their trips, including overdue alerts
+              and SOS alerts.
+            </p>
 
             <h3 className="text-xl font-semibold text-gray-800 mb-3">SMS Service Provider</h3>
             <p className="text-gray-700 leading-relaxed mb-4">
@@ -253,7 +273,7 @@ export default function PrivacyPage() {
             <ul className="list-disc list-inside text-gray-700 mb-4 space-y-2">
               <li>Your account ID</li>
               <li>Recipient names and phone numbers</li>
-              <li>Message type (trip link, &quot;I&apos;m okay&quot;, overdue alert, SOS, follow-up)</li>
+              <li>Message type (trip link, &quot;I&apos;m okay&quot;, arrival, overdue alert, SOS, follow-up)</li>
               <li>The text of the message, which can include a location link</li>
               <li>Whether the provider accepted it (sent, partly sent, failed or blocked)</li>
               <li>Timestamp</li>

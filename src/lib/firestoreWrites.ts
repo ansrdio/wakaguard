@@ -43,17 +43,26 @@ export function retryStuckSaves(): Promise<void> {
  * connection once if it has not arrived.
  * Resolves true if the server has it, false if it is still queued (it will be
  * sent when the connection returns). Rejects if the server refuses the write.
+ *
+ * A save that matters enough can bring a backup: another way to give the
+ * server the same change (for "I've arrived" and extra time, tripActionBackup.ts).
+ * It is tried together with the restart, and its success counts as arrival.
  */
 export async function reachedServer(
   write: Promise<unknown>,
   waitMs: number = SAVE_WAIT_MS,
-  retryWaitMs: number = SAVE_RETRY_WAIT_MS
+  retryWaitMs: number = SAVE_RETRY_WAIT_MS,
+  backup?: () => Promise<boolean>
 ): Promise<boolean> {
   const sent = write.then(() => true);
   const arrivesWithin = (ms: number) =>
     Promise.race([sent, new Promise<boolean>((resolve) => setTimeout(() => resolve(false), ms))]);
   if (await arrivesWithin(waitMs)) return true;
-  await retryStuckSaves();
+  const [, backedUp] = await Promise.all([
+    retryStuckSaves(),
+    backup ? settleWithin(backup(), retryWaitMs, false) : Promise.resolve(false),
+  ]);
+  if (backedUp) return true;
   return arrivesWithin(retryWaitMs);
 }
 

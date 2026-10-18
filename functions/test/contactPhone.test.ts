@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { canBeTexted, readContactPhone } from '../../src/lib/contactPhone';
+import { askedForNoTexts, canBeTexted, readContactPhone } from '../../src/lib/contactPhone';
 import { isValidE164 } from '../src/safetyDelivery';
 
 const number = (typed: string) => {
@@ -61,4 +61,11 @@ test('readContactPhone: every number it accepts is one the server will text', ()
     const result = readContactPhone(typed);
     assert.ok(result.ok && isValidE164(result.phoneE164), typed);
   }
+});
+
+test('canBeTexted: a contact who asked for no more texts is not texted', () => {
+  assert.equal(canBeTexted({ phoneE164: '+2340000000001', smsOptedOut: true }), false);
+  assert.equal(askedForNoTexts({ smsOptedOut: true }), true);
+  assert.equal(canBeTexted({ phoneE164: '+2340000000001', smsOptedOut: false }), true);
+  assert.equal(askedForNoTexts({}), false);
 });

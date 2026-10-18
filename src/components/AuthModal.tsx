@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useKeyboardSafeOverlay } from '@/hooks/useKeyboardSafeOverlay';
 import { TermsAgreement, TERMS_NOT_AGREED } from '@/components/TermsAgreement';
+import { OrWithEmail, SocialSignInButtons, useSocialProviders } from '@/components/SocialSignIn';
 import { X, Mail, Loader2, Eye, EyeOff } from 'lucide-react';
 import { 
   signInWithEmailAndPassword, 
@@ -29,6 +30,9 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [success, setSuccess] = useState<string | null>(null);
 
   const { ref: overlayRef, style: overlayStyle } = useKeyboardSafeOverlay();
+  // Google and Apple, once switched on: they need the tick too, so it moves above them
+  const providers = useSocialProviders();
+  const socialShown = mode !== 'reset' && providers.length > 0;
 
   if (!isOpen) return null;
 
@@ -113,6 +117,23 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
           </div>
         )}
 
+        {socialShown && (
+          <div className="space-y-4 mb-4">
+            <div className="rounded-xl bg-slate-50 p-3">
+              <TermsAgreement agreed={agreedToTerms} onChange={setAgreedToTerms} />
+            </div>
+            <SocialSignInButtons
+              providers={providers}
+              agreed={agreedToTerms}
+              onNeedAgreement={() => setError(TERMS_NOT_AGREED)}
+              onSignedIn={onClose}
+              onProblem={setError}
+              disabled={loading}
+            />
+            <OrWithEmail />
+          </div>
+        )}
+
         {/* Email Form */}
         <form onSubmit={handleEmailAuth} className="space-y-4">
           <div>
@@ -162,7 +183,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
             </div>
           )}
 
-          {mode === 'signup' && (
+          {mode === 'signup' && !socialShown && (
             <div className="rounded-xl bg-slate-50 p-3">
               <TermsAgreement agreed={agreedToTerms} onChange={setAgreedToTerms} />
             </div>

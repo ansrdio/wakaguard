@@ -122,6 +122,73 @@ export function readAhead(timeseries: ForecastHour[], nowMs: number, hours: numb
   return { kind, startsInHours, hottest, hours: span };
 }
 
+export interface HourAtGlance {
+  /** When the hour starts */
+  atMs: number;
+  /** Rounded °C, or null when the forecast has none */
+  temperature: number | null;
+  /** MET Norway's symbol for the hour, such as "rain" or "partlycloudy_day" */
+  symbol: string | null;
+}
+
+/**
+ * The hour under way and the ones after it, for the weather icon in the app's
+ * top bar and the few hours it opens onto.
+ */
+export function readHours(timeseries: ForecastHour[], nowMs: number, hours: number): HourAtGlance[] {
+  return timeseries
+    .map((hour) => ({ hour, startMs: Date.parse(hour.time ?? '') }))
+    .filter(({ startMs }) => Number.isFinite(startMs) && startMs + HOUR_MS > nowMs)
+    .sort((a, b) => a.startMs - b.startMs)
+    .slice(0, Math.max(1, Math.min(MAX_HOURS, Math.ceil(hours))))
+    .map(({ hour, startMs }) => {
+      const temperature = hour.data?.instant?.details?.air_temperature;
+      const symbol = hour.data?.next_1_hours?.summary?.symbol_code;
+      return {
+        atMs: startMs,
+        temperature: typeof temperature === 'number' ? Math.round(temperature) : null,
+        symbol: typeof symbol === 'string' ? symbol : null,
+      };
+    });
+}
+
+export interface DayOutlook {
+  /** The most serious thing in the rest of the day, or null when nothing is worth a word */
+  kind: WeatherKind | null;
+  /** When it starts */
+  startsAtMs: number | null;
+  /** The hottest temperature in the rest of the day, rounded */
+  hottest: number | null;
+}
+
+/**
+ * The most serious thing between now and `untilMs`, for the morning
+ * notification (morningWeather.ts). Like readAhead, but over the day.
+ */
+export function readDay(timeseries: ForecastHour[], nowMs: number, untilMs: number): DayOutlook {
+  let kind: WeatherKind | null = null;
+  let startsAtMs: number | null = null;
+  let hottest: number | null = null;
+  const coming = timeseries
+    .map((hour) => ({ hour, startMs: Date.parse(hour.time ?? '') }))
+    .filter(({ startMs }) => Number.isFinite(startMs) && startMs + HOUR_MS > nowMs && startMs < untilMs)
+    .sort((a, b) => a.startMs - b.startMs);
+  for (const { hour, startMs } of coming) {
+    const temperature = hour.data?.instant?.details?.air_temperature;
+    if (typeof temperature === 'number') hottest = Math.max(hottest ?? -Infinity, Math.round(temperature));
+    const found = kindOfHour(hour);
+    if (!found) continue;
+    if (kind === null || SERIOUSNESS.indexOf(found) < SERIOUSNESS.indexOf(kind)) {
+      kind = found;
+      startsAtMs = Math.max(nowMs, startMs);
+    }
+  }
+  return { kind, startsAtMs, hottest };
+}
+
+/** Where someone last looked at the weather, kept for the morning notification (morningWeather.ts) */
+export const WEATHER_AREAS = 'weatherAreas';
+
 /**
  * Only what the line uses from one hour: its symbol, rain and temperature.
  * Parts the forecast leaves out are left out here too (the database refuses
@@ -183,6 +250,18 @@ export async function forecastFor(area: { lat: number; lng: number; key: string 
   }
 }
 
+/** Kept on each look-up by someone signed in, unless the morning weather is switched off */
+export async function keepArea(uid: string, area: { lat: number; lng: number; key: string }): Promise<void> {
+  const db = admin.firestore();
+  const wanted = (await db.doc(`users/${uid}`).get()).get('morningWeather') !== false;
+  const ref = db.doc(`${WEATHER_AREAS}/${uid}`);
+  if (!wanted) {
+    await ref.delete();
+    return;
+  }
+  await ref.set({ key: area.key, lat: area.lat, lng: area.lng, at: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+}
+
 /**
  * The app asks with { lat, lng, hours }. Anyone signed in may ask, guests
  * included; the answer holds no position.
@@ -194,8 +273,16 @@ export const weatherAhead = functions.https.onCall(async (data, context) => {
   if (!inServiceArea(area)) throw new functions.https.HttpsError('out-of-range', 'Weather is only given for Nigeria');
   const hours = typeof data?.hours === 'number' && Number.isFinite(data.hours) ? data.hours : 3;
   const nowMs = Date.now();
+  // The rough area is kept for the morning weather, unless it is switched off
+  // in Settings (guests have no notifications to send it to)
+  if (context.auth.token.firebase?.sign_in_provider !== 'anonymous') {
+    await keepArea(context.auth.uid, area).catch((error) =>
+      functions.logger.warn('Could not keep the weather area', { error: String(error) }));
+  }
   try {
-    return { ...readAhead(await forecastFor(area, nowMs), nowMs, hours), credit: 'Data from MET Norway' };
+    const forecast = await forecastFor(area, nowMs);
+    // The hours are for the weather icon (build 24); older apps ignore them
+    return { ...readAhead(forecast, nowMs, hours), next: readHours(forecast, nowMs, MAX_HOURS), credit: 'Data from MET Norway' };
   } catch (error) {
     functions.logger.warn('Weather could not be had', { area: area.key, error: String(error) });
     throw new functions.https.HttpsError('unavailable', 'No forecast just now');

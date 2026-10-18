@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { MAX_EXTEND_MINUTES } from '../src/tripActionPlan';
 import {
   describeLocationStatus,
   describeTimeLeft,
@@ -9,6 +10,8 @@ import {
   DEFAULT_TRIP_MINUTES,
   initialsOf,
   joinNames,
+  MAX_EXTRA_MINUTES,
+  readExtraMinutes,
   textContactsByDefault,
   tripExpiryMs,
   validateTripPlan,
@@ -111,4 +114,14 @@ test('initialsOf: letters that stand in for a photo', () => {
   assert.equal(initialsOf('aunty ngozi'), 'AN');
   assert.equal(initialsOf('  Tunde   Bello  Adeyemi '), 'TB');
   assert.equal(initialsOf(''), '');
+});
+
+test('"More time…" takes 5 minutes to 12 hours in 5-minute steps, as much as the server takes', () => {
+  assert.equal(MAX_EXTRA_MINUTES, MAX_EXTEND_MINUTES);
+  assert.equal(readExtraMinutes(0, 20), 20);
+  assert.equal(readExtraMinutes(2, 45), 165);
+  assert.equal(readExtraMinutes(12, 0), 720);
+  assert.equal(readExtraMinutes(0, 0), null);
+  assert.equal(readExtraMinutes(12, 5), null);
+  assert.equal(readExtraMinutes(0, 7), null);
 });

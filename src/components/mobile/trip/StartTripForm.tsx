@@ -19,9 +19,11 @@ import {
   textContactsByDefault,
   validateTripPlan,
 } from '@/lib/tripPlanning';
-import { canBeTexted } from '@/lib/contactPhone';
+import { askedForNoTexts, canBeTexted } from '@/lib/contactPhone';
 import { TRAVEL_MODES, TravelMode, lastTravelMode, rememberTravelMode, tipBeforeSettingOff } from '@/lib/travelMode';
 import { TravelPicture } from '@/components/pictures/Pictures';
+import { VehicleFields } from '@/components/mobile/trip/VehicleFields';
+import { readVehicle, Vehicle } from '@/lib/vehicle';
 import { WeatherLine } from '@/components/mobile/trip/WeatherLine';
 import { useWeatherAhead } from '@/hooks/useWeatherAhead';
 import { hoursToLookAhead } from '@/lib/weatherWords';
@@ -32,6 +34,8 @@ export interface TripContact {
   /** Missing on a contact saved without a number the server can text */
   phoneE164?: string;
   phone?: string;
+  /** They asked WakaGuard to stop texting their number (set by the server) */
+  smsOptedOut?: boolean;
 }
 
 export interface StartTripRequest {
@@ -41,10 +45,14 @@ export interface StartTripRequest {
   alertName: string;
   /** Text the selected contacts the trip link as soon as the trip starts */
   textContacts: boolean;
+  /** Text them when the trip ends with "I've arrived" */
+  textOnArrival: boolean;
   /** A short trial run: same steps, and every text about it says it is a test */
   isTest: boolean;
   /** How they are travelling, or null when the question was left unanswered */
   travelMode: TravelMode | null;
+  /** The plate and other details, if they gave any (never for a trip on foot) */
+  vehicle: Vehicle | null;
 }
 
 interface StartTripFormProps {
@@ -99,6 +107,11 @@ export function StartTripForm({
   const [customOpen, setCustomOpen] = useState(false);
   // Starts on last time's answer, so most trips need no tap here at all
   const [travelMode, setTravelMode] = useState<TravelMode | null>(() => lastTravelMode());
+  // Optional and folded away: most people only see the plate once they board
+  const [vehicleOpen, setVehicleOpen] = useState(false);
+  const [plate, setPlate] = useState('');
+  const [vehicleDetails, setVehicleDetails] = useState('');
+  const vehicle = travelMode === 'foot' ? null : readVehicle(plate, vehicleDetails);
   // The weather here for as long as the trip is planned to take
   const weather = useWeatherAhead(true, hoursToLookAhead(durationMinutes));
   // Contacts are selected unless switched off, so one added a moment ago is included
@@ -108,6 +121,8 @@ export function StartTripForm({
   const [editingName, setEditingName] = useState(false);
   // null until the traveller ticks or unticks the box; until then it follows the trip length
   const [textContactsChoice, setTextContactsChoice] = useState<boolean | null>(null);
+  // Off unless ticked: it costs a text per contact on every trip
+  const [textOnArrival, setTextOnArrival] = useState(false);
   // Remembers how many contacts there were when "add another" was tapped, so
   // the small form closes by itself once the new contact has been saved
   const [addOpenAtCount, setAddOpenAtCount] = useState<number | null>(null);
@@ -170,7 +185,7 @@ export function StartTripForm({
       return;
     }
     rememberTravelMode(travelMode);
-    onStart({ ...plan, textContacts, isTest: false, travelMode });
+    onStart({ ...plan, textContacts, textOnArrival, isTest: false, travelMode, vehicle });
   };
 
   // A test needs everything a real trip needs except a length, which is fixed
@@ -182,7 +197,7 @@ export function StartTripForm({
       return;
     }
     rememberTravelMode(travelMode);
-    onStart({ ...plan, durationMinutes: TEST_TRIP_MINUTES, textContacts, isTest: true, travelMode });
+    onStart({ ...plan, durationMinutes: TEST_TRIP_MINUTES, textContacts, textOnArrival, isTest: true, travelMode, vehicle });
   };
 
   // Said again beside the buttons, where the person's thumb is
@@ -331,6 +346,22 @@ export function StartTripForm({
             {tipBeforeSettingOff(travelMode)}
           </p>
         )}
+        {travelMode !== 'foot' && (
+          vehicleOpen ? (
+            <div className="mt-3">
+              <VehicleFields plate={plate} details={vehicleDetails} onPlate={setPlate} onDetails={setVehicleDetails} idPrefix="start-vehicle" />
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setVehicleOpen(true)}
+              className="mt-3 text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+            >
+              <Plus className="w-4 h-4" aria-hidden="true" />
+              Add plate number or driver (optional)
+            </button>
+          )
+        )}
       </div>
 
       {/* Who */}
@@ -368,12 +399,19 @@ export function StartTripForm({
                     <span className="min-w-0 flex-1">
                       <span className="block font-medium text-slate-900 dark:text-white truncate">{contact.name}</span>
                       <span className="block text-xs text-slate-500 dark:text-slate-400">{contact.phone || 'No number saved'}</span>
-                      <span className="block text-sm text-amber-800 dark:text-amber-200 mt-1">
-                        This number cannot be texted, so {contact.name} will not be told.{' '}
-                        <button type="button" onClick={onManageContacts} className="font-semibold underline">
-                          Fix it
-                        </button>
-                      </span>
+                      {askedForNoTexts(contact) ? (
+                        <span className="block text-sm text-amber-800 dark:text-amber-200 mt-1">
+                          {contact.name} asked WakaGuard not to text their number, so they will not be told.
+                          Only they can turn texts back on, from the link in an earlier WakaGuard text.
+                        </span>
+                      ) : (
+                        <span className="block text-sm text-amber-800 dark:text-amber-200 mt-1">
+                          This number cannot be texted, so {contact.name} will not be told.{' '}
+                          <button type="button" onClick={onManageContacts} className="font-semibold underline">
+                            Fix it
+                          </button>
+                        </span>
+                      )}
                     </span>
                   </li>
                 );
@@ -491,6 +529,22 @@ export function StartTripForm({
               className="w-4 h-4 rounded border-slate-300 accent-brand-600 focus:ring-brand-500"
             />
             <span className="text-sm text-slate-700 dark:text-slate-200">Text them the trip link when I start</span>
+          </label>
+        )}
+        {contacts.length > 0 && (
+          <label className="flex items-start gap-3 mt-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={textOnArrival}
+              onChange={(e) => setTextOnArrival(e.target.checked)}
+              className="w-4 h-4 mt-0.5 rounded border-slate-300 accent-brand-600 focus:ring-brand-500"
+            />
+            <span className="text-sm text-slate-700 dark:text-slate-200">
+              Text them when I arrive
+              <span className="block text-xs text-slate-500 dark:text-slate-400">
+                One text to each of them when you tap &quot;I&apos;ve arrived&quot;
+              </span>
+            </span>
           </label>
         )}
       </div>

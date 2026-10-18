@@ -19,7 +19,7 @@ import { StartTripForm, StartTripRequest } from '@/components/mobile/trip/StartT
 import { ActiveTripCard } from '@/components/mobile/trip/ActiveTripCard';
 import { TripMapScreen } from '@/components/mobile/trip/TripMapScreen';
 import { getDeviceId, sendsTripLocation } from '@/lib/deviceId';
-import { canBeTexted, readContactPhone } from '@/lib/contactPhone';
+import { askedForNoTexts, canBeTexted, readContactPhone } from '@/lib/contactPhone';
 import { describeTripAlert } from '@/lib/alertOutcome';
 import { registerForPush } from '@/lib/pushRegistration';
 import { 
@@ -38,7 +38,13 @@ import { TripStatus } from '@/lib/types';
 import { Capacitor } from '@capacitor/core';
 import { shareSafeTripLink } from '@/lib/share';
 import { AuthModal } from '@/components/AuthModal';
-import { TRAVEL_MODES, TravelMode, isTravelMode, lastTravelMode, tipsFor, travelModeLabel } from '@/lib/travelMode';
+import { AppNotices } from '@/components/mobile/AppNotices';
+import { AddTimeSheet } from '@/components/mobile/trip/AddTimeSheet';
+import { ArriveUndoBar } from '@/components/mobile/trip/ArriveUndoBar';
+import { VehicleSheet } from '@/components/mobile/trip/VehicleSheet';
+import { storedVehicle, Vehicle } from '@/lib/vehicle';
+import { ARRIVE_UNDO_MS } from '@/lib/arriveUndo';
+import { TRAVEL_MODES, TravelMode, isTravelMode, lastTravelMode, tipsFor, tipsHeading } from '@/lib/travelMode';
 import { TravelPicture } from '@/components/pictures/Pictures';
 import { hasDoneKeepRunning, rememberKeepRunningDone, shouldOfferKeepRunning } from '@/lib/keepRunning';
 import { KeepRunningHelp } from '@/components/mobile/KeepRunningHelp';
@@ -92,6 +98,7 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
     endSafeTrip,
     extendSafeTrip,
     sendTripLocationFromHere,
+    setTripVehicle,
     triggerSOS,
     logCheckpointStop,
     loading,
@@ -127,7 +134,7 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
   const [savedAlertName, setSavedAlertName] = useState<string | null>(null);
 
   // Trusted contacts
-  const [trustedContacts, setTrustedContacts] = useState<{ id: string; name: string; phone?: string; phoneE164?: string; email?: string }[]>([]);
+  const [trustedContacts, setTrustedContacts] = useState<{ id: string; name: string; phone?: string; phoneE164?: string; email?: string; smsOptedOut?: boolean }[]>([]);
   // The server only texts contacts with a full number saved, so only these count as people who are told
   const textableContacts = trustedContacts.filter(canBeTexted);
   const untextableCount = trustedContacts.length - textableContacts.length;
@@ -191,6 +198,14 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
   // server. Until it is, the server goes by what it last knew and may alert the
   // contacts, so this stays on screen until it lands, and its arrival is told.
   const [unsentChange, setUnsentChange] = useState<'end' | 'extend' | null>(null);
+  // "More time…": any amount of extra time, from the trip card or a reminder's button
+  const [addTimeOpen, setAddTimeOpen] = useState(false);
+  // Vehicle details on the running trip
+  const [vehicleOpen, setVehicleOpen] = useState(false);
+  // "I've arrived" on the card waits a few seconds with an Undo (lib/arriveUndo.ts)
+  const [endingSince, setEndingSince] = useState<number | null>(null);
+  const endTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const endNowRef = useRef<() => void>(() => {});
   const waitUntilReceived = (change: 'end' | 'extend') => {
     setUnsentChange(change);
     waitForPendingWrites(db).then(
@@ -235,7 +250,7 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
     if (textableContacts.length === 0) {
       showToast(
         untextableCount > 0
-          ? 'None of your contacts has a number that can be texted. Fix them in Trusted contacts.'
+          ? 'None of your contacts can be texted. Open Trusted contacts to see why.'
           : 'No trusted contacts. Add contacts first.',
         'error'
       );
@@ -261,7 +276,7 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
     if (textableContacts.length === 0) {
       showToast(
         untextableCount > 0
-          ? 'None of your contacts has a number that can be texted. Fix them in Trusted contacts.'
+          ? 'None of your contacts can be texted. Open Trusted contacts to see why.'
           : 'No trusted contacts. Add contacts first.',
         'error'
       );
@@ -343,6 +358,8 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
       trustedContactIds: request.contactIds,
       isTest: request.isTest,
       travelMode: request.travelMode,
+      textOnArrival: request.textOnArrival,
+      vehicle: request.vehicle,
     });
 
     if (!result.success || !result.tripId) {
@@ -404,6 +421,8 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
     // The server follows up with contacts only if it texted them, so only then is one promised
     const alertBefore = activeTrip ? describeTripAlert(activeTrip) : null;
     const contactsWereTexted = !!alertBefore?.texted;
+    // "Text them when I arrive" was ticked: the server texts them (tripMonitor.ts)
+    const arrivalTexted = !contactsWereTexted && activeTrip?.textOnArrival === true && textableContacts.length > 0;
     
     setProcessing(true);
     const result = await endSafeTrip();
@@ -414,7 +433,9 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
       waitUntilReceived('end');
     } else if (result.success) {
       showToast(
-        !contactsWereTexted
+        arrivalTexted
+          ? 'Trip ended. Glad you made it. Your contacts are being told you arrived.'
+          : !contactsWereTexted
           ? 'Trip ended. Glad you made it.'
           : alertBefore?.kind === 'sos'
             ? 'Trip ended. Your contacts are being told you ended the SOS.'
@@ -423,7 +444,7 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
       );
       // Contacts who were alerted get a text from the server. Otherwise offer
       // to let them know through the share sheet.
-      if (currentShareUrl && !contactsWereTexted && !result.pending) {
+      if (currentShareUrl && !contactsWereTexted && !arrivalTexted && !result.pending) {
         try {
           await shareSafeTripLink(currentShareUrl, { mode: 'end', destination: currentDestination });
         } catch (e) {
@@ -436,6 +457,55 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
     return result.success;
   };
 
+  /** "I've arrived" on the card or trip map: ends after the undo wait, or at once if the app is put away */
+  const startEnding = () => {
+    if (endTimer.current !== null || processing) return;
+    setEndingSince(Date.now());
+    endTimer.current = setTimeout(() => endNowRef.current(), ARRIVE_UNDO_MS);
+  };
+  const stopWaiting = () => {
+    if (endTimer.current !== null) clearTimeout(endTimer.current);
+    endTimer.current = null;
+    setEndingSince(null);
+  };
+  // Read when the wait runs out, so the end uses the screen as it is then
+  endNowRef.current = () => {
+    if (endTimer.current === null) return;
+    stopWaiting();
+    void handleEndSafeTrip();
+  };
+  // Put away or locked during the wait: end now. Waiting would leave the
+  // trip running, watched, after they said they had arrived
+  useEffect(() => {
+    if (endingSince === null) return;
+    const endIfHidden = () => {
+      if (document.visibilityState === 'hidden') endNowRef.current();
+    };
+    document.addEventListener('visibilitychange', endIfHidden);
+    window.addEventListener('pagehide', endIfHidden);
+    return () => {
+      document.removeEventListener('visibilitychange', endIfHidden);
+      window.removeEventListener('pagehide', endIfHidden);
+    };
+  }, [endingSince]);
+  useEffect(() => () => {
+    if (endTimer.current !== null) clearTimeout(endTimer.current);
+  }, []);
+  // The trip ended some other way meanwhile (another phone, a reminder's button): nothing left to wait for
+  useEffect(() => {
+    if (!activeTrip && endingSince !== null) stopWaiting();
+  }, [activeTrip, endingSince]);
+
+  const handleSaveVehicle = async (vehicle: Vehicle | null) => {
+    setVehicleOpen(false);
+    setProcessing(true);
+    const result = await setTripVehicle(vehicle);
+    setProcessing(false);
+    if (!result.success) showToast(result.error || 'Could not save the vehicle', 'error');
+    else if (result.pending) showToast('Saved on this phone. It will be sent when you are back online.', 'error');
+    else showToast(vehicle ? 'Vehicle details saved' : 'Vehicle details removed', 'success');
+  };
+
   /** Adds time; true once it has been added (or saved on the phone to be sent) */
   const handleExtendTrip = async (minutes: number): Promise<boolean> => {
     if (!uid || isAnonymous) return false;
@@ -445,7 +515,7 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
     if (result.success && result.pending) {
       waitUntilReceived('extend');
     } else if (result.success) {
-      showToast(`Added ${minutes} minutes`, 'success');
+      showToast(`Added ${formatDuration(minutes)}`, 'success');
     } else {
       showToast(result.error || 'Failed to add time', 'error');
     }
@@ -470,6 +540,12 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
       // Begun before the app reloaded, and the time has already moved: it was added then
       if (notificationAction.action === 'add15' && notificationAction.deadlineMs != null && deadline !== notificationAction.deadlineMs) {
         forgetPendingPress();
+        return;
+      }
+      if (notificationAction.action === 'more') {
+        // Nothing is changed until they choose an amount
+        forgetPendingPress();
+        setAddTimeOpen(true);
         return;
       }
       noteDeadlineAtPress(deadline);
@@ -715,6 +791,7 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
   if (!uid || isAnonymous) {
     return (
       <div className="absolute inset-0 overflow-y-auto px-4 pt-20 pb-28 bg-slate-50 dark:bg-slate-900" style={{ marginTop: 'calc(env(safe-area-inset-top, 0px) + 56px)' }}>
+        <AppNotices />
         <div className="text-center py-12">
           <Shield className="w-16 h-16 text-brand-600 mx-auto mb-4" />
           <h1 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Safe Trip</h1>
@@ -764,6 +841,7 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
 
   return (
     <div ref={scrollRef} className="absolute inset-0 overflow-y-auto px-4 pt-4 pb-28 space-y-4 bg-slate-50 dark:bg-slate-900 touch-pan-y" style={{ marginTop: 'calc(env(safe-area-inset-top, 0px) + 56px)', WebkitOverflowScrolling: 'touch' }}>
+      <AppNotices />
       {unsentChange && (
         <section
           role="status"
@@ -823,6 +901,26 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
         </section>
       )}
       {showKeepRunning && <KeepRunningHelp onClose={() => setShowKeepRunning(false)} />}
+      {endingSince !== null && <ArriveUndoBar startedMs={endingSince} onUndo={stopWaiting} />}
+      {vehicleOpen && activeTrip && (
+        <VehicleSheet
+          current={storedVehicle(activeTrip.vehicle)}
+          processing={processing}
+          onClose={() => setVehicleOpen(false)}
+          onSave={(vehicle) => void handleSaveVehicle(vehicle)}
+        />
+      )}
+      {addTimeOpen && activeTrip && (
+        <AddTimeSheet
+          endsAtMs={activeTrip.endsAt?.toMillis() ?? null}
+          processing={processing}
+          onClose={() => setAddTimeOpen(false)}
+          onAdd={(minutes) => {
+            setAddTimeOpen(false);
+            void handleExtendTrip(minutes);
+          }}
+        />
+      )}
 
       {/* ============================================ */}
       {/* 1. THE TRIP: start form, or the trip in progress */}
@@ -833,9 +931,11 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
           watcherNames={watcherNames}
           unsynced={activeTripUnsynced}
           locationFromElsewhere={!sendsTripLocation(activeTrip.trackingDeviceId, getDeviceId())}
-          processing={processing}
-          onArrive={handleEndSafeTrip}
+          processing={processing || endingSince !== null}
+          onArrive={startEnding}
           onExtend={handleExtendTrip}
+          onMoreTime={() => setAddTimeOpen(true)}
+          onEditVehicle={() => setVehicleOpen(true)}
           onSendFromHere={handleSendFromHere}
           onViewMap={openTripMap}
           onShare={handleShareLink}
@@ -896,7 +996,7 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
             <span className={moreSub}>{trustedContacts.length === 0 ? 'None saved yet' : `${trustedContacts.length} saved`}</span>
             {untextableCount > 0 && (
               <span className="block text-sm font-medium text-amber-700 dark:text-amber-300">
-                {untextableCount === 1 ? '1 has a number that cannot be texted' : `${untextableCount} have numbers that cannot be texted`}
+                {untextableCount === 1 ? '1 cannot be texted' : `${untextableCount} cannot be texted`}
               </span>
             )}
           </span>
@@ -934,7 +1034,7 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
           <span className="flex-1 min-w-0">
             <span className={moreTitle}>Safety tips</span>
             <span className={moreSub}>
-              {tipsMode ? `For ${travelModeLabel(tipsMode).toLowerCase()}` : 'For the way you travel'}
+              {tipsHeading(tipsMode)}
             </span>
           </span>
           {tipsExpanded
@@ -1046,7 +1146,7 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
           onClose={closeTripMap}
           onArrive={() => {
             closeTripMap();
-            handleEndSafeTrip();
+            startEnding();
           }}
           onExtend={handleExtendTrip}
         />
@@ -1108,7 +1208,7 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
               {textableContacts.length === 0 && (
                 <p className="text-xs text-amber-600 mt-2 text-center">
                   {untextableCount > 0
-                    ? 'None of your contacts has a number that can be texted. Fix them in Trusted contacts.'
+                    ? 'None of your contacts can be texted. Open Trusted contacts to see why.'
                     : 'Add trusted contacts to enable SMS alerts'}
                 </p>
               )}
@@ -1224,7 +1324,11 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
                         <div>
                           <p className="font-medium text-slate-900">{contact.name}</p>
                           <p className="text-xs text-slate-500">{contact.phoneE164 || contact.phone}</p>
-                          {!canBeTexted(contact) && (
+                          {askedForNoTexts(contact) ? (
+                            <p className="text-xs font-medium text-amber-700 mt-0.5">
+                              Asked WakaGuard not to text this number, so will not be told about your trips.
+                            </p>
+                          ) : !canBeTexted(contact) && (
                             <p className="text-xs font-medium text-amber-700 mt-0.5">
                               This number cannot be texted. Remove it and add it again with the full number.
                             </p>

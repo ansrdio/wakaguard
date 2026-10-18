@@ -202,6 +202,18 @@ test('a road report counts once another tester votes it up', () => {
   assert.deepEqual(check?.confirmed, [{ id: confirmed.id.slice(0, 6), upvoters: ['tunde', 'bisi'] }]);
 });
 
+test('a road report posted from far away stays up but earns nothing, even voted up', () => {
+  const far = report('uid-ada', MONDAY, { postedFarAway: true });
+  const near = report('uid-ada', MONDAY + HOUR);
+  const result = score({
+    users: users('ada', 'tunde'),
+    reports: [far, near],
+    votes: [upvote('uid-tunde', far.id), upvote('uid-tunde', near.id)],
+  });
+  assert.equal(rowFor(result, 'ada')?.roadReports, 1);
+  assert.deepEqual(checkFor(result, 'ada')?.reports.rejected, { 'posted from far away': 1 });
+});
+
 test('at most three road reports count on one day', () => {
   const reports = [0, 1, 2, 3].map((hour) => report('uid-ada', MONDAY + hour * HOUR));
   const result = score({

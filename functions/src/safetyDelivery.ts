@@ -40,10 +40,30 @@ export function isSmsEnabled(): boolean {
   return getSetting('SMS_ENABLED', 'sms.enabled') !== 'false';
 }
 
+/** Numbers whose owners asked for no more WakaGuard texts (textOptOut.ts) */
+export const OPT_OUTS = 'smsOptOuts';
+
 /**
- * Load a user's trusted contacts that have a valid phone number, oldest first,
- * capped at MAX_RECIPIENTS. If contactIds is non-empty, only those contacts
- * are considered.
+ * Which of these numbers have asked for no more texts. If the list cannot be
+ * read, none are left out: an outage must not silence a safety alert.
+ */
+export async function stoppedNumbers(phones: string[]): Promise<Set<string>> {
+  const unique = [...new Set(phones)];
+  if (unique.length === 0) return new Set();
+  try {
+    const db = admin.firestore();
+    const snaps = await db.getAll(...unique.map((p) => db.doc(`${OPT_OUTS}/${p}`)));
+    return new Set(snaps.filter((s) => s.get('stopped') === true).map((s) => s.id));
+  } catch (err) {
+    console.error(`Could not read the list of stopped numbers; texting everyone: ${String(err)}`);
+    return new Set();
+  }
+}
+
+/**
+ * Load a user's trusted contacts that have a valid phone number and have not
+ * asked for texts to stop, oldest first, capped at MAX_RECIPIENTS. If
+ * contactIds is non-empty, only those contacts are considered.
  */
 export async function getTrustedContacts(
   uid: string,
@@ -63,11 +83,17 @@ export async function getTrustedContacts(
     contacts.push({ ...c, id: doc.id, createdAtMs: c.createdAt?.toMillis?.() ?? 0 });
   });
 
-  contacts.sort((a, b) => a.createdAtMs - b.createdAtMs || a.id.localeCompare(b.id));
-  if (contacts.length > MAX_RECIPIENTS) {
-    console.warn(`User ${uid} has ${contacts.length} contacts; only the first ${MAX_RECIPIENTS} are messaged`);
+  const stopped = await stoppedNumbers(contacts.map((c) => c.phoneE164));
+  const textable = contacts.filter((c) => !stopped.has(c.phoneE164));
+  if (stopped.size > 0) {
+    console.log(`User ${uid}: ${stopped.size} contact(s) asked for no texts and are left out`);
   }
-  return contacts.slice(0, MAX_RECIPIENTS).map(({ createdAtMs, ...c }) => c);
+
+  textable.sort((a, b) => a.createdAtMs - b.createdAtMs || a.id.localeCompare(b.id));
+  if (textable.length > MAX_RECIPIENTS) {
+    console.warn(`User ${uid} has ${textable.length} contacts; only the first ${MAX_RECIPIENTS} are messaged`);
+  }
+  return textable.slice(0, MAX_RECIPIENTS).map(({ createdAtMs, ...c }) => c);
 }
 
 export interface SenderProfile {

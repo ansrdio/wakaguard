@@ -17,7 +17,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { collection, doc, setDoc, updateDoc, query, where, onSnapshot, Timestamp, addDoc, serverTimestamp, increment } from 'firebase/firestore';
+import { collection, doc, setDoc, updateDoc, query, where, onSnapshot, Timestamp, addDoc, serverTimestamp, increment, deleteField } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuthedUser } from '@/hooks/useAuthedUser';
 import { generateShareToken, generateSecretKey, calculateTripExpiry, calculateTimerExpiry, calculateTripEnd } from '@/lib/safety';
@@ -26,7 +26,9 @@ import { tripExpiryMs } from '@/lib/tripPlanning';
 import { describeFailedSave, reachedServer } from '@/lib/firestoreWrites';
 import { settleWithin } from '@/lib/timeLimit';
 import { getDeviceId } from '@/lib/deviceId';
+import { newPressId, sendTripActionBackup } from '@/lib/tripActionBackup';
 import { Trip, TripStatus, SafetyTimer, AlertType } from '@/lib/types';
+import type { Vehicle } from '@/lib/vehicle';
 
 /**
  * Configuration options for starting a Safe Trip.
@@ -39,6 +41,10 @@ export interface SafeTripOptions {
   isTest?: boolean;
   /** How the traveller is travelling (an id from lib/travelMode.ts), when they said */
   travelMode?: string | null;
+  /** Text the trip's contacts when it ends with "I've arrived" (functions/src/tripMonitor.ts) */
+  textOnArrival?: boolean;
+  /** What they are riding in, if they said (lib/vehicle.ts) */
+  vehicle?: Vehicle | null;
 }
 
 /**
@@ -88,6 +94,8 @@ interface UseSafetyReturn {
   extendSafeTrip: (minutes: number) => Promise<{ success: boolean; pending?: boolean; error?: string }>;
   /** Send the trip's positions from this device instead of the one it was started on */
   sendTripLocationFromHere: () => Promise<{ success: boolean; pending?: boolean; error?: string }>;
+  /** Add, change or remove the vehicle on the running trip */
+  setTripVehicle: (vehicle: Vehicle | null) => Promise<{ success: boolean; pending?: boolean; error?: string }>;
   /** Acknowledge the Safe Trip timer (check-in without ending trip) */
   acknowledgeSafeTripTimer: () => Promise<{ success: boolean; error?: string }>;
   
@@ -505,6 +513,9 @@ export function useSafety(): UseSafetyReturn {
         ...(options.isTest ? { isTest: true } : {}),
         // Kept with the private trip only. The page contacts open does not get it from the app
         ...(options.travelMode ? { travelMode: options.travelMode } : {}),
+        ...(options.textOnArrival ? { textOnArrival: true } : {}),
+        // Private until contacts are alerted; the server copies it to their page then
+        ...(options.vehicle ? { vehicle: options.vehicle } : {}),
         // Planned versus actual, for learning how long trips really take
         startLocation: lastLocation ? { lat: lastLocation.lat, lng: lastLocation.lng } : null,
         extensionCount: 0,
@@ -554,7 +565,7 @@ export function useSafety(): UseSafetyReturn {
         endLocation: activeTrip.lastLocation
           ? { lat: activeTrip.lastLocation.lat, lng: activeTrip.lastLocation.lng }
           : null,
-      }));
+      }), undefined, undefined, () => sendTripActionBackup(uid, activeTrip.id, activeTrip.locationKey, { action: 'end' }));
 
       updateDoc(doc(db, 'sharedTrips', activeTrip.id), { status: TripStatus.COMPLETED }).catch(() => {});
 
@@ -590,13 +601,16 @@ export function useSafety(): UseSafetyReturn {
       );
       const update = { endsAt, expiresAt: Timestamp.fromMillis(expiryMs) };
 
+      // The same press may also go by the backup route; its id stops it being added twice
+      const requestId = newPressId();
       const saved = await reachedServer(updateDoc(doc(db, 'users', uid, 'trips', activeTrip.id), {
         ...update,
         extensionCount: increment(1),
         extendedMinutes: increment(minutes),
         // Lets the server tell time just added from a deadline set long ago
         extendedAt: serverTimestamp(),
-      }));
+        lastExtendRequestId: requestId,
+      }), undefined, undefined, () => sendTripActionBackup(uid, activeTrip.id, activeTrip.locationKey, { action: 'extend', minutes, requestId }));
       updateDoc(doc(db, 'sharedTrips', activeTrip.id), update).catch(() => {});
 
       return { success: true, pending: !saved };
@@ -617,6 +631,19 @@ export function useSafety(): UseSafetyReturn {
     } catch (error) {
       console.error('Error moving trip location to this device:', error);
       return { success: false, error: 'Could not switch to this phone' };
+    }
+  }, [uid, activeTrip]);
+
+  // The plate is usually only seen on boarding, so it can be added once the trip is running
+  const setTripVehicle = useCallback(async (vehicle: Vehicle | null) => {
+    if (!uid || !activeTrip) return { success: false, error: 'No active trip' };
+    try {
+      const saved = await reachedServer(
+        updateDoc(doc(db, 'users', uid, 'trips', activeTrip.id), { vehicle: vehicle ?? deleteField() })
+      );
+      return { success: true, pending: !saved };
+    } catch (error) {
+      return { success: false, error: describeFailedSave('Could not save the vehicle', error) };
     }
   }, [uid, activeTrip]);
 
@@ -747,6 +774,7 @@ export function useSafety(): UseSafetyReturn {
     endSafeTrip,
     extendSafeTrip,
     sendTripLocationFromHere,
+    setTripVehicle,
     acknowledgeSafeTripTimer,
     // Quick actions
     sendQuickCheckIn,

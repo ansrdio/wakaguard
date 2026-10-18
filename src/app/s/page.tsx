@@ -12,6 +12,8 @@ import { readTripPath, tripTitle } from '@/lib/tripPath';
 import { isTravelMode, travelModeLabel } from '@/lib/travelMode';
 import { TravelPicture } from '@/components/pictures/Pictures';
 import { useSharedTrip } from '@/hooks/useSharedTrip';
+import { StopTexts } from '@/components/trip/StopTexts';
+import { storedVehicle, vehicleSummary } from '@/lib/vehicle';
 
 // Leaflet needs the browser, so the map is left out of the prerendered page
 const TripMap = dynamic(() => import('@/components/trip/TripMap'), {
@@ -52,7 +54,7 @@ function Shell({ children, pill }: { children: React.ReactNode; pill?: React.Rea
   );
 }
 
-function Notice({ title, children }: { title: string; children: React.ReactNode }) {
+function Notice({ title, children, after }: { title: string; children: React.ReactNode; after?: React.ReactNode }) {
   return (
     <Shell>
       <main className="flex-1 flex items-center justify-center p-4">
@@ -62,6 +64,7 @@ function Notice({ title, children }: { title: string; children: React.ReactNode 
           </div>
           <h1 className="text-xl font-bold text-slate-900 mb-2">{title}</h1>
           <p className="text-sm text-slate-600">{children}</p>
+          {after && <div className="mt-6 text-left">{after}</div>}
         </div>
       </main>
     </Shell>
@@ -102,7 +105,7 @@ function SharedTripContent() {
   const isOpen = trip && (trip.status === TripStatus.ACTIVE || trip.status === TripStatus.EMERGENCY);
   if (failed || !trip || !isOpen || isTripExpired(trip.expiresAt)) {
     return (
-      <Notice title="This trip is no longer shared">
+      <Notice title="This trip is no longer shared" after={<StopTexts token={token} who={trip?.name?.trim() || ''} />}>
         The trip has ended or the link has expired. If you were told someone is overdue and have not heard from
         them, try calling them.
       </Notice>
@@ -110,6 +113,7 @@ function SharedTripContent() {
   }
 
   const who = trip.name?.trim() || '';
+  const vehicle = storedVehicle(trip.vehicle);
   const isEmergency = trip.status === TripStatus.EMERGENCY;
 
   // The server sets overdueAt once contacts are alerted; before that, a passed
@@ -236,6 +240,12 @@ function SharedTripContent() {
                 </div>
               </div>
             )}
+            {vehicle && (
+              <div className="p-4">
+                <p className="text-sm text-slate-500">Vehicle</p>
+                <p className="text-lg font-bold text-slate-900 break-words">{vehicleSummary(vehicle)}</p>
+              </div>
+            )}
           </div>
 
           {(mapsUrl || callFor112) && (
@@ -268,6 +278,7 @@ function SharedTripContent() {
             and the dot where it last reported. It updates while their phone has signal.
           </p>
           <p className="text-xs text-slate-500">This link stops working when the trip ends.</p>
+          <StopTexts token={token} who={who} />
         </section>
       </main>
     </Shell>

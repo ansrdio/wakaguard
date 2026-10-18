@@ -237,6 +237,19 @@ function buildReportData(uid: string) {
   };
 }
 
+/** A report marked as posted from far away (src/lib/reportDistance.ts) */
+async function createFarReport(ctx: AppContext, uid: string, id: string) {
+  await setDoc(doc(ctx.db, 'reports', id), { ...buildReportData(uid), postedFarAway: true });
+}
+
+async function removeFarMark(ctx: AppContext, id: string) {
+  await updateDoc(doc(ctx.db, 'reports', id), { postedFarAway: deleteField() });
+}
+
+async function editFarReport(ctx: AppContext, id: string) {
+  await updateDoc(doc(ctx.db, 'reports', id), { description: 'Edited, still marked' });
+}
+
 async function createReport(ctx: AppContext, uid: string) {
   const reportRef = doc(ctx.db, 'reports', ids.reportId);
   await setDoc(reportRef, buildReportData(uid));
@@ -492,6 +505,22 @@ async function adminAddTravelMode(token: string) {
     body: JSON.stringify({ fields: { travelMode: { stringValue: 'okada' } } })
   });
   if (!response.ok) throw new Error(`Could not add the way of travelling: ${response.status}`);
+}
+
+/** Puts the vehicle on the shared trip, as the server does when contacts are alerted */
+async function adminAddVehicle(token: string) {
+  const url = `http://127.0.0.1:8080/v1/projects/${getProjectId()}/databases/(default)/documents/sharedTrips/${token}`
+    + '?updateMask.fieldPaths=vehicle';
+  const response = await fetch(url, {
+    method: 'PATCH',
+    headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fields: { vehicle: { mapValue: { fields: { plate: { stringValue: 'TEST 01' }, details: { stringValue: 'Blue bus' } } } } } })
+  });
+  if (!response.ok) throw new Error(`Could not add the vehicle: ${response.status}`);
+}
+
+async function sharedTripChangeVehicle(ctx: AppContext, token: string) {
+  await updateDoc(doc(ctx.db, 'sharedTrips', token), { vehicle: { plate: 'OTHER 02', details: '' } });
 }
 
 async function adminAddPathAndName(token: string) {
@@ -814,6 +843,34 @@ async function run() {
     const email2 = `smoke2_${runId}@example.com`;
     user2Uid = await signUpEmailPassword(user2, email2, 'SmokePass123!');
 
+    // ---- App-wide switches: everyone reads config/app, nobody writes it ----
+    await runStep('Guest: read app config', async () => {
+      await getDoc(doc(guest.db, 'config', 'app'));
+    });
+    await runStep('User: read app config', async () => {
+      await getDoc(doc(user.db, 'config', 'app'));
+    });
+    await runStep('User: write app config denied', () =>
+      setDoc(doc(user.db, 'config', 'app'), { minBuild: 1 }), true
+    );
+    await runStep('Guest: list config denied', async () => {
+      await getDocs(collection(guest.db, 'config'));
+    }, true);
+    await runStep('User: read other config doc denied', async () => {
+      await getDoc(doc(user.db, 'config', 'secrets'));
+    }, true);
+
+    // ---- Stopped numbers: server only (functions/src/textOptOut.ts) ----
+    await runStep('User: read stopped numbers denied', async () => {
+      await getDoc(doc(user.db, 'smsOptOuts', '+2340000000001'));
+    }, true);
+    await runStep('User: add a stopped number denied', () =>
+      setDoc(doc(user.db, 'smsOptOuts', '+2340000000001'), { stopped: true }), true
+    );
+    await runStep('Guest: read stop tries denied', async () => {
+      await getDoc(doc(guest.db, 'textOptOutTries', 'any_trip'));
+    }, true);
+
     // ---- User document: only app-written fields, usernames must be reserved ----
     const name1 = `Smoke_${runId.slice(-12)}`;
     const name2 = `Other_${runId.slice(-12)}`;
@@ -843,6 +900,13 @@ async function run() {
       })
     );
     await runStep('User: set alert name', () => userDocUpdate(user, userUid, { alertName: 'Ada' }));
+    await runStep('User: switch the morning weather off', () => userDocUpdate(user, userUid, { morningWeather: false }));
+    await runStep('User: set the morning weather to a word denied', () =>
+      userDocUpdate(user, userUid, { morningWeather: 'no' }), true
+    );
+    await runStep('User: read the kept weather areas denied', async () => {
+      await getDoc(doc(user.db, 'weatherAreas', userUid));
+    }, true);
     await runStep('User: set over-long alert name denied', () =>
       userDocUpdate(user, userUid, { alertName: 'x'.repeat(31) }), true
     );
@@ -949,6 +1013,10 @@ async function run() {
     );
 
     await runStep('User: create report', () => createReport(user, userUid));
+    const farId = `far_${runId}`;
+    await runStep('User: create report marked as posted from far away', () => createFarReport(user, userUid, farId));
+    await runStep('User: edit a far-away report and keep the mark', () => editFarReport(user, farId));
+    await runStep('User: remove the far-away mark denied', () => removeFarMark(user, farId), true);
 
     let photoUrl = '';
     await runStep('User: upload photo', async () => {
@@ -1009,6 +1077,13 @@ async function run() {
     await runStep('Server: add how they are travelling to shared trip', () => adminAddTravelMode(ids.tripId));
     await runStep('User: update shared trip after the server added how they are travelling', () =>
       sharedTripUpdateAfterServerFields(user, ids.tripId)
+    );
+    await runStep('Server: add the vehicle to shared trip', () => adminAddVehicle(ids.tripId));
+    await runStep('User: update shared trip after the server added the vehicle', () =>
+      sharedTripUpdateAfterServerFields(user, ids.tripId)
+    );
+    await runStep('User: changing the vehicle on the shared trip denied', () =>
+      sharedTripChangeVehicle(user, ids.tripId), true
     );
     await runStep('User: changing the shared trip path denied', () =>
       sharedTripChangePath(user, ids.tripId), true

@@ -18,6 +18,7 @@ import { ReportPicture } from '@/components/pictures/Pictures';
 import { checkForDuplicates, checkRateLimit } from '@/lib/actions';
 import { reverseGeocode } from '@/lib/geocoding';
 import { findPosition } from '@/lib/locationCheck';
+import { isPostedFarAway, whereThePhoneIs } from '@/lib/reportDistance';
 import { Toast, ToastType } from '@/components/ui/Toast';
 import dynamic from 'next/dynamic';
 
@@ -265,7 +266,9 @@ export function CreateReportModal({ isOpen, onClose, defaultState, initialLocati
         }
       }
       const expiresAt = computeExpiry(formData.type);
-      
+      // Marked, not refused, when posted far from where the phone is (lib/reportDistance.ts)
+      const farAway = isPostedFarAway(await whereThePhoneIs(), formData.location);
+
       const reportData: Record<string, unknown> = {
         uid,
         type: formData.type,
@@ -282,6 +285,7 @@ export function CreateReportModal({ isOpen, onClose, defaultState, initialLocati
         commentCount: 0,
         flagCount: 0,
         photoUrls: [],
+        ...(farAway ? { postedFarAway: true } : {}),
       };
 
       // Add checkpoint-specific fields if it's a checkpoint report

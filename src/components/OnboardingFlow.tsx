@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { TermsAgreement, TERMS_NOT_AGREED } from '@/components/TermsAgreement';
+import { OrWithEmail, SocialSignInButtons, useSocialProviders } from '@/components/SocialSignIn';
 import { OnboardingTutorial } from './OnboardingTutorial';
 import { Bell, BellOff, Loader2, ChevronRight, Mail, Eye, EyeOff } from 'lucide-react';
 import Image from 'next/image';
@@ -36,6 +37,9 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   const [authError, setAuthError] = useState<string | null>(null);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [authSuccess, setAuthSuccess] = useState<string | null>(null);
+  // Google and Apple, once switched on: they need the tick too, so it moves above them
+  const providers = useSocialProviders();
+  const socialShown = authMode !== 'reset' && providers.length > 0;
 
   useEffect(() => {
     if (typeof window !== 'undefined' && 'Notification' in window) {
@@ -238,6 +242,23 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             </div>
           )}
 
+          {socialShown && (
+            <div className="space-y-4 mb-4">
+              <div className="rounded-2xl bg-slate-50 p-3">
+                <TermsAgreement agreed={agreedToTerms} onChange={setAgreedToTerms} />
+              </div>
+              <SocialSignInButtons
+                providers={providers}
+                agreed={agreedToTerms}
+                onNeedAgreement={() => setAuthError(TERMS_NOT_AGREED)}
+                onSignedIn={handleAuthComplete}
+                onProblem={setAuthError}
+                disabled={authLoading}
+              />
+              <OrWithEmail />
+            </div>
+          )}
+
           {/* Email Form */}
           <form onSubmit={handleEmailAuth} className="space-y-4">
             <div>
@@ -287,7 +308,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
               </div>
             )}
 
-            {authMode === 'signup' && (
+            {authMode === 'signup' && !socialShown && (
               <div className="rounded-2xl bg-slate-50 p-3">
                 <TermsAgreement agreed={agreedToTerms} onChange={setAgreedToTerms} />
               </div>

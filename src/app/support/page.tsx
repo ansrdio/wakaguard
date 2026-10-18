@@ -92,6 +92,10 @@ export default function SupportPage() {
                     if the trip is still running, they get a text with your last known location and the trip link.
                   </li>
                   <li>
+                    <strong>When you arrive:</strong> only if &quot;Text them when I arrive&quot; was ticked when
+                    you started. They get one text when you tap &quot;I&apos;ve arrived&quot;.
+                  </li>
+                  <li>
                     <strong>If you press SOS:</strong> straight away.
                   </li>
                   <li>

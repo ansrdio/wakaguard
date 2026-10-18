@@ -8,6 +8,7 @@ import { TripLocationLine } from '@/components/mobile/trip/TripLocationLine';
 import { describeTripAlert, watcherCaption } from '@/lib/alertOutcome';
 import { isTravelMode, tipOnTheWay, travelModeLabel } from '@/lib/travelMode';
 import { TravelPicture } from '@/components/pictures/Pictures';
+import { storedVehicle, vehicleSummary } from '@/lib/vehicle';
 import { WeatherLine } from '@/components/mobile/trip/WeatherLine';
 import { useWeatherAhead } from '@/hooks/useWeatherAhead';
 import { hoursToLookAhead } from '@/lib/weatherWords';
@@ -23,6 +24,10 @@ interface ActiveTripCardProps {
   processing: boolean;
   onArrive: () => void;
   onExtend: (minutes: number) => void;
+  /** Open "More time…" for an amount none of the buttons gives */
+  onMoreTime: () => void;
+  /** Add or change the vehicle's plate and details */
+  onEditVehicle: () => void;
   /** Send the trip's location from this phone instead of the other one */
   onSendFromHere: () => void;
   /** Open the trip on a map */
@@ -95,6 +100,8 @@ export function ActiveTripCard({
   processing,
   onArrive,
   onExtend,
+  onMoreTime,
+  onEditVehicle,
   onSendFromHere,
   onViewMap,
   onShare,
@@ -120,6 +127,7 @@ export function ActiveTripCard({
   const weather = useWeatherAhead(!isEmergency, hoursToLookAhead(endsAtMs != null ? (endsAtMs - nowMs) / 60000 : 180));
   // What the server recorded about texting this trip's contacts; the card says that and no more
   const alert = describeTripAlert(trip);
+  const vehicle = storedVehicle(trip.vehicle);
 
   return (
     <div className="space-y-3">
@@ -182,7 +190,7 @@ export function ActiveTripCard({
               </span>
               <p className="min-w-0 text-sm text-slate-600 dark:text-slate-300">
                 <span className="block font-semibold text-slate-900 dark:text-white">{joinNames(watcherNames)}</span>
-                {watcherCaption(alert, watcherNames.length)}
+                {watcherCaption(alert, watcherNames.length, trip.textOnArrival === true)}
               </p>
             </>
           ) : (
@@ -206,6 +214,30 @@ export function ActiveTripCard({
               <span className="block font-semibold text-slate-900 dark:text-white">{travelModeLabel(trip.travelMode)}</span>
               {tipOnTheWay(trip.travelMode)}
             </p>
+          </div>
+        )}
+
+        {/* The vehicle: the plate is usually only seen on boarding, so it can be added now */}
+        {trip.travelMode !== 'foot' && (
+          <div className={`${divider} px-5 py-3 flex items-center justify-between gap-3`}>
+            <p className="min-w-0 text-sm text-slate-600 dark:text-slate-300">
+              {vehicle ? (
+                <>
+                  <span className="block font-semibold text-slate-900 dark:text-white break-words">{vehicleSummary(vehicle)}</span>
+                  Your contacts see this only if you don&apos;t arrive
+                </>
+              ) : (
+                'Add the plate number or driver, in case you need help'
+              )}
+            </p>
+            <button
+              type="button"
+              onClick={onEditVehicle}
+              disabled={processing}
+              className="flex-shrink-0 text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline disabled:opacity-50"
+            >
+              {vehicle ? 'Change' : 'Add'}
+            </button>
           </div>
         )}
 
@@ -313,6 +345,18 @@ export function ActiveTripCard({
               </button>
             ))}
           </div>
+          <button
+            type="button"
+            onClick={onMoreTime}
+            disabled={processing}
+            className={`mt-2 w-full py-2.5 rounded-xl text-sm font-semibold border transition-colors disabled:opacity-50 ${
+              shortOfTime
+                ? 'bg-amber-50 border-amber-400 text-amber-900 hover:bg-amber-100 dark:bg-amber-950 dark:border-amber-600 dark:text-amber-200'
+                : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-700'
+            }`}
+          >
+            Other amount
+          </button>
         </div>
       )}
 

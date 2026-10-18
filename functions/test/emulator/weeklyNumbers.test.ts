@@ -73,7 +73,7 @@ test('reads only what the ranking needs and scores it', async () => {
   ]);
   assert.deepEqual(
     Object.keys(data.reports.find((report: { id: string }) => report.id === `report-${run}`)).sort(),
-    ['createdMs', 'flagCount', 'hasPhotos', 'id', 'uid'],
+    ['createdMs', 'flagCount', 'hasPhotos', 'id', 'postedFarAway', 'uid'],
   );
 
   const result = scoreWeek(data, { fromMs: FROM, toMs: TO });

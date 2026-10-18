@@ -2,9 +2,9 @@
  * @fileoverview Phone numbers of trusted contacts
  *
  * The server texts a contact only when a full international number is saved
- * for them (getTrustedContacts in functions/src/safetyDelivery.ts). A contact
- * without one is never told anything, so the app must not show them as
- * someone who will be.
+ * for them and they have not asked for texts to stop (getTrustedContacts in
+ * functions/src/safetyDelivery.ts). Any other contact is never told anything,
+ * so the app must not show them as someone who will be.
  *
  * @module contactPhone
  */
@@ -18,8 +18,16 @@ const NOT_COMPLETE =
   'Enter the full mobile number, such as 0803 123 4567. For a number outside Nigeria, start with + and the country code.';
 
 /** Whether the server will text this contact */
-export function canBeTexted(contact: { phoneE164?: string | null }): boolean {
-  return typeof contact.phoneE164 === 'string' && FULL_NUMBER.test(contact.phoneE164);
+export function canBeTexted(contact: { phoneE164?: string | null; smsOptedOut?: boolean }): boolean {
+  return typeof contact.phoneE164 === 'string' && FULL_NUMBER.test(contact.phoneE164) && !askedForNoTexts(contact);
+}
+
+/**
+ * Whether this contact asked WakaGuard to stop texting their number (from the
+ * trip page in a text). Only they can turn texts back on.
+ */
+export function askedForNoTexts(contact: { smsOptedOut?: boolean }): boolean {
+  return contact.smsOptedOut === true;
 }
 
 export type ContactPhoneResult = { ok: true; phoneE164: string } | { ok: false; error: string };

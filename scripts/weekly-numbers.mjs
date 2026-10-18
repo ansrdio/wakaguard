@@ -54,6 +54,7 @@ export const REASONS = {
   overLimit: 'over the daily limit',
   wentOverdue: 'ended after contacts would have been texted',
   flagged: 'flagged',
+  farAway: 'posted from far away',
   noUpvote: 'no upvote from another tester',
 };
 
@@ -157,6 +158,8 @@ export function judgeReports(reports, upvotersOf) {
   for (const report of [...reports].sort((a, b) => a.createdMs - b.createdMs)) {
     const upvoters = upvotersOf(report);
     if (Number(report.flagCount || 0) !== 0) { rejected.add(REASONS.flagged); continue; }
+    // Not seen on the spot (src/lib/reportDistance.ts): it stays up, but earns nothing
+    if (report.postedFarAway === true) { rejected.add(REASONS.farAway); continue; }
     if (upvoters.length === 0) { rejected.add(REASONS.noUpvote); continue; }
     const day = lagosDay(report.createdMs);
     perDay[day] = (perDay[day] || 0) + 1;
@@ -499,6 +502,7 @@ export async function collect(db, { fromMs, toMs }) {
       createdMs: at(doc.get('createdAt')),
       flagCount: doc.get('flagCount') || 0,
       hasPhotos: (doc.get('photoUrls') || []).length > 0,
+      postedFarAway: doc.get('postedFarAway') === true,
     })),
     votes,
   };

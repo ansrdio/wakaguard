@@ -8,7 +8,7 @@
  */
 
 import { getSetting } from './config';
-import { sanitizeForSms, sanitizeName, sanitizePlace } from './smsText';
+import { countSmsSegments, sanitizeForSms, sanitizeName, sanitizePlace } from './smsText';
 
 function baseUrl(): string {
   return (getSetting('APP_BASE_URL') || 'https://wakaguard.com').replace(/\/+$/, '');
@@ -99,6 +99,12 @@ export function addressTo(recipientName: unknown, body: string): string {
  * separated by blank lines. Testers on 18 October 2026 found a link run into
  * the sentence around it hard to pick out, so each one stands alone.
  */
+/** " Vehicle plate: KJA 12 AB." when the traveller gave one. Only the plate: the rest is on their page */
+function platePart(plate: string | null | undefined): string {
+  const clean = typeof plate === 'string' ? plate.toUpperCase().replace(/[^A-Z0-9 -]/g, '').trim().slice(0, 12).trim() : '';
+  return clean ? ` Vehicle plate: ${clean}.` : '';
+}
+
 function inParts(message: string, links: Array<[label: string, url: string] | null>): string {
   return [message, ...links.filter((l): l is [string, string] => !!l).map(([label, url]) => `${label}:\n${url}`)].join('\n\n');
 }
@@ -114,13 +120,15 @@ export interface SosPayload {
   /** When the location was received, if it is not from the moment of the SOS */
   locationAtMs?: number | null;
   token?: string | null;
+  /** The vehicle's plate, if the traveller gave one (functions/src/vehicle.ts) */
+  plate?: string | null;
 }
 
 export function buildSosMessage(p: SosPayload): string {
   const where = hasLocation(p)
     ? [p.locationAtMs ? `Last seen ${formatLagosTime(p.locationAtMs)}` : 'Location', buildMapsLink(p.lat, p.lng)] as [string, string]
     : null;
-  return inParts(`WakaGuard SOS: ${p.userName} needs help. Call them or 112.`, [
+  return inParts(`WakaGuard SOS: ${p.userName} needs help.${platePart(p.plate)} Call them or 112.`, [
     where,
     p.token ? ['Follow their trip', buildShareLink(p.token)] : null,
   ]);
@@ -168,9 +176,19 @@ export interface OverduePayload {
   lng?: number | null;
   lastUpdateMs?: number | null;
   token?: string | null;
+  /** The vehicle's plate, if the traveller gave one (functions/src/vehicle.ts) */
+  plate?: string | null;
 }
 
+/** Pages an alert may take. The plate is left out of a text it would push past this; it is on the page anyway */
+const MAX_ALERT_SEGMENTS = 2;
+
 export function buildOverdueMessage(p: OverduePayload): string {
+  const withPlate = overdueText(p);
+  return p.plate && countSmsSegments(withPlate) > MAX_ALERT_SEGMENTS ? overdueText({ ...p, plate: null }) : withPlate;
+}
+
+function overdueText(p: OverduePayload): string {
   const due = formatLagosTime(p.deadlineMs);
   let message: string;
   if (p.kind === 'trip') {
@@ -181,6 +199,7 @@ export function buildOverdueMessage(p: OverduePayload): string {
     message = `WakaGuard: ${p.userName} set a safety timer and has not checked in, due ${due}.`;
   }
   if (!hasLocation(p) && p.kind === 'trip') message += ' No location was received.';
+  message += platePart(p.plate);
   message += ' Please call them.';
 
   const where = hasLocation(p)
@@ -189,13 +208,22 @@ export function buildOverdueMessage(p: OverduePayload): string {
   return inParts(message, [where, p.token ? ['Follow their trip', buildShareLink(p.token)] : null]);
 }
 
-export type AllClearReason = 'ended' | 'extended' | 'checked_in' | 'sos_ended';
+/**
+ * 'arrived' is the text the traveller asked for when starting the trip
+ * ("Text them when I arrive"); the others follow an alert.
+ */
+export type AllClearReason = 'ended' | 'extended' | 'checked_in' | 'sos_ended' | 'arrived';
 
 export function buildAllClearMessage(p: {
   userName: string;
   reason: AllClearReason;
   newDeadlineMs?: number | null;
+  destination?: string | null;
 }): string {
+  if (p.reason === 'arrived') {
+    const destination = sanitizePlace(p.destination);
+    return `WakaGuard: ${p.userName} has arrived safely and ended their trip${destination ? ` to ${destination}` : ''}.`;
+  }
   if (p.reason === 'extended' && p.newDeadlineMs) {
     return `WakaGuard: ${p.userName} has checked in and extended the trip. New expected arrival ${formatLagosTime(p.newDeadlineMs)}.`;
   }

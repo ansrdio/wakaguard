@@ -155,6 +155,7 @@ export function describeTripAlert(trip: AlertFields): AlertOutcome | null {
 }
 
 /** Words to follow the contacts' names on the trip card and the trip map */
-export function watcherCaption(outcome: AlertOutcome | null, contactCount: number): string {
-  return outcome ? outcome.caption(contactCount) : "will be told if you don't arrive";
+export function watcherCaption(outcome: AlertOutcome | null, contactCount: number, toldOnArrival = false): string {
+  if (outcome) return outcome.caption(contactCount);
+  return toldOnArrival ? "will be told when you arrive, or if you don't" : "will be told if you don't arrive";
 }

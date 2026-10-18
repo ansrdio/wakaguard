@@ -1,10 +1,11 @@
 /**
- * @fileoverview "I've arrived" and "+15 min" pressed on a reminder notification
+ * @fileoverview "I've arrived", "+15 min" and "More time…" pressed on a reminder notification
  *
- * The server puts the two buttons on the reminders near and after a trip's
+ * The server asks for the buttons on the reminders near and after a trip's
  * time (functions/src/reminderPush.ts). Pressing one opens the app, which
- * then does exactly what the same button on the Trip screen does. A plain
- * tap on any trip notification just opens the Trip screen.
+ * then does exactly what the same button on the Trip screen does; "More
+ * time…" opens the Trip screen's picker for any amount. A plain tap on any
+ * trip notification just opens the Trip screen.
  *
  * - iPhone: Capacitor hands over the button as the actionId.
  * - Android: the app draws these notifications itself
@@ -17,7 +18,7 @@
  */
 
 export interface TripNotificationAction {
-  action: 'arrived' | 'add15' | 'open';
+  action: 'arrived' | 'add15' | 'more' | 'open';
   tripId: string;
   /** This one press: the notification and its button */
   key: string;
@@ -35,7 +36,7 @@ export function readTripNotificationAction(performed: unknown): TripNotification
   const data = (notification?.data && typeof notification.data === 'object' ? notification.data : {}) as Record<string, unknown>;
   if (data.kind !== 'trip' || typeof data.id !== 'string' || !data.id) return null;
   const pressed = typeof data.wg_action === 'string' ? data.wg_action : actionId;
-  const action = pressed === 'arrived' ? 'arrived' : pressed === 'add15' ? 'add15' : 'open';
+  const action = pressed === 'arrived' || pressed === 'add15' || pressed === 'more' ? pressed : 'open';
   const id = (notification as { id?: unknown } | undefined)?.id;
   return { action, tripId: data.id, key: `${typeof id === 'string' ? id : ''}|${data.type ?? ''}|${action}` };
 }
@@ -86,7 +87,7 @@ export function pendingPress(nowMs = Date.now(), storage: Pick<Storage, 'getItem
   try {
     const kept = JSON.parse(storage.getItem(PENDING_KEY) ?? 'null') as (TripNotificationAction & { at?: number }) | null;
     if (!kept || typeof kept.at !== 'number' || nowMs - kept.at > PENDING_PRESS_MS || nowMs < kept.at
-      || (kept.action !== 'arrived' && kept.action !== 'add15') || typeof kept.tripId !== 'string') {
+      || (kept.action !== 'arrived' && kept.action !== 'add15' && kept.action !== 'more') || typeof kept.tripId !== 'string') {
       storage.removeItem(PENDING_KEY);
       return null;
     }

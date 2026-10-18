@@ -5,6 +5,8 @@ import { Loader2, X } from 'lucide-react';
 import { confirmPassword, deleteAccount, type DeletionProblem } from '@/lib/accountDeletion';
 import { useAreaAboveKeyboard } from '@/hooks/useAreaAboveKeyboard';
 import { MESSAGE_LOG_DAYS_AFTER_DELETION } from '@/lib/dataRetention';
+import { auth } from '@/lib/firebase';
+import { accountProviders, confirmWithSocial, PROVIDER_NAMES, SOCIAL_PROBLEM_TEXT } from '@/lib/socialSignIn';
 
 const PASSWORD_PROBLEMS: Record<DeletionProblem, string> = {
   'wrong-password': 'That password is not right. Try again.',
@@ -23,6 +25,25 @@ export function DeleteAccountDialog({ onClose }: { onClose: () => void }) {
   const [password, setPassword] = useState('');
   const [checking, setChecking] = useState(false);
   const [problem, setProblem] = useState<DeletionProblem | null>(null);
+  // An account made with Google or Apple has no password: it is confirmed by signing in with that again
+  const [socialProblem, setSocialProblem] = useState<string | null>(null);
+  const signsInWith = accountProviders((auth.currentUser?.providerData ?? []).map((p) => p.providerId));
+  const confirmBy = signsInWith.password ? null : signsInWith.social[0] ?? null;
+
+  const confirmSocially = async () => {
+    if (!confirmBy || checking) return;
+    setChecking(true);
+    setSocialProblem(null);
+    const failed = await confirmWithSocial(confirmBy);
+    if (failed) {
+      setSocialProblem(failed === 'cancelled'
+        ? `Not deleted. Sign in with ${PROVIDER_NAMES[confirmBy]} to confirm it is you.`
+        : SOCIAL_PROBLEM_TEXT[failed](PROVIDER_NAMES[confirmBy]));
+      setChecking(false);
+      return;
+    }
+    void deleteAccount();
+  };
 
   // On an iPhone the keyboard comes up over the lower half of the dialog,
   // which is where the password goes. The dialog keeps to the part of the
@@ -41,6 +62,10 @@ export function DeleteAccountDialog({ onClose }: { onClose: () => void }) {
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
+    if (confirmBy) {
+      void confirmSocially();
+      return;
+    }
     if (!password || checking) return;
 
     setChecking(true);
@@ -88,6 +113,12 @@ export function DeleteAccountDialog({ onClose }: { onClose: () => void }) {
           </li>
         </ul>
 
+        {confirmBy ? (
+          <div>
+            <p className="text-sm text-slate-900">To confirm it is you, sign in with {PROVIDER_NAMES[confirmBy]} once more.</p>
+            {socialProblem && <p role="alert" className="mt-2 text-sm text-red-700">{socialProblem}</p>}
+          </div>
+        ) : (
         <div>
           <label htmlFor="delete-account-password" className="block text-sm font-medium text-slate-900 mb-1">
             Enter your password to confirm
@@ -106,15 +137,16 @@ export function DeleteAccountDialog({ onClose }: { onClose: () => void }) {
             <p role="alert" className="mt-2 text-sm text-red-700">{PASSWORD_PROBLEMS[problem]}</p>
           )}
         </div>
+        )}
 
         <div className="space-y-2">
           <button
             type="submit"
-            disabled={!password || checking}
+            disabled={(!confirmBy && !password) || checking}
             className="w-full py-3 bg-red-600 text-white rounded-xl font-semibold hover:bg-red-700 disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {checking && <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />}
-            Delete my account
+            {confirmBy ? `Confirm with ${PROVIDER_NAMES[confirmBy]} and delete` : 'Delete my account'}
           </button>
           <button
             type="button"

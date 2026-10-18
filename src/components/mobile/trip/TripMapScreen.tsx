@@ -125,7 +125,7 @@ export function TripMapScreen({ trip, watcherNames, processing, onClose, onArriv
             <span className="block font-semibold text-slate-900 dark:text-white">
               {watcherNames.length === 0
                 ? 'No one is set to be told about this trip'
-                : `${joinNames(watcherNames)} ${watcherCaption(describeTripAlert(trip), watcherNames.length)}`}
+                : `${joinNames(watcherNames)} ${watcherCaption(describeTripAlert(trip), watcherNames.length, trip.textOnArrival === true)}`}
             </span>
             Anyone you send the trip link to sees this map.
           </p>

@@ -23,6 +23,7 @@ import { deliverSafetySms, DeliveryResult, getSenderProfile, getTrustedContacts,
 import { AllClearReason, buildAllClearMessage, buildOverdueMessage, buildSosMessage, markAsTest } from './templates';
 import { addPathPoint, distanceMeters, readPath } from './tripPath';
 import { buildTravellerPush, TravellerMessage } from './reminderPush';
+import { plateForText, readTripVehicle, vehicleForContacts } from './vehicle';
 import {
   decideOverdueAction,
   decideQuietNudge,
@@ -387,7 +388,7 @@ async function alertContacts(ref: DocRef, kind: Kind): Promise<void> {
     await Promise.all([
       ref.update({ expiresAt: keepUntil }),
       db.doc(`sharedTrips/${ref.id}`).set(
-        { overdueAt: FieldValue.serverTimestamp(), expiresAt: keepUntil, ...travelModeForContacts(claimed) },
+        { overdueAt: FieldValue.serverTimestamp(), expiresAt: keepUntil, ...travelModeForContacts(claimed), ...vehicleForContacts(claimed) },
         { merge: true }
       ),
     ]);
@@ -422,6 +423,7 @@ async function alertContacts(ref: DocRef, kind: Kind): Promise<void> {
         lng: claimed.lastLocation?.lng ?? null,
         lastUpdateMs: toMillis(claimed.lastUpdate),
         token: kind === 'trip' ? ref.id : null,
+        plate: kind === 'trip' ? plateForText(claimed) : null,
       }), claimed.isTest === true);
 
       const recipients: Recipient[] = contacts.map((c) => ({
@@ -500,19 +502,23 @@ async function sendAllClear(
   const sender = await getSenderProfile(uid);
   if (!sender.canSend) return;
 
-  const rate = await checkAndIncrementRateLimit(uid, 'all_clear', contacts.length);
+  // The arrival text is logged and limited as its own kind of message
+  const type = reason === 'arrived' ? 'arrival' : 'all_clear';
+  const rate = await checkAndIncrementRateLimit(uid, type, contacts.length);
   if (!rate.allowed && rate.reason === 'limit') {
-    console.warn(`All-clear rate limited for ${uid}`);
+    console.warn(`${type === 'arrival' ? 'Arrival text' : 'All-clear'} rate limited for ${uid}`);
     return;
   }
 
-  const isTest = (await ref.get()).data()?.isTest === true;
+  const data = (await ref.get()).data();
+  const isTest = data?.isTest === true;
+  const destination = typeof data?.destination === 'string' ? data.destination : null;
 
   await deliverSafetySms({
     uid,
-    type: 'all_clear',
+    type,
     recipients: contacts.map((c) => ({ id: c.id, name: c.name, phoneE164: c.phoneE164 })),
-    messageBody: markAsTest(buildAllClearMessage({ userName: sender.name, reason, newDeadlineMs }), isTest),
+    messageBody: markAsTest(buildAllClearMessage({ userName: sender.name, reason, newDeadlineMs, destination }), isTest),
     payload: { id: ref.id, reason },
   });
 }
@@ -632,11 +638,27 @@ async function recordPath(tripRef: DocRef, before: DocData, after: DocData): Pro
 }
 
 /**
+ * Vehicle details added or changed after contacts were alerted: the page they
+ * open shows the latest. Before an alert they stay with the private trip.
+ */
+async function recordVehicle(tripRef: DocRef, before: DocData, after: DocData): Promise<void> {
+  const alerted = !!after.overdueAt || after.status === 'emergency';
+  if (!alerted) return;
+  const now = readTripVehicle(after);
+  if (JSON.stringify(readTripVehicle(before)) === JSON.stringify(now)) return;
+  const sharedRef = admin.firestore().doc(`sharedTrips/${tripRef.id}`);
+  // Never create the share document here, or the app's own write would be refused
+  if (!(await sharedRef.get()).exists) return;
+  await sharedRef.update({ vehicle: now ?? FieldValue.delete() });
+}
+
+/**
  * Fires on every change to a trip.
  *
- * Keeps the path on the share document in step with the trip's position, and
+ * Keeps the path on the share document in step with the trip's position,
  * tells contacts who were told someone is overdue when that person turns up
- * (an overdue trip ended or extended).
+ * (an overdue trip ended or extended), and tells them of an arrival when the
+ * traveller asked for that at the start.
  */
 export const onTripUpdated = functions.firestore
   .document('users/{uid}/trips/{tripId}')
@@ -653,6 +675,8 @@ export const onTripUpdated = functions.firestore
       .catch((err) => console.error(`Could not update the path of trip ${ref.id}`, err));
     await recordFarthest(ref, before, after)
       .catch((err) => console.error(`Could not record how far trip ${ref.id} went`, err));
+    await recordVehicle(ref, before, after)
+      .catch((err) => console.error(`Could not update the vehicle on trip ${ref.id}'s page`, err));
 
     // Traveller ended the trip themselves (not the hourly auto-expiry)
     const endedByUser = after.status === 'completed'
@@ -688,6 +712,10 @@ export const onTripUpdated = functions.firestore
 
     if (endedByUser && contactsWereTold) {
       await sendAllClearOnce(ref, contactIds, 'ended');
+    } else if (after.status === 'completed' && after.textOnArrival === true) {
+      // "Text them when I arrive", ticked when the trip was started. Only for
+      // "I've arrived": a cancelled trip is not an arrival
+      await sendAllClearOnce(ref, contactIds, 'arrived');
     }
 
     return null;
@@ -801,7 +829,7 @@ export const onSOSAlert = functions
         const update = { expiresAt: keepUntil, ...(stillOpen ? { status: 'emergency' } : {}) };
         await Promise.all([
           tripRef.update({ ...update, sosAlertState: 'sending' }),
-          db.doc(`sharedTrips/${tripId}`).set({ ...update, ...travelModeForContacts(trip) }, { merge: true }),
+          db.doc(`sharedTrips/${tripId}`).set({ ...update, ...travelModeForContacts(trip), ...vehicleForContacts(trip) }, { merge: true }),
         ]);
       }
     }
@@ -843,6 +871,7 @@ export const onSOSAlert = functions
       locationAtMs: location?.atMs ?? null,
       // Only link to a trip the contacts can actually open
       token: trip ? tripId : null,
+      plate: plateForText(trip),
     }), trip?.isTest === true);
     const recipients: Recipient[] = contacts.map((c) => ({ id: c.id, name: c.name, phoneE164: c.phoneE164 }));
 

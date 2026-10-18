@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { hoursToLookAhead, readWeatherAhead, roughly, weatherLine, WeatherAhead } from '../../src/lib/weatherWords';
 
-const ahead = (over: Partial<WeatherAhead>): WeatherAhead => ({ kind: null, startsInHours: null, hottest: 31, hours: 3, ...over });
+const ahead = (over: Partial<WeatherAhead>): WeatherAhead => ({ kind: null, startsInHours: null, hottest: 31, hours: 3, next: [], ...over });
 
 test('each kind of weather has its line, saying when', () => {
   assert.equal(weatherLine(ahead({ kind: 'storm', startsInHours: 0 }))?.text, 'Thunderstorms expected here in the next hour. If you can, wait until they pass.');
@@ -26,8 +26,8 @@ test('on an okada, wet roads get a word of their own', () => {
 });
 
 test('only a well-formed answer from the server is used', () => {
-  assert.deepEqual(readWeatherAhead({ kind: 'rain', startsInHours: 1, hottest: 30, hours: 3, credit: 'x' }), { kind: 'rain', startsInHours: 1, hottest: 30, hours: 3 });
-  assert.deepEqual(readWeatherAhead({ kind: null, startsInHours: null, hottest: null, hours: 2 }), { kind: null, startsInHours: null, hottest: null, hours: 2 });
+  assert.deepEqual(readWeatherAhead({ kind: 'rain', startsInHours: 1, hottest: 30, hours: 3, credit: 'x' }), { kind: 'rain', startsInHours: 1, hottest: 30, hours: 3, next: [] });
+  assert.deepEqual(readWeatherAhead({ kind: null, startsInHours: null, hottest: null, hours: 2 }), { kind: null, startsInHours: null, hottest: null, hours: 2, next: [] });
   for (const bad of [null, 'rain', {}, { kind: 'hail', hours: 3 }, { kind: 'rain', hours: 0 }]) assert.equal(readWeatherAhead(bad), null);
 });
 

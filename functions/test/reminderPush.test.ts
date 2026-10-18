@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { ANDROID_BUTTONS_FROM_BUILD, buildTravellerPush, hasButtons, TRIP_REMINDER_CATEGORY } from '../src/reminderPush';
+import { ANDROID_BUTTONS_FROM_BUILD, buildTravellerPush, hasButtons, IOS_ALERT_SOUND, LOUD_FROM_BUILD, TRIP_REMINDER_CATEGORY } from '../src/reminderPush';
 import { OVERDUE_GRACE_MS } from '../src/overdueLogic';
 import { ALERT_GRACE_MINUTES } from '../../src/lib/tripPlanning';
 import { firstTimePressed, forgetPendingPress, noteDeadlineAtPress, pendingPress, PENDING_PRESS_MS, readTripNotificationAction, rememberPendingPress } from '../../src/lib/tripNotificationActions';
@@ -22,6 +22,28 @@ test('an iPhone gets the usual notification in the category with the buttons', (
   assert.deepEqual(push.notification, { title: 'Are you okay?', body: 'Check in or add time.' });
   assert.equal(push.apns?.payload?.aps?.category, TRIP_REMINDER_CATEGORY);
   assert.equal(buildTravellerPush({ fcmToken: 't', platform: 'ios' }, reminder('location_stopped')).apns?.payload?.aps?.category, undefined);
+});
+
+test('from build 24 an iPhone reminder is Time Sensitive with the WakaGuard sound; older builds keep the usual sound', () => {
+  const loud = buildTravellerPush({ fcmToken: 't', platform: 'ios', appBuild: LOUD_FROM_BUILD, appBuildToken: 't' }, reminder('overdue_warning'));
+  assert.equal(loud.apns?.payload?.aps?.sound, IOS_ALERT_SOUND);
+  assert.equal(loud.apns?.payload?.aps?.['interruption-level'], 'time-sensitive');
+  assert.equal(loud.apns?.payload?.aps?.category, TRIP_REMINDER_CATEGORY);
+  assert.equal(loud.apns?.headers?.['apns-priority'], '10');
+
+  // An older app has no such sound; a build reported with another token is not believed
+  for (const sub of [
+    { fcmToken: 't', platform: 'ios', appBuild: 23, appBuildToken: 't' },
+    { fcmToken: 't', platform: 'ios', appBuild: LOUD_FROM_BUILD, appBuildToken: 'other' },
+    { fcmToken: 't', platform: 'ios' },
+  ]) {
+    const quiet = buildTravellerPush(sub, reminder('overdue_warning'));
+    assert.equal(quiet.apns?.payload?.aps?.sound, 'default', JSON.stringify(sub));
+    assert.equal(quiet.apns?.payload?.aps?.['interruption-level'], undefined, JSON.stringify(sub));
+  }
+  // Only the reminders about time running out are urgent
+  const nudge = buildTravellerPush({ fcmToken: 't', platform: 'ios', appBuild: LOUD_FROM_BUILD, appBuildToken: 't' }, reminder('location_stopped'));
+  assert.equal(nudge.apns?.payload?.aps?.['interruption-level'], undefined);
 });
 
 test('a new Android app draws the reminder itself; an older one keeps the plain notification', () => {
@@ -53,6 +75,10 @@ test('a press is read the same way from either phone', () => {
   // Android: Capacitor says "tap"; the app's own notification says which button
   assert.deepEqual(read({ actionId: 'tap', notification: { data: { kind: 'trip', id: 'trip-1', wg_action: 'arrived' } } }), { action: 'arrived', tripId: 'trip-1' });
   assert.deepEqual(read({ actionId: 'tap', notification: { data: { kind: 'trip', id: 'trip-1' } } }), { action: 'open', tripId: 'trip-1' });
+  // "More time…" on either phone
+  assert.deepEqual(read({ actionId: 'more', notification: { data: { kind: 'trip', id: 'trip-1' } } }), { action: 'more', tripId: 'trip-1' });
+  assert.deepEqual(read({ actionId: 'tap', notification: { data: { kind: 'trip', id: 'trip-1', wg_action: 'more' } } }), { action: 'more', tripId: 'trip-1' });
+  assert.deepEqual(read({ actionId: 'something-else', notification: { data: { kind: 'trip', id: 'trip-1' } } }), { action: 'open', tripId: 'trip-1' });
   for (const other of [null, {}, { actionId: 'arrived' }, { notification: { data: { kind: 'timer', id: 'x' } } }, { notification: { data: { kind: 'trip' } } }]) {
     assert.equal(readTripNotificationAction(other), null);
   }
@@ -91,4 +117,13 @@ test('a press survives the app reloading itself, until it has been carried out',
   assert.equal(pendingPress(now + PENDING_PRESS_MS + 1, storage), null, 'too old to act on after a reload');
   rememberPendingPress({ ...press, action: 'open' }, now, storage);
   assert.equal(pendingPress(now, storage), null, 'opening the app is never kept');
+});
+
+test('"More time…" pressed just before the app reloads still opens the picker afterwards', () => {
+  const kept = new Map<string, string>();
+  const storage = { getItem: (k: string) => kept.get(k) ?? null, setItem: (k: string, v: string) => void kept.set(k, v), removeItem: (k: string) => void kept.delete(k) };
+  const now = Date.UTC(2026, 9, 18, 9, 0);
+  const press = { action: 'more' as const, tripId: 'trip-1', key: 'n1|trip_reminder|more' };
+  rememberPendingPress(press, now, storage);
+  assert.deepEqual(pendingPress(now + 3000, storage), { ...press, deadlineMs: null });
 });

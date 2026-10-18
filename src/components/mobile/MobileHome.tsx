@@ -70,6 +70,12 @@ export function MobileHome({
     if (!Capacitor.isNativePlatform()) return;
     // Capacitor keeps a press that opened the app until this listener is added
     const listener = PushNotifications.addListener('pushNotificationActionPerformed', (performed) => {
+      // The morning weather opens the start form
+      if ((performed.notification?.data as { kind?: unknown } | undefined)?.kind === 'weather') {
+        setShowCreateModal(false);
+        setActiveTab('safety');
+        return;
+      }
       const action = readTripNotificationAction(performed);
       if (!action || !firstTimePressed(action)) return;
       rememberPendingPress(action);

@@ -145,6 +145,12 @@ export function ReportDetailsSheet({ report, onClose, onShowToast }: ReportDetai
             </div>
           )}
 
+          {report.postedFarAway && (
+            <p className="text-xs font-medium text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+              Posted from far away, not on the spot. The person may have passed here earlier.
+            </p>
+          )}
+
           {/* Description */}
           <div>
             <h3 className="text-sm font-medium text-slate-700 mb-1">Description</h3>

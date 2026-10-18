@@ -113,6 +113,8 @@ export async function deleteAccountData(uid: string, nowMs: number = Date.now())
 
   const tripLinks = await deleteAll(db.collection('sharedTrips').where('uid', '==', uid));
   await db.doc(`pushSubscriptions/${uid}`).delete();
+  // Where they last looked at the weather, kept for the morning notification
+  await db.doc(`weatherAreas/${uid}`).delete();
   await deleteAll(db.collection('usernames').where('uid', '==', uid));
 
   // The profile with everything under it: contacts, trips, alerts, timers,

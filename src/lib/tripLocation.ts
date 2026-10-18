@@ -64,3 +64,13 @@ export function tripLocationEndpoint(): string | null {
   const region = process.env.NEXT_PUBLIC_FUNCTIONS_REGION || 'us-central1';
   return `https://${region}-${projectId}.cloudfunctions.net/tripLocation`;
 }
+
+/** URL of the tripAction HTTPS function: the backup route for "I've arrived" and extra time */
+export function tripActionEndpoint(): string | null {
+  return tripLocationEndpoint()?.replace(/\/tripLocation$/, '/tripAction') ?? null;
+}
+
+/** URL of the stopTexts HTTPS function: a contact asking for no more texts, from the trip page */
+export function stopTextsEndpoint(): string | null {
+  return tripLocationEndpoint()?.replace(/\/tripLocation$/, '/stopTexts') ?? null;
+}

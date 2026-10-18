@@ -59,6 +59,13 @@ const config: CapacitorConfig = {
     PushNotifications: {
       presentationOptions: ['badge', 'sound', 'alert'],
     },
+    // Sign in with Google and Apple (src/lib/socialSignIn.ts): the phone signs
+    // in with the provider and hands its token to the web layer, which signs in
+    // to Firebase as it does for email and password
+    FirebaseAuthentication: {
+      skipNativeAuth: true,
+      providers: ['google.com', 'apple.com'],
+    },
   },
   ios: {
     backgroundColor: '#1e293b',

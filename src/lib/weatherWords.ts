@@ -24,6 +24,49 @@ export interface WeatherAhead {
   hottest: number | null;
   /** How many hours the forecast was read for */
   hours: number;
+  /** The hour under way first, then the next few, for the top bar's weather icon. Empty from an older server */
+  next: WeatherHour[];
+}
+
+export interface WeatherHour {
+  atMs: number;
+  temperature: number | null;
+  /** MET Norway's symbol, such as "rain" or "partlycloudy_day" */
+  symbol: string | null;
+}
+
+export type WeatherIcon = 'clear-day' | 'clear-night' | 'partly-day' | 'partly-night' | 'cloudy' | 'light-rain' | 'rain' | 'storm' | 'fog';
+
+/** The picture for one of MET Norway's symbols */
+export function weatherIcon(symbol: string | null): WeatherIcon {
+  const s = symbol ?? '';
+  if (s.includes('thunder')) return 'storm';
+  if (s.includes('heavyrain') || (s.includes('rain') && !s.includes('light'))) return 'rain';
+  if (s.includes('rain') || s.includes('sleet') || s.includes('drizzle')) return 'light-rain';
+  if (s.includes('fog')) return 'fog';
+  const night = s.endsWith('_night');
+  if (s.startsWith('clearsky')) return night ? 'clear-night' : 'clear-day';
+  if (s.startsWith('fair') || s.startsWith('partlycloudy')) return night ? 'partly-night' : 'partly-day';
+  return 'cloudy';
+}
+
+/** Words for the picture, for screen readers */
+export const WEATHER_ICON_WORDS: Record<WeatherIcon, string> = {
+  'clear-day': 'Clear', 'clear-night': 'Clear', 'partly-day': 'Partly cloudy', 'partly-night': 'Partly cloudy',
+  cloudy: 'Cloudy', 'light-rain': 'Light rain', rain: 'Rain', storm: 'Thunderstorms', fog: 'Fog',
+};
+
+function readHoursList(value: unknown): WeatherHour[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((h) => {
+    const x = (h && typeof h === 'object' ? h : {}) as Record<string, unknown>;
+    if (typeof x.atMs !== 'number' || !Number.isFinite(x.atMs)) return [];
+    return [{
+      atMs: x.atMs,
+      temperature: typeof x.temperature === 'number' && Number.isFinite(x.temperature) ? x.temperature : null,
+      symbol: typeof x.symbol === 'string' ? x.symbol : null,
+    }];
+  }).slice(0, 6);
 }
 
 export interface WeatherLine {
@@ -47,7 +90,7 @@ export function readWeatherAhead(value: unknown): WeatherAhead | null {
   const number = (n: unknown) => (typeof n === 'number' && Number.isFinite(n) ? n : null);
   const hours = number(v.hours);
   if (hours === null || hours < 1) return null;
-  return { kind, startsInHours: number(v.startsInHours), hottest: number(v.hottest), hours };
+  return { kind, startsInHours: number(v.startsInHours), hottest: number(v.hottest), hours, next: readHoursList(v.next) };
 }
 
 function when(startsInHours: number | null): string {

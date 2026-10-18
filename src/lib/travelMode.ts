@@ -66,6 +66,21 @@ export function travelModeLabel(value: unknown): string {
 }
 
 /** Every tip for a way of travelling */
+/** Under "Safety tips" on the Trip screen: "On an okada". "Other" has no tips of its own */
+const TIPS_HEADING: Record<TravelMode, string> = {
+  bus: 'On a bus or danfo',
+  keke: 'On a keke',
+  okada: 'On an okada',
+  car: 'In a private car',
+  taxi: 'In a taxi or ride-hailing car',
+  foot: 'On foot',
+  other: 'For the way you travel',
+};
+
+export function tipsHeading(mode: TravelMode | null | undefined): string {
+  return mode ? TIPS_HEADING[mode] : 'For the way you travel';
+}
+
 export function tipsFor(mode: TravelMode | null | undefined): readonly string[] {
   return mode && isTravelMode(mode) ? TIPS[mode] : [];
 }

@@ -162,6 +162,8 @@ service cloud.firestore {
         // status + verification owner cannot change
         && request.resource.data.status == resource.data.status
         && request.resource.data.verification == resource.data.verification
+        // nor the "posted from far away" mark (src/lib/reportDistance.ts)
+        && request.resource.data.get('postedFarAway', null) == resource.data.get('postedFarAway', null)
 
         // allowed edits
         && request.resource.data.description is string
@@ -288,7 +290,7 @@ service cloud.firestore {
         return [
           'createdAt','blockedUids','username','usernameUpdatedAt','safetyChecklist','alertName',
           'points','level','badges','totalReports','totalUpvotes','totalComments',
-          'tripsCompleted','loginStreak','lastLoginDate','lastReportDate'
+          'tripsCompleted','loginStreak','lastLoginDate','lastReportDate','morningWeather'
         ];
       }
 
@@ -307,7 +309,9 @@ service cloud.firestore {
           && isCount(d, 'totalReports') && isCount(d, 'totalUpvotes') && isCount(d, 'totalComments')
           && isCount(d, 'tripsCompleted') && isCount(d, 'loginStreak')
           && (!('lastLoginDate' in d) || (d.lastLoginDate is string && d.lastLoginDate.size() <= 10))
-          && (!('lastReportDate' in d) || (d.lastReportDate is string && d.lastReportDate.size() <= 10));
+          && (!('lastReportDate' in d) || (d.lastReportDate is string && d.lastReportDate.size() <= 10))
+          // The morning weather notification, switched off in Settings (functions/src/morningWeather.ts)
+          && (!('morningWeather' in d) || d.morningWeather is bool);
       }
 
       // A username must be reserved in /usernames by the same user, in the same
@@ -385,6 +389,28 @@ service cloud.firestore {
       allow write: if isOwner(userId) && isAuthenticated();
     }
 
+    // App-wide switches every phone reads (src/lib/appConfig.ts): the oldest
+    // build that still works and a notice for everyone. Changed only by us.
+    match /config/app {
+      allow get: if true;
+      allow list, write: if false;
+    }
+
+    // Numbers that asked for no more WakaGuard texts, and the tries from each
+    // trip link to do so (functions/src/textOptOut.ts). Server only: the app
+    // learns of it from smsOptedOut on the traveller's own contact.
+    match /smsOptOuts/{phone} {
+      allow read, write: if false;
+    }
+    match /textOptOutTries/{token} {
+      allow read, write: if false;
+    }
+    // Where each person last looked at the weather, roughly (about 10 km),
+    // for the morning notification. Server only.
+    match /weatherAreas/{uid} {
+      allow read, write: if false;
+    }
+
     match /users/{userId}/trips/{tripId} {
       allow read: if isOwner(userId);
       allow write: if isOwner(userId) && isAuthenticated();
@@ -403,7 +429,7 @@ service cloud.firestore {
       function isValidSharedTrip(d) {
         return d.keys().hasOnly([
           'uid','tripId','status','expiresAt','lastLocation','lastUpdate','destination','createdAt',
-          'endsAt','overdueAt','path','name','isTest','travelMode'
+          'endsAt','overdueAt','path','name','isTest','travelMode','vehicle'
         ])
         && d.uid is string
         && d.tripId is string
@@ -418,6 +444,12 @@ service cloud.firestore {
         && (!('name' in d) || (d.name is string && d.name.size() <= 60))
         && (!('isTest' in d) || d.isTest is bool)
         && (!('travelMode' in d) || (d.travelMode is string && d.travelMode.size() <= 20))
+        && (!('vehicle' in d) || (
+          d.vehicle is map
+          && d.vehicle.keys().hasOnly(['plate','details'])
+          && d.vehicle.get('plate', '') is string && d.vehicle.get('plate', '').size() <= 12
+          && d.vehicle.get('details', '') is string && d.vehicle.get('details', '').size() <= 60
+        ))
         && (!('path' in d) || (d.path is list && d.path.size() <= 300))
         && (!('lastLocation' in d) || d.lastLocation == null || (
           d.lastLocation is map
@@ -430,7 +462,8 @@ service cloud.firestore {
         ));
       }
 
-      // The path travelled, the traveller's name and how they are travelling are written by the server
+      // The path travelled, the traveller's name, how they are travelling and
+      // their vehicle (plate, bus company or driver) are written by the server
       // (functions/src/tripMonitor.ts). They are in the list of allowed keys
       // because an update is checked against the whole document, and without
       // them every later write by the app (add time, arrive, SOS) would be
@@ -438,14 +471,16 @@ service cloud.firestore {
       // them itself.
       function serverFieldsUntouched() {
         return request.resource.data.get('path', null) == resource.data.get('path', null)
-          && request.resource.data.get('name', null) == resource.data.get('name', null);
+          && request.resource.data.get('name', null) == resource.data.get('name', null)
+          && request.resource.data.get('vehicle', null) == resource.data.get('vehicle', null);
       }
 
       allow create: if isAuthenticated()
         && request.auth.uid == request.resource.data.uid
         && isValidSharedTrip(request.resource.data)
         && !('path' in request.resource.data)
-        && !('name' in request.resource.data);
+        && !('name' in request.resource.data)
+        && !('vehicle' in request.resource.data);
 
       allow update: if isAuthenticated()
         && ('uid' in resource.data)

@@ -301,6 +301,52 @@ test('ending a trip that was never alerted sends nothing', async () => {
   assert.equal((await logs(uid, 'all_clear')).length, 0);
 });
 
+test('"text them when I arrive": an arrival with "I\'ve arrived" texts the trip\'s contacts once', async () => {
+  const { uid, contactIds } = await makeUser({ contacts: 2 });
+  const id = await makeTrip(uid, [contactIds[0]], { endsAt: ts(Date.now() + 30 * MIN), textOnArrival: true, destination: 'Ibadan' });
+
+  const path = `users/${uid}/trips/${id}`;
+  const beforeSnap = await db().doc(path).get();
+  await db().doc(path).update({ status: 'completed' });
+  const afterSnap = await db().doc(path).get();
+  // Triggers can be delivered more than once
+  await (onTripUpdated as any).run({ before: beforeSnap, after: afterSnap }, { params: { uid, tripId: id } });
+  await (onTripUpdated as any).run({ before: beforeSnap, after: afterSnap }, { params: { uid, tripId: id } });
+
+  const arrival = await logs(uid, 'arrival');
+  assert.equal(arrival.length, 1);
+  assert.equal(arrival[0].recipients.length, 1, 'only the contact chosen for the trip');
+  assert.match(arrival[0].messageBody, /has arrived safely and ended their trip to Ibadan\./);
+  assert.equal((await logs(uid, 'all_clear')).length, 0);
+});
+
+test('no arrival text when it was not asked for, or when the trip is cancelled', async () => {
+  const { uid, contactIds } = await makeUser();
+  const plain = await makeTrip(uid, contactIds, { endsAt: ts(Date.now() + 30 * MIN) });
+  await updateAndTrigger(onTripUpdated, `users/${uid}/trips/${plain}`, { status: 'completed' }, { uid, tripId: plain });
+  const cancelled = await makeTrip(uid, contactIds, { endsAt: ts(Date.now() + 30 * MIN), textOnArrival: true });
+  await updateAndTrigger(onTripUpdated, `users/${uid}/trips/${cancelled}`, { status: 'cancelled' }, { uid, tripId: cancelled });
+  assert.equal((await logs(uid, 'arrival')).length, 0);
+});
+
+test('an alerted trip that asked for an arrival text gets the one follow-up, not two', async () => {
+  const { uid, contactIds } = await makeUser();
+  const id = await makeTrip(uid, contactIds, { endsAt: ts(Date.now() - PAST_GRACE), textOnArrival: true });
+  await runMonitor();
+  await updateAndTrigger(onTripUpdated, `users/${uid}/trips/${id}`, { status: 'completed' }, { uid, tripId: id });
+  assert.equal((await logs(uid, 'all_clear')).length, 1);
+  assert.equal((await logs(uid, 'arrival')).length, 0);
+});
+
+test('an arrival text on a test trip says it is a test', async () => {
+  const { uid, contactIds } = await makeUser();
+  const id = await makeTrip(uid, contactIds, { endsAt: ts(Date.now() + 2 * MIN), textOnArrival: true, isTest: true });
+  await updateAndTrigger(onTripUpdated, `users/${uid}/trips/${id}`, { status: 'completed' }, { uid, tripId: id });
+  const arrival = await logs(uid, 'arrival');
+  assert.equal(arrival.length, 1);
+  assert.match(arrival[0].messageBody, /^WAKAGUARD TEST ALERT\. NOT A REAL EMERGENCY\./);
+});
+
 test('standalone timer: alerted when expired, all-clear on check-in; trip-linked timers are ignored', async () => {
   const { uid } = await makeUser();
   const base = { uid, acknowledged: false, shouldNotifyContacts: true, expiresAt: ts(Date.now() - PAST_GRACE) };
@@ -915,4 +961,28 @@ test('contacts see how the traveller is travelling only once they are alerted', 
   assert.equal((await page(overdue)).travelMode, 'okada');
   assert.equal((await page(notSaid)).travelMode, undefined);
   assert.equal((await page(notAChoice)).travelMode, undefined);
+});
+
+test('contacts see the vehicle only once alerted, the text carries the plate, and later changes reach their page', async () => {
+  const { uid, contactIds } = await makeUser();
+  const now = Date.now();
+  const vehicle = { plate: 'TEST 01', details: 'Blue bus from the park' };
+  const onTime = await makeTrip(uid, contactIds, { startTime: ts(now - 20 * MIN), endsAt: ts(now + 40 * MIN), vehicle });
+  const overdue = await makeTrip(uid, contactIds, { startTime: ts(now - 60 * MIN), endsAt: ts(now - PAST_GRACE), vehicle });
+
+  await runMonitor();
+
+  const page = async (id: string) => (await db().doc(`sharedTrips/${id}`).get()).data()!;
+  assert.equal((await page(onTime)).vehicle, undefined, 'shown before anything was wrong');
+  assert.deepEqual((await page(overdue)).vehicle, vehicle);
+  const alert = (await logs(uid, 'overdue')).find((l: any) => l.payload?.id === overdue);
+  assert.match(alert.messageBody, /Vehicle plate: TEST 01\./);
+  assert.doesNotMatch(alert.messageBody, /Blue bus/, 'only the plate goes in the text');
+
+  // Added once the alert has gone out: their page shows the new one
+  await updateAndTrigger(onTripUpdated, `users/${uid}/trips/${overdue}`, { vehicle: { plate: 'TEST 02', details: '' } }, { uid, tripId: overdue });
+  assert.deepEqual((await page(overdue)).vehicle, { plate: 'TEST 02', details: '' });
+  // Changed before any alert: it stays private
+  await updateAndTrigger(onTripUpdated, `users/${uid}/trips/${onTime}`, { vehicle: { plate: 'TEST 03', details: '' } }, { uid, tripId: onTime });
+  assert.equal((await page(onTime)).vehicle, undefined);
 });
