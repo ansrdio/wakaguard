@@ -759,13 +759,23 @@ whose code was never in this repository (`onCommentCreate`,
       The Time Sensitive capability is switched on for the app's identifier
       when the iPhone build is made (an Apple account change, on the owner's
       word)
-- [ ] Build 24. "Text them when I arrive" (the owner, 17 October, after the
-      tester survey: "my chosen person gets a text when I arrive safely" was
-      picked by 5 of 9). A setting on the start form, off unless chosen;
-      when the trip is ended with "I've arrived", the server texts the
-      trip's contacts that the traveller arrived safely (the wording exists
-      already: "... has checked in and ended the trip safely"). Costs one
-      text per contact, so the start form says so. Needs texting switched on
+- [x] Build 24 (done in code 18 October; not yet on a phone). "Text them
+      when I arrive" (the owner, 17 October, after the tester survey: "my
+      chosen person gets a text when I arrive safely" was picked by 5 of 9).
+      A tick box on the start form under the trip-link one, unticked on every
+      trip ("One text to each of them when you tap I've arrived"), saved on
+      the trip as `textOnArrival`. When the trip ends with "I've arrived"
+      (not a cancel), `onTripUpdated` texts the trip's contacts once: "Ada has
+      arrived safely and ended their trip to Ibadan." (logged and limited as
+      type `arrival`; a test trip's says it is a test). A trip whose contacts
+      were already alerted gets the usual follow-up instead, never both. The
+      trip card says "will be told when you arrive, or if you don't", and
+      ending says "Your contacts are being told you arrived" and skips the
+      share sheet. Checked in a phone-sized browser against the emulators
+      end to end (one `arrival` log for both contacts). The website's example
+      texts, How it works and Support page say so; the Privacy page lines are
+      drafted for the owner's approval. Release: deploy `onTripUpdated`
+      before or with build 24 (older apps never set the field)
 - [ ] Build 24. Mapbox map pictures in place of OpenStreetMap's, on the phone
       apps and the website (the owner chose Mapbox on 14 October)
 - [ ] Build 24. Destination search by address when starting a trip, with
