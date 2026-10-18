@@ -33,13 +33,13 @@ const STEPS = [
 
 /** What a contact receives when a traveller has not arrived. */
 export const NOT_ARRIVED_TEXT =
-  'Hi Tobi, WakaGuard: Ada has not checked in from a trip to Ibadan, due Tue 4:30 pm. Last location received Tue 4:12 pm: [map link] Track: [trip link] Please call them. Powered by WakaGuard';
+  'Hi Tobi, WakaGuard: Ada has not checked in from a trip to Ibadan, due Tue 4:30 pm. Please call them.\n\nLast seen Tue 4:12 pm:\n[map link]\n\nFollow their trip:\n[trip link]\n\nPowered by WakaGuard';
 
 // Written out from the server's templates so a reader can see what a contact receives
 const TEXTS = [
   {
     when: 'A traveller shares a trip with a contact',
-    example: 'Hi Tobi, WakaGuard: Ada is sharing a trip to Ibadan with you. Expected arrival Tue 4:30 pm. Follow it: [trip link] Powered by WakaGuard',
+    example: 'Hi Tobi, WakaGuard: Ada is sharing a trip to Ibadan with you. Expected arrival Tue 4:30 pm.\n\nFollow their trip:\n[trip link]\n\nPowered by WakaGuard',
   },
   {
     when: 'A traveller has not arrived',
@@ -47,7 +47,7 @@ const TEXTS = [
   },
   {
     when: 'A traveller presses SOS',
-    example: 'Hi Tobi, WakaGuard SOS: Ada needs help. Location: [map link] Track: [trip link] Call them or 112. Powered by WakaGuard',
+    example: 'Hi Tobi, WakaGuard SOS: Ada needs help. Call them or 112.\n\nLocation:\n[map link]\n\nFollow their trip:\n[trip link]\n\nPowered by WakaGuard',
   },
   {
     when: 'A traveller tells a contact they are fine',
@@ -104,7 +104,7 @@ export function TextsWeSend() {
         {TEXTS.map(({ when, example }) => (
           <li key={when} className="p-5">
             <p className="font-semibold">{when}</p>
-            <p className="text-sm text-slate-700 mt-1 font-mono break-words">{example}</p>
+            <p className="text-sm text-slate-700 mt-1 font-mono break-words whitespace-pre-line">{example}</p>
           </li>
         ))}
       </ul>

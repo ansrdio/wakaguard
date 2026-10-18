@@ -83,17 +83,16 @@ test('a hostile check-in note is quoted, stripped of links and capped', () => {
     lng: 3.3,
   });
   assert.doesNotMatch(msg, /evil\.example/);
-  assert.match(msg, /^WakaGuard: Ada checked in and is OK\. "Pay now at x+" Location: https:\/\/maps\.google\.com/);
+  assert.match(msg, /^WakaGuard: Ada checked in and is OK\. "Pay now at x+"\n\nLocation:\nhttps:\/\/maps\.google\.com/);
   assert.ok(msg.length < 220);
 });
 
 test('SOS message labels an old position as last known, and a fresh one as the location', () => {
   const fresh = buildSosMessage({ userName: 'Ada', lat: 6.5, lng: 3.3, token: TOKEN });
-  assert.match(fresh, /^WakaGuard SOS: Ada needs help\. Location: https:\/\/maps\.google\.com\/\?q=6\.5,3\.3 Track: /);
-  assert.match(fresh, /Call them or 112\.$/);
+  assert.match(fresh, /^WakaGuard SOS: Ada needs help\. Call them or 112\.\n\nLocation:\nhttps:\/\/maps\.google\.com\/\?q=6\.5,3\.3\n\nFollow their trip:\nhttps:\/\/wakaguard\.com\/s\?t=/);
 
   const old = buildSosMessage({ userName: 'Ada', lat: 6.5, lng: 3.3, locationAtMs: DEADLINE - 41 * 60000 });
-  assert.match(old, /Last known location \(Tue 3:49\s?pm\): https:\/\/maps/i);
+  assert.match(old, /\n\nLast seen Tue 3:49\s?pm:\nhttps:\/\/maps/i);
 
   const none = buildSosMessage({ userName: 'Ada' });
   assert.equal(none, 'WakaGuard SOS: Ada needs help. Call them or 112.');
@@ -101,7 +100,7 @@ test('SOS message labels an old position as last known, and a fresh one as the l
 
 test('trip share and SOS all-clear messages read correctly', () => {
   const share = buildTripShareMessage({ userName: 'Ada', token: TOKEN, destination: 'Benin City', endsAtMs: DEADLINE });
-  assert.match(share, /^WakaGuard: Ada is sharing a trip to Benin City with you\. Expected arrival Tue 4:30\s?pm\. Follow it: https:\/\/wakaguard\.com\/s\?t=/i);
+  assert.match(share, /^WakaGuard: Ada is sharing a trip to Benin City with you\. Expected arrival Tue 4:30\s?pm\.\n\nFollow their trip:\nhttps:\/\/wakaguard\.com\/s\?t=/i);
 
   const clear = buildAllClearMessage({ userName: 'Ada', reason: 'sos_ended' });
   assert.match(clear, /ended the SOS alert in the app\. Please call them to confirm they are safe\.$/);
@@ -149,9 +148,10 @@ test('the text for a traveller who has not arrived is the sample Termii approved
   });
   assert.equal(
     addressTo('Tobi', body),
-    'Hi Tobi, WakaGuard: Ade has not checked in from a trip to Ibadan, due Fri 6:30 pm. '
-      + 'Last location received Fri 6:10 pm: https://maps.google.com/?q=7.3775,3.9471 '
-      + 'Track: https://wakaguard.com/s?t=abc123 Please call them. Powered by WakaGuard'
+    'Hi Tobi, WakaGuard: Ade has not checked in from a trip to Ibadan, due Fri 6:30 pm. Please call them.\n\n'
+      + 'Last seen Fri 6:10 pm:\nhttps://maps.google.com/?q=7.3775,3.9471\n\n'
+      + 'Follow their trip:\nhttps://wakaguard.com/s?t=abc123\n\n'
+      + 'Powered by WakaGuard'
   );
 });
 
@@ -169,7 +169,7 @@ test('every text opens with "Hi" and closes with the company, test or not, named
       for (const name of ['Tobi', '', null]) {
         const text = addressTo(name, markAsTest(body, isTest));
         assert.match(text, name ? /^Hi Tobi, / : /^Hi, /, text);
-        assert.match(text, / Powered by WakaGuard$/, text);
+        assert.match(text, /[ \n]Powered by WakaGuard$/, text);
         assert.equal(text.includes('WAKAGUARD TEST ALERT. NOT A REAL EMERGENCY.'), isTest, text);
       }
     }

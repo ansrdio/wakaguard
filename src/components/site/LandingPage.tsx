@@ -103,7 +103,7 @@ export function LandingPage({ onOpenApp }: { onOpenApp: () => void }) {
                 </span>
                 <p className="font-semibold">Text message to Tobi</p>
               </div>
-              <blockquote className="mt-4 bg-slate-100 rounded-2xl rounded-tl-md p-4 leading-relaxed break-words">
+              <blockquote className="mt-4 bg-slate-100 rounded-2xl rounded-tl-md p-4 leading-relaxed break-words whitespace-pre-line">
                 {NOT_ARRIVED_TEXT}
               </blockquote>
               <figcaption className="mt-4 text-sm text-slate-600">

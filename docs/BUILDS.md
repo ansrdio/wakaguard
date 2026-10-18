@@ -672,6 +672,18 @@ whose code was never in this repository (`onCommentCreate`,
       common reason for using WakaGuard less, 4 of 9). Repeat a usual trip:
       one tap to start a trip made before, with the time it usually takes
       filled in
+- [ ] Build 24. Reminders that cannot be missed (the owner, 18 October, after
+      the first live test: the "Are you okay?" on the Galaxy did not buzz or
+      light the screen). The Galaxy's "Trip reminders" channel was already high
+      importance with sound and vibration and Do Not Disturb was off, so
+      nothing on our side was muted; Android does not light the screen for an
+      ordinary notification. So: on Android a new reminders channel with a
+      distinctive WakaGuard sound and a long vibration pattern (a new channel,
+      because Android keeps a channel's old settings); on iPhone "Time
+      Sensitive" reminders (the app's entitlement and interruption-level
+      time-sensitive from the server), which break through Focus and stay on
+      the lock screen, and the same distinctive sound. Check how the
+      repeat reminders behave with Android's newer notification cooldown
 - [ ] Build 24. "Text them when I arrive" (the owner, 17 October, after the
       tester survey: "my chosen person gets a text when I arrive safely" was
       picked by 5 of 9). A setting on the start form, off unless chosen;

@@ -89,7 +89,18 @@ export function addressTo(recipientName: unknown, body: string): string {
   const label = body.startsWith(TEST_PREFIX) ? TEST_PREFIX : '';
   const rest = body.slice(label.length);
   const name = sanitizeName(recipientName).slice(0, GREETING_NAME_LENGTH).trim();
-  return `${name ? `Hi ${name}, ` : 'Hi, '}${label}${rest} ${SIGN_OFF}`;
+  // A text laid out in parts keeps the sign-off on a line of its own
+  const beforeSignOff = rest.includes('\n') ? '\n\n' : ' ';
+  return `${name ? `Hi ${name}, ` : 'Hi, '}${label}${rest}${beforeSignOff}${SIGN_OFF}`;
+}
+
+/**
+ * A text in parts: the message first, then each link under its own label,
+ * separated by blank lines. Testers on 18 October 2026 found a link run into
+ * the sentence around it hard to pick out, so each one stands alone.
+ */
+function inParts(message: string, links: Array<[label: string, url: string] | null>): string {
+  return [message, ...links.filter((l): l is [string, string] => !!l).map(([label, url]) => `${label}:\n${url}`)].join('\n\n');
 }
 
 // -------------------------------------------------------------------------
@@ -106,21 +117,13 @@ export interface SosPayload {
 }
 
 export function buildSosMessage(p: SosPayload): string {
-  const parts: string[] = [`WakaGuard SOS: ${p.userName} needs help.`];
-
-  if (hasLocation(p)) {
-    const label = p.locationAtMs
-      ? `Last known location (${formatLagosTime(p.locationAtMs)})`
-      : 'Location';
-    parts.push(`${label}: ${buildMapsLink(p.lat, p.lng)}`);
-  }
-
-  if (p.token) {
-    parts.push(`Track: ${buildShareLink(p.token)}`);
-  }
-
-  parts.push('Call them or 112.');
-  return parts.join(' ');
+  const where = hasLocation(p)
+    ? [p.locationAtMs ? `Last seen ${formatLagosTime(p.locationAtMs)}` : 'Location', buildMapsLink(p.lat, p.lng)] as [string, string]
+    : null;
+  return inParts(`WakaGuard SOS: ${p.userName} needs help. Call them or 112.`, [
+    where,
+    p.token ? ['Follow their trip', buildShareLink(p.token)] : null,
+  ]);
 }
 
 // -------------------------------------------------------------------------
@@ -133,16 +136,9 @@ export function buildCheckinMessage(p: {
   lat?: number | null;
   lng?: number | null;
 }): string {
-  const parts: string[] = [`WakaGuard: ${p.userName} checked in and is OK.`];
-
   const note = sanitizeForSms(p.message, { maxLength: 100 });
-  if (note) parts.push(`"${note}"`);
-
-  if (hasLocation(p)) {
-    parts.push(`Location: ${buildMapsLink(p.lat, p.lng)}`);
-  }
-
-  return parts.join(' ');
+  const message = `WakaGuard: ${p.userName} checked in and is OK.${note ? ` "${note}"` : ''}`;
+  return inParts(message, [hasLocation(p) ? ['Location', buildMapsLink(p.lat, p.lng)] : null]);
 }
 
 export function buildTripShareMessage(p: {
@@ -153,14 +149,10 @@ export function buildTripShareMessage(p: {
 }): string {
   const destination = sanitizePlace(p.destination);
   const where = destination ? ` to ${destination}` : '';
-  const parts: string[] = [`WakaGuard: ${p.userName} is sharing a trip${where} with you.`];
-
-  if (p.endsAtMs) {
-    parts.push(`Expected arrival ${formatLagosTime(p.endsAtMs)}.`);
-  }
-
-  parts.push(`Follow it: ${buildShareLink(p.token)}`);
-  return parts.join(' ');
+  const arrival = p.endsAtMs ? ` Expected arrival ${formatLagosTime(p.endsAtMs)}.` : '';
+  return inParts(`WakaGuard: ${p.userName} is sharing a trip${where} with you.${arrival}`, [
+    ['Follow their trip', buildShareLink(p.token)],
+  ]);
 }
 
 // -------------------------------------------------------------------------
@@ -180,29 +172,21 @@ export interface OverduePayload {
 
 export function buildOverdueMessage(p: OverduePayload): string {
   const due = formatLagosTime(p.deadlineMs);
-  const parts: string[] = [];
-
+  let message: string;
   if (p.kind === 'trip') {
     const destination = sanitizePlace(p.destination);
     const where = destination ? ` to ${destination}` : '';
-    parts.push(`WakaGuard: ${p.userName} has not checked in from a trip${where}, due ${due}.`);
+    message = `WakaGuard: ${p.userName} has not checked in from a trip${where}, due ${due}.`;
   } else {
-    parts.push(`WakaGuard: ${p.userName} set a safety timer and has not checked in, due ${due}.`);
+    message = `WakaGuard: ${p.userName} set a safety timer and has not checked in, due ${due}.`;
   }
+  if (!hasLocation(p) && p.kind === 'trip') message += ' No location was received.';
+  message += ' Please call them.';
 
-  if (hasLocation(p)) {
-    const seen = p.lastUpdateMs ? ` received ${formatLagosTime(p.lastUpdateMs)}` : '';
-    parts.push(`Last location${seen}: ${buildMapsLink(p.lat, p.lng)}`);
-  } else if (p.kind === 'trip') {
-    parts.push('No location was received.');
-  }
-
-  if (p.token) {
-    parts.push(`Track: ${buildShareLink(p.token)}`);
-  }
-
-  parts.push('Please call them.');
-  return parts.join(' ');
+  const where = hasLocation(p)
+    ? [p.lastUpdateMs ? `Last seen ${formatLagosTime(p.lastUpdateMs)}` : 'Last location', buildMapsLink(p.lat, p.lng)] as [string, string]
+    : null;
+  return inParts(message, [where, p.token ? ['Follow their trip', buildShareLink(p.token)] : null]);
 }
 
 export type AllClearReason = 'ended' | 'extended' | 'checked_in' | 'sos_ended';

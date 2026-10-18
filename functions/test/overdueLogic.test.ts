@@ -93,7 +93,7 @@ test('overdue trip message names the traveller, deadline, last location and link
     token: 'abc123',
   });
   assert.match(msg, /Ada has not checked in from a trip to Benin City, due Tue,? 4:30\s?pm/i);
-  assert.match(msg, /Last location received Tue,? 3:49\s?pm: https:\/\/maps\.google\.com\/\?q=6\.335,5\.6037/i);
+  assert.match(msg, /Please call them\.\n\nLast seen Tue,? 3:49\s?pm:\nhttps:\/\/maps\.google\.com\/\?q=6\.335,5\.6037\n\nFollow their trip:\n/i);
   assert.match(msg, /\/s\?t=abc123/);
 });
 

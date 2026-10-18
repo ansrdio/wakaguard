@@ -525,7 +525,7 @@ test('SOS on a trip with a fresh position sends it as the location and marks the
 
   const sent = await logs(uid, 'sos');
   assert.equal(sent.length, 1, 'sent once even if the trigger fires twice');
-  assert.match(sent[0].messageBody, /^WakaGuard SOS: Ada needs help\. Location: https:\/\/maps\.google\.com\/\?q=6\.7,4\.9 Track: /);
+  assert.match(sent[0].messageBody, /^WakaGuard SOS: Ada needs help\. Call them or 112\.\n\nLocation:\nhttps:\/\/maps\.google\.com\/\?q=6\.7,4\.9\n\nFollow their trip:\n/);
   assert.equal((await sos.ref.get()).data()!.smsState, 'sent');
 
   assert.equal((await trip(uid, id)).status, 'emergency');
@@ -542,7 +542,7 @@ test('SOS with only an old trip position labels it as last known', async () => {
   await sos.fire();
 
   const body = (await logs(uid, 'sos'))[0].messageBody as string;
-  assert.match(body, /Last known location \(\w{3} \d{1,2}:\d{2}\s?[ap]m\): https:\/\/maps\.google\.com\/\?q=6\.7,4\.9/i);
+  assert.match(body, /Last seen \w{3} \d{1,2}:\d{2}\s?[ap]m:\nhttps:\/\/maps\.google\.com\/\?q=6\.7,4\.9/i);
 });
 
 test('SOS waits briefly for the phone to attach a GPS fix', async () => {
@@ -555,7 +555,7 @@ test('SOS waits briefly for the phone to attach a GPS fix', async () => {
     await sos.fire();
 
     const body = (await logs(uid, 'sos'))[0].messageBody as string;
-    assert.match(body, /Location: https:\/\/maps\.google\.com\/\?q=9\.05,7\.49/);
+    assert.match(body, /Location:\nhttps:\/\/maps\.google\.com\/\?q=9\.05,7\.49/);
   } finally {
     process.env.SOS_LOCATION_WAIT_MS = '0';
   }
@@ -572,7 +572,7 @@ test('SOS that arrives with a position sends it without waiting for another', as
     const tookMs = Date.now() - startedAt;
 
     const body = (await logs(uid, 'sos'))[0].messageBody as string;
-    assert.match(body, /Location: https:\/\/maps\.google\.com\/\?q=6\.6,3\.35/);
+    assert.match(body, /Location:\nhttps:\/\/maps\.google\.com\/\?q=6\.6,3\.35/);
     assert.ok(tookMs < 4000, `sent in ${tookMs} ms, well inside the 6 s it would have waited for a fix`);
   } finally {
     process.env.SOS_LOCATION_WAIT_MS = '0';
@@ -654,7 +654,7 @@ test('trip share SMS describes the caller\'s own trip', async () => {
   assert.equal(result.success, true);
   assert.equal(result.sent, 2);
   const body = (await logs(uid, 'trip_share'))[0].messageBody as string;
-  assert.match(body, /^WakaGuard: Ada is sharing a trip to Benin City with you\. Expected arrival .+ Follow it: https:\/\/wakaguard\.com\/s\?t=/);
+  assert.match(body, /^WakaGuard: Ada is sharing a trip to Benin City with you\. Expected arrival .+\n\nFollow their trip:\nhttps:\/\/wakaguard\.com\/s\?t=/);
 });
 
 test('trip share is refused for another user\'s trip, an ended trip or a malformed token', async () => {
@@ -675,7 +675,7 @@ test('check-in SMS names the sender and cannot carry a link', async () => {
   await callAs(uid, { type: 'checkin', message: 'All good, see https://evil.example/x', lat: 6.5, lng: 3.3 });
 
   const body = (await logs(uid, 'checkin'))[0].messageBody as string;
-  assert.equal(body, 'WakaGuard: Ada checked in and is OK. "All good, see" Location: https://maps.google.com/?q=6.5,3.3');
+  assert.equal(body, 'WakaGuard: Ada checked in and is OK. "All good, see"\n\nLocation:\nhttps://maps.google.com/?q=6.5,3.3');
 });
 
 test('the callable refuses free-form and SOS messages, guests and unverified accounts', async () => {
