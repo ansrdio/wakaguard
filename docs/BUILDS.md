@@ -726,7 +726,8 @@ whose code was never in this repository (`onCommentCreate`,
       Authentication; add the upload key's SHA-1 (and check Play's app-signing
       SHA-1 is there) to the Android app in Firebase, then send the new
       google-services.json; say yes when the iPhone build adds Sign in with
-      Apple to the app's identifier. Privacy line drafted for the owner
+      Apple to the app's identifier. Privacy line (what Google and Apple
+      share with us, Apple's hidden email) approved by the owner on 18 October
 - [ ] January 2027 (moved from build 25 on 14 October, to make room for
       directions). Nigerian languages, Pidgin first, then
       perhaps Yoruba, Hausa and Igbo (the owner, 14 October, moving the Pidgin
