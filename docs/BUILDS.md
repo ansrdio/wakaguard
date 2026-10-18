@@ -732,6 +732,16 @@ whose code was never in this repository (`onCommentCreate`,
       other" or "For on foot": each way of travelling has its own heading
       ("On an okada", "In a private car", "On foot"), and "Other" reads "For
       the way you travel" (`tipsHeading` in `src/lib/travelMode.ts`)
+- [x] Build 24 (fixed in code 18 October). Contacts missing after a fresh
+      install: on the owner's iPhone, the trusted contacts did not show on the
+      Trip screen at first and adding one seemed to fail; they appeared later.
+      The screen read the contacts once when it opened, and a read that failed
+      (nothing kept on a freshly installed phone, a slow first connection) left
+      the list empty with no second try until the Trip tab was opened again.
+      The screen now listens to the contacts instead, so the list fills in
+      when the connection comes and shows the server's changes at once.
+      Checked in a phone-sized browser against the emulators (a contact
+      written straight to the database appeared on the open screen)
 - [ ] January 2027 (moved from build 25 on 14 October, to make room for
       directions). Nigerian languages, Pidgin first, then
       perhaps Yoruba, Hausa and Igbo (the owner, 14 October, moving the Pidgin
@@ -794,8 +804,8 @@ whose code was never in this repository (`onCommentCreate`,
       number not on the trip refused, the right one stopped (both travellers'
       copies marked), turned back on. Not seen yet: the form on an ended
       trip's page and the mark in the traveller's app (both covered by tests
-      only). The mark appears the next time the Trip screen opens, not at
-      once. Release order: rules and the new index, then `stopTexts`,
+      only). The mark shows at once: the Trip screen listens to the contacts
+      (see the contacts fix below). Release order: rules and the new index, then `stopTexts`,
       `onTrustedContactWrite` and the changed texting functions, then the
       website. Also: `tripAction` now answers the website's browser check,
       so the backup route works on the website too. Privacy page wording
