@@ -649,6 +649,20 @@ whose code was never in this repository (`onCommentCreate`,
       against the emulators (picker opened from the card, 1 h 35 min moved the
       arrival time from 12:20 to 1:55 PM). The reminder button needs a phone:
       older builds keep two buttons, and no server change is needed
+- [x] Build 24 (done in code 18 October; not yet on a phone). Undo for
+      "I've arrived" (the owner, 18 October, from lordelijah's problem report
+      of 16 October: he ended a trip by mistake when he meant to add time,
+      and an ended trip is not watched). The card's and the trip map's "I've
+      arrived" now wait 5 seconds with "Ending your trip in 5… Undo" above the
+      tab bar, the card's buttons paused meanwhile, then end the trip. The
+      wait can never leave a trip running that was meant to end: if the app
+      is put away or the phone locked during it, the trip ends at once. The
+      reminder's "I've arrived" button still ends at once (that press already
+      needs opening the notification and unlocking). `src/lib/arriveUndo.ts`.
+      Checked in a phone-sized browser against the emulators: Undo kept the
+      trip running past 8 seconds; left alone it ended after 5 seconds; with
+      the page told it was hidden it ended 0.1 seconds later. Needs a phone
+      check that locking the phone during the wait ends the trip
 - [ ] Build 24. A morning weather notification, to bring people back to the
       app (the owner, 14 October). Proposed: about 6:30 am Nigeria time, only
       on days with something worth knowing (rain, a storm, great heat), since
