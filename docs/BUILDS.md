@@ -663,15 +663,27 @@ whose code was never in this repository (`onCommentCreate`,
       trip running past 8 seconds; left alone it ended after 5 seconds; with
       the page told it was hidden it ended 0.1 seconds later. Needs a phone
       check that locking the phone during the wait ends the trip
-- [ ] Build 24. A morning weather notification, to bring people back to the
-      app (the owner, 14 October). Proposed: about 6:30 am Nigeria time, only
-      on days with something worth knowing (rain, a storm, great heat), since
-      people tired of a daily message may switch WakaGuard's notifications
-      off and lose the trip reminders with them (one switch on an iPhone).
-      Tapping it opens the start form. It needs a rough area (about 10 km)
-      kept from the last weather look-up, a line on the Privacy page, and its
-      own switch in Profile. Only on notable days (the owner, 14 October);
-      its language is decided with the languages below
+- [x] Build 24 (done in code 18 October; not yet on a phone). The morning
+      weather notification, to bring people back to the app (the owner, 14
+      October): `morningWeather`, at 6:30 am Nigeria time, only on days with
+      a storm, heavy rain, rain, fog or great heat between then and 9 pm in
+      the person's rough area ("Heavy rain expected today. From about 3 pm
+      where you are. Allow extra time; low roads may flood."), in the same
+      style as the approved Trip screen line, English for now. Tapping it
+      opens the start form. The rough area (about 10 km, never the position)
+      is kept in `weatherAreas` (server only) by each weather look-up from a
+      signed-in person, unless "Morning weather" is off in Settings (on
+      unless switched off); forgotten after 30 days without a look-up, when
+      switched off, or with the account. Sent only to build 24 or later (the
+      ones with the switch), at most once a day, as an ordinary notification
+      on its own Android channel "Morning weather", never like a trip alert.
+      Checked: unit and emulator tests (a rainy area told once, a dry one
+      not, switched off, old build, forgotten area), the Settings switch in a
+      phone-sized browser. Privacy lines drafted for the owner (the old line
+      said the area "is not saved with your account", which would no longer
+      be true). Release: rules (users.morningWeather, weatherAreas), then
+      the functions (weatherAhead, morningWeather, deleteMyAccount), then the
+      website and build 24
 - [ ] January 2027 (moved from build 25 on 14 October, to make room for
       directions). Nigerian languages, Pidgin first, then
       perhaps Yoruba, Hausa and Igbo (the owner, 14 October, moving the Pidgin
@@ -695,7 +707,9 @@ whose code was never in this repository (`onCommentCreate`,
       `vehicle` allowed on sharedTrips, written only by the server (the app
       can neither set nor change it). Checked in a phone-sized browser against
       the emulators (start form, card, change sheet, contacts' page after an
-      alert written as the server does). Privacy lines drafted for the owner.
+      alert written as the server does). Privacy lines (what is stored, what
+      the trip page shows, the plate in alerts) approved by the owner on 18
+      October.
       Release order: database rules first (or the app's writes to an alerted
       trip's page would be refused once the server adds `vehicle`), then the
       functions (checkOverdueTrips, onSOSAlert, onTripUpdated), then the
