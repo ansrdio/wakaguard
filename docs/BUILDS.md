@@ -672,7 +672,7 @@ whose code was never in this repository (`onCommentCreate`,
       common reason for using WakaGuard less, 4 of 9). Repeat a usual trip:
       one tap to start a trip made before, with the time it usually takes
       filled in
-- [ ] Build 24. Reminders that cannot be missed (the owner, 18 October, after
+- [x] Build 24 (done in code 18 October; not yet on a phone). Reminders that cannot be missed (the owner, 18 October, after
       the first live test: the "Are you okay?" on the Galaxy did not buzz or
       light the screen). The Galaxy's "Trip reminders" channel was already high
       importance with sound and vibration and Do Not Disturb was off, so
@@ -683,7 +683,20 @@ whose code was never in this repository (`onCommentCreate`,
       Sensitive" reminders (the app's entitlement and interruption-level
       time-sensitive from the server), which break through Focus and stay on
       the lock screen, and the same distinctive sound. Check how the
-      repeat reminders behave with Android's newer notification cooldown
+      repeat reminders behave with Android's newer notification cooldown.
+      Built: WakaGuard's own sound (a rising three-note chime played twice,
+      1.8 s, made for us, so no licence) in res/raw and in the iPhone app; on
+      Android a new "Trip alerts" channel (high importance, that sound, a
+      buzz-pause pattern of 0.7 s three times, alarm category) made when the
+      app starts; on iPhone the Time Sensitive entitlement, and from the server
+      `interruption-level: time-sensitive` with that sound for builds 24 and
+      later (`LOUD_FROM_BUILD`), older builds unchanged. A second live test the
+      same night on the Galaxy (build 23) showed Android did buzz and sound
+      for "Are you okay?" (its log: buzz 1, beep 1), so the first miss was most
+      likely the phone in hand or many WakaGuard notifications close together.
+      The Time Sensitive capability is switched on for the app's identifier
+      when the iPhone build is made (an Apple account change, on the owner's
+      word)
 - [ ] Build 24. "Text them when I arrive" (the owner, 17 October, after the
       tester survey: "my chosen person gets a text when I arrive safely" was
       picked by 5 of 9). A setting on the start form, off unless chosen;
