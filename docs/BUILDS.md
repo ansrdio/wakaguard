@@ -23,8 +23,8 @@ before the weekend. Android and iPhone go out on the same day.
 |---|---|---|---|
 | 22 | Wed 14 Oct | Store requirements (report and block, Terms of Use, location screen); Android Back; location fixes; arrival reminders | Out on both: iPhone and Android, Mon 12 Oct, two days early |
 | 23 | Wed 21 Oct | Testers' corrections (checklist, exact trip length, delete my own post); "How are you travelling?" with matching tips; our own road report pictures; "keep WakaGuard running" help; weather (paid maps moved to build 24: Mapbox); reported posts hidden automatically | Uploaded Wed 14 Oct, a week early: Android internal test live; closed test and TestFlight sent for review by the owner |
-| 24 | Wed 28 Oct | Sign in with Google and Apple; sponsor card by state; "please update" switch; service notice; "stop texting me"; vehicle details; far-away reports marked; Mapbox maps; destination search by address | Planned |
-| 25 | Wed 4 Nov | Fixes after text alerts are switched on; directions on the trip (route, trip length from it, spoken directions), as a beta | Planned |
+| 24 | Wed 28 Oct | Sign in with Google and Apple; sponsor card by state; "please update" switch; service notice; "stop texting me"; vehicle details; far-away reports marked; Mapbox maps; destination search by address; "text them when I arrive" | Planned |
+| 25 | Wed 4 Nov | Fixes after text alerts are switched on; directions on the trip (route, trip length from it, spoken directions), as a beta; repeat a usual trip | Planned |
 | 26 | Wed 11 Nov | The launch version | Planned |
 
 | After the last build | Date |
@@ -667,9 +667,18 @@ whose code was never in this repository (`onCommentCreate`,
       they passed earlier, so the report still goes up, but it shows as not
       seen first-hand and does not count for the ranking (raised by a tester
       on 13 October; the owner said yes that day)
-- [ ] After launch (moved from build 25 on 14 October, to make room for
-      directions). Repeat a usual trip: one tap to start a trip made before,
-      with the time it usually takes filled in
+- [ ] Build 25 (moved back from after launch on 17 October, on the owner's
+      word, after the tester survey: "I forgot to start a trip" was the most
+      common reason for using WakaGuard less, 4 of 9). Repeat a usual trip:
+      one tap to start a trip made before, with the time it usually takes
+      filled in
+- [ ] Build 24. "Text them when I arrive" (the owner, 17 October, after the
+      tester survey: "my chosen person gets a text when I arrive safely" was
+      picked by 5 of 9). A setting on the start form, off unless chosen;
+      when the trip is ended with "I've arrived", the server texts the
+      trip's contacts that the traveller arrived safely (the wording exists
+      already: "... has checked in and ended the trip safely"). Costs one
+      text per contact, so the start form says so. Needs texting switched on
 - [ ] Build 24. Mapbox map pictures in place of OpenStreetMap's, on the phone
       apps and the website (the owner chose Mapbox on 14 October)
 - [ ] Build 24. Destination search by address when starting a trip, with
