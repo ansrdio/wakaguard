@@ -755,8 +755,9 @@ whose code was never in this repository (`onCommentCreate`,
       "show the whole trip". Gives build 25's directions an exact point.
       Checked in a phone-sized browser against the emulators. Also on all
       maps: Leaflet's own credit dropped (not required) so Mapbox's fits on
-      one line, with the wordmark above it. Privacy lines drafted for the
-      owner. Next for addresses: NIPOST's digital postcodes (live 1 October
+      one line, with the wordmark above it. Privacy lines (the point stored
+      with the trip, the pin on the trip page) approved by the owner on 18
+      October. Next for addresses: NIPOST's digital postcodes (live 1 October
       2026; developer access needs KYB and NIPOST's testing), to name the
       pinned spot and to say where someone was last seen in alert texts; the
       owner to apply. An unofficial write-up (oliha.dev, read 18 October)
