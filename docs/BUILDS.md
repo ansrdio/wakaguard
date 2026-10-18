@@ -759,7 +759,11 @@ whose code was never in this repository (`onCommentCreate`,
       owner. Next for addresses: NIPOST's digital postcodes (live 1 October
       2026; developer access needs KYB and NIPOST's testing), to name the
       pinned spot and to say where someone was last seen in alert texts; the
-      owner to apply
+      owner to apply. An unofficial write-up (oliha.dev, read 18 October)
+      says there is no keyless access (its own mock returns made-up data),
+      only the "valid or not" level is free, the address level costs
+      credits, a building's position is restricted, and the nearby search is
+      not published yet: useful later, not a replacement for the pin
 - [ ] January 2027 (moved from build 25 on 14 October, to make room for
       directions). Nigerian languages, Pidgin first, then
       perhaps Yoruba, Hausa and Igbo (the owner, 14 October, moving the Pidgin
@@ -938,8 +942,9 @@ whose code was never in this repository (`onCommentCreate`,
       NEXT_PUBLIC_ADDRESS_SEARCH=1. A Debug build 24 with it, the Mapbox maps
       and live settings went on the owner's iPhone 16 by cable on 18 October
       (Xcode added Sign in with Apple and Time Sensitive to the app's Apple
-      identifier on the owner's yes). `out/` now holds that build: rebuild
-      without the switch before any website release
+      identifier on the owner's yes). Replaced the same day by a build
+      without the search (with the destination pin and the contacts fix),
+      also from live settings; `out/` holds that one
 - [x] Build 24 (done in code 18 October). A switch on the server that hides
       directions without a new build, alongside the "please update" switch:
       `config/app` `directions`, off unless set true, read with the other
