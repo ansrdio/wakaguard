@@ -672,6 +672,19 @@ whose code was never in this repository (`onCommentCreate`,
       common reason for using WakaGuard less, 4 of 9). Repeat a usual trip:
       one tap to start a trip made before, with the time it usually takes
       filled in
+- [x] Build 24 (done in code 18 October; not yet on a phone). A backup route
+      for "I've arrived" and extra time, the fuller fix for the tester whose
+      arrival reached the server 17 minutes late (14 October). When the
+      database save has not arrived in 5 seconds, the app also posts the
+      press, with the trip's own key, to a new server function `tripAction`
+      by the native route the positions take; whichever lands first wins and
+      the other changes nothing (an ended trip stays ended; extra time carries
+      the press's id, `lastExtendRequestId`, so it is never added twice; the
+      counts of extensions can be one too many if both land). The server's
+      usual follow-ups (all-clear text, overdue reset) run as for any ended or
+      extended trip. No change to the database rules. Release order: deploy
+      `tripAction` before build 24 reaches anyone; older builds never call it.
+      SOS is not changed
 - [x] Build 24 (done in code 18 October; not yet on a phone). Reminders that cannot be missed (the owner, 18 October, after
       the first live test: the "Are you okay?" on the Galaxy did not buzz or
       light the screen). The Galaxy's "Trip reminders" channel was already high
