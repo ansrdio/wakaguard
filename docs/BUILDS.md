@@ -882,12 +882,28 @@ whose code was never in this repository (`onCommentCreate`,
       ("Arrival" in when texts are sent, "arrival" in the log's types) were
       approved by the owner on 18 October. Release: deploy `onTripUpdated`
       before or with build 24 (older apps never set the field)
-- [ ] Build 24. Mapbox map pictures in place of OpenStreetMap's, on the phone
-      apps and the website (the owner chose Mapbox on 14 October)
+- [x] Build 24 (done in code 18 October; not yet on a phone). Mapbox map
+      pictures in place of OpenStreetMap's, on the phone apps and the website
+      (the owner chose Mapbox on 14 October; a personal Mapbox account until
+      Mapbox support fixes the business one, 18 October). Mapbox's Static
+      Tiles (streets-v12, 512-pixel tiles in Leaflet, about the same data as
+      before; 200,000 free a month, roughly 10,000 to 20,000 map openings),
+      with Mapbox's wordmark and "Improve this map" as its terms ask, on the
+      Nearby map (above Legend), the trip map, the contacts' page and the
+      report pin picker. Used when NEXT_PUBLIC_MAPBOX_TOKEN is set (public
+      token, kept in wakaguard/.env.mapbox.local, off GitHub; to add to the
+      live website's settings and the app builds at release); OpenStreetMap
+      otherwise. Privacy line updated (drafted for the owner). Restrict the
+      token to our addresses before launch
 - [ ] Build 24. Destination search by address when starting a trip, with
       Mapbox. Typing a destination freely still works. A search result is
       only kept for the trip unless Mapbox's paid "permanent" option is
-      bought; check the terms before saving anything
+      bought; check the terms before saving anything. Tried on 18 October with the
+      owner's token: Mapbox found no Nigerian landmark (UCH Ibadan, Shoprite
+      Ikeja, Ojota bus park, Wuse Market; both its address search and its
+      place search, which offered streets of similar names instead) and 7 of
+      10 towns and areas (not Yaba, Mokola, Ojodu Berger). Decision for the
+      owner
 - [x] Build 24 (done in code 18 October). A switch on the server that hides
       directions without a new build, alongside the "please update" switch:
       `config/app` `directions`, off unless set true, read with the other
