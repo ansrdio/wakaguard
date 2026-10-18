@@ -903,7 +903,15 @@ whose code was never in this repository (`onCommentCreate`,
       Ikeja, Ojota bus park, Wuse Market; both its address search and its
       place search, which offered streets of similar names instead) and 7 of
       10 towns and areas (not Yaba, Mokola, Ojodu Berger). Decision for the
-      owner
+      owner. The owner wanted to try it on a real phone, so a trial is in
+      code (`src/lib/placeSearch.ts`: Mapbox's Search Box, Nigeria only,
+      nearest first, suggestions under "Where are you going?", choosing one
+      fills the box, nothing from Mapbox stored), switched on only by
+      NEXT_PUBLIC_ADDRESS_SEARCH=1. A Debug build 24 with it, the Mapbox maps
+      and live settings went on the owner's iPhone 16 by cable on 18 October
+      (Xcode added Sign in with Apple and Time Sensitive to the app's Apple
+      identifier on the owner's yes). `out/` now holds that build: rebuild
+      without the switch before any website release
 - [x] Build 24 (done in code 18 October). A switch on the server that hides
       directions without a new build, alongside the "please update" switch:
       `config/app` `directions`, off unless set true, read with the other
