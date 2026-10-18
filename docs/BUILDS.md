@@ -672,6 +672,24 @@ whose code was never in this repository (`onCommentCreate`,
       common reason for using WakaGuard less, 4 of 9). Repeat a usual trip:
       one tap to start a trip made before, with the time it usually takes
       filled in
+- [x] Build 24 (done in code 18 October; not yet on a phone). The "please
+      update" switch and a notice for everyone, both from one database
+      document, `config/app`, that anyone can read and nobody can write from
+      the app (we change it in the Firebase console). `minBuild`: a phone app
+      older than this shows a red "Please update WakaGuard now" card that
+      cannot be hidden; the app is not locked, because someone mid-trip must
+      still be able to tap "I've arrived". `latestBuild`: an older app shows a
+      blue "A new version is ready" card that can be hidden. `notice` (`id`,
+      `text` up to 280 characters, `level` info or warning): shown to
+      everyone, phones and website, until dismissed; a new `id` shows again.
+      Update links default to Play and the TestFlight invite and may only be
+      changed to the stores or wakaguard.com. The cards sit at the top of the
+      Trip and Profile screens, not on the Nearby map, and change while the
+      app is open. Checked in a phone-sized browser against the emulators
+      (notice shown, dismissed, stays dismissed after reload, a new one
+      appears live); the update cards only show in the phone apps, so they
+      need a phone test. Release order: deploy the database rules before or
+      with build 24 (until then the read is refused and nothing shows)
 - [x] Build 24 (done in code 18 October; not yet on a phone). A backup route
       for "I've arrived" and extra time, the fuller fix for the tester whose
       arrival reached the server 17 minutes late (14 October). When the
