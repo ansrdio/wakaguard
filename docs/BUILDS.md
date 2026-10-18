@@ -634,13 +634,21 @@ whose code was never in this repository (`onCommentCreate`,
       state the user has chosen, changed from the server without an app
       update. Marked "Sponsored"; never on the trip screen, the contacts' page
       or in texts
-- [ ] Build 24. Add your own amount of time (the owner, 14 October; a couple
-      of testers asked for it in the feedback form too). Nobody can know in
-      advance how much more time a trip needs. In the app, "Running late? Add
-      time" gets "Other", with the start form's hours-and-minutes picker in
-      5-minute steps. On the reminders, a third button "More time…" opens the
-      app straight onto that picker; "+15 min" stays as the one-tap choice
-      (Android shows up to three buttons, an iPhone up to four)
+- [x] Build 24 (done in code 18 October; not yet on a phone). Add your own
+      amount of time (the owner, 14 October; a couple of testers asked for it
+      in the feedback form too). Nobody can know in advance how much more
+      time a trip needs. On the trip card, under "Running late? Add time", an
+      "Other amount" button opens "Add more time": hours and minutes in
+      5-minute steps, up to 12 hours at once (the limit the backup route
+      takes, checked by a test), starting at 20 minutes, with the new arrival
+      time shown. On the reminders, a third button "More time…" (Android's
+      own drawing and the iPhone's TRIP_REMINDER category) opens the app on
+      that picker; nothing is added until an amount is chosen. "+15 min"
+      stays the one-tap choice. The "Added …" message now reads "Added 1 h 35
+      min" rather than "Added 95 minutes". Checked in a phone-sized browser
+      against the emulators (picker opened from the card, 1 h 35 min moved the
+      arrival time from 12:20 to 1:55 PM). The reminder button needs a phone:
+      older builds keep two buttons, and no server change is needed
 - [ ] Build 24. A morning weather notification, to bring people back to the
       app (the owner, 14 October). Proposed: about 6:30 am Nigeria time, only
       on days with something worth knowing (rain, a storm, great heat), since
@@ -773,8 +781,9 @@ whose code was never in this repository (`onCommentCreate`,
       ending says "Your contacts are being told you arrived" and skips the
       share sheet. Checked in a phone-sized browser against the emulators
       end to end (one `arrival` log for both contacts). The website's example
-      texts, How it works and Support page say so; the Privacy page lines are
-      drafted for the owner's approval. Release: deploy `onTripUpdated`
+      texts, How it works and Support page say so; the Privacy page lines
+      ("Arrival" in when texts are sent, "arrival" in the log's types) were
+      approved by the owner on 18 October. Release: deploy `onTripUpdated`
       before or with build 24 (older apps never set the field)
 - [ ] Build 24. Mapbox map pictures in place of OpenStreetMap's, on the phone
       apps and the website (the owner chose Mapbox on 14 October)
