@@ -698,8 +698,35 @@ whose code was never in this repository (`onCommentCreate`,
       server leaves the icon out. Checked with sample forecasts on a page made
       for the purpose and then deleted. Privacy: the look-up line now says
       "while the app is open on your screen" instead of "open the Trip screen,
-      or have a trip running" (drafted for the owner). Release with
+      or have a trip running" (approved by the owner on 18 October). Release with
       `weatherAhead` and build 24
+- [x] Build 24 (done in code 18 October; waits on the owner's console steps
+      and a phone). Sign in with Google (Android and iPhone) and with Apple
+      (iPhone, which Apple requires of an app offering Google), through
+      `@capacitor-firebase/authentication` 8.5.2: the phone signs in with the
+      provider natively and the web layer signs in to Firebase with its token
+      (`skipNativeAuth`), so everything after sign-in is as for email. Not on
+      the website yet: Google's pop-up did not complete in a browser without
+      pop-up windows, as in WhatsApp's own browser; to try in a real browser
+      later. Buttons "Continue with Apple" / "Continue with Google" at the top
+      of the sign-in box and the first-run screen, under the "18 or older"
+      tick, which they need too (they can create an account in one tap); the
+      email form below as before. Hidden until switched on in `config/app`
+      (`signInWith: { google, apple }`), so build 24 can go out before the
+      consoles are done. Google and Apple accounts skip "Check your email"
+      (the provider confirms it) and count as verified for texting. Deleting
+      such an account is confirmed by signing in with the provider again
+      instead of a password. Native: Android `rgcfaIncludeGoogle`; iPhone the
+      Google pod, Google's return scheme from GoogleService-Info.plist, and the
+      Sign in with Apple entitlement. Checked: Android compiles; iPhone pods
+      install (the iPhone build itself is made at release); against the
+      emulators, a Google token makes a new account with the email confirmed
+      and is recognised the second time; the buttons and the tick in a
+      phone-sized browser. Owner's steps: enable Google and Apple in Firebase
+      Authentication; add the upload key's SHA-1 (and check Play's app-signing
+      SHA-1 is there) to the Android app in Firebase, then send the new
+      google-services.json; say yes when the iPhone build adds Sign in with
+      Apple to the app's identifier. Privacy line drafted for the owner
 - [ ] January 2027 (moved from build 25 on 14 October, to make room for
       directions). Nigerian languages, Pidgin first, then
       perhaps Yoruba, Hausa and Igbo (the owner, 14 October, moving the Pidgin
