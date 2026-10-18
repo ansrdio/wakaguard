@@ -672,6 +672,28 @@ whose code was never in this repository (`onCommentCreate`,
       common reason for using WakaGuard less, 4 of 9). Repeat a usual trip:
       one tap to start a trip made before, with the time it usually takes
       filled in
+- [x] Build 24 (done in code 18 October; not yet on a phone). "Stop texting
+      me" for contacts, proved by the trip link (the owner chose this on 18
+      October over a code sent by text, which our sender is not approved for).
+      The trip page a text links to, open or ended, has "Stop WakaGuard texts
+      to my number": the contact types the number the text came to, and the
+      new `stopTexts` function checks it is one of that trip's contacts, then
+      lists it in `smsOptOuts` (server only). Every text is checked against
+      that list before sending (`getTrustedContacts`); if the list cannot be
+      read, texts go out anyway. Every traveller's copy of that contact is
+      marked `smsOptedOut`, and the app shows "asked WakaGuard not to text
+      their number" and leaves them out of trips. A contact saved later is
+      marked by the new `onTrustedContactWrite` trigger. Texts can be turned
+      back on the same way. Ten tries an hour per link, so numbers cannot be
+      guessed. Checked in a phone-sized browser against the emulators: a
+      number not on the trip refused, the right one stopped (both travellers'
+      copies marked), turned back on. Not seen yet: the form on an ended
+      trip's page and the mark in the traveller's app (both covered by tests
+      only). The mark appears the next time the Trip screen opens, not at
+      once. Release order: rules and the new index, then `stopTexts`,
+      `onTrustedContactWrite` and the changed texting functions, then the
+      website. Also: `tripAction` now answers the website's browser check,
+      so the backup route works on the website too
 - [x] Build 24 (done in code 18 October; not yet on a phone). The "please
       update" switch and a notice for everyone, both from one database
       document, `config/app`, that anyone can read and nobody can write from
