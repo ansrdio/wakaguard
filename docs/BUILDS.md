@@ -679,11 +679,27 @@ whose code was never in this repository (`onCommentCreate`,
       on its own Android channel "Morning weather", never like a trip alert.
       Checked: unit and emulator tests (a rainy area told once, a dry one
       not, switched off, old build, forgotten area), the Settings switch in a
-      phone-sized browser. Privacy lines drafted for the owner (the old line
-      said the area "is not saved with your account", which would no longer
-      be true). Release: rules (users.morningWeather, weatherAreas), then
+      phone-sized browser. Privacy lines approved by the owner on 18 October
+      (the old line said the area "is not saved with your account", which
+      would no longer be true; now it says what is kept, why and when it is
+      deleted, and the notification is under Notifications). Release: rules (users.morningWeather, weatherAreas), then
       the functions (weatherAhead, morningWeather, deleteMyAccount), then the
       website and build 24
+- [x] Build 24 (done in code 18 October; not yet on a phone). The weather
+      icon in the top bar, on every tab (the owner chose it on 18 October over
+      weather notifications through the day, which would get WakaGuard's
+      notifications switched off, the trip reminders with them): a picture of
+      the hour under way and its temperature, from the same look-up as the
+      Trip screen's line, asked for again every 30 minutes while the app is
+      on screen, and only if location is already allowed. Tapping it shows
+      "Weather here": now, the warning line if any, the next six hours with
+      pictures, and "Data from MET Norway". The server's `weatherAhead` now
+      also answers with the next hours; older apps ignore them, and an older
+      server leaves the icon out. Checked with sample forecasts on a page made
+      for the purpose and then deleted. Privacy: the look-up line now says
+      "while the app is open on your screen" instead of "open the Trip screen,
+      or have a trip running" (drafted for the owner). Release with
+      `weatherAhead` and build 24
 - [ ] January 2027 (moved from build 25 on 14 October, to make room for
       directions). Nigerian languages, Pidgin first, then
       perhaps Yoruba, Hausa and Igbo (the owner, 14 October, moving the Pidgin
