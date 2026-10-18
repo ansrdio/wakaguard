@@ -742,8 +742,8 @@ whose code was never in this repository (`onCommentCreate`,
       when the connection comes and shows the server's changes at once.
       Checked in a phone-sized browser against the emulators (a contact
       written straight to the database appeared on the open screen)
-- [x] Build 24 (done in code 18 October; not yet on a phone). "Set it on the
-      map" for a trip's destination, in place of an address search (the owner
+- [x] Build 24 (done in code 18 October; on the owner's iPhone the same
+      day). "Set it on the map" for a trip's destination, in place of an address search (the owner
       chose it on 18 October after Mapbox found almost no Nigerian landmarks;
       the Mapbox search trial was taken out again). Under "Where are you
       going?", optional: a map with the pin fixed in the middle, opening on the
@@ -915,8 +915,8 @@ whose code was never in this repository (`onCommentCreate`,
       ("Arrival" in when texts are sent, "arrival" in the log's types) were
       approved by the owner on 18 October. Release: deploy `onTripUpdated`
       before or with build 24 (older apps never set the field)
-- [x] Build 24 (done in code 18 October; not yet on a phone). Mapbox map
-      pictures in place of OpenStreetMap's, on the phone apps and the website
+- [x] Build 24 (done in code 18 October; on the owner's iPhone the same
+      day). Mapbox map pictures in place of OpenStreetMap's, on the phone apps and the website
       (the owner chose Mapbox on 14 October; a personal Mapbox account until
       Mapbox support fixes the business one, 18 October). Mapbox's Static
       Tiles (streets-v12, 512-pixel tiles in Leaflet, about the same data as

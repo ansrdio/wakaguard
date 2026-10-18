@@ -14,6 +14,7 @@ import { TravelPicture } from '@/components/pictures/Pictures';
 import { useSharedTrip } from '@/hooks/useSharedTrip';
 import { StopTexts } from '@/components/trip/StopTexts';
 import { storedVehicle, vehicleSummary } from '@/lib/vehicle';
+import { readPoint } from '@/lib/destinationPoint';
 
 // Leaflet needs the browser, so the map is left out of the prerendered page
 const TripMap = dynamic(() => import('@/components/trip/TripMap'), {
@@ -185,7 +186,7 @@ function SharedTripContent() {
           className="h-[46vh] min-h-[280px] lg:h-[calc(100vh-7rem)] lg:col-span-3 lg:rounded-3xl lg:border lg:border-slate-200 overflow-hidden bg-slate-100"
         >
           {latest ? (
-            <TripMap path={path} latest={latest} stale={isStale} />
+            <TripMap path={path} latest={latest} stale={isStale} destination={readPoint(trip.destinationPoint)} />
           ) : (
             <div className="h-full flex flex-col items-center justify-center text-center p-6">
               <MapPin className="w-10 h-10 text-slate-400 mb-3" aria-hidden="true" />

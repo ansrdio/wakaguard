@@ -11,6 +11,7 @@ import { getDeviceId, sendsTripLocation } from '@/lib/deviceId';
 import { readTripPath } from '@/lib/tripPath';
 import { describeTripAlert, watcherCaption } from '@/lib/alertOutcome';
 import { useSharedTrip } from '@/hooks/useSharedTrip';
+import { readPoint } from '@/lib/destinationPoint';
 
 // Leaflet needs the browser, so the map is left out of the prerendered page
 const TripMap = dynamic(() => import('@/components/trip/TripMap'), {
@@ -88,7 +89,7 @@ export function TripMapScreen({ trip, watcherNames, processing, onClose, onArriv
 
       <div className="relative flex-1 min-h-0">
         {/* The card below sits over the top of the map */}
-        <TripMap path={path} latest={trip.lastLocation ?? null} stale={location.state === 'stale'} topInset={130} />
+        <TripMap path={path} latest={trip.lastLocation ?? null} stale={location.state === 'stale'} topInset={130} destination={readPoint(trip.destinationPoint)} />
 
         <div className="absolute top-3 left-3 right-3 z-[1000] bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-4">
           <div className="flex items-start justify-between gap-3">

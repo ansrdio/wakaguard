@@ -243,6 +243,8 @@ export interface SharedTrip {
   travelMode?: string;
   /** The vehicle's plate and details (lib/vehicle.ts). Written by the server once contacts are alerted */
   vehicle?: { plate?: string; details?: string };
+  /** Where the trip is going, if the traveller set it on the map (lib/destinationPoint.ts) */
+  destinationPoint?: { lat: number; lng: number };
 }
 
 export interface TripPathPoint {
@@ -400,6 +402,8 @@ export interface Trip {
   textOnArrival?: boolean;
   /** What they are riding in, if they said (lib/vehicle.ts) */
   vehicle?: { plate?: string; details?: string };
+  /** Where they are going, if they set it on the map (lib/destinationPoint.ts) */
+  destinationPoint?: { lat: number; lng: number };
 
   cancellationReason?: string;
 }

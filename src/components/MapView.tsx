@@ -3,6 +3,7 @@
 import { useEffect, useRef, useMemo, memo, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import { MAP_TILES } from '@/lib/mapTiles';
+import { MapboxLogo } from '@/components/MapboxLogo';
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import L from 'leaflet';
 import { Crosshair, MapPin } from 'lucide-react';
@@ -324,11 +325,8 @@ const MapView = memo(function MapView({ reports, selectedReportId, onMarkerClick
         className="h-full w-full"
         ref={leafletMapRef}
       >
-      <TileLayer
-        attribution={MAP_TILES.attribution}
-        url={MAP_TILES.url}
-        maxZoom={MAP_TILES.maxZoom}
-      />
+      <TileLayer {...MAP_TILES} />
+        <MapboxLogo className="bottom-[5.5rem] left-4" />
       
       <MapController 
         selectedReportId={selectedReportId} 

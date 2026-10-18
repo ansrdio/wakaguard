@@ -429,7 +429,7 @@ service cloud.firestore {
       function isValidSharedTrip(d) {
         return d.keys().hasOnly([
           'uid','tripId','status','expiresAt','lastLocation','lastUpdate','destination','createdAt',
-          'endsAt','overdueAt','path','name','isTest','travelMode','vehicle'
+          'endsAt','overdueAt','path','name','isTest','travelMode','vehicle','destinationPoint'
         ])
         && d.uid is string
         && d.tripId is string
@@ -444,6 +444,13 @@ service cloud.firestore {
         && (!('name' in d) || (d.name is string && d.name.size() <= 60))
         && (!('isTest' in d) || d.isTest is bool)
         && (!('travelMode' in d) || (d.travelMode is string && d.travelMode.size() <= 20))
+        && (!('destinationPoint' in d) || (
+          d.destinationPoint is map
+          && d.destinationPoint.keys().hasOnly(['lat','lng'])
+          && d.destinationPoint.lat is number && d.destinationPoint.lng is number
+          && d.destinationPoint.lat >= -90 && d.destinationPoint.lat <= 90
+          && d.destinationPoint.lng >= -180 && d.destinationPoint.lng <= 180
+        ))
         && (!('vehicle' in d) || (
           d.vehicle is map
           && d.vehicle.keys().hasOnly(['plate','details'])

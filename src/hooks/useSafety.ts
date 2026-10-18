@@ -45,6 +45,8 @@ export interface SafeTripOptions {
   textOnArrival?: boolean;
   /** What they are riding in, if they said (lib/vehicle.ts) */
   vehicle?: Vehicle | null;
+  /** Where they are going, if they set it on the map (lib/destinationPoint.ts) */
+  destinationPoint?: { lat: number; lng: number } | null;
 }
 
 /**
@@ -516,6 +518,7 @@ export function useSafety(): UseSafetyReturn {
         ...(options.textOnArrival ? { textOnArrival: true } : {}),
         // Private until contacts are alerted; the server copies it to their page then
         ...(options.vehicle ? { vehicle: options.vehicle } : {}),
+        ...(options.destinationPoint ? { destinationPoint: options.destinationPoint } : {}),
         // Planned versus actual, for learning how long trips really take
         startLocation: lastLocation ? { lat: lastLocation.lat, lng: lastLocation.lng } : null,
         extensionCount: 0,
@@ -538,6 +541,8 @@ export function useSafety(): UseSafetyReturn {
           endsAt: endsAt ? Timestamp.fromDate(endsAt) : null,
           // The page a contact opens says when a trip is only a test
           ...(options.isTest ? { isTest: true } : {}),
+          // Drawn on that page, as the typed destination is shown there
+          ...(options.destinationPoint ? { destinationPoint: options.destinationPoint } : {}),
         }, { merge: true }),
       ]));
 

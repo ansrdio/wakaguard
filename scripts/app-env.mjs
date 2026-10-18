@@ -53,10 +53,10 @@ export function checkAppBuildEnv(env) {
     errors.push(`NEXT_PUBLIC_APP_URL is "${appUrl}". Links texted to contacts are built from it, so it must be the public https address.`);
   }
 
-  if (!env.NEXT_PUBLIC_MAP_TILE_URL) {
+  if (!env.NEXT_PUBLIC_MAP_TILE_URL && !env.NEXT_PUBLIC_MAPBOX_TOKEN) {
     warnings.push(
-      'NEXT_PUBLIC_MAP_TILE_URL is not set, so the map uses OpenStreetMap\'s own servers. ' +
-      'They only allow light traffic and may block apps; set a provider with an API key before release.'
+      'Neither NEXT_PUBLIC_MAPBOX_TOKEN nor NEXT_PUBLIC_MAP_TILE_URL is set, so the map uses OpenStreetMap\'s own servers. ' +
+      'They only allow light traffic and may block apps; set the Mapbox token before release.'
     );
   }
 

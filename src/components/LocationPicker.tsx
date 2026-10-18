@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, useMap, useMapEvents } from 'react-leaflet';
 import { MAP_TILES } from '@/lib/mapTiles';
+import { MapboxLogo } from '@/components/MapboxLogo';
 
 interface Place {
   lat: number;
@@ -72,11 +73,8 @@ export default function LocationPicker({ location, onLocationSelect, startsFarOu
         zoom={startsFarOut ? CITY_ZOOM : STREET_ZOOM}
         style={{ height: '100%', width: '100%' }}
       >
-        <TileLayer
-          attribution={MAP_TILES.attribution}
-          url={MAP_TILES.url}
-          maxZoom={MAP_TILES.maxZoom}
-        />
+        <TileLayer {...MAP_TILES} />
+        <MapboxLogo />
         <PinInTheMiddle location={location} onLocationSelect={onLocationSelect} />
       </MapContainer>
 

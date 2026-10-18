@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useMemo, useRef } from 'react';
-import { Circle, CircleMarker, MapContainer, Polyline, TileLayer, useMap } from 'react-leaflet';
+import { Circle, CircleMarker, MapContainer, Polyline, TileLayer, Tooltip, useMap } from 'react-leaflet';
 import type { Map as LeafletMap } from 'leaflet';
 import { Crosshair } from 'lucide-react';
 import { MAP_TILES } from '@/lib/mapTiles';
+import { MapboxLogo } from '@/components/MapboxLogo';
 import { NIGERIA_CENTER } from '@/lib/nigerianStates';
 import { useLeafletResizeObserver } from '@/hooks/useLeafletInvalidateSize';
 import { TripPathPoint } from '@/lib/types';
@@ -19,9 +20,13 @@ export interface TripMapProps {
   stale?: boolean;
   /** Height in pixels of anything laid over the top of the map, so the trip is framed below it */
   topInset?: number;
+  /** Where the trip is going, if the traveller set it on the map */
+  destination?: { lat: number; lng: number } | null;
 }
 
 const BRAND = '#11763f';
+/** The destination's pin, in the road report pin's orange */
+const DESTINATION = '#C2410C';
 const STALE = '#64748b';
 
 const EDGE = 48;
@@ -81,7 +86,7 @@ function ShowAllButton({ line, topInset }: { line: [number, number][]; topInset:
  * Used for the traveller's own trip map and for the page a contact opens.
  * It draws only what the phone has reported; there is no planned route.
  */
-export default function TripMap({ path, latest, stale = false, topInset = 0 }: TripMapProps) {
+export default function TripMap({ path, latest, stale = false, topInset = 0, destination = null }: TripMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<LeafletMap | null>(null);
   useLeafletResizeObserver(containerRef, mapRef);
@@ -99,7 +104,8 @@ export default function TripMap({ path, latest, stale = false, topInset = 0 }: T
         ref={mapRef}
         zoomControl={false}
       >
-        <TileLayer attribution={MAP_TILES.attribution} url={MAP_TILES.url} maxZoom={MAP_TILES.maxZoom} />
+        <TileLayer {...MAP_TILES} />
+        <MapboxLogo />
         <KeepInView line={line} topInset={topInset} />
 
         {line.length > 1 && (
@@ -134,7 +140,17 @@ export default function TripMap({ path, latest, stale = false, topInset = 0 }: T
           </>
         )}
 
-        <ShowAllButton line={line} topInset={topInset} />
+        {destination && (
+          <CircleMarker
+            center={[destination.lat, destination.lng]}
+            radius={9}
+            pathOptions={{ color: '#ffffff', weight: 3, fillColor: DESTINATION, fillOpacity: 1 }}
+          >
+            <Tooltip direction="top" offset={[0, -8]}>Going here</Tooltip>
+          </CircleMarker>
+        )}
+
+        <ShowAllButton line={destination ? [...line, [destination.lat, destination.lng]] : line} topInset={topInset} />
       </MapContainer>
     </div>
   );

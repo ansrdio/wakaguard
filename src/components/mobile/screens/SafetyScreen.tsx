@@ -32,7 +32,7 @@ import {
 import { useAuthedUser } from '@/hooks/useAuthedUser';
 import { useRecentPosition } from '@/hooks/useRecentPosition';
 import { useRequireAccount } from '@/hooks/useRequireAccount';
-import { collection, deleteDoc, doc, getDoc, getDocs, serverTimestamp, setDoc, updateDoc, waitForPendingWrites } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDoc, onSnapshot, serverTimestamp, setDoc, updateDoc, waitForPendingWrites } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { TripStatus } from '@/lib/types';
 import { Capacitor } from '@capacitor/core';
@@ -159,7 +159,7 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
   const [rememberedMode, setRememberedMode] = useState<TravelMode | null>(() => lastTravelMode());
   const [checkedItems, setCheckedItems] = useState<string[]>([]);
   
-  // Load trusted contacts
+  // Load the profile and the trusted contacts
   useEffect(() => {
     if (!uid || isAnonymous) return;
     // Each part is loaded on its own: with no connection and nothing cached a
@@ -176,17 +176,19 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
         setSavedAlertName('');
       }
     };
-    const loadContacts = async () => {
-      try {
-        const contactsSnap = await getDocs(collection(db, 'users', uid, 'trustedContacts'));
-        const contacts = contactsSnap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
-        setTrustedContacts(contacts);
-      } catch (error) {
-        console.warn('Could not load trusted contacts:', error);
-      }
-    };
     loadProfile();
-    loadContacts();
+    // Contacts are listened to, not read once. A single read that failed (a
+    // fresh install, with nothing kept on the phone and a slow first
+    // connection) left the list empty until the Trip tab was opened again, and
+    // adding a contact then looked as if it had failed (the owner's iPhone, 18
+    // October 2026). The listener fills the list in when the connection comes,
+    // and shows the server's own changes, such as a contact who asked for no
+    // more texts (smsOptedOut), straight away.
+    return onSnapshot(
+      collection(db, 'users', uid, 'trustedContacts'),
+      (snap) => setTrustedContacts(snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }))),
+      (error) => console.warn('Could not load trusted contacts:', error)
+    );
   }, [uid]);
 
   const showToast = (message: string, type: 'success' | 'error') => {
@@ -360,6 +362,7 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
       travelMode: request.travelMode,
       textOnArrival: request.textOnArrival,
       vehicle: request.vehicle,
+      destinationPoint: request.destinationPoint,
     });
 
     if (!result.success || !result.tripId) {

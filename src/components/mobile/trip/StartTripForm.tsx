@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { AlertTriangle, Check, Lightbulb, Loader2, Navigation, Plus, UserPlus } from 'lucide-react';
+import { AlertTriangle, Check, Lightbulb, Loader2, MapPin, Navigation, Plus, UserPlus } from 'lucide-react';
 import {
   ALERT_GRACE_MINUTES,
   ARRIVAL_PRESETS,
@@ -24,6 +24,8 @@ import { TRAVEL_MODES, TravelMode, lastTravelMode, rememberTravelMode, tipBefore
 import { TravelPicture } from '@/components/pictures/Pictures';
 import { VehicleFields } from '@/components/mobile/trip/VehicleFields';
 import { readVehicle, Vehicle } from '@/lib/vehicle';
+import { DestinationPinSheet } from '@/components/mobile/trip/DestinationPinSheet';
+import type { Point } from '@/lib/destinationPoint';
 import { WeatherLine } from '@/components/mobile/trip/WeatherLine';
 import { useWeatherAhead } from '@/hooks/useWeatherAhead';
 import { hoursToLookAhead } from '@/lib/weatherWords';
@@ -53,6 +55,8 @@ export interface StartTripRequest {
   travelMode: TravelMode | null;
   /** The plate and other details, if they gave any (never for a trip on foot) */
   vehicle: Vehicle | null;
+  /** Where they are going, if they set it on the map (lib/destinationPoint.ts) */
+  destinationPoint: Point | null;
 }
 
 interface StartTripFormProps {
@@ -103,6 +107,9 @@ export function StartTripForm({
   onManageContacts,
 }: StartTripFormProps) {
   const [destination, setDestination] = useState('');
+  // "Set it on the map": optional, alongside the typed destination
+  const [destinationPoint, setDestinationPoint] = useState<Point | null>(null);
+  const [pinOpen, setPinOpen] = useState(false);
   const [durationMinutes, setDurationMinutes] = useState<number>(DEFAULT_TRIP_MINUTES);
   const [customOpen, setCustomOpen] = useState(false);
   // Starts on last time's answer, so most trips need no tap here at all
@@ -185,7 +192,7 @@ export function StartTripForm({
       return;
     }
     rememberTravelMode(travelMode);
-    onStart({ ...plan, textContacts, textOnArrival, isTest: false, travelMode, vehicle });
+    onStart({ ...plan, textContacts, textOnArrival, isTest: false, travelMode, vehicle, destinationPoint });
   };
 
   // A test needs everything a real trip needs except a length, which is fixed
@@ -197,7 +204,7 @@ export function StartTripForm({
       return;
     }
     rememberTravelMode(travelMode);
-    onStart({ ...plan, durationMinutes: TEST_TRIP_MINUTES, textContacts, textOnArrival, isTest: true, travelMode, vehicle });
+    onStart({ ...plan, durationMinutes: TEST_TRIP_MINUTES, textContacts, textOnArrival, isTest: true, travelMode, vehicle, destinationPoint });
   };
 
   // Said again beside the buttons, where the person's thumb is
@@ -234,6 +241,33 @@ export function StartTripForm({
           className={inputClass}
         />
         {errors.destination && <p role="alert" className={errorClass}>{errors.destination}</p>}
+        {destinationPoint ? (
+          <p className="mt-2 flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
+            <MapPin className="w-4 h-4 text-brand-700 dark:text-brand-300" aria-hidden="true" />
+            Pin set on the map
+            <button type="button" onClick={() => setPinOpen(true)} className="font-medium text-blue-600 dark:text-blue-400 hover:underline">Change</button>
+            <button type="button" onClick={() => setDestinationPoint(null)} className="font-medium text-blue-600 dark:text-blue-400 hover:underline">Remove</button>
+          </p>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setPinOpen(true)}
+            className="mt-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+          >
+            <MapPin className="w-4 h-4" aria-hidden="true" />
+            Set it on the map (optional)
+          </button>
+        )}
+        {pinOpen && (
+          <DestinationPinSheet
+            current={destinationPoint}
+            onClose={() => setPinOpen(false)}
+            onDone={(point) => {
+              setDestinationPoint(point);
+              setPinOpen(false);
+            }}
+          />
+        )}
       </div>
 
       {/* When */}

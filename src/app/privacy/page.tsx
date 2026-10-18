@@ -75,7 +75,7 @@ export default function PrivacyPage() {
             <p className="text-gray-700 leading-relaxed mb-4">
               We store the latest position and the time we received it, and during the trip we build a path of
               where your phone has been (up to 240 points) for the trip map. We also store the destination you
-              typed, your expected arrival time, the points where the trip started and ended, and any time you
+              typed (and its point, if you set it on the map), your expected arrival time, the points where the trip started and ended, and any time you
               added. If you answer &quot;How are you travelling?&quot; when you start a trip, that answer is stored
               with the trip. You can leave it unanswered.
             </p>
@@ -186,7 +186,7 @@ export default function PrivacyPage() {
               searchable anywhere, and the code in it is long and random. The page it opens shows:
             </p>
             <ul className="list-disc list-inside text-gray-700 mb-4 space-y-2">
-              <li>The name you entered for alerts and the destination you typed</li>
+              <li>The name you entered for alerts and the destination you typed, with its pin if you set it on the map</li>
               <li>Your phone&apos;s last reported position, when we received it, and the path it has reported during this trip</li>
               <li>Your expected arrival time, and whether you are overdue or have sent an SOS</li>
               <li>How you said you were travelling (for example by bus or okada), but only once you are overdue or have sent an SOS, and only if you answered that question</li>
@@ -381,7 +381,7 @@ export default function PrivacyPage() {
               <li><strong>Anyone With Your Trip Link:</strong> While a trip is open, its page can be opened by anyone who has the link</li>
               <li><strong>Public Display:</strong> Reports, comments, and photos are publicly visible to all users</li>
               <li><strong>Service Providers:</strong> We use Firebase (Google) for sign-in, data storage, hosting and notifications, and Termii and the mobile networks for SMS. These providers may process data on servers outside Nigeria</li>
-              <li><strong>Maps:</strong> Map images are loaded by your device from OpenStreetMap, which sees your IP address and the area you are viewing. Location links in texts and on the trip page open in Google Maps</li>
+              <li><strong>Maps:</strong> Map images are loaded by your device from Mapbox, which sees your IP address and the area you are viewing. Location links in texts and on the trip page open in Google Maps</li>
               <li><strong>Weather:</strong> Our server asks MET Norway (the Norwegian Meteorological Institute) for the forecast for your rough area, about 10 km across. MET Norway is not told who asked or where exactly you are. The forecasts shown in the app are data from MET Norway</li>
               <li><strong>Legal Requirements:</strong> We may disclose data if required by law or to protect rights and safety</li>
               <li><strong>Moderation:</strong> Flagged content is reviewed by administrators</li>

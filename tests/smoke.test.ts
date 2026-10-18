@@ -582,6 +582,22 @@ async function sharedTripCreateWithServerFields(ctx: AppContext, uid: string, to
 }
 
 // A test trip says so on its public page, so a contact who opens the link is not alarmed
+/** A shared trip with the destination set on the map (src/lib/destinationPoint.ts) */
+async function sharedTripWithPinCreate(ctx: AppContext, uid: string, token: string, destinationPoint: unknown) {
+  await setDoc(doc(ctx.db, 'sharedTrips', token), {
+    uid,
+    tripId: token,
+    status: 'active',
+    expiresAt: Timestamp.fromDate(new Date(Date.now() + 60 * 60 * 1000)),
+    lastLocation: null,
+    lastUpdate: Timestamp.now(),
+    destination: 'Ikeja',
+    createdAt: Timestamp.now(),
+    endsAt: Timestamp.fromDate(new Date(Date.now() + 30 * 60 * 1000)),
+    destinationPoint
+  });
+}
+
 async function sharedTestTripCreate(ctx: AppContext, uid: string, token: string, isTest: unknown) {
   await setDoc(doc(ctx.db, 'sharedTrips', token), {
     uid,
@@ -1106,6 +1122,15 @@ async function run() {
     );
     await runStep('User: shared trip with a test flag that is not true or false (should be denied)', () =>
       sharedTestTripCreate(user, userUid, `shared_test_bad_${runId}`, 'yes'), true
+    );
+    await runStep('User: create shared trip with a destination pin', () =>
+      sharedTripWithPinCreate(user, userUid, `shared_pin_${runId}`, { lat: 6.6, lng: 3.35 })
+    );
+    await runStep('User: create shared trip with a malformed destination pin denied', () =>
+      sharedTripWithPinCreate(user, userUid, `shared_pin_bad_${runId}`, { lat: 6.6, lng: 3.35, name: 'x' }), true
+    );
+    await runStep('User: create shared trip with an impossible destination pin denied', () =>
+      sharedTripWithPinCreate(user, userUid, `shared_pin_far_${runId}`, { lat: 120, lng: 3.35 }), true
     );
     await runStep('User: shared trip with non-timestamp endsAt denied', () =>
       sharedTripUpdateBadEndsAt(user, ids.tripId), true
