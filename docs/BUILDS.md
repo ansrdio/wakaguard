@@ -728,6 +728,10 @@ whose code was never in this repository (`onCommentCreate`,
       google-services.json; say yes when the iPhone build adds Sign in with
       Apple to the app's identifier. Privacy line (what Google and Apple
       share with us, Apple's hidden email) approved by the owner on 18 October
+- [x] Build 24 (done in code 18 October). "Safety tips" no longer reads "For
+      other" or "For on foot": each way of travelling has its own heading
+      ("On an okada", "In a private car", "On foot"), and "Other" reads "For
+      the way you travel" (`tipsHeading` in `src/lib/travelMode.ts`)
 - [ ] January 2027 (moved from build 25 on 14 October, to make room for
       directions). Nigerian languages, Pidgin first, then
       perhaps Yoruba, Hausa and Igbo (the owner, 14 October, moving the Pidgin
@@ -758,12 +762,16 @@ whose code was never in this repository (`onCommentCreate`,
       trip's page would be refused once the server adds `vehicle`), then the
       functions (checkOverdueTrips, onSOSAlert, onTripUpdated), then the
       website and build 24
-- [ ] Build 24. Reports posted from far away are marked, not blocked.
-      Nothing checks where the reporter is today, so a road report can be
-      posted for a place hundreds of kilometres off. People do report things
-      they passed earlier, so the report still goes up, but it shows as not
-      seen first-hand and does not count for the ranking (raised by a tester
-      on 13 October; the owner said yes that day)
+- [x] Build 24 (done in code 18 October; not yet on a phone). Reports posted
+      from far away are marked, not blocked (raised by a tester on 13
+      October; the owner said yes that day). When a road report is posted, a
+      fresh rough position of the phone (only if location is already allowed;
+      never asked for) is compared with the report's pin; more than 30 km
+      apart and the report gets `postedFarAway: true`. It still goes up; its
+      details say "Posted from far away, not on the spot. The person may have
+      passed here earlier."; and the weekly ranking leaves it out ("posted from
+      far away"). Unknown position: no mark. The author cannot remove the mark
+      (rules). `src/lib/reportDistance.ts`
 - [ ] Build 25 (moved back from after launch on 17 October, on the owner's
       word, after the tester survey: "I forgot to start a trip" was the most
       common reason for using WakaGuard less, 4 of 9). Repeat a usual trip:
@@ -880,8 +888,10 @@ whose code was never in this repository (`onCommentCreate`,
       Mapbox. Typing a destination freely still works. A search result is
       only kept for the trip unless Mapbox's paid "permanent" option is
       bought; check the terms before saving anything
-- [ ] Build 24. A switch on the server that hides directions without a new
-      build, alongside the "please update" switch
+- [x] Build 24 (done in code 18 October). A switch on the server that hides
+      directions without a new build, alongside the "please update" switch:
+      `config/app` `directions`, off unless set true, read with the other
+      switches (`src/lib/appConfig.ts`). Build 25's directions use it
 - [ ] Build 25. Directions on the trip, marked Beta (the owner, 14 October):
       the route drawn on the trip map and on the contacts' page; the trip's
       length filled in from the route's time; the next turn shown and spoken
