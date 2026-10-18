@@ -680,9 +680,26 @@ whose code was never in this repository (`onCommentCreate`,
       each language needs a native speaker to write and check it. A Pidgin
       draft of the weather lines exists (the review page of 14 October).
       Pidgin covers the main screens only (the owner, 14 October)
-- [ ] Build 24. Vehicle details on a trip: the plate number, the bus company
-      or the driver's name, added when starting. Contacts see them if the
-      traveller does not arrive
+- [x] Build 24 (done in code 18 October; not yet on a phone). Vehicle
+      details on a trip: a plate number and one box for the bus company,
+      driver or colour, both optional and never for a trip on foot. On the
+      start form under "How are you travelling?" behind "Add plate number or
+      driver (optional)", and on the trip card ("Add"/"Change") at any time,
+      since the plate is usually only seen on boarding. Kept with the private
+      trip as `vehicle`. Contacts see it only once alerted: the server copies
+      it to their page with the overdue alert or the SOS (and later changes
+      after that), and the alert text gets " Vehicle plate: ..." (the plate
+      only; left out of an overdue text it would push onto a third SMS page,
+      which only happens with the longest name, destination and plate).
+      Plates are tidied to capitals, not checked against a format. Rules:
+      `vehicle` allowed on sharedTrips, written only by the server (the app
+      can neither set nor change it). Checked in a phone-sized browser against
+      the emulators (start form, card, change sheet, contacts' page after an
+      alert written as the server does). Privacy lines drafted for the owner.
+      Release order: database rules first (or the app's writes to an alerted
+      trip's page would be refused once the server adds `vehicle`), then the
+      functions (checkOverdueTrips, onSOSAlert, onTripUpdated), then the
+      website and build 24
 - [ ] Build 24. Reports posted from far away are marked, not blocked.
       Nothing checks where the reporter is today, so a road report can be
       posted for a place hundreds of kilometres off. People do report things
