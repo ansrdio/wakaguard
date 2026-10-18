@@ -742,6 +742,24 @@ whose code was never in this repository (`onCommentCreate`,
       when the connection comes and shows the server's changes at once.
       Checked in a phone-sized browser against the emulators (a contact
       written straight to the database appeared on the open screen)
+- [x] Build 24 (done in code 18 October; not yet on a phone). "Set it on the
+      map" for a trip's destination, in place of an address search (the owner
+      chose it on 18 October after Mapbox found almost no Nigerian landmarks;
+      the Mapbox search trial was taken out again). Under "Where are you
+      going?", optional: a map with the pin fixed in the middle, opening on the
+      phone's rough place or the chosen state; "Pin set on the map · Change ·
+      Remove". Typing the destination is unchanged and still required. The
+      point is saved with the trip and on the contacts' page
+      (`destinationPoint`, rules check it is a real point), drawn as an orange
+      "Going here" dot on the trip map and the contacts' page, and included in
+      "show the whole trip". Gives build 25's directions an exact point.
+      Checked in a phone-sized browser against the emulators. Also on all
+      maps: Leaflet's own credit dropped (not required) so Mapbox's fits on
+      one line, with the wordmark above it. Privacy lines drafted for the
+      owner. Next for addresses: NIPOST's digital postcodes (live 1 October
+      2026; developer access needs KYB and NIPOST's testing), to name the
+      pinned spot and to say where someone was last seen in alert texts; the
+      owner to apply
 - [ ] January 2027 (moved from build 25 on 14 October, to make room for
       directions). Nigerian languages, Pidgin first, then
       perhaps Yoruba, Hausa and Igbo (the owner, 14 October, moving the Pidgin
@@ -903,7 +921,7 @@ whose code was never in this repository (`onCommentCreate`,
       report pin picker. Used when NEXT_PUBLIC_MAPBOX_TOKEN is set (public
       token, kept in wakaguard/.env.mapbox.local, off GitHub; to add to the
       live website's settings and the app builds at release); OpenStreetMap
-      otherwise. Privacy line updated (drafted for the owner). Restrict the
+      otherwise. Privacy line updated (approved by the owner on 18 October). Restrict the
       token to our addresses before launch
 - [ ] Build 24. Destination search by address when starting a trip, with
       Mapbox. Typing a destination freely still works. A search result is
