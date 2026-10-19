@@ -750,7 +750,10 @@ store uploads.
       iPhone app offering Google to offer an equally private sign-in, and
       email with a password does not hide the address. Next: Google and Apple
       enabled in Firebase by the owner, then `signInWith` switched on in
-      `config/app` on the owner's word, then tried on both phones
+      `config/app` on the owner's word, then tried on both phones. Switched
+      on that night; the owner confirmed Google sign-in works on both the
+      iPhone (Debug build) and the Galaxy (release-signed build). Apple on the
+      iPhone still to try
 - [x] Build 24 (done in code 18 October). "Safety tips" no longer reads "For
       other" or "For on foot": each way of travelling has its own heading
       ("On an okada", "In a private car", "On foot"), and "Other" reads "For
