@@ -24,7 +24,7 @@ before the weekend. Android and iPhone go out on the same day.
 | 22 | Wed 14 Oct | Store requirements (report and block, Terms of Use, location screen); Android Back; location fixes; arrival reminders | Out on both: iPhone and Android, Mon 12 Oct, two days early |
 | 23 | Wed 21 Oct | Testers' corrections (checklist, exact trip length, delete my own post); "How are you travelling?" with matching tips; our own road report pictures; "keep WakaGuard running" help; weather (paid maps moved to build 24: Mapbox); reported posts hidden automatically | Uploaded Wed 14 Oct, a week early: Android internal test live; closed test and TestFlight sent for review by the owner |
 | 24 | Wed 28 Oct | Sign in with Google and Apple; "please update" switch; service notice; "stop texting me"; vehicle details; far-away reports marked; Mapbox maps; destination pin with its place name (in place of search by address); "text them when I arrive"; louder reminders, "More time…", Undo; weather icon and morning weather. Sponsor card moved to a later build (no sponsor yet) | Sent Sun 18 Oct, ten days early: TestFlight passed Apple's beta review at once and is with the outside testers; Google Play closed test (Alpha) in review since 9:14 pm |
-| 25 | Wed 4 Nov | Fixes after text alerts are switched on; directions on the trip (route, trip length from it, spoken directions), as a beta; repeat a usual trip | Planned |
+| 25 | Wed 4 Nov | Fixes after text alerts are switched on; directions on the trip (route, trip length from it, spoken directions), as a beta; repeat a usual trip; one-tap "keep running" permissions on the first trip | Planned |
 | 26 | Wed 11 Nov | The launch version | Planned |
 
 | After the last build | Date |
@@ -1039,6 +1039,24 @@ store uploads.
       that its terms allow spoken directions without its native kit (the
       owner asked Mapbox on 14 October; the account sign-up failed that day
       and is to be tried again)
+
+- [ ] Build 25. Fewer trips to Settings for "Keep WakaGuard running" (a
+      tester's problem report, 18 October: could the steps be permissions
+      people simply accept?). Asked on the first trip, not when the account is
+      made, so the reason is plain. Android: Android's own "Allow WakaGuard to
+      always run in the background?" box (battery optimisation exemption,
+      REQUEST_IGNORE_BATTERY_OPTIMIZATIONS) in place of Apps → WakaGuard →
+      Battery → Unrestricted; Play allows it only where the app's main job
+      needs it, so it is declared in Play Console with the reason (a trip
+      watched for the traveller's safety). iPhone: check that build 24 asks for
+      "Always" location with Apple's own prompt ("Change to Always Allow") and
+      add it if not. Unchanged, as no app can set them: Tecno/Infinix/itel
+      Phone Master auto-start, battery saver and Low Power Mode, not swiping
+      the app away; the help keeps those. Also from that report: screenshots
+      with problem reports. For now the owner can add an optional File upload
+      question to the problem form (Google then asks everyone to sign in to
+      open the form); an in-app "Report a problem" with a screenshot is the
+      later option
 
 ## Server, website and store work before launch
 
