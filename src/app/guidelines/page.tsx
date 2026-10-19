@@ -23,7 +23,7 @@ export default function GuidelinesPage() {
           </div>
 
           <p className="text-gray-600 mb-8">
-            Last Updated: October 8, 2026
+            Last Updated: October 19, 2026
           </p>
 
           <section className="mb-8">
@@ -73,6 +73,18 @@ export default function GuidelinesPage() {
               <li><strong>Closures:</strong> Road closures or blocked routes</li>
               <li><strong>Other:</strong> Road-related issues not covered above</li>
             </ul>
+
+            <div className="bg-green-50 border-l-4 border-green-600 p-4">
+              <h3 className="text-lg font-semibold text-green-900 mb-2">Reporting a checkpoint</h3>
+              <p className="text-green-900 mb-2">
+                Describe the stop, not the people. <strong>&quot;Checkpoint at Mokola, 20 minute delay&quot;</strong> is
+                a good report: it tells other travellers where it is and how long it takes.
+              </p>
+              <p className="text-green-900">
+                Do not name, describe or photograph the officers or anyone else there, and do not accuse anyone.
+                Post it only when it is safe: as a passenger, or once you have stopped.
+              </p>
+            </div>
           </section>
 
           <section className="mb-8">

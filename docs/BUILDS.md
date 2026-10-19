@@ -1133,10 +1133,13 @@ From the roadmap, with its dates. None of these needs an app build.
 - [ ] By Fri 6 Nov. The go or no-go checklist for Fri 13 Nov
 - [ ] Launch day. "Get WakaGuard" on the page contacts see, and store links
       on the website
-- [ ] Guidelines page: an example of reporting a checkpoint without accusing
+- [x] Guidelines page (done in code 19 October): an example of reporting a checkpoint without accusing
       anyone. "Checkpoint at Mokola, 20 minute delay" is fine; naming or
       picturing an officer is not (a tester's suggestion, 13 October; the
-      owner said yes that day)
+      owner said yes that day). A green box under "What to Report":
+      describe the stop, not the people; do not name, describe or
+      photograph officers or anyone else there, or accuse anyone; post only
+      when safe, as a passenger or once stopped. Last Updated 19 October
 - [ ] For the lawyer, with the Terms review: personal data kept on servers
       outside Nigeria; what exactly gets an account's texting switched off;
       whether to rule out reporting security operations while they are
