@@ -23,7 +23,7 @@ before the weekend. Android and iPhone go out on the same day.
 |---|---|---|---|
 | 22 | Wed 14 Oct | Store requirements (report and block, Terms of Use, location screen); Android Back; location fixes; arrival reminders | Out on both: iPhone and Android, Mon 12 Oct, two days early |
 | 23 | Wed 21 Oct | Testers' corrections (checklist, exact trip length, delete my own post); "How are you travelling?" with matching tips; our own road report pictures; "keep WakaGuard running" help; weather (paid maps moved to build 24: Mapbox); reported posts hidden automatically | Uploaded Wed 14 Oct, a week early: Android internal test live; closed test and TestFlight sent for review by the owner |
-| 24 | Wed 28 Oct | Sign in with Google and Apple; sponsor card by state; "please update" switch; service notice; "stop texting me"; vehicle details; far-away reports marked; Mapbox maps; destination search by address; "text them when I arrive" | Planned |
+| 24 | Wed 28 Oct | Sign in with Google and Apple; "please update" switch; service notice; "stop texting me"; vehicle details; far-away reports marked; Mapbox maps; destination pin with its place name (in place of search by address); "text them when I arrive"; louder reminders, "More time…", Undo; weather icon and morning weather. Sponsor card moved to a later build (no sponsor yet) | iPhone uploaded to TestFlight Sun 18 Oct, ten days early; Android file ready for the owner to upload |
 | 25 | Wed 4 Nov | Fixes after text alerts are switched on; directions on the trip (route, trip length from it, spoken directions), as a beta; repeat a usual trip | Planned |
 | 26 | Wed 11 Nov | The launch version | Planned |
 
@@ -1168,6 +1168,18 @@ From the roadmap:
 - [ ] USSD, for people without smartphones
 
 ## Released builds
+
+### Build 24, Sunday 18 October 2026 (iPhone uploaded; Android ready)
+
+Made from `7bcc7c9` (the app's code as at `1e12be0`) with the live settings and the Mapbox token, ten days
+before it was due, on the owner's word ("build 24 for the stores") after the owner tried everything on both
+phones except receiving the arrival text, which their Nigerian line could not get in Arizona; the server log
+shows that text sent and accepted by Termii for the number ending 3147. iPhone `WakaGuard-1.2.0-24.xcarchive`,
+1.2.0 (24), with Sign in with Apple and Time Sensitive, uploaded to App Store Connect on the owner's "yes, upload
+to TestFlight" (about 21:07 Arizona); the owner adds it to the outside testers and sends it for beta review.
+Android `WakaGuard-1.2.0-24.aab`, version code 24, signed with the upload key (FC:87:11:4B:42…), for the owner to
+upload to the closed test in Play Console. Both in the session folder's `builds/`. No change to the stores'
+privacy forms. Not in it: the sponsor card and the corrected emergency numbers
 
 ### Build 21, Saturday 10 October 2026 (Android)
 
