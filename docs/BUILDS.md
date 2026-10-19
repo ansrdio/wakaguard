@@ -23,7 +23,7 @@ before the weekend. Android and iPhone go out on the same day.
 |---|---|---|---|
 | 22 | Wed 14 Oct | Store requirements (report and block, Terms of Use, location screen); Android Back; location fixes; arrival reminders | Out on both: iPhone and Android, Mon 12 Oct, two days early |
 | 23 | Wed 21 Oct | Testers' corrections (checklist, exact trip length, delete my own post); "How are you travelling?" with matching tips; our own road report pictures; "keep WakaGuard running" help; weather (paid maps moved to build 24: Mapbox); reported posts hidden automatically | Uploaded Wed 14 Oct, a week early: Android internal test live; closed test and TestFlight sent for review by the owner |
-| 24 | Wed 28 Oct | Sign in with Google and Apple; "please update" switch; service notice; "stop texting me"; vehicle details; far-away reports marked; Mapbox maps; destination pin with its place name (in place of search by address); "text them when I arrive"; louder reminders, "More time…", Undo; weather icon and morning weather. Sponsor card moved to a later build (no sponsor yet) | iPhone uploaded to TestFlight Sun 18 Oct, ten days early; Android file ready for the owner to upload |
+| 24 | Wed 28 Oct | Sign in with Google and Apple; "please update" switch; service notice; "stop texting me"; vehicle details; far-away reports marked; Mapbox maps; destination pin with its place name (in place of search by address); "text them when I arrive"; louder reminders, "More time…", Undo; weather icon and morning weather. Sponsor card moved to a later build (no sponsor yet) | Sent Sun 18 Oct, ten days early: TestFlight passed Apple's beta review at once and is with the outside testers; Google Play closed test (Alpha) in review since 9:14 pm |
 | 25 | Wed 4 Nov | Fixes after text alerts are switched on; directions on the trip (route, trip length from it, spoken directions), as a beta; repeat a usual trip | Planned |
 | 26 | Wed 11 Nov | The launch version | Planned |
 
@@ -1179,7 +1179,15 @@ shows that text sent and accepted by Termii for the number ending 3147. iPhone `
 to TestFlight" (about 21:07 Arizona); the owner adds it to the outside testers and sends it for beta review.
 Android `WakaGuard-1.2.0-24.aab`, version code 24, signed with the upload key (FC:87:11:4B:42…), for the owner to
 upload to the closed test in Play Console. Both in the session folder's `builds/`. No change to the stores'
-privacy forms. Not in it: the sponsor card and the corrected emergency numbers
+privacy forms. Not in it: the sponsor card and the corrected emergency numbers.
+Then, on the owner's "just login and upload both", in the owner's own Chrome (already signed in; the owner
+typed the Apple password): the bundle added to Closed testing - Alpha with the release notes (build 23 left
+out; no devices lost, 12,159 phones; two warnings only, no crash-decoding files), saved, and sent for review at
+9:14 pm Arizona; in TestFlight the "What to Test" notes and the external group waka added, and the owner
+submitted it. A few minutes later build 24 showed "Testing" for both groups (5 invites): Apple's beta review
+passed at once. App Store Connect also shows that the updated Apple Developer Program License Agreement waits
+for the Account Holder; it did not stop TestFlight, but must be accepted before an App Store release. Checked
+the same hour: no server errors or warnings since the release, both texts sent, Termii wallet NGN 9,090
 
 ### Build 21, Saturday 10 October 2026 (Android)
 
