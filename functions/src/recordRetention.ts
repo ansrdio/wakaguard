@@ -10,13 +10,17 @@
  * the kept weather areas have their own deletion and are not repeated here.
  * Counts only go to the log, never what a record held.
  *
+ * Nothing is deleted unless Firestore has a backup from the last few days
+ * (backupIsRecent): if the daily backup ever stops, the deletion stops too,
+ * and says so as an alarm.
+ *
  * @module recordRetention
  */
 
 import * as functions from 'firebase-functions/v1';
 import * as admin from 'firebase-admin';
 import { Timestamp } from 'firebase-admin/firestore';
-import { cutoffMs, DELETE_BATCH, isInAccount, KEEP_DAYS, MAX_DELETED_PER_KIND } from './retentionPlan';
+import { BACKUP_MAX_AGE_DAYS, backupIsRecent, cutoffMs, DELETE_BATCH, isInAccount, KEEP_DAYS, MAX_DELETED_PER_KIND } from './retentionPlan';
 
 type Query = FirebaseFirestore.Query;
 type Doc = FirebaseFirestore.QueryDocumentSnapshot;
@@ -109,8 +113,44 @@ async function deleteKind(db: FirebaseFirestore.Firestore, kind: Kind, nowMs: nu
   return deleted;
 }
 
+/**
+ * When the newest finished backup of the database was made, from Firestore's
+ * own list of backups, asked as the function's service account.
+ */
+export async function newestBackupMs(): Promise<number | null> {
+  const project = process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT || admin.app().options.projectId;
+  const tokenResponse = await fetch(
+    'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token',
+    { headers: { 'Metadata-Flavor': 'Google' }, signal: AbortSignal.timeout(5000) }
+  );
+  if (!tokenResponse.ok) throw new Error(`no access token (${tokenResponse.status})`);
+  const { access_token: token } = (await tokenResponse.json()) as { access_token?: string };
+  const response = await fetch(`https://firestore.googleapis.com/v1/projects/${project}/locations/-/backups`, {
+    headers: { Authorization: `Bearer ${token}` },
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!response.ok) throw new Error(`the list of backups answered ${response.status}`);
+  const { backups = [] } = (await response.json()) as { backups?: { state?: string; snapshotTime?: string }[] };
+  const made = backups
+    .filter((backup) => backup.state === 'READY')
+    .map((backup) => Date.parse(backup.snapshotTime ?? ''))
+    .filter(Number.isFinite);
+  return made.length > 0 ? Math.max(...made) : null;
+}
+
 /** One run over every kind; a kind that fails does not stop the others */
-export async function runRecordDeletion(nowMs: number): Promise<Record<string, number>> {
+export async function runRecordDeletion(
+  nowMs: number,
+  readNewestBackup: () => Promise<number | null> = newestBackupMs
+): Promise<Record<string, number>> {
+  const newest = await readNewestBackup().catch((error) => {
+    console.warn(`Record deletion: could not read the list of backups: ${String(error)}`);
+    return null;
+  });
+  if (!backupIsRecent(newest, nowMs)) {
+    console.error(`ALARM: no database backup from the last ${BACKUP_MAX_AGE_DAYS} days, so no old records were deleted`);
+    return {};
+  }
   const db = admin.firestore();
   const counts: Record<string, number> = {};
   for (const kind of KINDS) {

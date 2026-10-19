@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { cutoffMs, DAY_MS, isInAccount, KEEP_DAYS, MAX_TEXTS_PER_HOUR, textAlarms, WALLET_LOW_NGN } from '../src/retentionPlan';
+import { backupIsRecent, cutoffMs, DAY_MS, isInAccount, KEEP_DAYS, MAX_TEXTS_PER_HOUR, textAlarms, WALLET_LOW_NGN } from '../src/retentionPlan';
 
 test('the agreed times: trips, SOS and texts 90 days, the trip page 7, removed comments 30', () => {
   assert.deepEqual(KEEP_DAYS, {
@@ -24,4 +24,13 @@ test('the text check warns when the wallet is low or texts jump, and is quiet ot
   assert.deepEqual(textAlarms(WALLET_LOW_NGN, 0), []);
   assert.match(textAlarms(5000, MAX_TEXTS_PER_HOUR + 1)[0], /texts jumped: 41/);
   assert.equal(textAlarms(100, 100).length, 2);
+});
+
+test('the deletion only runs with a backup from the last three days', () => {
+  const now = 100 * DAY_MS;
+  assert.equal(backupIsRecent(now - DAY_MS, now), true);
+  assert.equal(backupIsRecent(now - 3 * DAY_MS, now), true);
+  assert.equal(backupIsRecent(now - 3 * DAY_MS - 1, now), false);
+  assert.equal(backupIsRecent(null, now), false);
+  assert.equal(backupIsRecent(now + DAY_MS, now), false, 'a backup dated in the future is not trusted');
 });

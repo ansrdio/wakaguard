@@ -17,6 +17,8 @@ const NOW = Date.now();
 const at = (daysAgo: number) => admin.firestore.Timestamp.fromMillis(NOW - daysAgo * DAY_MS);
 const tag = `rr${NOW}`;
 const exists = async (path: string) => (await db().doc(path).get()).exists;
+/** A backup made yesterday, as the daily schedule makes */
+const backedUp = async () => NOW - DAY_MS;
 
 test('records past their time are deleted, and nothing else', async () => {
   const uid = `${tag}_u`;
@@ -61,7 +63,7 @@ test('records past their time are deleted, and nothing else', async () => {
   };
   await Promise.all(Object.entries(made).map(([path, data]) => db().doc(path).set(data)));
 
-  const counts = await runRecordDeletion(NOW);
+  const counts = await runRecordDeletion(NOW, backedUp);
   for (const [kind, n] of Object.entries(counts)) assert.ok(n >= 0, `${kind} failed`);
 
   const gone = [
@@ -79,9 +81,20 @@ test('records past their time are deleted, and nothing else', async () => {
 test('a second run deletes nothing more, so it is safe to run again', async () => {
   const uid = `${tag}_again`;
   await db().doc(`users/${uid}/trips/recent`).set({ status: 'completed', expiresAt: at(30) });
-  await runRecordDeletion(NOW);
-  await runRecordDeletion(NOW);
+  await runRecordDeletion(NOW, backedUp);
+  await runRecordDeletion(NOW, backedUp);
   assert.equal(await exists(`users/${uid}/trips/recent`), true);
+});
+
+test('without a recent backup nothing is deleted', async () => {
+  const uid = `${tag}_nobackup`;
+  await db().doc(`users/${uid}/trips/old`).set({ status: 'completed', expiresAt: at(200) });
+  assert.deepEqual(await runRecordDeletion(NOW, async () => null), {});
+  assert.deepEqual(await runRecordDeletion(NOW, async () => NOW - 4 * DAY_MS), {}, 'a backup four days old is too old');
+  assert.deepEqual(await runRecordDeletion(NOW, async () => { throw new Error('cannot list backups'); }), {});
+  assert.equal(await exists(`users/${uid}/trips/old`), true);
+  await runRecordDeletion(NOW, backedUp);
+  assert.equal(await exists(`users/${uid}/trips/old`), false);
 });
 
 test('the text check warns when texts jump and when the Termii wallet is low', async () => {

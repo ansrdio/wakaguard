@@ -1117,7 +1117,13 @@ From the roadmap, with its dates. None of these needs an app build.
       same night, the first run would delete only records from the old
       January–March version: 5 ended trips (of 118), 5 trip pages (of 120),
       5 old safety timers, 1 text log (of 85), 10 expired or resolved road
-      reports (of 19, 7 January to 7 March) and 9 weather caches
+      reports (of 19, 7 January to 7 March) and 9 weather caches. Before it
+      went live (the first backup had not been made yet), a safeguard on the
+      owner's "deploy the nightly deletion": nothing is deleted unless
+      Firestore has a backup from the last 3 days, read from Firestore's own
+      list as the function's service account; otherwise it deletes nothing
+      and raises "ALARM: no database backup". 1 more unit test and 1 against
+      the emulator
 - [ ] By Fri 30 Oct. Store listing drafts and a reviewer account; final by
       Fri 13 Nov. Wording check: never "emergency service"
 - [ ] Mon 2 Nov. Text alerts switched on, then proven on MTN, Airtel, Glo and

@@ -44,6 +44,16 @@ export function isInAccount(path: string, kind: 'trips' | 'alerts' | 'checkIns' 
   return new RegExp(`^users/[^/]+/${kind}/[^/]+$`).test(path);
 }
 
+/**
+ * Nothing is deleted unless a backup this recent exists (ops/setup-safety.mjs
+ * makes one a day), so anything deleted by mistake can still be brought back
+ */
+export const BACKUP_MAX_AGE_DAYS = 3;
+
+export function backupIsRecent(newestBackupMs: number | null, nowMs: number): boolean {
+  return newestBackupMs !== null && newestBackupMs <= nowMs && nowMs - newestBackupMs <= BACKUP_MAX_AGE_DAYS * DAY_MS;
+}
+
 /** Below this the Termii wallet is low (about 200 texts of two pages) */
 export const WALLET_LOW_NGN = 3000;
 

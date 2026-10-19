@@ -14,6 +14,7 @@ Every alarm is an email to **info@inskriba.com** from Google Cloud Monitoring.
 | **WakaGuard: server error or alarm** | Any server function wrote an error (at most one email every 30 minutes) | Read the error in the Functions log. The lines below have their own meaning |
 | … with **"ALARM: texts not sent"** | A safety text failed to send to one or more contacts | Termii's dashboard: wallet, sender ID "OE Alert", DND route. The trip's card in the app says who was not texted |
 | … with **"ALARM: text wallet low"** | The hourly check found Termii's wallet under NGN 3,000 (about 200 texts) | Top up the Termii wallet |
+| … with **"ALARM: no database backup"** | The nightly deletion found no backup from the last 3 days, so it deleted nothing | Google Cloud console, Firestore, Disaster recovery: is the daily backup schedule there, and are backups being made? `node ops/setup-safety.mjs` shows it |
 | … with **"ALARM: texts jumped"** | More than 40 texts went out in the last hour; a normal day sends a handful | Look in `safetyMessageLogs` for who sent them. If it is a fault or misuse, switch texting off (`SMS_ENABLED=false` in `functions/.env`, then deploy the texting functions by name) |
 | **Budget email** | Google Cloud spend reaches 50, 90 and 100 per cent of USD 20 in the month | Google Cloud console, Billing, Reports: which service grew |
 
@@ -42,6 +43,8 @@ needed from it with the Admin SDK and write it back, then delete the copy.
 
 Deleted every night at 03:00 Lagos time by `deleteOldRecords`
 (`functions/src/recordRetention.ts`), counted in the log, never their contents.
+It deletes nothing unless Firestore has a backup from the last 3 days, so a
+mistake can always be undone from the backup.
 The Privacy page quotes the same numbers (`src/lib/dataRetention.ts`).
 
 | Record | Deleted |
