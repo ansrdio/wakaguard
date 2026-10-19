@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { MAX_PATH_POINTS, MIN_PATH_MOVE_M, addPathPoint, distanceMeters, readPath } from '../src/tripPath';
+import { MAX_PATH_POINTS, MIN_PATH_MOVE_M, addPathPoint, distanceMeters, readPath, nextPositionStats } from '../src/tripPath';
 
 const T0 = Date.UTC(2026, 9, 7, 12, 0, 0);
 // Roughly 111 m per 0.001 degree of latitude
@@ -52,4 +52,16 @@ test('readPath: drops anything malformed and puts the rest in time order', () =>
   assert.deepEqual(readPath(raw), [at(0), at(1), at(2)]);
   assert.deepEqual(readPath(undefined), []);
   assert.deepEqual(readPath({ 0: at(0) }), []);
+});
+
+test('positions are counted once each, with the longest silence between two', () => {
+  let stats = nextPositionStats(null, 1000);
+  assert.deepEqual(stats, { count: 1, firstAtMs: 1000, lastAtMs: 1000, longestGapMs: 0 });
+  stats = nextPositionStats(stats, 4000);
+  assert.deepEqual(stats, { count: 2, firstAtMs: 1000, lastAtMs: 4000, longestGapMs: 3000 });
+  assert.equal(nextPositionStats(stats, 4000), null, 'the same event twice');
+  assert.equal(nextPositionStats(stats, 2000), null, 'a late event');
+  stats = nextPositionStats(stats!, 5000);
+  assert.deepEqual(stats, { count: 3, firstAtMs: 1000, lastAtMs: 5000, longestGapMs: 3000 });
+  assert.deepEqual(nextPositionStats({ count: 'x' as unknown as number }, 10), { count: 1, firstAtMs: 10, lastAtMs: 10, longestGapMs: 0 });
 });

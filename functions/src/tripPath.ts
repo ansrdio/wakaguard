@@ -76,3 +76,28 @@ export function addPathPoint(path: PathPoint[], point: PathPoint): PathPoint[] |
   const next = [...path, point];
   return next.length > MAX_PATH_POINTS ? thin(next) : next;
 }
+
+/** How many positions a running trip has received, and the longest silence between two */
+export interface PositionStats {
+  count: number;
+  firstAtMs: number;
+  lastAtMs: number;
+  longestGapMs: number;
+}
+
+/**
+ * The counts after one more position, received at `atMs`. Null when it is
+ * not newer than the last one counted: trigger events can arrive twice or
+ * late, and neither may be counted again.
+ */
+export function nextPositionStats(previous: Partial<PositionStats> | null, atMs: number): PositionStats | null {
+  const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
+  const last = num(previous?.lastAtMs);
+  if (last !== null && atMs <= last) return null;
+  return {
+    count: (num(previous?.count) ?? 0) + 1,
+    firstAtMs: num(previous?.firstAtMs) ?? atMs,
+    lastAtMs: atMs,
+    longestGapMs: Math.max(num(previous?.longestGapMs) ?? 0, last === null ? 0 : atMs - last),
+  };
+}

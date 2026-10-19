@@ -21,7 +21,7 @@ import { checkAndIncrementRateLimit } from './rateLimit';
 import { getNumberSetting } from './config';
 import { deliverSafetySms, DeliveryResult, getSenderProfile, getTrustedContacts, Recipient, UNKNOWN_NAME } from './safetyDelivery';
 import { AllClearReason, buildAllClearMessage, buildOverdueMessage, buildSosMessage, markAsTest } from './templates';
-import { addPathPoint, distanceMeters, readPath } from './tripPath';
+import { addPathPoint, distanceMeters, nextPositionStats, readPath } from './tripPath';
 import { buildTravellerPush, TravellerMessage } from './reminderPush';
 import { plateForText, readTripVehicle, vehicleForContacts } from './vehicle';
 import {
@@ -588,6 +588,41 @@ async function recordFarthest(tripRef: DocRef, before: DocData, after: DocData):
   });
 }
 
+/**
+ * How many positions a running trip has received, when the first and last
+ * came, and the longest silence between two (positionCount,
+ * firstPositionAtMs, lastPositionAtMs and longestPositionGapMs on the private
+ * trip). Added on 19 October 2026: a real trip that stayed within 7 m of its
+ * start alerted a contact, and nothing could tell whether the phone had kept
+ * sending positions from one spot or had gone quiet. Every write that moves a
+ * running trip's lastUpdate carries a position (the phone app's, the
+ * website's, an SOS); adding time does not touch it.
+ */
+async function recordPositions(tripRef: DocRef, before: DocData, after: DocData): Promise<void> {
+  if (!isOpenStatus(after.status) || !readLocation(after.lastLocation)) return;
+  const atMs = toMillis(after.lastUpdate);
+  if (atMs === null || atMs === toMillis(before.lastUpdate)) return;
+
+  await admin.firestore().runTransaction(async (tx) => {
+    const now = (await tx.get(tripRef)).data();
+    if (!now) return;
+    const next = nextPositionStats({
+      count: now.positionCount,
+      firstAtMs: now.firstPositionAtMs,
+      lastAtMs: now.lastPositionAtMs,
+      longestGapMs: now.longestPositionGapMs,
+    }, atMs);
+    if (next) {
+      tx.update(tripRef, {
+        positionCount: next.count,
+        firstPositionAtMs: next.firstAtMs,
+        lastPositionAtMs: next.lastAtMs,
+        longestPositionGapMs: next.longestGapMs,
+      });
+    }
+  });
+}
+
 async function recordPath(tripRef: DocRef, before: DocData, after: DocData): Promise<void> {
   const db = admin.firestore();
   const sharedRef = db.doc(`sharedTrips/${tripRef.id}`);
@@ -675,6 +710,8 @@ export const onTripUpdated = functions.firestore
       .catch((err) => console.error(`Could not update the path of trip ${ref.id}`, err));
     await recordFarthest(ref, before, after)
       .catch((err) => console.error(`Could not record how far trip ${ref.id} went`, err));
+    await recordPositions(ref, before, after)
+      .catch((err) => console.error(`Could not count the positions of trip ${ref.id}`, err));
     await recordVehicle(ref, before, after)
       .catch((err) => console.error(`Could not update the vehicle on trip ${ref.id}'s page`, err));
 

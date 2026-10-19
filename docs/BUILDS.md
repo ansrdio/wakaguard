@@ -1144,6 +1144,18 @@ From the roadmap, with its dates. None of these needs an app build.
       outside Nigeria; what exactly gets an account's texting switched off;
       whether to rule out reporting security operations while they are
       happening (all three raised by a tester's review on 13 October)
+- [x] Server only (done in code 19 October; the owner: "count positions"). Each
+      running trip counts the positions it receives: `positionCount`, the
+      first and last (`firstPositionAtMs`, `lastPositionAtMs`) and the longest
+      silence between two (`longestPositionGapMs`), on the private trip, in
+      `onTripUpdated` beside `farthestFromStartM`. Repeated and late events are
+      not counted twice. Why: blessingdera's real 60-minute keke trip on 19
+      October stayed within 7 m of its start and alerted a contact, and
+      nothing showed whether the phone had kept reporting from one spot or had
+      gone quiet. The same day, every trip of 19 October was checked: 7 of 9
+      real trips moved (up to 5.2 km); blessingdera's morning trip and
+      Dazzling_Ivory's 10-minute walk did not. 1 unit test, 1 against the
+      emulator. Release: `onTripUpdated` by name
 - [ ] The unused "offline drafts" code uploads a photo as the camera made
       it, location details included. Nothing in the app uses it; remove it,
       or make it redraw photos like the report form does, before anything

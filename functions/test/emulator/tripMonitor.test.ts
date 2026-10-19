@@ -495,6 +495,32 @@ test('a round trip records the farthest it went from the start', async () => {
   assert.equal(await farthest(), outThere);
 });
 
+test('a trip counts the positions it receives and its longest silence, once each', async () => {
+  const { uid, contactIds } = await makeUser();
+  const now = Date.now();
+  const id = await makeTrip(uid, contactIds, {
+    endsAt: ts(now + 30 * MIN),
+    startTime: ts(now - 20 * MIN),
+    startLocation: { lat: 6.6, lng: 3.35 },
+  });
+  const trip = async () => (await db().doc(`users/${uid}/trips/${id}`).get()).data()!;
+
+  // Standing still still counts: the phone is reporting
+  await moveTo(uid, id, 6.6, 3.35, now - 18 * MIN);
+  await moveTo(uid, id, 6.6, 3.35, now - 16 * MIN);
+  // Then nine minutes of silence
+  await moveTo(uid, id, 6.6001, 3.35, now - 7 * MIN);
+  // The same event again, and a late one, are not counted
+  await updateAndTrigger(onTripUpdated, `users/${uid}/trips/${id}`, { lastLocation: { lat: 6.6002, lng: 3.35 } }, { uid, tripId: id });
+  await moveTo(uid, id, 6.6, 3.35, now - 10 * MIN);
+
+  const t = await trip();
+  assert.equal(t.positionCount, 3);
+  assert.equal(t.firstPositionAtMs, now - 18 * MIN);
+  assert.equal(t.lastPositionAtMs, now - 7 * MIN);
+  assert.equal(t.longestPositionGapMs, 9 * MIN);
+});
+
 test('standing still, repeated events and late events do not grow the path', async () => {
   const { uid, contactIds } = await makeUser();
   const now = Date.now();
