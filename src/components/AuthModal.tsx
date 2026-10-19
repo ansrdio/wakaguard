@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useKeyboardSafeOverlay } from '@/hooks/useKeyboardSafeOverlay';
 import { TermsAgreement, TERMS_NOT_AGREED } from '@/components/TermsAgreement';
 import { OrWithEmail, SocialSignInButtons, useSocialProviders } from '@/components/SocialSignIn';
@@ -34,7 +35,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const providers = useSocialProviders();
   const socialShown = mode !== 'reset' && providers.length > 0;
 
-  if (!isOpen) return null;
+  if (!isOpen || typeof document === 'undefined') return null;
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,8 +90,12 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
     setSuccess(null);
   };
 
-  return (
-    <div ref={overlayRef} style={overlayStyle} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+  // Drawn on the page itself and above every other window: it is opened from
+  // windows of their own (the website's Safety Center, a report), and inside
+  // them it opened underneath, where it could not be used (the owner, 18
+  // October). On an iPhone a scrolling screen would also keep it under the bars.
+  return createPortal(
+    <div ref={overlayRef} style={overlayStyle} className="fixed inset-0 z-[20000] flex items-center justify-center p-4 bg-black/50">
       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl max-w-md w-full p-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
@@ -241,6 +246,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

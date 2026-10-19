@@ -740,6 +740,18 @@ whose code was never in this repository (`onCommentCreate`,
       other" or "For on foot": each way of travelling has its own heading
       ("On an okada", "In a private car", "On foot"), and "Other" reads "For
       the way you travel" (`tipsHeading` in `src/lib/travelMode.ts`)
+- [x] Build 24 and the website (fixed in code 18 October). Sign-in opened
+      underneath the window it was opened from (the owner, 18 October, on the
+      website on a computer: Safety, then "Sign In to Continue", and the sign-in
+      window sat behind the Safety Center's, so nobody could sign in). The
+      sign-in window is now drawn on the page itself, above every other window
+      (the same can happen from a report's window on a computer). On phones it
+      now also dims the top bar and the tabs. Checked against the emulators:
+      on a computer, Safety, "Sign In to Continue", signed in, the Safety
+      Center opened; on a phone-sized screen, sign-in from the Trip tab.
+      Seen at the same time: the computer layout's Safety Center is still the
+      January one (trip share, safety timer, check-in, its own SOS), not the
+      Safe Trip the phones have. For the owner to decide
 - [x] Build 24 (fixed in code 18 October). Contacts missing after a fresh
       install: on the owner's iPhone, the trusted contacts did not show on the
       Trip screen at first and adding one seemed to fail; they appeared later.
