@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
   parseLagosTime, weekStartBefore, lagosDay, metresBetween, scoreWeek, formatReport, readArgs, readProblems,
-  WEEK_MS,
+  WEEK_MS, stillnessOf,
   // @ts-expect-error plain JavaScript module, run by hand as a script
 } from '../../scripts/weekly-numbers.mjs';
 
@@ -119,6 +119,28 @@ test('a round trip counts by how far it went, not by where it ended', () => {
   });
   assert.deepEqual(checkFor(result, 'ada')?.trips.rejected, { 'did not move': 2 });
   assert.equal(rowFor(result, 'ada')?.total, 3);
+});
+
+test('a trip that did not move says whether the phone stayed put or went quiet', () => {
+  assert.equal(stillnessOf({ positions: 47, longestGapMs: 2 * MIN }), '47 positions, never more than 2 min apart: stayed put');
+  assert.equal(stillnessOf({ positions: 3, longestGapMs: 40 * MIN }), '3 positions; the phone went quiet for 40 min');
+  assert.equal(stillnessOf({ positions: 0, longestGapMs: 0 }), 'no positions after the start');
+  assert.equal(stillnessOf({ positions: null, longestGapMs: null }), 'positions not counted (before 19 October)');
+
+  const result = score({
+    users: users('ada'),
+    trips: [
+      trip('uid-ada', MONDAY, { endLocation: NEAR_IKEJA, positions: 30, longestGapMs: 3 * MIN }),
+      trip('uid-ada', MONDAY + 3 * HOUR, { endLocation: NEAR_IKEJA, positions: 2, longestGapMs: 35 * MIN }),
+      trip('uid-ada', MONDAY + 6 * HOUR),
+    ],
+  });
+  const check = checkFor(result, 'ada') as Check & { still: { minutes: number; stillness: string; quiet: boolean }[] };
+  assert.deepEqual(check.still.map((t) => [t.minutes, t.quiet]), [[40, false], [40, true]]);
+  assert.match(check.still[1].stillness, /went quiet for 35 min/);
+  assert.equal(result.health.realStill, 2);
+  assert.equal(result.health.realStillQuiet, 1);
+  assert.match(formatReport(result, { fromMs: FROM, toMs: TO, nowMs: TO + DAY, source: 'test' }), /Did not move: .*stayed put/);
 });
 
 test('trips that break a rule earn nothing and say why', () => {
@@ -314,6 +336,8 @@ test('the health numbers follow people since the beta began', () => {
     realStarted: 3,
     realEnded: 2,
     realOverdue: 0,
+    realStill: 0,
+    realStillQuiet: 0,
     testStarted: 1,
     sos: 2,
     sosInTestTrip: 1,

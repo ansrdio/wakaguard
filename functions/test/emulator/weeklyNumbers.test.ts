@@ -69,7 +69,8 @@ test('reads only what the ranking needs and scores it', async () => {
   assert.equal(mine.length, 3);
   assert.ok(!data.trips.some((trip: { id: string }) => trip.id === `legacy-${run}`), 'a trip outside users/{uid} was read');
   assert.deepEqual(Object.keys(mine[0]).sort(), [
-    'endLocation', 'endMs', 'farthestM', 'id', 'isTest', 'overdueMs', 'startLocation', 'startMs', 'status', 'uid',
+    'endLocation', 'endMs', 'farthestM', 'id', 'isTest', 'longestGapMs', 'overdueMs', 'positions', 'startLocation', 'startMs',
+    'status', 'uid',
   ]);
   assert.deepEqual(
     Object.keys(data.reports.find((report: { id: string }) => report.id === `report-${run}`)).sort(),

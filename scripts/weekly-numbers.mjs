@@ -38,6 +38,13 @@ export const DAILY_LIMIT = { realTrips: 2, roadReports: 3 };
 export const MIN_TRIP_MS = 10 * MINUTE;
 export const MIN_TRIP_METRES = 500;
 /**
+ * A trip that did not move is told apart by its positions (counted since 19
+ * October 2026): a phone that kept reporting from one spot stayed put; one
+ * silent for longer than this went quiet, and may have moved unseen. A still
+ * iPhone can report rarely, so a quiet one is a question, not a verdict.
+ */
+export const QUIET_GAP_MS = 10 * MINUTE;
+/**
  * From this moment (midnight starting Thursday 15 October 2026, Nigeria time,
  * after the testers were told), a trip that ran past the wait before contacts
  * are texted earns nothing. A third of beta trips did, which would have been a
@@ -109,6 +116,15 @@ export function tripProblem(trip) {
   const went = Math.max(metresBetween(trip.startLocation, trip.endLocation), trip.farthestM ?? 0);
   if (went < MIN_TRIP_METRES) return REASONS.didNotMove;
   return null;
+}
+
+/** What the positions say about a trip that did not move, in a few words */
+export function stillnessOf(trip) {
+  if (typeof trip.positions !== 'number') return 'positions not counted (before 19 October)';
+  if (trip.positions === 0) return 'no positions after the start';
+  const gapMin = Math.round((trip.longestGapMs ?? 0) / MINUTE);
+  if ((trip.longestGapMs ?? 0) > QUIET_GAP_MS) return `${trip.positions} positions; the phone went quiet for ${gapMin} min`;
+  return `${trip.positions} positions, never more than ${Math.max(gapMin, 1)} min apart: stayed put`;
 }
 
 const tally = () => {
@@ -284,6 +300,16 @@ export function scoreWeek(data, options) {
   const sos = data.alerts.filter(included).filter((alert) => alert.type === 'sos' && inWeek(alert.createdMs));
   const withUsername = [...people].filter((uid) => usernames.get(uid));
   const ranked = new Set(ranking.map((row) => row.uid));
+  // Real trips this week that did not move, with what their positions say
+  const stillTrips = (uid) => (realTrips.get(uid) || [])
+    .filter((trip) => trip.status === 'completed' && inWeek(trip.endMs) && tripProblem(trip) === REASONS.didNotMove)
+    .map((trip) => ({
+      startMs: trip.startMs,
+      minutes: Math.round((trip.endMs - trip.startMs) / MINUTE),
+      stillness: stillnessOf(trip),
+      quiet: (trip.longestGapMs ?? 0) > QUIET_GAP_MS,
+    }));
+
   const health = {
     accounts: people.size,
     accountsWithUsername: withUsername.length,
@@ -298,6 +324,8 @@ export function scoreWeek(data, options) {
     realEnded: real.filter((trip) => trip.status === 'completed' && inWeek(trip.endMs)).length,
     realOverdue: real.filter((trip) => inWeek(trip.overdueMs)).length,
     testStarted: tests.filter((trip) => inWeek(trip.startMs)).length,
+    realStill: [...realTrips.keys()].flatMap(stillTrips).length,
+    realStillQuiet: [...realTrips.keys()].flatMap(stillTrips).filter((trip) => trip.quiet).length,
     sos: sos.length,
     sosInTestTrip: sos.filter((alert) => testTripIds.has(alert.tripId)).length,
     reportsCreated: reports.length,
@@ -318,6 +346,7 @@ export function scoreWeek(data, options) {
   const checks = ranking.slice(0, top).map((row) => ({
     name: row.name,
     trips: row.week,
+    still: stillTrips(row.uid),
     reports: {
       ...row.reportCheck,
       confirmed: row.reportCheck.confirmed.map((report) => ({
@@ -411,6 +440,7 @@ export function formatReport(result, { fromMs, toMs, nowMs, source }) {
     ['Real trips started this week', health.realStarted],
     ['Real trips ended by the traveller', health.realEnded],
     ['Real trips that went overdue', health.realOverdue],
+    ['Real trips that did not move', `${health.realStill} (${health.realStillQuiet} with the phone quiet over ${QUIET_GAP_MS / MINUTE} min)`],
     ['Test trips started this week', health.testStarted],
     ['SOS alerts', `${health.sos} (${health.sosInTestTrip} in a test trip)`],
     ['Road reports created', `${health.reportsCreated} (${health.reportsWithPhotos} with photos)`],
@@ -424,6 +454,9 @@ export function formatReport(result, { fromMs, toMs, nowMs, source }) {
     say(`  Real trips: ${check.trips.inThePeriod} this week, ${check.trips.counted} counted.`
       + (tripsOut ? ` Not counted: ${tripsOut}.` : ''));
     const reportsOut = listReasons(check.reports.rejected);
+    for (const still of check.still || []) {
+      say(`  Did not move: ${lagosTime.format(still.startMs)}, ${still.minutes} min: ${still.stillness}`);
+    }
     say(`  Road reports: ${check.reports.created} created, ${check.reports.counted} counted.`
       + (reportsOut ? ` Not counted: ${reportsOut}.` : ''));
     for (const report of check.reports.confirmed) {
@@ -456,7 +489,8 @@ export async function collect(db, { fromMs, toMs }) {
   const [users, trips, alerts, reports] = await Promise.all([
     db.collection('users').select('username').get(),
     db.collectionGroup('trips')
-      .select('status', 'startTime', 'endTime', 'isTest', 'startLocation', 'endLocation', 'overdueAt', 'farthestFromStartM')
+      .select('status', 'startTime', 'endTime', 'isTest', 'startLocation', 'endLocation', 'overdueAt', 'farthestFromStartM',
+        'positionCount', 'longestPositionGapMs')
       .get(),
     db.collectionGroup('alerts').select('type', 'createdAt', 'tripId').get(),
     db.collection('reports')
@@ -489,6 +523,8 @@ export async function collect(db, { fromMs, toMs }) {
       endLocation: doc.get('endLocation') || null,
       overdueMs: at(doc.get('overdueAt')),
       farthestM: typeof doc.get('farthestFromStartM') === 'number' ? doc.get('farthestFromStartM') : null,
+      positions: typeof doc.get('positionCount') === 'number' ? doc.get('positionCount') : null,
+      longestGapMs: typeof doc.get('longestPositionGapMs') === 'number' ? doc.get('longestPositionGapMs') : null,
     })),
     alerts: alerts.docs.filter(ownerOf).map((doc) => ({
       uid: ownerOf(doc),

@@ -1155,7 +1155,12 @@ From the roadmap, with its dates. None of these needs an app build.
       gone quiet. The same day, every trip of 19 October was checked: 7 of 9
       real trips moved (up to 5.2 km); blessingdera's morning trip and
       Dazzling_Ivory's 10-minute walk did not. 1 unit test, 1 against the
-      emulator. Release: `onTripUpdated` by name
+      emulator. Release: `onTripUpdated` by name. The weekly ranking tool
+      uses them too (the owner, 19 October): a real trip that did not move
+      is listed in the cheating check with its positions and longest
+      silence, "stayed put" or "the phone went quiet for N min" (over 10
+      minutes; a still iPhone can report rarely, so a question, not a
+      verdict), and the health table counts them. Scoring is unchanged
 - [ ] The unused "offline drafts" code uploads a photo as the camera made
       it, location details included. Nothing in the app uses it; remove it,
       or make it redraw photos like the report form does, before anything
