@@ -1066,11 +1066,30 @@ From the roadmap, with its dates. None of these needs an app build.
       long iPhone trip. (A fresh sign-up is proven: every tester who started
       one finished it)
 - [ ] By Fri 23 Oct. The old server functions moved; they cannot be updated
-      after Fri 30 Oct
+      after Fri 30 Oct. Only `createReport` is left on Node 20; the app never
+      calls it and the live log shows no calls. The owner said on 18 October to
+      delete it (a live deletion, done on the owner's word at release)
 - [ ] By Fri 23 Oct. Alarms when alerts break (the minute-by-minute check
       stops, texts fail, the text wallet runs low, spending jumps), and a
-      daily backup
-- [ ] By Fri 23 Oct. How long records are kept, with automatic deletion
+      daily backup. Agreed with the owner on 18 October, by email to
+      info@inskriba.com: Google Cloud Monitoring warns if `checkOverdueTrips`
+      has not run for 10 minutes, and on any error from the server functions
+      (a failed text among them); a new hourly check warns when Termii's
+      wallet is under NGN 3,000 or more than 40 texts went in an hour; a
+      billing budget of USD 20 a month warns at 50, 90 and 100 per cent.
+      Firestore's own daily backup, kept 7 days, with the restore steps in
+      the docs
+- [ ] By Fri 23 Oct. How long records are kept, with automatic deletion.
+      Agreed with the owner on 18 October: an ended trip in the account 90
+      days after it ends; the contacts' trip page 7 days after the trip
+      ends; SOS and checkpoint logs 90 days; the log of texts sent 90 days
+      after sending; expired road reports (with photos, comments and votes)
+      90 days after they expire; removed comments 30 days after removal;
+      small working records a day or two; fault reports and the rough weather
+      area unchanged (30 days); accounts until deleted. Firestore's own
+      automatic deletion (a `deleteAfter` date on each record), with a one-off
+      date on the records already kept. The Privacy page's Data Retention
+      lines to be redrafted for the owner's approval
 - [ ] By Fri 30 Oct. Store listing drafts and a reviewer account; final by
       Fri 13 Nov. Wording check: never "emergency service"
 - [ ] Mon 2 Nov. Text alerts switched on, then proven on MTN, Airtel, Glo and
