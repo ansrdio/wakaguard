@@ -1,7 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { onAuthStateChanged } from 'firebase/auth';
 import { httpsCallable } from 'firebase/functions';
+import { auth } from '@/lib/firebase';
 import { functions } from '@/lib/firebaseFunctions';
 import { readPhoneLocation } from '@/lib/locationCheck';
 import { readWeatherAhead, roughly, WeatherAhead } from '@/lib/weatherWords';
@@ -27,6 +29,17 @@ async function roughPlace(): Promise<{ lat: number; lng: number } | null> {
 }
 
 /**
+ * Who is signed in, guests included. The server answers only someone signed
+ * in, so the top bar's icon, there before anyone signs in, asks again the
+ * moment someone does rather than half an hour later.
+ */
+function useSignedInUid(): string | null {
+  const [uid, setUid] = useState<string | null>(() => auth.currentUser?.uid ?? null);
+  useEffect(() => onAuthStateChanged(auth, (user) => setUid(user?.uid ?? null)), []);
+  return uid;
+}
+
+/**
  * The weather in the traveller's area for the next `hours` hours, or null
  * until it is known (and whenever it cannot be had: the line is then left
  * out). Asked for only while the screen can be seen, as MET Norway's terms
@@ -34,9 +47,11 @@ async function roughPlace(): Promise<{ lat: number; lng: number } | null> {
  */
 export function useWeatherAhead(enabled: boolean, hours: number): WeatherAhead | null {
   const [ahead, setAhead] = useState<WeatherAhead | null>(null);
+  const uid = useSignedInUid();
+  const asking = enabled && uid !== null;
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!asking) return;
     let current = true;
     let askedAt = 0;
     const ask = async () => {
@@ -62,7 +77,7 @@ export function useWeatherAhead(enabled: boolean, hours: number): WeatherAhead |
       clearInterval(every);
       document.removeEventListener('visibilitychange', onShow);
     };
-  }, [enabled, hours]);
+  }, [asking, uid, hours]);
 
-  return enabled ? ahead : null;
+  return asking ? ahead : null;
 }

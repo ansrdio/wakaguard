@@ -699,7 +699,15 @@ whose code was never in this repository (`onCommentCreate`,
       for the purpose and then deleted. Privacy: the look-up line now says
       "while the app is open on your screen" instead of "open the Trip screen,
       or have a trip running" (approved by the owner on 18 October). Release with
-      `weatherAhead` and build 24
+      `weatherAhead` and build 24. Live server and website since 18 October.
+      Outside Nigeria the server gives no weather, so the owner, in Arizona,
+      sees no icon; seen with a Lagos position on this Mac against the
+      emulators (27°, partly cloudy; the sheet with rain in about 3 hours).
+      Fixed the same day: the icon, there before anyone signs in, asked once,
+      was refused, and waited 30 minutes before asking again, so a person who
+      had just signed in saw none. It now asks the moment someone signs in
+      (checked: signed out, no icon; signed in, the icon at once). The live
+      website has the old behaviour until its next release
 - [x] Build 24 (done in code 18 October; waits on the owner's console steps
       and a phone). Sign in with Google (Android and iPhone) and with Apple
       (iPhone, which Apple requires of an app offering Google), through
