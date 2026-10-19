@@ -740,7 +740,7 @@ whose code was never in this repository (`onCommentCreate`,
       other" or "For on foot": each way of travelling has its own heading
       ("On an okada", "In a private car", "On foot"), and "Other" reads "For
       the way you travel" (`tipsHeading` in `src/lib/travelMode.ts`)
-- [x] The website on a computer (done in code 18 October; the owner: "replace
+- [x] The website on a computer (done in code and live 18 October; the owner: "replace
       the computer Safety Center"). The computer layout's button, now "Safe
       Trip", opens the same Safe Trip screen as the phones, in a phone-sized
       window with the weather icon and a close button (`DesktopSafeTrip`), in
@@ -1214,6 +1214,7 @@ Changes that went live without an app build.
 
 | Date | What |
 |---|---|
+| Sun 18 Oct, evening in Arizona | Website, on the owner's word, from `7f36d87`: on a computer, the button is now "Safe Trip" and opens the phones' own Safe Trip screen in a phone-sized window, in place of the January Safety Center (its trip share, safety timer, check-in and own SOS are gone). The computer layout also sends a running trip's position while the page is open and shows a dot on the button while a trip runs. Checked on wakaguard.com at computer size: the window opens with the phones' screen (signed out: "Sign in to continue" and the emergency numbers) |
 | Sun 18 Oct, evening in Arizona | Website, on the owner's word, from `690539d`: sign-in opens above the window it was opened from. On a computer, Safety then "Sign In to Continue" had opened the sign-in window behind the Safety Center's, so nobody could sign in there (found by the owner). Checked on wakaguard.com at computer size: the sign-in window now opens on top |
 | Sun 18 Oct, evening in Arizona | Website, on the owner's word, from `eaaa50c`: the weather icon asks as soon as someone signs in (before, a person who had just signed in saw no icon for up to 30 minutes). Nothing else changes from the release an hour earlier |
 | Sun 18 Oct, afternoon in Arizona (around midnight in Nigeria) | **Build 24's website**, on the owner's word ("deploy the website"), straight after the server, from `5afe7b9` with the Privacy page's "Last Updated" set to 18 October: Mapbox maps (the token in the build settings), the "please update" and notice cards, "Stop WakaGuard texts to my number" on the trip page (checked live: the page and its form are served, and `stopTexts` answers wakaguard.com), the weather icon, the vehicle details and the destination pin, "Other amount", Undo, "Text them when I arrive", far-away reports and the Privacy page's build 24 lines. Google and Apple sign-in stay hidden on the website. The stores' privacy forms need no change for build 24: its new data (vehicle details, the rough area for the weather, the pin, sign-in with Google or Apple) falls under what Play's Data safety and Apple's App Privacy already list |
