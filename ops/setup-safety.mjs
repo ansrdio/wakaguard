@@ -55,6 +55,8 @@ async function alarmChannel() {
 const POLICIES = (channel) => [
   {
     displayName: 'WakaGuard: trip check stopped',
+    // Overdue trips are not being watched: the most urgent alarm
+    severity: 'CRITICAL',
     documentation: {
       mimeType: 'text/markdown',
       content: 'The minute-by-minute trip check (checkOverdueTrips) has not run for 10 minutes, so overdue trips are not being noticed and nobody is being texted. See docs/OPERATIONS.md in the WakaGuard repository.',
@@ -73,6 +75,7 @@ const POLICIES = (channel) => [
   },
   {
     displayName: 'WakaGuard: server error or alarm',
+    severity: 'ERROR',
     documentation: {
       mimeType: 'text/markdown',
       content: 'A WakaGuard server function crashed, or wrote a line beginning "ALARM:" to its log: texts that failed to send, the Termii wallet running low, far more texts than usual in an hour, no recent database backup, or old records that could not be deleted. See docs/OPERATIONS.md in the WakaGuard repository.',
@@ -97,11 +100,11 @@ async function alarms(channel) {
     if (found) {
       // Brought up to date when what it watches has changed
       const same = JSON.stringify(found.conditions?.map(({ displayName, conditionAbsent, conditionMatchedLog }) => ({ displayName, conditionAbsent, conditionMatchedLog })))
-        === JSON.stringify(policy.conditions);
+        === JSON.stringify(policy.conditions) && found.severity === policy.severity;
       if (same) { say(`Alarm "${policy.displayName}": there`); continue; }
       if (!apply) { say(`Alarm "${policy.displayName}": would bring up to date`); continue; }
-      await call('PATCH', `https://monitoring.googleapis.com/v3/${found.name}?updateMask=conditions,documentation`, {
-        conditions: policy.conditions, documentation: policy.documentation,
+      await call('PATCH', `https://monitoring.googleapis.com/v3/${found.name}?updateMask=conditions,documentation,severity`, {
+        conditions: policy.conditions, documentation: policy.documentation, severity: policy.severity,
       });
       say(`Alarm "${policy.displayName}": brought up to date`);
       continue;

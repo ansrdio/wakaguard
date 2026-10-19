@@ -6,7 +6,9 @@ owner on 18 October 2026. Set up in Google Cloud by `node ops/setup-safety.mjs
 
 ## Alarms
 
-Every alarm is an email to **info@inskriba.com** from Google Cloud Monitoring.
+Every alarm is an email to **info@inskriba.com** from Google Cloud Monitoring
+(`alerting-noreply@google.com`). The subject says how urgent it is: **Critical**
+for "trip check stopped", **Error** for "server error or alarm".
 
 | Alarm | Fires when | First thing to do |
 |---|---|---|
