@@ -741,7 +741,16 @@ store uploads.
       SHA-1 is there) to the Android app in Firebase, then send the new
       google-services.json; say yes when the iPhone build adds Sign in with
       Apple to the app's identifier. Privacy line (what Google and Apple
-      share with us, Apple's hidden email) approved by the owner on 18 October
+      share with us, Apple's hidden email) approved by the owner on 18 October.
+      Same evening: the owner added the upload key's and Play's app-signing
+      SHA-1 (A0:85:F6:…:6A:A9) to the Android app in Firebase and sent the new
+      google-services.json (in the project, off GitHub; the app's own values
+      did not change, so no new Android build was needed). The owner thought
+      of Google only, then kept Apple too ("A"): Apple's rule 4.8 asks an
+      iPhone app offering Google to offer an equally private sign-in, and
+      email with a password does not hide the address. Next: Google and Apple
+      enabled in Firebase by the owner, then `signInWith` switched on in
+      `config/app` on the owner's word, then tried on both phones
 - [x] Build 24 (done in code 18 October). "Safety tips" no longer reads "For
       other" or "For on foot": each way of travelling has its own heading
       ("On an okada", "In a private car", "On foot"), and "Other" reads "For
