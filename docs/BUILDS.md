@@ -630,6 +630,12 @@ whose code was never in this repository (`onCommentCreate`,
 
 ### Builds 24 and 25, in more detail
 
+**On the owner's phones (Sun 18 Oct, evening in Arizona):** build 24 from `1e12be0`, built with the live
+settings and the Mapbox token. iPhone 16: a Debug build installed by cable over the earlier one. Galaxy
+(SM-S156V): signed with the release key, because build 23 there was, and a test-key build is refused over
+it; installed over build 23, sign-in kept. Neither went to a store. Testers stay on build 23 until the
+store uploads.
+
 - [ ] Build 24. Sponsor slot by state: the sponsor card can differ by the
       state the user has chosen, changed from the server without an app
       update. Marked "Sponsored"; never on the trip screen, the contacts' page
