@@ -1078,7 +1078,15 @@ From the roadmap, with its dates. None of these needs an app build.
       wallet is under NGN 3,000 or more than 40 texts went in an hour; a
       billing budget of USD 20 a month warns at 50, 90 and 100 per cent.
       Firestore's own daily backup, kept 7 days, with the restore steps in
-      the docs
+      the docs. Done in code on 18 October, not yet live: `watchTexts`
+      (hourly; `serverWatch.ts`, the Termii balance read in `termii.ts`), a
+      failed or partly failed text now logged as an error ("ALARM: texts not
+      sent"), and `ops/setup-safety.mjs` for the email, the two Monitoring
+      alarms, the budget (switching on Google's two billing APIs first) and the
+      backup schedule; looked at live without changing anything: all five can
+      be added. `docs/OPERATIONS.md` says what each alarm means and how to
+      restore. Release order: the backup first, and a first backup made,
+      before the daily deletion below can run
 - [ ] By Fri 23 Oct. How long records are kept, with automatic deletion.
       Agreed with the owner on 18 October: an ended trip in the account 90
       days after it ends; the contacts' trip page 7 days after the trip
@@ -1089,7 +1097,27 @@ From the roadmap, with its dates. None of these needs an app build.
       area unchanged (30 days); accounts until deleted. Firestore's own
       automatic deletion (a `deleteAfter` date on each record), with a one-off
       date on the records already kept. The Privacy page's Data Retention
-      lines to be redrafted for the owner's approval
+      lines to be redrafted for the owner's approval. Done in code on 18
+      October, not yet live, more simply than planned: no date is stamped on
+      records; `deleteOldRecords` (03:00 Lagos time, `recordRetention.ts`)
+      finds each kind by a date it already carries (a trip's `expiresAt`,
+      `createdAt`, a counter's `startMs`), so records already kept are
+      covered with nothing to stamp, and the rules are unchanged. Only
+      records inside accounts; flagged reports and the January top-level
+      trips are left. New indexes: `alerts`, `checkIns`, `safetyTimers` by
+      `createdAt` across accounts, and `comments` by status and date. The
+      numbers in `retentionPlan.ts` and `src/lib/dataRetention.ts`, held equal
+      by a test. 4 new unit tests and 3 against the emulator (every kind, just
+      past and just inside its time; a second run deletes nothing more; the
+      text check's two alarms). Privacy page lines approved by the owner on
+      18 October (the trip page 7 days; trip records, SOS and checkpoints,
+      text logs and old reports 90 days; removed comments 30 days; photos go
+      with their report; daily backups kept 7 days), quoted from
+      `src/lib/dataRetention.ts`. Counted read-only on the live database the
+      same night, the first run would delete only records from the old
+      January–March version: 5 ended trips (of 118), 5 trip pages (of 120),
+      5 old safety timers, 1 text log (of 85), 10 expired or resolved road
+      reports (of 19, 7 January to 7 March) and 9 weather caches
 - [ ] By Fri 30 Oct. Store listing drafts and a reviewer account; final by
       Fri 13 Nov. Wording check: never "emergency service"
 - [ ] Mon 2 Nov. Text alerts switched on, then proven on MTN, Airtel, Glo and

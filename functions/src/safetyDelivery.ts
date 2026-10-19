@@ -228,6 +228,10 @@ export async function deliverSafetySms(params: {
   });
 
   console.log(`Safety SMS [${type}] for ${uid}: status=${status}, sent=${sent}/${recipients.length}`);
+  // An error line, so the owner is emailed (serverWatch.ts, docs/OPERATIONS.md)
+  if (status === 'failed' || status === 'partial') {
+    console.error(`ALARM: texts not sent [${type}] for ${uid}: ${failed} of ${recipients.length} failed`);
+  }
 
   return { status, sent, failed, logId: logRef.id };
 }

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Shield, ArrowLeft } from 'lucide-react';
 import { COMPANY_ADDRESS, COMPANY_NAME, CONTACT_EMAIL } from '@/lib/company';
-import { MESSAGE_LOG_DAYS_AFTER_DELETION } from '@/lib/dataRetention';
+import { BACKUP_DAYS, KEPT_DAYS, MESSAGE_LOG_DAYS_AFTER_DELETION } from '@/lib/dataRetention';
 import { ALERT_GRACE_MINUTES, MAX_TRUSTED_CONTACTS } from '@/lib/tripPlanning';
 
 export default function PrivacyPage() {
@@ -311,20 +311,21 @@ export default function PrivacyPage() {
             <ul className="list-disc list-inside text-gray-700 mb-4 space-y-2">
               <li>The path shown on the trip map is deleted when the trip ends. After an SOS it is kept until you end the trip</li>
               <li>The trip link stops working when the trip ends or expires, as described above</li>
-              <li>A record of each trip stays in your account after it ends: the destination, the start and end points, the last position we received, the planned and actual times, any time you added, and which contacts you chose</li>
-              <li>SOS alerts and checkpoint stops you log, with their locations, also stay in your account</li>
+              <li>The page your contacts open is deleted {KEPT_DAYS.tripPage} days after its link stops working.</li>
+              <li>A record of each trip stays in your account after it ends: the destination, the start and end points, the last position we received, the planned and actual times, any time you added, and which contacts you chose. It is deleted automatically {KEPT_DAYS.endedTrip} days after the trip&apos;s link stopped working.</li>
+              <li>SOS alerts and checkpoint stops you log, with their locations, stay in your account for {KEPT_DAYS.sosAndCheckIns} days, then are deleted automatically.</li>
             </ul>
             <p className="text-gray-700 leading-relaxed mb-6">
-              These records are private to your account. We keep them until you delete your account or ask
-              us to delete them.
+              These records are private to your account. You can ask us to delete them sooner, and they
+              are all deleted when you delete your account.
             </p>
 
             <h3 className="text-xl font-semibold text-gray-800 mb-3">Trusted Contacts and Message Logs</h3>
             <p className="text-gray-700 leading-relaxed mb-6">
               A trusted contact is deleted when you remove it. Logs of texts already sent, which include the
-              recipient&apos;s name and number, are kept for troubleshooting and abuse prevention until we no
-              longer need them or you ask us to delete them. If you delete your account, they are kept for{' '}
-              {MESSAGE_LOG_DAYS_AFTER_DELETION} days and then deleted automatically.
+              recipient&apos;s name and number, are kept for troubleshooting and abuse prevention for{' '}
+              {KEPT_DAYS.textLog} days after each text, then deleted automatically. If you delete your
+              account, they are deleted within {MESSAGE_LOG_DAYS_AFTER_DELETION} days.
             </p>
 
             <h3 className="text-xl font-semibold text-gray-800 mb-3">Reports</h3>
@@ -342,21 +343,23 @@ export default function PrivacyPage() {
               <li><strong>Roadwork:</strong> 30 days</li>
             </ul>
             <p className="text-gray-700 leading-relaxed mb-6">
-              Expired reports are marked as &quot;expired&quot; and may be hidden from public view, but data is retained
-              for moderation and audit purposes. Deleting your account deletes your reports.
+              Expired and resolved reports are hidden from the map, then deleted automatically{' '}
+              {KEPT_DAYS.oldReport} days after they expired, together with their photos, comments and votes.
+              Reports hidden because other travellers reported them are kept until we have reviewed them.
+              Deleting your account deletes your reports.
             </p>
 
             <h3 className="text-xl font-semibold text-gray-800 mb-3">Photos</h3>
             <p className="text-gray-700 leading-relaxed mb-6">
-              Photos are stored in Firebase Storage and remain accessible as long as the report exists.
-              We may keep them after that for moderation purposes. Deleting your account deletes your photos.
+              Photos are stored in Firebase Storage and are deleted with their report. Deleting your
+              account deletes your photos.
             </p>
 
             <h3 className="text-xl font-semibold text-gray-800 mb-3">Comments and Votes</h3>
             <p className="text-gray-700 leading-relaxed mb-6">
               Comments and votes are retained as long as the associated report exists. Removed comments
-              are soft-deleted (marked as removed) but not permanently deleted. Deleting your account
-              deletes the comments and votes you posted.
+              are hidden at once and deleted automatically within {KEPT_DAYS.removedComment} days. Deleting
+              your account deletes the comments and votes you posted.
             </p>
 
             <h3 className="text-xl font-semibold text-gray-800 mb-3">User Accounts</h3>
@@ -364,10 +367,14 @@ export default function PrivacyPage() {
               Your account and the data held with it are kept until you delete your account. You can do
               that yourself at any time: in the app, open Profile and tap Delete account; on the website,
               open the account menu and choose Delete account. Everything listed above is then deleted
-              straight away, except the log of texts sent to your contacts, which is kept for{' '}
+              straight away, except the log of texts sent to your contacts, which is kept for up to{' '}
               {MESSAGE_LOG_DAYS_AFTER_DELETION} days. The steps, and what is deleted and kept, are set out
               on the <Link href="/delete-account" className="text-blue-600 hover:underline">Delete your account</Link> page.
               Signing out, or deleting the app from your phone, does not delete your account.
+            </p>
+            <p className="text-gray-700 leading-relaxed mb-6">
+              We keep a daily backup of our database for {BACKUP_DAYS} days, so something deleted can remain
+              in a backup for up to {BACKUP_DAYS} days after it is deleted.
             </p>
           </section>
 

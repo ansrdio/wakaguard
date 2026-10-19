@@ -78,3 +78,21 @@ export const termiiProvider: SmsProvider = {
     return String(messageId);
   },
 };
+
+/**
+ * What is left in the Termii wallet, in naira, for the hourly text check
+ * (serverWatch.ts). Null when it cannot be had; the key never leaves this call.
+ */
+export async function termiiBalance(): Promise<number | null> {
+  const { apiKey, baseUrl, timeoutMs } = getConfig();
+  if (!apiKey) return null;
+  const response = await fetch(`${baseUrl}/api/get-balance?api_key=${encodeURIComponent(apiKey)}`, {
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+  if (!response.ok) return null;
+  const data = (await response.json().catch(() => null)) as { balance?: unknown } | null;
+  const value = data?.balance;
+  // A missing balance must not read as zero, which would sound the alarm
+  const balance = typeof value === 'number' ? value : typeof value === 'string' && value.trim() ? Number(value) : NaN;
+  return Number.isFinite(balance) ? balance : null;
+}
