@@ -769,7 +769,8 @@ store uploads.
       `placeName` (with `deleteMyAccount`), then the website and build 24.
       The same evening, on the owner's word: any spot is named, not only in
       Nigeria (the owner's pins in Arizona were refused; a trip may also end across a
-      border). Server only
+      border). Server only. The owner confirmed it fills the box on both
+      their phones the same night
 - [x] The website on a computer (done in code and live 18 October; the owner: "replace
       the computer Safety Center"). The computer layout's button, now "Safe
       Trip", opens the same Safe Trip screen as the phones, in a phone-sized
