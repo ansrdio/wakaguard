@@ -158,7 +158,7 @@ export async function runRecordDeletion(
       counts[kind.name] = await deleteKind(db, kind, nowMs);
     } catch (error) {
       counts[kind.name] = -1;
-      console.error(`Record deletion: could not delete old ${kind.name}: ${String(error)}`);
+      console.error(`ALARM: the nightly deletion could not delete old ${kind.name}: ${String(error)}`);
     }
   }
   console.log(`Record deletion: ${Object.entries(counts).map(([name, n]) => `${name}=${n}`).join(', ')}`);

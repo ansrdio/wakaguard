@@ -11,11 +11,12 @@ Every alarm is an email to **info@inskriba.com** from Google Cloud Monitoring.
 | Alarm | Fires when | First thing to do |
 |---|---|---|
 | **WakaGuard: trip check stopped** | `checkOverdueTrips`, the minute-by-minute check, has not run for 10 minutes. Overdue trips are not being noticed and nobody is being texted | Firebase console, Functions: is `checkOverdueTrips` there and healthy? Google Cloud console, Cloud Scheduler: is its job paused or failing? Redeploy it by name if needed |
-| **WakaGuard: server error or alarm** | Any server function wrote an error (at most one email every 30 minutes) | Read the error in the Functions log. The lines below have their own meaning |
+| **WakaGuard: server error or alarm** | A server function crashed, or wrote a line beginning "ALARM:" (at most one email every 30 minutes). Other error lines carry no severity on these functions and do not email | Read it in the Functions log. The ALARM lines below have their own meaning |
 | … with **"ALARM: texts not sent"** | A safety text failed to send to one or more contacts | Termii's dashboard: wallet, sender ID "OE Alert", DND route. The trip's card in the app says who was not texted |
 | … with **"ALARM: text wallet low"** | The hourly check found Termii's wallet under NGN 3,000 (about 200 texts) | Top up the Termii wallet |
 | … with **"ALARM: no database backup"** | The nightly deletion found no backup from the last 3 days, so it deleted nothing | Google Cloud console, Firestore, Disaster recovery: is the daily backup schedule there, and are backups being made? `node ops/setup-safety.mjs` shows it |
 | … with **"ALARM: texts jumped"** | More than 40 texts went out in the last hour; a normal day sends a handful | Look in `safetyMessageLogs` for who sent them. If it is a fault or misuse, switch texting off (`SMS_ENABLED=false` in `functions/.env`, then deploy the texting functions by name) |
+| … with **"ALARM: the nightly deletion could not delete"** | One kind of old record could not be deleted (often an index still building); the others were | Read the error; it is tried again the next night |
 | **Budget email** | Google Cloud spend reaches 50, 90 and 100 per cent of USD 20 in the month | Google Cloud console, Billing, Reports: which service grew |
 
 The hourly check is `watchTexts` (`functions/src/serverWatch.ts`); the limits

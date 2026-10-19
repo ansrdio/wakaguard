@@ -75,12 +75,15 @@ const POLICIES = (channel) => [
     displayName: 'WakaGuard: server error or alarm',
     documentation: {
       mimeType: 'text/markdown',
-      content: 'A WakaGuard server function wrote an error to its log. Lines beginning "ALARM:" are texts that failed to send, the Termii wallet running low, or far more texts than usual in an hour. See docs/OPERATIONS.md in the WakaGuard repository.',
+      content: 'A WakaGuard server function crashed, or wrote a line beginning "ALARM:" to its log: texts that failed to send, the Termii wallet running low, far more texts than usual in an hour, no recent database backup, or old records that could not be deleted. See docs/OPERATIONS.md in the WakaGuard repository.',
     },
     combiner: 'OR',
     conditions: [{
-      displayName: 'An error in the server functions\' log',
-      conditionMatchedLog: { filter: 'resource.type="cloud_function" AND severity>=ERROR' },
+      displayName: 'A crash or an ALARM line in the server functions\' log',
+      // console.error lines carry no severity on these functions (found on 19
+      // October 2026, when the first test alarm sent no email), so the ALARM
+      // lines are matched by their words; crashes are marked ERROR by Google
+      conditionMatchedLog: { filter: 'resource.type="cloud_function" AND (severity>=ERROR OR textPayload:"ALARM:" OR jsonPayload.message:"ALARM:")' },
     }],
     alertStrategy: { notificationRateLimit: { period: '1800s' }, autoClose: '3600s' },
     notificationChannels: [channel],
@@ -90,7 +93,19 @@ const POLICIES = (channel) => [
 async function alarms(channel) {
   const { alertPolicies = [] } = await call('GET', `${MONITORING}/alertPolicies`);
   for (const policy of POLICIES(channel)) {
-    if (alertPolicies.some((p) => p.displayName === policy.displayName)) { say(`Alarm "${policy.displayName}": there`); continue; }
+    const found = alertPolicies.find((p) => p.displayName === policy.displayName);
+    if (found) {
+      // Brought up to date when what it watches has changed
+      const same = JSON.stringify(found.conditions?.map(({ displayName, conditionAbsent, conditionMatchedLog }) => ({ displayName, conditionAbsent, conditionMatchedLog })))
+        === JSON.stringify(policy.conditions);
+      if (same) { say(`Alarm "${policy.displayName}": there`); continue; }
+      if (!apply) { say(`Alarm "${policy.displayName}": would bring up to date`); continue; }
+      await call('PATCH', `https://monitoring.googleapis.com/v3/${found.name}?updateMask=conditions,documentation`, {
+        conditions: policy.conditions, documentation: policy.documentation,
+      });
+      say(`Alarm "${policy.displayName}": brought up to date`);
+      continue;
+    }
     if (!apply) { say(`Alarm "${policy.displayName}": would add`); continue; }
     await call('POST', `${MONITORING}/alertPolicies`, policy);
     say(`Alarm "${policy.displayName}": added`);
