@@ -1065,11 +1065,11 @@ From the roadmap, with its dates. None of these needs an app build.
 - [ ] By Sun 18 Oct. Proof runs: a long Android trip on mobile data, and a
       long iPhone trip. (A fresh sign-up is proven: every tester who started
       one finished it)
-- [ ] By Fri 23 Oct. The old server functions moved; they cannot be updated
+- [x] By Fri 23 Oct (done 18 October). The old server functions moved; they cannot be updated
       after Fri 30 Oct. Only `createReport` is left on Node 20; the app never
       calls it and the live log shows no calls. The owner said on 18 October to
       delete it (a live deletion, done on the owner's word at release)
-- [ ] By Fri 23 Oct. Alarms when alerts break (the minute-by-minute check
+- [x] By Fri 23 Oct (live 18 October). Alarms when alerts break (the minute-by-minute check
       stops, texts fail, the text wallet runs low, spending jumps), and a
       daily backup. Agreed with the owner on 18 October, by email to
       info@inskriba.com: Google Cloud Monitoring warns if `checkOverdueTrips`
@@ -1342,6 +1342,7 @@ Changes that went live without an app build.
 
 | Date | What |
 |---|---|
+| Sun 18 Oct, late night in Arizona (Mon 19 Oct, morning in Nigeria) | **Server safety**, on the owner's word ("go live"), from `88538e3`: the new indexes; `ops/setup-safety.mjs --apply` added the alarm email (info@inskriba.com), the alarms "WakaGuard: trip check stopped" and "WakaGuard: server error or alarm", switched on Google's two billing APIs and added the USD 20 monthly budget, and the daily backup kept 7 days (a second look found all five there); `createReport`, the last function on Node 20 and unused, deleted; `watchTexts` (new) and the texting functions (`sendSafetySms`, `checkOverdueTrips`, `checkQuietTrips`, `onTripUpdated`, `onSafetyTimerUpdated`, `onSOSAlert`) deployed by name; then the website with the approved retention lines. Checked live: the lines are on the Privacy page, and `watchTexts`, run once by hand, counted 4 texts in the last hour and read the Termii wallet (NGN 9,043). 31 functions now, all from the code on Node 22. Waiting: `deleteOldRecords`, to be deployed once Firestore shows its first backup |
 | Sun 18 Oct, night in Arizona | **Google and Apple sign-in switched on**, on the owner's word ("switch on sign-in"), after the owner enabled both in Firebase Authentication and added the signing fingerprints: `config/app` `signInWith: { google: true, apple: true }`, merged by hand with the owner's Google Cloud sign-in. `config/app` did not exist before, so it holds only this; the other switches keep their defaults. Build 24 phones show the buttons (iPhone Apple and Google, Android Google); build 23 and the website do not. To switch off: set both to false |
 | Sun 18 Oct, night in Arizona | Server: `placeName` only, on the owner's word ("allow anywhere and deploy it"), from `4927199`: a destination pin is named anywhere, not only in Nigeria. The owner's pins in Arizona had been refused, so the box never filled on their phones. No app change |
 | Sun 18 Oct, night in Arizona | **The destination pin names its spot**, on the owner's word ("commit, push and deploy it"), from `1381d73`: the database rules (the look-up turn and each person's count, server only), then `placeName` (new) and `deleteMyAccount` by name, then the website with the Privacy page's "Place names" line. Checked live: the line is on the Privacy page, the new code is served, and `placeName` refuses anyone not signed in. On phones it comes with build 24 |
