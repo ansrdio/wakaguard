@@ -13,11 +13,14 @@ import { ReportThumbnailGrid } from '@/components/ReportThumbnailGrid';
 import { ReportDetailsCard } from '@/components/ReportDetailsCard';
 import { CreateReportModal } from '@/components/CreateReportModal';
 import { LocationPermissionPrompt } from '@/components/LocationPermissionPrompt';
-import { SafetyModal } from '@/components/SafetyModal';
+import { DesktopSafeTrip } from '@/components/DesktopSafeTrip';
+import { Toast } from '@/components/ui/Toast';
 import { AppShell } from '@/components/layout/AppShell';
 import { NigerianState } from '@/lib/nigerianStates';
 import MapView from '@/components/MapView';
 import { useAuthedUser } from '@/hooks/useAuthedUser';
+import { useSafety } from '@/hooks/useSafety';
+import { useTripLocationSync } from '@/hooks/useTripLocationSync';
 import { useRequireAccount } from '@/hooks/useRequireAccount';
 import { useMyReports } from '@/hooks/useMyReports';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
@@ -62,13 +65,23 @@ export function DesktopHome({
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [sortBy, setSortBy] = useState<'recent' | 'upvoted' | 'nearest'>('recent');
-  const [isSafetyModalOpen, setIsSafetyModalOpen] = useState(false);
+  const [isSafeTripOpen, setIsSafeTripOpen] = useState(false);
+  const [locationProblem, setLocationProblem] = useState<string | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showMyReportsModal, setShowMyReportsModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showDeleteAccount, setShowDeleteAccount] = useState(false);
 
   const { uid, isAnonymous, email, username } = useAuthedUser();
+  // A running trip's position is sent while the page is open, the Safe Trip
+  // window closed or not, as the phone layout does (MobileHome)
+  const { activeTrip, activeTimer } = useSafety();
+  const tripRunning = !!(activeTrip || activeTimer);
+  useTripLocationSync(activeTrip, (problem) => {
+    setLocationProblem(problem === 'permission_denied'
+      ? 'Location permission is off. Your contacts cannot see where you are. Allow location for this site.'
+      : 'Location is unavailable. Your contacts cannot see where you are.');
+  });
   const signedIn = !!uid && !isAnonymous;
   const { requireAccount, showAuthModal, openAuthModal, closeAuthModal } = useRequireAccount({ uid, isAnonymous });
   const { reports: myReports, loading: myReportsLoading, count: reportCount } = useMyReports();
@@ -213,12 +226,15 @@ export function DesktopHome({
 
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setIsSafetyModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-all font-medium shadow-md hover:shadow-lg"
-              title="Safety features"
+              onClick={() => setIsSafeTripOpen(true)}
+              className="relative flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-all font-medium shadow-md hover:shadow-lg"
+              title={tripRunning ? 'Your trip is running' : 'Start a safe trip'}
             >
               <Shield className="w-5 h-5" />
-              <span className="hidden sm:inline">Safety</span>
+              <span className="hidden sm:inline">Safe Trip</span>
+              {tripRunning && (
+                <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-amber-400 ring-2 ring-white" aria-label="Trip running" />
+              )}
             </button>
             <button
               onClick={() => setIsCreateModalOpen(true)}
@@ -560,10 +576,14 @@ export function DesktopHome({
         initialLocation={userLocation}
       />
 
-      <SafetyModal
-        isOpen={isSafetyModalOpen}
-        onClose={() => setIsSafetyModalOpen(false)}
+      <DesktopSafeTrip
+        isOpen={isSafeTripOpen}
+        onClose={() => setIsSafeTripOpen(false)}
+        onReportRoad={() => setIsCreateModalOpen(true)}
       />
+      {locationProblem && (
+        <Toast message={locationProblem} type="error" duration={6000} onClose={() => setLocationProblem(null)} />
+      )}
 
       {/* My Reports Modal */}
       {showMyReportsModal && (

@@ -740,6 +740,21 @@ whose code was never in this repository (`onCommentCreate`,
       other" or "For on foot": each way of travelling has its own heading
       ("On an okada", "In a private car", "On foot"), and "Other" reads "For
       the way you travel" (`tipsHeading` in `src/lib/travelMode.ts`)
+- [x] The website on a computer (done in code 18 October; the owner: "replace
+      the computer Safety Center"). The computer layout's button, now "Safe
+      Trip", opens the same Safe Trip screen as the phones, in a phone-sized
+      window with the weather icon and a close button (`DesktopSafeTrip`), in
+      place of the January Safety Center, whose trip share, safety timer,
+      check-in and own SOS are gone (`SafetyModal` deleted). The Trip screen's
+      own windows, messages and Undo bar stay inside it, as on a phone's
+      screen. The computer layout now also sends a running trip's position
+      while the page is open, window closed or not, as the phone layout does,
+      and the button shows an amber dot while a trip runs. Checked at
+      computer size against the emulators, with a Lagos position: signed in
+      inside the window, a 2-minute test trip started, the window closed (dot
+      shown, the position sent again 2 minutes later), reopened, "I've
+      arrived" with its Undo bar in the window, the trip ended; the SOS
+      window opens inside it (nothing pressed)
 - [x] Build 24 and the website (fixed in code 18 October). Sign-in opened
       underneath the window it was opened from (the owner, 18 October, on the
       website on a computer: Safety, then "Sign In to Continue", and the sign-in
