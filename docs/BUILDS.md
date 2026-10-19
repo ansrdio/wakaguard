@@ -766,7 +766,10 @@ store uploads.
       from Nominatim's answer, plain letters for texts, the 40-letter box, the
       spot in Nigeria, the turn and the hourly limit) and 3 rules checks. The
       count per person is deleted with the account. Release: rules, then
-      `placeName` (with `deleteMyAccount`), then the website and build 24
+      `placeName` (with `deleteMyAccount`), then the website and build 24.
+      The same evening, on the owner's word: any spot is named, not only in
+      Nigeria (the owner's pins in Arizona were refused; a trip may also end across a
+      border). Server only
 - [x] The website on a computer (done in code and live 18 October; the owner: "replace
       the computer Safety Center"). The computer layout's button, now "Safe
       Trip", opens the same Safe Trip screen as the phones, in a phone-sized

@@ -89,7 +89,7 @@ async function askNominatim(spot: Spot): Promise<string | null> {
 export const placeName = functions.https.onCall(async (data, context) => {
   if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Sign in first');
   const spot = readSpot(data);
-  if (!spot) throw new functions.https.HttpsError('invalid-argument', 'A spot in Nigeria is needed');
+  if (!spot) throw new functions.https.HttpsError('invalid-argument', 'A spot is needed');
 
   const key = spotKey(spot);
   const nowMs = Date.now();

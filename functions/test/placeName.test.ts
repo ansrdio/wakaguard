@@ -50,9 +50,11 @@ test('the same name is not repeated', () => {
   assert.equal(placeNameFrom({ address: { suburb: 'Ikeja', city: 'Ikeja', state: 'Lagos State' } }), 'Ikeja, Lagos State');
 });
 
-test('only a real spot in and around Nigeria is looked up', () => {
+test('any real spot is looked up, across a border too', () => {
   assert.deepEqual(readSpot({ lat: 6.587, lng: 3.379 }), { lat: 6.587, lng: 3.379 });
-  assert.equal(readSpot({ lat: 33.4, lng: -112.0 }), null);
+  assert.deepEqual(readSpot({ lat: 33.4, lng: -112.0 }), { lat: 33.4, lng: -112.0 });
+  assert.equal(readSpot({ lat: 91, lng: 3.3 }), null);
+  assert.equal(readSpot({ lat: 6.5, lng: 181 }), null);
   assert.equal(readSpot({ lat: '6.5', lng: 3.3 }), null);
   assert.equal(readSpot({ lat: NaN, lng: 3.3 }), null);
   assert.equal(readSpot(null), null);

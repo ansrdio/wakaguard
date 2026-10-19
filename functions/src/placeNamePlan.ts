@@ -8,8 +8,6 @@
  * "Ikorodu Road, Ojota, Ikeja" for Ojota bus park).
  */
 
-import { SERVICE_AREA } from './weather';
-
 /** As long as a typed destination may be (src/lib/tripPlanning.ts MAX_DESTINATION_LENGTH) */
 export const MAX_NAME_LENGTH = 40;
 
@@ -28,13 +26,17 @@ export interface Spot {
   lng: number;
 }
 
-/** The spot the app asks about, only in and around Nigeria */
+/**
+ * The spot the app asks about, anywhere: a trip may end across a border, and
+ * the owner tests from abroad (it was Nigeria only until the evening of 18
+ * October 2026, when the owner's pins in Arizona got no name).
+ */
 export function readSpot(data: unknown): Spot | null {
   const value = data as { lat?: unknown; lng?: unknown } | null;
   const lat = value?.lat;
   const lng = value?.lng;
   if (typeof lat !== 'number' || typeof lng !== 'number' || !Number.isFinite(lat) || !Number.isFinite(lng)) return null;
-  if (lat < SERVICE_AREA.south || lat > SERVICE_AREA.north || lng < SERVICE_AREA.west || lng > SERVICE_AREA.east) return null;
+  if (Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
   return { lat, lng };
 }
 
