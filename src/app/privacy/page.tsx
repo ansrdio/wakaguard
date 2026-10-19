@@ -383,6 +383,7 @@ export default function PrivacyPage() {
               <li><strong>Service Providers:</strong> We use Firebase (Google) for sign-in, data storage, hosting and notifications, and Termii and the mobile networks for SMS. These providers may process data on servers outside Nigeria</li>
               <li><strong>Maps:</strong> Map images are loaded by your device from Mapbox, which sees your IP address and the area you are viewing. Location links in texts and on the trip page open in Google Maps</li>
               <li><strong>Weather:</strong> Our server asks MET Norway (the Norwegian Meteorological Institute) for the forecast for your rough area, about 10 km across. MET Norway is not told who asked or where exactly you are. The forecasts shown in the app are data from MET Norway</li>
+              <li><strong>Place names:</strong> When you set your destination on the map, our server looks up the name of that spot using OpenStreetMap&apos;s Nominatim service, so it can fill in &quot;Where are you going?&quot;. Only the spot is sent, never who you are</li>
               <li><strong>Legal Requirements:</strong> We may disclose data if required by law or to protect rights and safety</li>
               <li><strong>Moderation:</strong> Flagged content is reviewed by administrators</li>
             </ul>

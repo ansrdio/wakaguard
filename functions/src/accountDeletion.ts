@@ -115,6 +115,8 @@ export async function deleteAccountData(uid: string, nowMs: number = Date.now())
   await db.doc(`pushSubscriptions/${uid}`).delete();
   // Where they last looked at the weather, kept for the morning notification
   await db.doc(`weatherAreas/${uid}`).delete();
+  // How many pins they had named this hour (placeName.ts)
+  await db.doc(`placeNameTries/${uid}`).delete();
   await deleteAll(db.collection('usernames').where('uid', '==', uid));
 
   // The profile with everything under it: contacts, trips, alerts, timers,

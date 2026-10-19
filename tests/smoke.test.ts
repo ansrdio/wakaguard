@@ -923,6 +923,15 @@ async function run() {
     await runStep('User: read the kept weather areas denied', async () => {
       await getDoc(doc(user.db, 'weatherAreas', userUid));
     }, true);
+    await runStep('User: read own pin look-up count denied', async () => {
+      await getDoc(doc(user.db, 'placeNameTries', userUid));
+    }, true);
+    await runStep('User: reset own pin look-up count denied', () =>
+      setDoc(doc(user.db, 'placeNameTries', userUid), { startMs: 0, count: 0 }), true
+    );
+    await runStep('User: move the look-up turn denied', () =>
+      setDoc(doc(user.db, 'serverLimits', 'nominatim'), { lastLookupMs: 0 }), true
+    );
     await runStep('User: set over-long alert name denied', () =>
       userDocUpdate(user, userUid, { alertName: 'x'.repeat(31) }), true
     );

@@ -20,7 +20,7 @@ import * as admin from 'firebase-admin';
 
 const FORECAST_URL = 'https://api.met.no/weatherapi/locationforecast/2.0/compact';
 /** MET Norway turns away requests that do not say which app is asking and how to reach it */
-const NAMED_AS = 'WakaGuard/1.2 https://wakaguard.com';
+export const NAMED_AS = 'WakaGuard/1.2 https://wakaguard.com';
 
 /** One decimal of a degree is about 11 km: a town, never a street */
 export const AREA_DECIMALS = 1;

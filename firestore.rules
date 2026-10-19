@@ -410,6 +410,14 @@ service cloud.firestore {
     match /weatherAreas/{uid} {
       allow read, write: if false;
     }
+    // Naming a destination pin (functions/src/placeName.ts): the last look-up
+    // time for the whole app, and each person's count this hour. Server only.
+    match /serverLimits/{name} {
+      allow read, write: if false;
+    }
+    match /placeNameTries/{uid} {
+      allow read, write: if false;
+    }
 
     match /users/{userId}/trips/{tripId} {
       allow read: if isOwner(userId);

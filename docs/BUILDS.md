@@ -740,6 +740,27 @@ whose code was never in this repository (`onCommentCreate`,
       other" or "For on foot": each way of travelling has its own heading
       ("On an okada", "In a private car", "On foot"), and "Other" reads "For
       the way you travel" (`tipsHeading` in `src/lib/travelMode.ts`)
+- [x] Build 24 and the website (done in code 18 October). The destination pin names its spot (the owner,
+      18 October: the pin did not fill "Where are you going?"). Until NIPOST's
+      postcodes can be used, OpenStreetMap's free look-up (Nominatim) gives the
+      street and area, tried on five landmarks: Ojota bus park "Ikorodu Road,
+      Ojota, Ikeja", Wuse Market "Blantyre Street, Wuse II, Abuja". Asked
+      through our server (new `placeName`), so OpenStreetMap is sent the spot
+      and never who asked; at most one look-up a second for the whole app, as
+      its rules ask, and a limit per person. The name fills the box only when
+      it is empty (or still holds the last pin's name), stays editable, and
+      shows "© OpenStreetMap". Privacy line approved by the owner on 18
+      October: "When you set your destination on the map, our server looks up
+      the name of that spot using OpenStreetMap's Nominatim service, so it can
+      fill in 'Where are you going?'. Only the spot is sent, never who you
+      are." For launch volumes: NIPOST or a paid look-up. Checked at phone size
+      against the emulators with the real look-up: a pin near Bariga gave
+      "Finding its name…", then "Igbobi, Bariga" with the credit; a typed
+      "My aunt's house" stayed when the pin was moved. 12 new tests (the name
+      from Nominatim's answer, plain letters for texts, the 40-letter box, the
+      spot in Nigeria, the turn and the hourly limit) and 3 rules checks. The
+      count per person is deleted with the account. Release: rules, then
+      `placeName` (with `deleteMyAccount`), then the website and build 24
 - [x] The website on a computer (done in code and live 18 October; the owner: "replace
       the computer Safety Center"). The computer layout's button, now "Safe
       Trip", opens the same Safe Trip screen as the phones, in a phone-sized

@@ -14,6 +14,7 @@ export { onReportDeleted } from './reportCleanup';
 export { onFlagCreated } from './autoHide';
 export { onCommentCreate, onCommentDelete, onCommentUpdate } from './commentCount';
 export { weatherAhead } from './weather';
+export { placeName } from './placeName';
 export {
   checkOverdueTrips,
   checkQuietTrips,

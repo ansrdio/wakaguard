@@ -25,7 +25,8 @@ import { TravelPicture } from '@/components/pictures/Pictures';
 import { VehicleFields } from '@/components/mobile/trip/VehicleFields';
 import { readVehicle, Vehicle } from '@/lib/vehicle';
 import { DestinationPinSheet } from '@/components/mobile/trip/DestinationPinSheet';
-import type { Point } from '@/lib/destinationPoint';
+import { mayFillDestination, PLACE_NAME_CREDIT, Point } from '@/lib/destinationPoint';
+import { askPlaceName } from '@/lib/placeName';
 import { WeatherLine } from '@/components/mobile/trip/WeatherLine';
 import { useWeatherAhead } from '@/hooks/useWeatherAhead';
 import { hoursToLookAhead } from '@/lib/weatherWords';
@@ -110,6 +111,25 @@ export function StartTripForm({
   // "Set it on the map": optional, alongside the typed destination
   const [destinationPoint, setDestinationPoint] = useState<Point | null>(null);
   const [pinOpen, setPinOpen] = useState(false);
+  // The name the pin put in the box, if any, and whether one is being looked up
+  const [pinName, setPinName] = useState<string | null>(null);
+  const [namingPin, setNamingPin] = useState(false);
+  // Only the latest pin's answer counts
+  const namingFor = useRef<Point | null>(null);
+
+  // A new pin fills the box with the spot's street and area, unless the
+  // traveller has typed something there themselves
+  const nameThePin = async (point: Point) => {
+    if (!mayFillDestination(destination, pinName)) return;
+    namingFor.current = point;
+    setNamingPin(true);
+    const name = await askPlaceName(point);
+    if (namingFor.current !== point) return;
+    setNamingPin(false);
+    if (!name) return;
+    setDestination((current) => (mayFillDestination(current, pinName) ? name : current));
+    setPinName(name);
+  };
   const [durationMinutes, setDurationMinutes] = useState<number>(DEFAULT_TRIP_MINUTES);
   const [customOpen, setCustomOpen] = useState(false);
   // Starts on last time's answer, so most trips need no tap here at all
@@ -241,12 +261,31 @@ export function StartTripForm({
           className={inputClass}
         />
         {errors.destination && <p role="alert" className={errorClass}>{errors.destination}</p>}
+        {pinName !== null && destination.trim() === pinName && (
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Name from the pin. {PLACE_NAME_CREDIT}</p>
+        )}
         {destinationPoint ? (
-          <p className="mt-2 flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
+          <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
             <MapPin className="w-4 h-4 text-brand-700 dark:text-brand-300" aria-hidden="true" />
             Pin set on the map
+            {namingPin && (
+              <span className="flex items-center gap-1 text-slate-500 dark:text-slate-400" role="status">
+                <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />
+                Finding its name…
+              </span>
+            )}
             <button type="button" onClick={() => setPinOpen(true)} className="font-medium text-blue-600 dark:text-blue-400 hover:underline">Change</button>
-            <button type="button" onClick={() => setDestinationPoint(null)} className="font-medium text-blue-600 dark:text-blue-400 hover:underline">Remove</button>
+            <button
+              type="button"
+              onClick={() => {
+                namingFor.current = null;
+                setNamingPin(false);
+                setDestinationPoint(null);
+              }}
+              className="font-medium text-blue-600 dark:text-blue-400 hover:underline"
+            >
+              Remove
+            </button>
           </p>
         ) : (
           <button
@@ -265,6 +304,7 @@ export function StartTripForm({
             onDone={(point) => {
               setDestinationPoint(point);
               setPinOpen(false);
+              void nameThePin(point);
             }}
           />
         )}
