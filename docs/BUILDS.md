@@ -1118,6 +1118,39 @@ store uploads.
       - **Unchanged:** these trips text contacts at the start by default, as every trip of 2 hr or more already
         does.
       - **To check:** eight buttons still fit on a small phone (a second row, or the row scrolling sideways)
+- [ ] Build 25. Phones with an old Android System WebView: tell the person, and count them (the owner, 21 October,
+      from efaevalele's report of 19 October on an Itel A56: the switches in Settings change colour but do not
+      slide).
+      - **The cause:** Android phones run the app inside Android System WebView. Our styling (Tailwind 4) needs a
+        recent one: cascade layers need Chrome 99, the switches' `translate` needs 104, and colours with
+        transparency need 111. Older ones fall back to solid colours.
+      - **What it explains:** the switches not sliding, and very likely the same tester's report of 13 October
+        that buttons were illegible in dark mode.
+      - **Why it matters here:** cheap Android Go phones often never update WebView, because people save data by
+        not updating apps. Today we cannot see how many testers are affected: fault reports keep the Android
+        version and the model, not the WebView version.
+      - **The plan:**
+        - Read the WebView's Chrome version from the user agent, and keep it with the phone's notification
+          record and in fault reports, so the weekly numbers can count old ones.
+        - Below 111, show a one-time notice with a button to Android System WebView and Chrome in the Play Store.
+        - Make the switches move with `transform`, which works on every WebView.
+        - Consider Capacitor's `android.minWebViewVersion` with an error page, for WebViews too old to lay the
+          app out at all.
+      - **Now:** ask efaevalele to update Android System WebView and Chrome from the Play Store
+- [ ] Build 25. The push notifications switch in Profile stays off (efaevalele, 19 October).
+      - **The cause:** `subscribe()` in `src/hooks/usePushNotifications.ts` saves the notification token, then
+        demands location permission and a fresh GPS position, and only then shows the switch as on. If location
+        is refused, or slow indoors on a cheap phone, the switch stays off although notifications are set up.
+      - **The fix:** show it on once the token is saved, and save the rough location afterwards as a separate,
+        optional step (it only serves nearby report alerts).
+      - **Also:** the "Blocked - enable in browser settings" line is browser wording inside the phone app;
+        replace it with the phone's own settings
+- [ ] Build 25. A full-screen map for placing the destination pin (BrightEkpe, Redmi 11 Pro, 19 October: "The map
+      is too tiny for maneuvers and point selection"). An "expand" button on the pin map opens it full screen
+      with the same pin; Done brings it back to the start form, with the place name looked up as now
+- [ ] Build 25. Say on the start form that ending early is fine (modesola, Infinix Hot 40i, 21 October, asked for
+      2 to 3 minute trips). No shorter choices: a 15-minute trip ended with "I've arrived" after 3 minutes alerts
+      nobody. One short line under the time choices; the owner approves the wording
 
 ## Server, website and store work before launch
 
