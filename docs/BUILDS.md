@@ -26,7 +26,7 @@ before the weekend. Android and iPhone go out on the same day.
 | 24 | Wed 28 Oct | Sign in with Google and Apple; "please update" switch; service notice; "stop texting me"; vehicle details; far-away reports marked; Mapbox maps; destination pin with its place name (in place of search by address); "text them when I arrive"; louder reminders, "More time…", Undo; weather icon and morning weather. Sponsor card moved to a later build (no sponsor yet) | Out on both, ten days early: TestFlight passed Apple's beta review at once on Sun 18 Oct; Google approved the closed test (Alpha) by Mon 19 Oct (the owner) |
 | 24.1 | at once | iPhone only: build 24 closes as soon as it opens on iOS 27. Fix only, nothing else (see "Build 24.1" below) | Out on iPhone: TestFlight Tue 20 Oct, beta review passed at once, both groups testing |
 | 25 | Wed 4 Nov | Fixes after text alerts are switched on; directions on the trip (route, trip length from it, spoken directions), as a beta; repeat a usual trip; one-tap "keep running" permissions on the first trip | Planned |
-| 26 | Wed 11 Nov | The launch version | Planned |
+| 26 | Wed 11 Nov | The launch version, with a simplification pass: one colour plus red for SOS, fewer boxes and icons, a short start form with extras under "More options", plain labels | Planned |
 
 | After the last build | Date |
 |---|---|
@@ -628,6 +628,33 @@ from the code, by name: five new (`checkQuietTrips`, `onCommentUpdate`,
 whose code was never in this repository (`onCommentCreate`,
 `onCommentDelete`, on Node 20 until now), and the rest brought up to date.
 `createReport` is left alone
+
+### Build 26: simplify before launch, redesign after (agreed 21 October)
+
+The owner agreed on 21 October ("Yes I agree") after two testers' feedback.
+- **The first,** the tester whose iPhone crashed on build 24, asked for a better UI and a brand identity in version 2.
+- **The second,** a tester's message the owner pasted, said the app "is trying to do too much": too many colours,
+  highlights and icons "that scream AI", and too much information. They also asked who "Blocked people" blocks,
+  and why a Bolt ride must be entered again by hand.
+- **The poll the same day:** most testers would use WakaGuard on short trips for the daily trip to work or school
+  (6 votes), then coming home late (4), then an unknown bus, keke or taxi (3). Nobody chose "only long trips".
+
+What was agreed:
+- **Build 26, the launch version, gets a simplification pass, not a redesign.** Removing and moving things is low
+  risk before the 13 November freeze:
+  - one colour (the green brand) plus red only for SOS;
+  - fewer boxes, highlights and icons;
+  - a short start form (where to, how long, who is told, Start), with the transport question, vehicle details and
+    the rest under "More options";
+  - plain labels: "Blocked people" becomes the people hidden from your road reports, explained in a line, and
+    hidden when nobody is blocked.
+- **January, version 2:** a designer and a brand kit, as planned.
+- **Bolt rides:** WakaGuard cannot read them, and Bolt has its own ride sharing. WakaGuard's place is keke, danfo,
+  okada, unknown taxis and long road trips; the answer to "extra work" is a quicker start.
+- **First step:** a keep / move / remove list for every screen, made from the app at phone size against the
+  emulators, for the owner to approve.
+- **Not yet decided:** whether the directions beta leaves build 25 to make room. I recommended it; the owner had
+  wanted turn-by-turn at launch.
 
 ### Build 24.1, iPhone only: the iOS 27 launch crash
 
