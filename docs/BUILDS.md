@@ -24,6 +24,7 @@ before the weekend. Android and iPhone go out on the same day.
 | 22 | Wed 14 Oct | Store requirements (report and block, Terms of Use, location screen); Android Back; location fixes; arrival reminders | Out on both: iPhone and Android, Mon 12 Oct, two days early |
 | 23 | Wed 21 Oct | Testers' corrections (checklist, exact trip length, delete my own post); "How are you travelling?" with matching tips; our own road report pictures; "keep WakaGuard running" help; weather (paid maps moved to build 24: Mapbox); reported posts hidden automatically | Uploaded Wed 14 Oct, a week early: Android internal test live; closed test and TestFlight sent for review by the owner |
 | 24 | Wed 28 Oct | Sign in with Google and Apple; "please update" switch; service notice; "stop texting me"; vehicle details; far-away reports marked; Mapbox maps; destination pin with its place name (in place of search by address); "text them when I arrive"; louder reminders, "More time…", Undo; weather icon and morning weather. Sponsor card moved to a later build (no sponsor yet) | Out on both, ten days early: TestFlight passed Apple's beta review at once on Sun 18 Oct; Google approved the closed test (Alpha) by Mon 19 Oct (the owner) |
+| 24.1 | at once | iPhone only: build 24 closes as soon as it opens on iOS 27. Fix only, nothing else (see "Build 24.1" below) | Uploaded to TestFlight Tue 20 Oct, 23:36 Arizona, after the owner's checks on iOS 27; the owner adds it to the testers |
 | 25 | Wed 4 Nov | Fixes after text alerts are switched on; directions on the trip (route, trip length from it, spoken directions), as a beta; repeat a usual trip; one-tap "keep running" permissions on the first trip | Planned |
 | 26 | Wed 11 Nov | The launch version | Planned |
 
@@ -627,6 +628,57 @@ from the code, by name: five new (`checkQuietTrips`, `onCommentUpdate`,
 whose code was never in this repository (`onCommentCreate`,
 `onCommentDelete`, on Node 20 until now), and the rest brought up to date.
 `createReport` is left alone
+
+### Build 24.1, iPhone only: the iOS 27 launch crash
+
+Found on Tue 20 Oct 2026 from the first crash report on build 24 in TestFlight. An anonymous tester's iPhone 15 Pro
+on iOS 27.0.1 (MTN, Lagos time) closed the app 0.3 seconds after it opened. The report reads
+`_UIApplicationEvaluateRuntimeIssueForNoSceneLifecycleAdoption`.
+- Build 24 was made with Xcode 27, against the iOS 27 SDK. iOS 27 refuses to run an app linked against that SDK
+  unless it uses the UIScene life cycle.
+- Our app still uses the old one: no `UIApplicationSceneManifest` in `ios/App/App/Info.plist`, and the window is
+  set up in `AppDelegate`.
+- So every iPhone on iOS 27 fails to open build 24, and App Review, which tests on the newest iOS, would fail it
+  too. iPhones on iOS 26 and every Android phone are not affected.
+- The app sent no fault report of its own, as expected for a crash before the page loads.
+
+The owner said "go ahead with the fix" the same day. It is a build of its own, numbered 24.1 so that build 25
+keeps its plan, with nothing else in it:
+- [x] Capacitor from 8.0.2 to 8.5.3 (done 20 Oct). 8.5.0 (31 July 2026) added UIScene support and a migrator in its
+      command-line tool. Core, CLI, iOS and Android are kept on the same version, so Android picks it up with
+      build 25. `pod install` moved the Capacitor pods to 8.5.3
+- [x] The iPhone app moved to the UIScene life cycle (done 20 Oct). Only the UIScene part of Capacitor's migrator
+      was run, then corrected by hand:
+      - **The scene section.** It went into `Info.plist` with the file's own layout kept; the migrator had
+        rewritten the whole file.
+      - **The Xcode project file.** `SceneDelegate.swift` was added next to `AppDelegate.swift`; the migrator had
+        written `explicitFileType = undefined` and put the file in another group.
+      - **`SceneDelegate.swift`** no longer makes its own window. Capacitor's template makes a plain
+        `CAPBridgeViewController`, which would have dropped `MainViewController` and the contact picker it
+        registers. Main.storyboard, named for the scene in `Info.plist`, makes the window, as before, and the
+        scene delegate only passes links on to Capacitor.
+      - **`AppDelegate.swift`** gained `configurationForConnecting`.
+      - **Checks.** No plugin uses what 8.5 removed (`tmpWindow`, `TmpViewController`). The splash screen finds
+        its window through the scene. Build number 24.1. A Debug build for iPhone compiles, and the built app
+        carries the scene manifest, `App.SceneDelegate` and version 24.1
+      - **Checked on iOS 27 in the simulator (20 Oct).** The iOS 27.0 simulator (24A434) was installed on the
+        owner's yes. On an iPhone 17 simulator:
+        - 24.1 opened to the first welcome screen and was still running 10 seconds later (screenshot in the
+          session folder's `screenshots/build-24.1-ios27.png`).
+        - The same code with build 24's three start-up files put back died at once, as on the tester's phone.
+        - With the fix restored, it ran again.
+        - A first control, which only took the scene section out of the built app, did not crash, because
+          `configurationForConnecting` in AppDelegate is enough on its own for iOS to use scenes.
+      - **On the owner's iPhone 16 (iOS 26.5, 20 Oct).** A Debug build with the live settings and the same Mapbox
+        token as build 24 was installed by cable over build 24; it opens and stays running
+- [x] Checked on a real iPhone on iOS 27 (21 Oct, about 23:30 Arizona). The owner then updated that iPhone 16 to
+      iOS 27.0.1 (24A446), the same version as the crash report, and 24.1 opened.
+      - They signed in with Google, which made a new account, `sneakyjiii` (left out of the rankings), and
+        started a test trip.
+      - The server received positions about 30 seconds apart, 4 m accuracy, with no quiet warnings.
+      - The owner tried "everything" and said it works: sign-in, the trip, the reminder buttons, the contact
+        picker and the share sheet
+- [x] Uploaded to TestFlight as 1.2.0 (24.1) on the owner's word ("upload 24.1"), Tue 20 Oct 23:36 Arizona
 
 ### Builds 24 and 25, in more detail
 
@@ -1259,6 +1311,18 @@ From the roadmap:
 - [ ] USSD, for people without smartphones
 
 ## Released builds
+
+### Build 24.1, Tuesday 20 October 2026 (iPhone only)
+
+The fix for build 24 closing as soon as it opened on iOS 27 ("Build 24.1" above), and nothing else. It also
+carries the newer Privacy and Guidelines text already live on the website.
+- **Built from:** the working copy at `e8a1775` plus the fix, with the live settings and the same Mapbox token as
+  build 24 (the personal one).
+- **Archive:** `WakaGuard-1.2.0-24.1.xcarchive`, 1.2.0 (24.1), in the session folder's `builds/`.
+- **Upload:** to App Store Connect on the owner's "upload 24.1" (23:36 Arizona). The owner adds it to the
+  testers and sends it for beta review.
+- **Android:** stays on build 24, which never had this problem. It gets Capacitor 8.5.3 with build 25.
+- **Store forms:** no change.
 
 ### Build 24, Sunday 18 October 2026 (Android and iPhone)
 

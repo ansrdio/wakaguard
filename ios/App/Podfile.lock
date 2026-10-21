@@ -11,11 +11,11 @@ PODS:
     - PromisesObjC (~> 2.4)
     - PromisesSwift (~> 2.4)
     - RecaptchaInterop (~> 101.0)
-  - Capacitor (8.0.2):
+  - Capacitor (8.5.3):
     - CapacitorCordova
   - CapacitorCommunityBackgroundGeolocation (1.2.26):
     - Capacitor
-  - CapacitorCordova (8.0.2)
+  - CapacitorCordova (8.5.3)
   - CapacitorFirebaseAuthentication (8.5.2):
     - Capacitor
     - CapacitorFirebaseAuthentication/Lite (= 8.5.2)
@@ -177,9 +177,9 @@ EXTERNAL SOURCES:
 SPEC CHECKSUMS:
   AppAuth: ef4da5a3fc2e10b90c09a0a94a9baeaedc0341d5
   AppCheckCore: be8fce5469f68d7f6a29aa94b25f097409ff7fdc
-  Capacitor: 2b79172ad27f3be2d103cce88b8eb9803fdcc744
+  Capacitor: 2f67eaeb8ed79909cd35b5e7439a5c2a9ca58e0f
   CapacitorCommunityBackgroundGeolocation: 750523ec6dd1cc94cf4e2bf7787605106753f73c
-  CapacitorCordova: 921bdb690ebe82421b24fce45552fd3dea2ae43a
+  CapacitorCordova: 0b7326439c7a09fc5d20eced5e0dab986327a493
   CapacitorFirebaseAuthentication: 826e1dae433819492daff947f3d674d1579a6ee7
   CapacitorGeolocation: 8a405e707de9aff6ac9eca7f408966a370f7ca33
   CapacitorPushNotifications: 722c1528eabbefd355f47e373a4c6235d01e85e9

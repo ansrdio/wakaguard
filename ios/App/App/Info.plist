@@ -57,6 +57,25 @@
 	<string>WakaGuard keeps sharing your location with your trusted contacts during a Safe Trip, including when your phone is locked. Tracking stops when the trip ends.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>WakaGuard uses your location to show nearby road reports and to share your position with your trusted contacts during a Safe Trip.</string>
+	<key>UIApplicationSceneManifest</key>
+	<dict>
+		<key>UIApplicationSupportsMultipleScenes</key>
+		<false/>
+		<key>UISceneConfigurations</key>
+		<dict>
+			<key>UIWindowSceneSessionRoleApplication</key>
+			<array>
+				<dict>
+					<key>UISceneConfigurationName</key>
+					<string>Default Configuration</string>
+					<key>UISceneDelegateClassName</key>
+					<string>$(PRODUCT_MODULE_NAME).SceneDelegate</string>
+					<key>UISceneStoryboardFile</key>
+					<string>Main</string>
+				</dict>
+			</array>
+		</dict>
+	</dict>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>location</string>

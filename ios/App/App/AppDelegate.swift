@@ -96,4 +96,15 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         return ApplicationDelegateProxy.shared.application(application, continue: userActivity, restorationHandler: restorationHandler)
     }
 
+    // The app runs under the scene life cycle (SceneDelegate.swift), which iOS 27
+    // requires. Since then iOS no longer calls the two link methods above, nor the
+    // empty foreground and background stubs; links reach SceneDelegate instead.
+    // Launch and the notification callbacks above still come here.
+    func application(_ application: UIApplication,
+                     configurationForConnecting connectingSceneSession: UISceneSession,
+                     options: UIScene.ConnectionOptions) -> UISceneConfiguration {
+        let config = UISceneConfiguration(name: "Default Configuration", sessionRole: connectingSceneSession.role)
+        config.delegateClass = SceneDelegate.self
+        return config
+    }
 }
