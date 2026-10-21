@@ -24,7 +24,7 @@ before the weekend. Android and iPhone go out on the same day.
 | 22 | Wed 14 Oct | Store requirements (report and block, Terms of Use, location screen); Android Back; location fixes; arrival reminders | Out on both: iPhone and Android, Mon 12 Oct, two days early |
 | 23 | Wed 21 Oct | Testers' corrections (checklist, exact trip length, delete my own post); "How are you travelling?" with matching tips; our own road report pictures; "keep WakaGuard running" help; weather (paid maps moved to build 24: Mapbox); reported posts hidden automatically | Uploaded Wed 14 Oct, a week early: Android internal test live; closed test and TestFlight sent for review by the owner |
 | 24 | Wed 28 Oct | Sign in with Google and Apple; "please update" switch; service notice; "stop texting me"; vehicle details; far-away reports marked; Mapbox maps; destination pin with its place name (in place of search by address); "text them when I arrive"; louder reminders, "More time…", Undo; weather icon and morning weather. Sponsor card moved to a later build (no sponsor yet) | Out on both, ten days early: TestFlight passed Apple's beta review at once on Sun 18 Oct; Google approved the closed test (Alpha) by Mon 19 Oct (the owner) |
-| 24.1 | at once | iPhone only: build 24 closes as soon as it opens on iOS 27. Fix only, nothing else (see "Build 24.1" below) | Uploaded to TestFlight Tue 20 Oct, 23:36 Arizona, after the owner's checks on iOS 27; the owner adds it to the testers |
+| 24.1 | at once | iPhone only: build 24 closes as soon as it opens on iOS 27. Fix only, nothing else (see "Build 24.1" below) | Out on iPhone: TestFlight Tue 20 Oct, beta review passed at once, both groups testing |
 | 25 | Wed 4 Nov | Fixes after text alerts are switched on; directions on the trip (route, trip length from it, spoken directions), as a beta; repeat a usual trip; one-tap "keep running" permissions on the first trip | Planned |
 | 26 | Wed 11 Nov | The launch version | Planned |
 
@@ -1319,8 +1319,10 @@ carries the newer Privacy and Guidelines text already live on the website.
 - **Built from:** the working copy at `e8a1775` plus the fix, with the live settings and the same Mapbox token as
   build 24 (the personal one).
 - **Archive:** `WakaGuard-1.2.0-24.1.xcarchive`, 1.2.0 (24.1), in the session folder's `builds/`.
-- **Upload:** to App Store Connect on the owner's "upload 24.1" (23:36 Arizona). The owner adds it to the
-  testers and sends it for beta review.
+- **Upload:** to App Store Connect on the owner's "upload 24.1" (23:36 Arizona).
+- **Beta review:** the "What to Test" note was added and the outside waka group selected in the owner's Chrome;
+  the owner pressed Submit for Review. Apple's beta review passed at once, and both groups show "Testing" with
+  10 invites.
 - **Android:** stays on build 24, which never had this problem. It gets Capacitor 8.5.3 with build 25.
 - **Store forms:** no change.
 
