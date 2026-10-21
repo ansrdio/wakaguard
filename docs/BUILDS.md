@@ -1109,6 +1109,15 @@ store uploads.
       question to the problem form (Google then asks everyone to sign in to
       open the form); an in-app "Report a problem" with a screenshot is the
       later option
+- [ ] Build 25. Quick choices for long road trips: 6 hr, 8 hr and 12 hr, after 15 min to 4 hr
+      (the owner, 21 October). The idea came from the tester whose crash led to 24.1, who said WakaGuard is most
+      useful for long journeys by road, for example NYSC members travelling to camp in another state, set up
+      before the trip to keep the family informed.
+      - **Today:** `ARRIVAL_PRESETS` in `src/lib/tripPlanning.ts` stops at 4 hr, so a 7-hour journey means "Other
+        amount". 12 hr is already the longest trip allowed.
+      - **Unchanged:** these trips text contacts at the start by default, as every trip of 2 hr or more already
+        does.
+      - **To check:** eight buttons still fit on a small phone (a second row, or the row scrolling sideways)
 
 ## Server, website and store work before launch
 
@@ -1323,6 +1332,8 @@ carries the newer Privacy and Guidelines text already live on the website.
 - **Beta review:** the "What to Test" note was added and the outside waka group selected in the owner's Chrome;
   the owner pressed Submit for Review. Apple's beta review passed at once, and both groups show "Testing" with
   10 invites.
+- **Confirmed:** the tester whose iPhone crashed on build 24 updated to 24.1 and it opened with no crash
+  (reported by the owner on 21 Oct).
 - **Android:** stays on build 24, which never had this problem. It gets Capacitor 8.5.3 with build 25.
 - **Store forms:** no change.
 
