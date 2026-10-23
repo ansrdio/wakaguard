@@ -1283,10 +1283,15 @@ From the roadmap, with its dates. None of these needs an app build.
       silence, "stayed put" or "the phone went quiet for N min" (over 10
       minutes; a still iPhone can report rarely, so a question, not a
       verdict), and the health table counts them. Scoring is unchanged
-- [ ] The unused "offline drafts" code uploads a photo as the camera made
+- [x] The unused "offline drafts" code uploads a photo as the camera made
       it, location details included. Nothing in the app uses it; remove it,
       or make it redraw photos like the report form does, before anything
-      ever does
+      ever does. Removed 23 October on the owner's word ("remove the unused
+      photo upload code"): `src/hooks/useOfflineDrafts.ts` deleted (nothing
+      imported it, so no phone ever saved a draft). The Privacy page no
+      longer mentions "unsent report drafts" on the device, and its date
+      becomes 23 October. The app part goes out with build 25; the Privacy
+      line with the next website release
 
 Not builds, and tracked in the roadmap document: the D-U-N-S number and store
 accounts in the company's name, the company's purposes at CAC, the data

@@ -24,7 +24,7 @@ export default function PrivacyPage() {
           </div>
 
           <p className="text-gray-600 mb-8">
-            Last Updated: October 18, 2026
+            Last Updated: October 23, 2026
           </p>
 
           <section className="mb-8">
@@ -58,7 +58,7 @@ export default function PrivacyPage() {
               <li>Points and activity counts linked to your reports and sign-ins</li>
             </ul>
             <p className="text-gray-700 leading-relaxed mb-6">
-              Your chosen state, your display settings and any unsent report drafts are kept on your device,
+              Your chosen state and your display settings are kept on your device,
               not on our servers.
             </p>
 
