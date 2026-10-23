@@ -25,7 +25,7 @@ before the weekend. Android and iPhone go out on the same day.
 | 23 | Wed 21 Oct | Testers' corrections (checklist, exact trip length, delete my own post); "How are you travelling?" with matching tips; our own road report pictures; "keep WakaGuard running" help; weather (paid maps moved to build 24: Mapbox); reported posts hidden automatically | Uploaded Wed 14 Oct, a week early: Android internal test live; closed test and TestFlight sent for review by the owner |
 | 24 | Wed 28 Oct | Sign in with Google and Apple; "please update" switch; service notice; "stop texting me"; vehicle details; far-away reports marked; Mapbox maps; destination pin with its place name (in place of search by address); "text them when I arrive"; louder reminders, "More time…", Undo; weather icon and morning weather. Sponsor card moved to a later build (no sponsor yet) | Out on both, ten days early: TestFlight passed Apple's beta review at once on Sun 18 Oct; Google approved the closed test (Alpha) by Mon 19 Oct (the owner) |
 | 24.1 | at once | iPhone only: build 24 closes as soon as it opens on iOS 27. Fix only, nothing else (see "Build 24.1" below) | Out on iPhone: TestFlight Tue 20 Oct, beta review passed at once, both groups testing |
-| 25 | Wed 4 Nov | Fixes after text alerts are switched on; directions on the trip (route, trip length from it, spoken directions), as a beta; repeat a usual trip; one-tap "keep running" permissions on the first trip | Planned |
+| 25 | Wed 4 Nov | Fixes after text alerts are switched on; one-tap "keep running" permissions on the first trip; 6, 8 and 12-hour trip choices; four fixes from problem reports (old Android WebView, notifications switch, full-screen pin map, "ending early is fine"). The directions beta moved to after launch (the owner, 23 Oct) | Planned |
 | 26 | Wed 11 Nov | The launch version, with a simplification pass: one colour plus red for SOS, fewer boxes and icons, a short start form with extras under "More options", plain labels | Planned |
 
 | After the last build | Date |
@@ -198,7 +198,7 @@ quick fixes, so its build numbers are three lower than these.
 |---|---|---|
 | 23 | Wed 21 Oct | Testers' corrections; "How are you travelling?" when starting a trip, with matching tips; our own road report pictures; "keep WakaGuard running" help; weather on the Trip screen (the paid map provider moved to build 24: Mapbox) |
 | 24 | Wed 28 Oct | Sign in with Google and Apple (moved from build 23 on 13 October: the stores do not require it, and it is the item most likely to eat a week); sponsor slot, different by state; "please update" switch; service notice; "stop texting me" for contacts; vehicle details on a trip; Mapbox maps; destination search by address |
-| 25 | Wed 4 Nov | Fixes, after text alerts are switched on; directions on the trip, beta |
+| 25 | Wed 4 Nov | Fixes, after text alerts are switched on (the directions beta moved to after launch on 23 October) |
 | 26 | Wed 11 Nov | The launch version, frozen Friday 13 November |
 
 ### Build 23, in more detail
@@ -653,8 +653,8 @@ What was agreed:
   okada, unknown taxis and long road trips; the answer to "extra work" is a quicker start.
 - **First step:** a keep / move / remove list for every screen, made from the app at phone size against the
   emulators, for the owner to approve.
-- **Not yet decided:** whether the directions beta leaves build 25 to make room. I recommended it; the owner had
-  wanted turn-by-turn at launch.
+- **Decided 23 October:** the directions beta leaves build 25 to make room (the owner: "yes, drop the directions beta
+  from build 25"). It comes back after launch, from January 2027, with the navigation work.
 
 ### Build 24.1, iPhone only: the iOS 27 launch crash
 
@@ -1107,7 +1107,9 @@ store uploads.
       directions without a new build, alongside the "please update" switch:
       `config/app` `directions`, off unless set true, read with the other
       switches (`src/lib/appConfig.ts`). Build 25's directions use it
-- [ ] Build 25. Directions on the trip, marked Beta (the owner, 14 October):
+- [ ] After launch, from January 2027 (moved out of build 25 by the owner on 23 October, to make room for the
+      simplification pass; the server switch `directions` stays off). Directions on the trip, marked Beta (the
+      owner, 14 October):
       the route drawn on the trip map and on the contacts' page; the trip's
       length filled in from the route's time; the next turn shown and spoken
       ("In 200 metres, turn left") while the screen is on; a new route when
