@@ -1511,6 +1511,7 @@ Changes that went live without an app build.
 
 | Date | What |
 |---|---|
+| Fri 23 Oct | Website only, on the owner's word ("commit, push and deploy the website"), from `afc70e2`: the Privacy page no longer mentions unsent report drafts kept on the device, and is dated 23 October. Checked live the same minute |
 | Mon 19 Oct | Website, on the owner's word, from `0d860e9`: map pictures now come from **Mapbox's business account** (`wakaguard`, made by the owner on Mapbox's invite), with its own public token, in place of the owner's personal account. Checked: the token is refused nowhere (the website, the iPhone and Android apps' addresses all get map pictures), the live site's code carries the business account, and the Nearby map draws. Phones on builds 23 and 24 keep the personal account's token until build 25, so it stays active there until then |
 | Mon 19 Oct, evening in Nigeria | Server: `onTripUpdated` only, on the owner's word, from `fa23071`: each running trip counts the positions it receives, with the first, the last and the longest silence between two. Checked live minutes later: the two trips then running (BrightEkpe, adex) each had their first position counted |
 | Mon 19 Oct | Website, on the owner's word, from `ed1d043`: the Guidelines page shows how to report a checkpoint without accusing anyone ("Checkpoint at Mokola, 20 minute delay"; no naming, describing or photographing officers; post only when safe), Last Updated 19 October. Checked live on wakaguard.com |
