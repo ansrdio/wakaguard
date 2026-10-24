@@ -1120,7 +1120,7 @@ store uploads.
       owner asked Mapbox on 14 October; the account sign-up failed that day
       and is to be tried again)
 
-- [ ] Build 25. Fewer trips to Settings for "Keep WakaGuard running" (a
+- [x] Build 25 (done in code 23 October; compiles; not yet on a phone). Fewer trips to Settings for "Keep WakaGuard running" (a
       tester's problem report, 18 October: could the steps be permissions
       people simply accept?). Asked on the first trip, not when the account is
       made, so the reason is plain. Android: Android's own "Allow WakaGuard to
@@ -1137,6 +1137,19 @@ store uploads.
       question to the problem form (Google then asks everyone to sign in to
       open the form); an in-app "Report a problem" with a screenshot is the
       later option
+      - **Android:** `KeepRunningPlugin.java` (registered in `MainActivity`; `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` in
+        the manifest) asks Android's own question, falling back to the battery list on phones without it.
+        `src/lib/keepRunningPermission.ts` calls it, answering null on an iPhone, the website and older builds.
+        - **When it is asked:** once, after the first trip starts on any Android phone (`KeepRunningAsk.tsx`: why,
+          then "Continue" or "Not now"), never before the trip, so the trip is not held up.
+        - **Always reachable:** "Keep WakaGuard running" now shows "Allow WakaGuard to run in the background", or a
+          tick once allowed. The steps stay for Phone Master and battery saver, as does the amber card for
+          Infinix, Tecno and itel.
+      - **iPhone: nothing to add.** The trip's location watcher passes a background message, so the
+        background-geolocation plugin calls `requestAlwaysAuthorization` (and asks to upgrade from "While Using").
+        iOS shows its own "Change to Always Allow" later.
+      - **Still to do:** try it on the owner's Galaxy; declare the permission in Play Console with the reason
+        before build 25 goes to the closed test.
 - [x] Build 25 started 23 October: build numbers set to 25 (`src/lib/appVersion.ts`, `android/app/build.gradle`
       versionCode, the Xcode project). This also fixed `functions/test/appVersion.test.ts`. That test had failed
       since the 24.1 commit (`537ec16`) because the Xcode project said 24.1; I had not run the unit tests before

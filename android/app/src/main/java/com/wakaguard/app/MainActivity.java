@@ -19,8 +19,9 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         forgetPressedReminderWhenRebuilt(savedInstanceState);
-        // The app's own plugin has to be named before the bridge starts
+        // The app's own plugins have to be named before the bridge starts
         registerPlugin(ContactPickerPlugin.class);
+        registerPlugin(KeepRunningPlugin.class);
         super.onCreate(savedInstanceState);
         // The trip alerts channel exists from the first launch, so it is in the
         // phone's settings and ready before any reminder arrives

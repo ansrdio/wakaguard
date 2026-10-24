@@ -1,8 +1,10 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { Capacitor } from '@capacitor/core';
-import { Settings, X } from 'lucide-react';
+import { Check, Settings, X } from 'lucide-react';
 import { keepRunningHelp } from '@/lib/keepRunning';
+import { askToKeepRunning, keepRunningAllowed } from '@/lib/keepRunningPermission';
 import { openPhoneSettings } from '@/lib/locationCheck';
 import { BOTTOM_NAV_HEIGHT } from '@/lib/mobileLayout';
 
@@ -12,6 +14,21 @@ import { BOTTOM_NAV_HEIGHT } from '@/lib/mobileLayout';
  */
 export function KeepRunningHelp({ onClose }: { onClose: () => void }) {
   const help = keepRunningHelp(Capacitor.getPlatform());
+  // From build 25 on Android, the first step is one question Android asks itself;
+  // null on an iPhone, the website and older builds, which keep the steps alone
+  const [allowed, setAllowed] = useState<boolean | null>(null);
+  const [asking, setAsking] = useState(false);
+  useEffect(() => {
+    let live = true;
+    void keepRunningAllowed().then((answer) => { if (live) setAllowed(answer); });
+    return () => { live = false; };
+  }, []);
+
+  const ask = async () => {
+    setAsking(true);
+    setAllowed(await askToKeepRunning());
+    setAsking(false);
+  };
 
   return (
     <div className="fixed inset-0 z-[65] flex items-end sm:items-center justify-center bg-black/50" role="dialog" aria-modal="true" aria-labelledby="keep-running-title">
@@ -28,6 +45,23 @@ export function KeepRunningHelp({ onClose }: { onClose: () => void }) {
         </div>
 
         <p className="mt-2 text-sm text-slate-700">{help.intro}</p>
+
+        {allowed === true && (
+          <p className="mt-4 flex items-center gap-2 rounded-2xl bg-brand-50 px-4 py-3 text-sm font-semibold text-brand-800">
+            <Check className="w-5 h-5" aria-hidden="true" />
+            WakaGuard may run in the background
+          </p>
+        )}
+        {allowed === false && (
+          <button
+            type="button"
+            disabled={asking}
+            onClick={() => void ask()}
+            className="mt-4 w-full py-3 bg-brand-600 text-white rounded-2xl font-bold hover:bg-brand-700 disabled:opacity-60"
+          >
+            Allow WakaGuard to run in the background
+          </button>
+        )}
 
         <ol className="mt-4 space-y-3">
           {help.steps.map((step, index) => (

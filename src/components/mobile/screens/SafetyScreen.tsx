@@ -48,6 +48,8 @@ import { TRAVEL_MODES, TravelMode, isTravelMode, lastTravelMode, tipsFor, tipsHe
 import { TravelPicture } from '@/components/pictures/Pictures';
 import { hasDoneKeepRunning, rememberKeepRunningDone, shouldOfferKeepRunning } from '@/lib/keepRunning';
 import { KeepRunningHelp } from '@/components/mobile/KeepRunningHelp';
+import { KeepRunningAsk } from '@/components/mobile/KeepRunningAsk';
+import { shouldAskAfterTrip } from '@/lib/keepRunningPermission';
 import { pickPhoneContact } from '@/lib/contactPicker';
 import { BUTTON_ADDS_MINUTES, forgetPendingPress, noteDeadlineAtPress, TripNotificationAction } from '@/lib/tripNotificationActions';
 
@@ -154,6 +156,10 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
   ));
   const [showKeepRunning, setShowKeepRunning] = useState(false);
   useBackToClose(showKeepRunning, () => setShowKeepRunning(false));
+  // Once, after the first trip on an Android phone: Android's own "always run in
+  // the background?" question, in place of the steps through Settings (build 25)
+  const [askKeepRunning, setAskKeepRunning] = useState(false);
+  useBackToClose(askKeepRunning, () => setAskKeepRunning(false));
   // Whose tips the card shows: the one tapped there, else this trip's, else last time's
   const [tipsModeChosen, setTipsModeChosen] = useState<TravelMode | null>(null);
   const [rememberedMode, setRememberedMode] = useState<TravelMode | null>(() => lastTravelMode());
@@ -378,6 +384,9 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
       showToast('No connection yet. This trip starts being watched once your phone is back online.', 'error');
       return;
     }
+
+    // Asked now the trip is running, so the reason is plain and the trip is not held up
+    void shouldAskAfterTrip().then((ask) => { if (ask) setAskKeepRunning(true); });
 
     const watchers = joinNames(
       trustedContacts.filter((c) => request.contactIds.includes(c.id)).map((c) => c.name)
@@ -904,6 +913,7 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
         </section>
       )}
       {showKeepRunning && <KeepRunningHelp onClose={() => setShowKeepRunning(false)} />}
+      {askKeepRunning && <KeepRunningAsk onDone={() => setAskKeepRunning(false)} />}
       {endingSince !== null && <ArriveUndoBar startedMs={endingSince} onUndo={stopWaiting} />}
       {vehicleOpen && activeTrip && (
         <VehicleSheet
