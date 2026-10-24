@@ -1146,6 +1146,24 @@ store uploads.
         - **Checked** in a phone-sized browser against the emulators with the real Mapbox key, from a pretend Yaba
           position to a pin on Ikorodu Road: the suggestion set the length to 20 minutes and moved the arrival
           time; "On foot" gave a 3.1 km walk; switching `directions` off in the emulator hid the line at once
+      - **Piece 3 done 23 October:** directions during the trip.
+        - **The hook:** `src/hooks/useTripDirections.ts` uses the route kept from the start form, or asks Mapbox from
+          where the phone is if the app was reopened. It watches the position closely only while the screen is on
+          (the trip's own location sharing is unchanged). It gets a new route after two positions off it, at most
+          every 30 seconds, and forgets the route when the trip ends. It runs only on the phone sending the trip's
+          location.
+        - **The panel:** `DirectionsLine.tsx`, on the trip card and the trip map's top card: an arrow, "In 280 m",
+          the turn, "3.7 km to go · look only when it is safe · Beta". It also shows "Off the route", "You left the
+          route. Finding a new one…", and "You are at your destination. Tap "I've arrived" to end the trip."
+        - **The map:** `TripMap` draws the planned route as a grey dotted line under the green path.
+        - **Checked** in a phone-sized browser against the emulators, with the real Mapbox key and a pretend
+          position moved by hand:
+          - At the start: "In 80 m, turn left onto Murtula Muhammed…".
+          - At 35% along: "In 1.2 km, turn right…, 3.3 km to go".
+          - About 300 m off the route: "Off the route", then a new 3.7 km route from Harvey Road with "In 280 m,
+            turn right onto F266/Herbert Macaulay…".
+          - At the destination: "You are at your destination".
+          - After "I've arrived" the kept route was gone.
 
 - [x] Build 25 (done in code 23 October; checked on the owner's Galaxy the same evening). Fewer trips to Settings for "Keep WakaGuard running" (a
       tester's problem report, 18 October: could the steps be permissions

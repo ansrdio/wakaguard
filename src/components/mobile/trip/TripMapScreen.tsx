@@ -12,6 +12,9 @@ import { readTripPath } from '@/lib/tripPath';
 import { describeTripAlert, watcherCaption } from '@/lib/alertOutcome';
 import { useSharedTrip } from '@/hooks/useSharedTrip';
 import { readPoint } from '@/lib/destinationPoint';
+import { DirectionsLine } from '@/components/mobile/trip/DirectionsLine';
+import { decodePolyline6 } from '@/lib/directions';
+import type { TripDirections } from '@/hooks/useTripDirections';
 
 // Leaflet needs the browser, so the map is left out of the prerendered page
 const TripMap = dynamic(() => import('@/components/trip/TripMap'), {
@@ -31,6 +34,8 @@ interface TripMapScreenProps {
   onClose: () => void;
   onArrive: () => void;
   onExtend: (minutes: number) => void;
+  /** The route and the next turn, when directions (Beta) are on for this trip */
+  directions?: TripDirections;
 }
 
 const PILLS = {
@@ -45,7 +50,7 @@ const PILLS = {
  * and where it last reported. It is the same picture a contact gets from the
  * trip link, which is the point: the traveller can see what is being shared.
  */
-export function TripMapScreen({ trip, watcherNames, processing, onClose, onArrive, onExtend }: TripMapScreenProps) {
+export function TripMapScreen({ trip, watcherNames, processing, onClose, onArrive, onExtend, directions }: TripMapScreenProps) {
   const [nowMs, setNowMs] = useState(() => Date.now());
   useEffect(() => {
     const interval = setInterval(() => setNowMs(Date.now()), 5000);
@@ -89,7 +94,14 @@ export function TripMapScreen({ trip, watcherNames, processing, onClose, onArriv
 
       <div className="relative flex-1 min-h-0">
         {/* The card below sits over the top of the map */}
-        <TripMap path={path} latest={trip.lastLocation ?? null} stale={location.state === 'stale'} topInset={130} destination={readPoint(trip.destinationPoint)} />
+        <TripMap
+          path={path}
+          latest={trip.lastLocation ?? null}
+          stale={location.state === 'stale'}
+          topInset={directions?.state === 'ready' ? 200 : 130}
+          destination={readPoint(trip.destinationPoint)}
+          route={directions?.state === 'ready' ? decodePolyline6(directions.route.overview) : null}
+        />
 
         <div className="absolute top-3 left-3 right-3 z-[1000] bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-4">
           <div className="flex items-start justify-between gap-3">
@@ -111,6 +123,7 @@ export function TripMapScreen({ trip, watcherNames, processing, onClose, onArriv
             className="mt-1 !gap-1.5"
             iconClassName="w-4 h-4 mt-0.5"
           />
+          {directions && <DirectionsLine directions={directions} className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700" />}
         </div>
       </div>
 

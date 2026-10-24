@@ -5,6 +5,8 @@ import { AlertTriangle, Check, ChevronRight, Clock, Loader2, Map as MapIcon, Nav
 import { Trip, TripStatus } from '@/lib/types';
 import { describeTimeLeft, formatClock, initialsOf, joinNames } from '@/lib/tripPlanning';
 import { TripLocationLine } from '@/components/mobile/trip/TripLocationLine';
+import { DirectionsLine } from '@/components/mobile/trip/DirectionsLine';
+import type { TripDirections } from '@/hooks/useTripDirections';
 import { describeTripAlert, watcherCaption } from '@/lib/alertOutcome';
 import { isTravelMode, tipOnTheWay, travelModeLabel } from '@/lib/travelMode';
 import { TravelPicture } from '@/components/pictures/Pictures';
@@ -37,6 +39,8 @@ interface ActiveTripCardProps {
   /** Open the road report form. Left out where there is no such form to open. */
   onReportRoad?: () => void;
   onSOS: () => void;
+  /** The next turn, when directions (Beta) are on for this trip */
+  directions?: TripDirections;
 }
 
 const EXTEND_OPTIONS = [
@@ -108,6 +112,7 @@ export function ActiveTripCard({
   onTextOkay,
   onReportRoad,
   onSOS,
+  directions,
 }: ActiveTripCardProps) {
   const [nowMs, setNowMs] = useState(() => Date.now());
 
@@ -242,6 +247,7 @@ export function ActiveTripCard({
         )}
 
         {/* Location */}
+        {directions && <DirectionsLine directions={directions} className={`${divider} px-5 py-4`} />}
         <TripLocationLine trip={trip} nowMs={nowMs} sendsHere={!locationFromElsewhere} className={`${divider} px-5 py-4`} />
 
         {locationFromElsewhere && (

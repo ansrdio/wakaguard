@@ -51,6 +51,9 @@ import { KeepRunningHelp } from '@/components/mobile/KeepRunningHelp';
 import { KeepRunningAsk } from '@/components/mobile/KeepRunningAsk';
 import { shouldAskAfterTrip } from '@/lib/keepRunningPermission';
 import { keepTripRoute } from '@/lib/directionsFetch';
+import { useTripDirections } from '@/hooks/useTripDirections';
+import { useAppConfig } from '@/hooks/useAppConfig';
+import { readPoint } from '@/lib/destinationPoint';
 import { pickPhoneContact } from '@/lib/contactPicker';
 import { BUTTON_ADDS_MINUTES, forgetPendingPress, noteDeadlineAtPress, TripNotificationAction } from '@/lib/tripNotificationActions';
 
@@ -125,6 +128,14 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
   // Starting or ending a trip swaps what is at the top of the screen, so bring it back into view
   const scrollRef = useRef<HTMLDivElement>(null);
   const activeTripId = activeTrip?.id ?? null;
+  // Directions (Beta, build 25): only on the phone sending this trip's location
+  const directionsOn = useAppConfig()?.directions === true;
+  const tripDirections = useTripDirections({
+    tripId: activeTripId,
+    destination: readPoint(activeTrip?.destinationPoint),
+    travelMode: activeTrip?.travelMode ?? null,
+    enabled: directionsOn && !!activeTrip && sendsTripLocation(activeTrip.trackingDeviceId, getDeviceId()),
+  });
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: 0 });
   }, [activeTripId]);
@@ -958,6 +969,7 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
           onTextOkay={handleCheckinSms}
           onReportRoad={onReportRoad}
           onSOS={() => setActiveModal('sos')}
+          directions={tripDirections}
         />
       ) : savedAlertName === null ? (
         <div className="rounded-3xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-10 flex justify-center">
@@ -1165,6 +1177,7 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
             startEnding();
           }}
           onExtend={handleExtendTrip}
+          directions={tripDirections}
         />
       )}
 

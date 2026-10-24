@@ -22,6 +22,8 @@ export interface TripMapProps {
   topInset?: number;
   /** Where the trip is going, if the traveller set it on the map */
   destination?: { lat: number; lng: number } | null;
+  /** The planned route, when directions (Beta) are on: drawn in grey under the path travelled */
+  route?: { lat: number; lng: number }[] | null;
 }
 
 const BRAND = '#11763f';
@@ -84,9 +86,10 @@ function ShowAllButton({ line, topInset }: { line: [number, number][]; topInset:
 /**
  * A trip on a map: the path travelled so far and the latest position.
  * Used for the traveller's own trip map and for the page a contact opens.
- * It draws only what the phone has reported; there is no planned route.
+ * It draws what the phone has reported and, with directions (Beta) on, the
+ * planned route in grey underneath.
  */
-export default function TripMap({ path, latest, stale = false, topInset = 0, destination = null }: TripMapProps) {
+export default function TripMap({ path, latest, stale = false, topInset = 0, destination = null, route = null }: TripMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<LeafletMap | null>(null);
   useLeafletResizeObserver(containerRef, mapRef);
@@ -107,6 +110,13 @@ export default function TripMap({ path, latest, stale = false, topInset = 0, des
         <TileLayer {...MAP_TILES} />
         <MapboxLogo />
         <KeepInView line={line} topInset={topInset} />
+
+        {route && route.length > 1 && (
+          <Polyline
+            positions={route.map((p) => [p.lat, p.lng] as [number, number])}
+            pathOptions={{ color: '#64748b', weight: 5, opacity: 0.55, dashArray: '2 9', lineCap: 'round' }}
+          />
+        )}
 
         {line.length > 1 && (
           <>
