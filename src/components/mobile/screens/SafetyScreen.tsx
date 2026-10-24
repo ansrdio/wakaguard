@@ -50,6 +50,7 @@ import { hasDoneKeepRunning, rememberKeepRunningDone, shouldOfferKeepRunning } f
 import { KeepRunningHelp } from '@/components/mobile/KeepRunningHelp';
 import { KeepRunningAsk } from '@/components/mobile/KeepRunningAsk';
 import { shouldAskAfterTrip } from '@/lib/keepRunningPermission';
+import { keepTripRoute } from '@/lib/directionsFetch';
 import { pickPhoneContact } from '@/lib/contactPicker';
 import { BUTTON_ADDS_MINUTES, forgetPendingPress, noteDeadlineAtPress, TripNotificationAction } from '@/lib/tripNotificationActions';
 
@@ -387,6 +388,8 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
 
     // Asked now the trip is running, so the reason is plain and the trip is not held up
     void shouldAskAfterTrip().then((ask) => { if (ask) setAskKeepRunning(true); });
+    // Directions (Beta): the route found on the form is followed without asking Mapbox again
+    if (request.route) keepTripRoute(result.tripId, request.route);
 
     const watchers = joinNames(
       trustedContacts.filter((c) => request.contactIds.includes(c.id)).map((c) => c.name)

@@ -30,6 +30,9 @@ import { askPlaceName } from '@/lib/placeName';
 import { WeatherLine } from '@/components/mobile/trip/WeatherLine';
 import { useWeatherAhead } from '@/hooks/useWeatherAhead';
 import { hoursToLookAhead } from '@/lib/weatherWords';
+import { useAppConfig } from '@/hooks/useAppConfig';
+import { useRoutePreview } from '@/hooks/useRoutePreview';
+import { formatDistance, Route, suggestedTripMinutes } from '@/lib/directions';
 
 export interface TripContact {
   id: string;
@@ -58,6 +61,8 @@ export interface StartTripRequest {
   vehicle: Vehicle | null;
   /** Where they are going, if they set it on the map (lib/destinationPoint.ts) */
   destinationPoint: Point | null;
+  /** The route found for the pin, when directions (Beta) are on: the trip follows it without asking again */
+  route: Route | null;
 }
 
 interface StartTripFormProps {
@@ -141,6 +146,10 @@ export function StartTripForm({
   const vehicle = travelMode === 'foot' ? null : readVehicle(plate, vehicleDetails);
   // The weather here for as long as the trip is planned to take
   const weather = useWeatherAhead(true, hoursToLookAhead(durationMinutes));
+  // Directions (Beta, build 25): the route to the pin, and a trip length from it
+  const directionsOn = useAppConfig()?.directions === true;
+  const routePreview = useRoutePreview(directionsOn, destinationPoint, travelMode);
+  const route = routePreview.state === 'found' ? routePreview.route : null;
   // Contacts are selected unless switched off, so one added a moment ago is included
   const [deselectedIds, setDeselectedIds] = useState<string[]>([]);
   const [name, setName] = useState(alertName);
@@ -212,7 +221,7 @@ export function StartTripForm({
       return;
     }
     rememberTravelMode(travelMode);
-    onStart({ ...plan, textContacts, textOnArrival, isTest: false, travelMode, vehicle, destinationPoint });
+    onStart({ ...plan, textContacts, textOnArrival, isTest: false, travelMode, vehicle, destinationPoint, route });
   };
 
   // A test needs everything a real trip needs except a length, which is fixed
@@ -224,7 +233,7 @@ export function StartTripForm({
       return;
     }
     rememberTravelMode(travelMode);
-    onStart({ ...plan, durationMinutes: TEST_TRIP_MINUTES, textContacts, textOnArrival, isTest: true, travelMode, vehicle, destinationPoint });
+    onStart({ ...plan, durationMinutes: TEST_TRIP_MINUTES, textContacts, textOnArrival, isTest: true, travelMode, vehicle, destinationPoint, route });
   };
 
   // Said again beside the buttons, where the person's thumb is
@@ -382,6 +391,41 @@ export function StartTripForm({
             arrived&rdquo; and no alert is sent.
           </p>
         )}
+
+        {/* Directions (Beta): Mapbox's time leaves out traffic, so the length offered has a margin */}
+        {routePreview.state === 'finding' && (
+          <p className="mt-2 flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400">
+            <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />
+            Finding the route by road&hellip;
+          </p>
+        )}
+        {route && (() => {
+          const suggested = suggestedTripMinutes(route.durationS);
+          const margin = route.profile === 'walking' ? 'with time to spare' : 'with time for traffic';
+          return (
+            <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-slate-700 dark:text-slate-200">
+              <span>
+                {route.profile === 'walking' ? 'On foot' : 'By road'}: about{' '}
+                <span className="font-semibold">{formatDuration(Math.max(1, Math.round(route.durationS / 60)))}</span>,{' '}
+                {formatDistance(route.distanceM)}
+              </span>
+              <span className="px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700 text-[11px] font-semibold text-slate-600 dark:text-slate-300">Beta</span>
+              {durationMinutes === suggested ? (
+                <span className="flex items-center gap-1 text-brand-700 dark:text-brand-300 font-medium">
+                  <Check className="w-4 h-4" aria-hidden="true" /> Using {formatDuration(suggested)}, {margin}
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setDurationMinutes(suggested)}
+                  className="font-semibold text-brand-700 dark:text-brand-300 underline underline-offset-2"
+                >
+                  Use {formatDuration(suggested)}, {margin}
+                </button>
+              )}
+            </div>
+          );
+        })()}
       </div>
 
       {/* How. Never asked for: a trip starts the same with or without an answer */}

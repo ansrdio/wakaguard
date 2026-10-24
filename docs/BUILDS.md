@@ -1137,6 +1137,15 @@ store uploads.
         - `config/app` `directionsVoice`, which counts only with `directions` on.
         - **Tests:** `functions/test/directions.test.ts` uses a real Mapbox answer (Yaba to Ikeja, 16 km,
           25 minutes) as its fixture; `appConfig.test.ts` covers the new switch. 332 of 332 unit tests pass
+      - **Piece 2 done 23 October:** the start form, once a pin is set and the switch is on.
+        - **What it shows:** "By road: about 11 min, 5.1 km · Beta · Use 20 min, with time for traffic" ("On foot"
+          and "with time to spare" for a walk). A tap sets the trip length; then it reads "Using 20 min, …".
+        - **How:** `src/hooks/useRoutePreview.ts` asks again only when the pin moves or the trip changes between on
+          foot and on the road. The route goes with the start request (`StartTripRequest.route`) and is kept on the
+          phone for the running trip (`keepTripRoute`).
+        - **Checked** in a phone-sized browser against the emulators with the real Mapbox key, from a pretend Yaba
+          position to a pin on Ikorodu Road: the suggestion set the length to 20 minutes and moved the arrival
+          time; "On foot" gave a 3.1 km walk; switching `directions` off in the emulator hid the line at once
 
 - [x] Build 25 (done in code 23 October; checked on the owner's Galaxy the same evening). Fewer trips to Settings for "Keep WakaGuard running" (a
       tester's problem report, 18 October: could the steps be permissions
