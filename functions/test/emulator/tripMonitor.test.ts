@@ -1012,3 +1012,56 @@ test('contacts see the vehicle only once alerted, the text carries the plate, an
   await updateAndTrigger(onTripUpdated, `users/${uid}/trips/${onTime}`, { vehicle: { plate: 'TEST 03', details: '' } }, { uid, tripId: onTime });
   assert.equal((await page(onTime)).vehicle, undefined);
 });
+
+// ---------------------------------------------------------------------------
+// Planned route (directions Beta, build 25)
+// ---------------------------------------------------------------------------
+
+const ROUTE_A = { overview: 'gfo}EtohhUxD@bAxJmGF', distanceM: 5100, durationS: 660, profile: 'driving-traffic' };
+const ROUTE_B = { overview: 'gfo}EtohhUxD@bAxJ', distanceM: 4800, durationS: 600, profile: 'driving-traffic' };
+
+test('the planned route reaches the contacts\' page while the trip runs and goes from both when it ends', async () => {
+  const { uid, contactIds } = await makeUser();
+  const id = await makeTrip(uid, contactIds, { endsAt: ts(Date.now() + 30 * MIN) });
+  const path = `users/${uid}/trips/${id}`;
+  const params = { uid, tripId: id };
+
+  await updateAndTrigger(onTripUpdated, path, { route: ROUTE_A }, params);
+  assert.deepEqual((await shared(id)).route, ROUTE_A);
+
+  // A new route after leaving the old one replaces it
+  await updateAndTrigger(onTripUpdated, path, { route: ROUTE_B }, params);
+  assert.deepEqual((await shared(id)).route, ROUTE_B);
+
+  // Something that is not a route takes it off the page
+  await updateAndTrigger(onTripUpdated, path, { route: { ...ROUTE_B, overview: '<script>' } }, params);
+  assert.equal((await shared(id)).route, undefined);
+
+  await updateAndTrigger(onTripUpdated, path, { route: ROUTE_A }, params);
+  assert.deepEqual((await shared(id)).route, ROUTE_A);
+
+  await updateAndTrigger(onTripUpdated, path, { status: 'completed' }, params);
+  assert.equal((await shared(id)).route, undefined, 'gone from the contacts\' page');
+  assert.equal((await trip(uid, id)).route, undefined, 'gone from the trip');
+  assert.equal((await shared(id)).destination, 'Benin City', 'the rest of the page is untouched');
+});
+
+test('a route written just as the trip ended is removed from the trip', async () => {
+  const { uid, contactIds } = await makeUser();
+  const id = await makeTrip(uid, contactIds, { status: 'completed', endsAt: ts(Date.now() + 30 * MIN) });
+
+  await updateAndTrigger(onTripUpdated, `users/${uid}/trips/${id}`, { route: ROUTE_A }, { uid, tripId: id });
+
+  assert.equal((await trip(uid, id)).route, undefined);
+  assert.equal((await shared(id)).route, undefined);
+});
+
+test('a trip with no share document does not get one created by the route', async () => {
+  const { uid, contactIds } = await makeUser();
+  const id = await makeTrip(uid, contactIds, { endsAt: ts(Date.now() + 30 * MIN) });
+  await db().doc(`sharedTrips/${id}`).delete();
+
+  await updateAndTrigger(onTripUpdated, `users/${uid}/trips/${id}`, { route: ROUTE_A }, { uid, tripId: id });
+
+  assert.equal((await db().doc(`sharedTrips/${id}`).get()).exists, false);
+});

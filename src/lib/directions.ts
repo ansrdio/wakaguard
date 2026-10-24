@@ -52,6 +52,27 @@ export interface Route {
   destination: LatLng;
 }
 
+/**
+ * What a running trip keeps of its route: the outline, its length and time. The
+ * server copies it to the page contacts open (functions/src/tripRoute.ts) and
+ * deletes it from both when the trip ends.
+ */
+export interface StoredRoute {
+  overview: string;
+  distanceM: number;
+  durationS: number;
+  profile: RouteProfile;
+}
+
+export function routeToStore(route: Route): StoredRoute {
+  return {
+    overview: route.overview,
+    distanceM: Math.round(route.distanceM),
+    durationS: Math.round(route.durationS),
+    profile: route.profile,
+  };
+}
+
 /** Further from the route than this, on two positions running, and a new route is fetched */
 export const OFF_ROUTE_M = 60;
 export const OFF_ROUTE_FIXES = 2;
@@ -108,6 +129,14 @@ export function decodePolyline6(encoded: string): LatLng[] {
 /** True for an outline that is safe to decode: the stored copy comes from a document others can write */
 export function isOverview(value: unknown): value is string {
   return typeof value === 'string' && value.length > 0 && value.length <= MAX_OVERVIEW_LENGTH && /^[\x3f-\x7e]+$/.test(value);
+}
+
+/** The points of a stored route for a map, or null when there is no usable one */
+export function readRouteOutline(route: unknown): LatLng[] | null {
+  const overview = route && typeof route === 'object' ? (route as { overview?: unknown }).overview : null;
+  if (!isOverview(overview)) return null;
+  const points = decodePolyline6(overview).filter((p) => Math.abs(p.lat) <= 90 && Math.abs(p.lng) <= 180);
+  return points.length > 1 ? points : null;
 }
 
 export function distanceM(a: LatLng, b: LatLng): number {

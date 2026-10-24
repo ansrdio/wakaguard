@@ -437,7 +437,7 @@ service cloud.firestore {
       function isValidSharedTrip(d) {
         return d.keys().hasOnly([
           'uid','tripId','status','expiresAt','lastLocation','lastUpdate','destination','createdAt',
-          'endsAt','overdueAt','path','name','isTest','travelMode','vehicle','destinationPoint'
+          'endsAt','overdueAt','path','name','isTest','travelMode','vehicle','destinationPoint','route'
         ])
         && d.uid is string
         && d.tripId is string
@@ -466,6 +466,12 @@ service cloud.firestore {
           && d.vehicle.get('details', '') is string && d.vehicle.get('details', '').size() <= 60
         ))
         && (!('path' in d) || (d.path is list && d.path.size() <= 300))
+        // The planned route (directions Beta, build 25), copied by the server
+        && (!('route' in d) || (
+          d.route is map
+          && d.route.keys().hasOnly(['overview','distanceM','durationS','profile'])
+          && d.route.overview is string && d.route.overview.size() <= 20000
+        ))
         && (!('lastLocation' in d) || d.lastLocation == null || (
           d.lastLocation is map
           && d.lastLocation.keys().hasOnly(['lat','lng','accuracy'])
@@ -477,8 +483,8 @@ service cloud.firestore {
         ));
       }
 
-      // The path travelled, the traveller's name, how they are travelling and
-      // their vehicle (plate, bus company or driver) are written by the server
+      // The path travelled, the traveller's name, how they are travelling,
+      // their vehicle (plate, bus company or driver) and the planned route are written by the server
       // (functions/src/tripMonitor.ts). They are in the list of allowed keys
       // because an update is checked against the whole document, and without
       // them every later write by the app (add time, arrive, SOS) would be
@@ -487,7 +493,8 @@ service cloud.firestore {
       function serverFieldsUntouched() {
         return request.resource.data.get('path', null) == resource.data.get('path', null)
           && request.resource.data.get('name', null) == resource.data.get('name', null)
-          && request.resource.data.get('vehicle', null) == resource.data.get('vehicle', null);
+          && request.resource.data.get('vehicle', null) == resource.data.get('vehicle', null)
+          && request.resource.data.get('route', null) == resource.data.get('route', null);
       }
 
       allow create: if isAuthenticated()
@@ -495,7 +502,8 @@ service cloud.firestore {
         && isValidSharedTrip(request.resource.data)
         && !('path' in request.resource.data)
         && !('name' in request.resource.data)
-        && !('vehicle' in request.resource.data);
+        && !('vehicle' in request.resource.data)
+        && !('route' in request.resource.data);
 
       allow update: if isAuthenticated()
         && ('uid' in resource.data)

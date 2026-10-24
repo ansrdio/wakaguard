@@ -245,6 +245,8 @@ export interface SharedTrip {
   vehicle?: { plate?: string; details?: string };
   /** Where the trip is going, if the traveller set it on the map (lib/destinationPoint.ts) */
   destinationPoint?: { lat: number; lng: number };
+  /** The planned route (directions Beta). Copied by the server from the trip and removed when the trip ends */
+  route?: { overview: string; distanceM: number; durationS: number; profile: string };
 }
 
 export interface TripPathPoint {
@@ -404,6 +406,8 @@ export interface Trip {
   vehicle?: { plate?: string; details?: string };
   /** Where they are going, if they set it on the map (lib/destinationPoint.ts) */
   destinationPoint?: { lat: number; lng: number };
+  /** The planned route while directions are on (Beta, lib/directions.ts StoredRoute); the server deletes it when the trip ends */
+  route?: { overview: string; distanceM: number; durationS: number; profile: string };
 
   cancellationReason?: string;
 }

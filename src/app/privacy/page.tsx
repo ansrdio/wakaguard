@@ -80,6 +80,11 @@ export default function PrivacyPage() {
               with the trip. You can leave it unanswered.
             </p>
             <p className="text-gray-700 leading-relaxed mb-4">
+              If directions (Beta) are on and you set your destination on the map, the route the app plans for
+              you (its outline on the map, its length and its expected time) is stored with the trip while it runs,
+              and deleted when the trip ends.
+            </p>
+            <p className="text-gray-700 leading-relaxed mb-4">
               You can also add vehicle details to a trip: a plate number, and the bus company, the driver&apos;s
               name or the vehicle&apos;s colour. They are stored with the trip and are optional. Add someone
               else&apos;s name only as you would tell it to your contacts yourself.
@@ -188,6 +193,7 @@ export default function PrivacyPage() {
             <ul className="list-disc list-inside text-gray-700 mb-4 space-y-2">
               <li>The name you entered for alerts and the destination you typed, with its pin if you set it on the map</li>
               <li>Your phone&apos;s last reported position, when we received it, and the path it has reported during this trip</li>
+              <li>The route the app planned for you, if directions (Beta) are on, as a grey dotted line on the map</li>
               <li>Your expected arrival time, and whether you are overdue or have sent an SOS</li>
               <li>How you said you were travelling (for example by bus or okada), but only once you are overdue or have sent an SOS, and only if you answered that question</li>
               <li>The vehicle details you added (plate number, and the bus company, driver or colour), on the same terms: only once you are overdue or have sent an SOS</li>
@@ -310,6 +316,7 @@ export default function PrivacyPage() {
             <h3 className="text-xl font-semibold text-gray-800 mb-3">Trips</h3>
             <ul className="list-disc list-inside text-gray-700 mb-4 space-y-2">
               <li>The path shown on the trip map is deleted when the trip ends. After an SOS it is kept until you end the trip</li>
+              <li>The planned route (directions, Beta) is deleted from the trip and from its page when the trip ends</li>
               <li>The trip link stops working when the trip ends or expires, as described above</li>
               <li>The page your contacts open is deleted {KEPT_DAYS.tripPage} days after its link stops working.</li>
               <li>A record of each trip stays in your account after it ends: the destination, the start and end points, the last position we received, the planned and actual times, any time you added, and which contacts you chose. It is deleted automatically {KEPT_DAYS.endedTrip} days after the trip&apos;s link stopped working.</li>
@@ -389,6 +396,7 @@ export default function PrivacyPage() {
               <li><strong>Public Display:</strong> Reports, comments, and photos are publicly visible to all users</li>
               <li><strong>Service Providers:</strong> We use Firebase (Google) for sign-in, data storage, hosting and notifications, and Termii and the mobile networks for SMS. These providers may process data on servers outside Nigeria</li>
               <li><strong>Maps:</strong> Map images are loaded by your device from Mapbox, which sees your IP address and the area you are viewing. Location links in texts and on the trip page open in Google Maps</li>
+              <li><strong>Directions (Beta):</strong> When directions are on, your device asks Mapbox for a route from where you are to the pin you set, and again if you leave the route. Mapbox sees those two points and your IP address, not who you are</li>
               <li><strong>Weather:</strong> Our server asks MET Norway (the Norwegian Meteorological Institute) for the forecast for your rough area, about 10 km across. MET Norway is not told who asked or where exactly you are. The forecasts shown in the app are data from MET Norway</li>
               <li><strong>Place names:</strong> When you set your destination on the map, our server looks up the name of that spot using OpenStreetMap&apos;s Nominatim service, so it can fill in &quot;Where are you going?&quot;. Only the spot is sent, never who you are</li>
               <li><strong>Legal Requirements:</strong> We may disclose data if required by law or to protect rights and safety</li>

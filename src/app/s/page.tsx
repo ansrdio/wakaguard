@@ -15,6 +15,7 @@ import { useSharedTrip } from '@/hooks/useSharedTrip';
 import { StopTexts } from '@/components/trip/StopTexts';
 import { storedVehicle, vehicleSummary } from '@/lib/vehicle';
 import { readPoint } from '@/lib/destinationPoint';
+import { readRouteOutline } from '@/lib/directions';
 
 // Leaflet needs the browser, so the map is left out of the prerendered page
 const TripMap = dynamic(() => import('@/components/trip/TripMap'), {
@@ -126,6 +127,8 @@ function SharedTripContent() {
   // Updates normally arrive at least every 2 minutes while the phone has signal
   const isStale = !!latest && lastUpdateMs !== null && nowMs - lastUpdateMs > STALE_AFTER_MS;
   const path = readTripPath(trip.path);
+  // The route the app planned, when the traveller has directions (Beta) on
+  const route = readRouteOutline(trip.route);
   const mapsUrl = latest ? `https://maps.google.com/?q=${latest.lat},${latest.lng}` : null;
   // Nobody should be sent to the emergency line by a test
   const callFor112 = (isOverdue || isEmergency) && !trip.isTest;
@@ -186,7 +189,7 @@ function SharedTripContent() {
           className="h-[46vh] min-h-[280px] lg:h-[calc(100vh-7rem)] lg:col-span-3 lg:rounded-3xl lg:border lg:border-slate-200 overflow-hidden bg-slate-100"
         >
           {latest ? (
-            <TripMap path={path} latest={latest} stale={isStale} destination={readPoint(trip.destinationPoint)} />
+            <TripMap path={path} latest={latest} stale={isStale} destination={readPoint(trip.destinationPoint)} route={route} />
           ) : (
             <div className="h-full flex flex-col items-center justify-center text-center p-6">
               <MapPin className="w-10 h-10 text-slate-400 mb-3" aria-hidden="true" />
@@ -227,6 +230,19 @@ function SharedTripContent() {
                   <p className={`text-lg font-bold ${isOverdue ? 'text-red-700' : 'text-slate-900'}`}>
                     {formatClock(endsAtMs, nowMs)}
                   </p>
+                </div>
+              </div>
+            )}
+
+            {route && (
+              <div className="p-4 flex items-start gap-3">
+                <Navigation className="w-5 h-5 mt-0.5 flex-shrink-0 text-slate-400" aria-hidden="true" />
+                <div>
+                  <p className="text-sm text-slate-500 flex items-center gap-1.5">
+                    Planned route
+                    <span className="px-1.5 py-0.5 rounded-md bg-slate-100 text-[11px] font-semibold text-slate-600">Beta</span>
+                  </p>
+                  <p className="text-sm text-slate-700">The grey dotted line on the map. They may go another way.</p>
                 </div>
               </div>
             )}

@@ -51,6 +51,7 @@ import { KeepRunningHelp } from '@/components/mobile/KeepRunningHelp';
 import { KeepRunningAsk } from '@/components/mobile/KeepRunningAsk';
 import { shouldAskAfterTrip } from '@/lib/keepRunningPermission';
 import { keepTripRoute } from '@/lib/directionsFetch';
+import { routeToStore } from '@/lib/directions';
 import { useTripDirections } from '@/hooks/useTripDirections';
 import { useAppConfig } from '@/hooks/useAppConfig';
 import { readPoint } from '@/lib/destinationPoint';
@@ -136,6 +137,15 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
     travelMode: activeTrip?.travelMode ?? null,
     enabled: directionsOn && !!activeTrip && sendsTripLocation(activeTrip.trackingDeviceId, getDeviceId()),
   });
+  // The route goes on the trip, and the server puts it on the page contacts open
+  const plannedRoute = tripDirections.state === 'ready' ? tripDirections.route : null;
+  const storedOverview = activeTrip?.route?.overview ?? null;
+  const tripOpen = activeTrip?.status === TripStatus.ACTIVE || activeTrip?.status === TripStatus.EMERGENCY;
+  useEffect(() => {
+    if (!uid || !activeTripId || !tripOpen || !plannedRoute || plannedRoute.overview === storedOverview) return;
+    updateDoc(doc(db, 'users', uid, 'trips', activeTripId), { route: routeToStore(plannedRoute) })
+      .catch((err) => console.warn('Could not save the route on the trip', err));
+  }, [uid, activeTripId, tripOpen, plannedRoute, storedOverview]);
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: 0 });
   }, [activeTripId]);

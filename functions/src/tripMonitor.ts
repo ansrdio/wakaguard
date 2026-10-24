@@ -24,6 +24,7 @@ import { AllClearReason, buildAllClearMessage, buildOverdueMessage, buildSosMess
 import { addPathPoint, distanceMeters, nextPositionStats, readPath } from './tripPath';
 import { buildTravellerPush, TravellerMessage } from './reminderPush';
 import { plateForText, readTripVehicle, vehicleForContacts } from './vehicle';
+import { readStoredRoute, sameRoute } from './tripRoute';
 import {
   decideOverdueAction,
   decideQuietNudge,
@@ -688,6 +689,32 @@ async function recordVehicle(tripRef: DocRef, before: DocData, after: DocData): 
 }
 
 /**
+ * The planned route (directions Beta, build 25) on the page contacts open,
+ * kept in step with the one the app stores on the trip, and deleted from both
+ * when the trip ends: like the path, it is only kept while the trip runs.
+ */
+async function recordRoute(tripRef: DocRef, before: DocData, after: DocData): Promise<void> {
+  const sharedRef = admin.firestore().doc(`sharedTrips/${tripRef.id}`);
+
+  if (!isOpenStatus(after.status)) {
+    // A route the app wrote just as the trip ended is removed too
+    if (!isOpenStatus(before.status) && after.route === undefined) return;
+    const shared = await sharedRef.get();
+    await Promise.all([
+      shared.exists && shared.data()!.route !== undefined ? sharedRef.update({ route: FieldValue.delete() }) : null,
+      after.route !== undefined ? tripRef.update({ route: FieldValue.delete() }) : null,
+    ]);
+    return;
+  }
+
+  const now = readStoredRoute(after.route);
+  if (sameRoute(readStoredRoute(before.route), now)) return;
+  // Never create the share document here, or the app's own write would be refused
+  if (!(await sharedRef.get()).exists) return;
+  await sharedRef.update({ route: now ?? FieldValue.delete() });
+}
+
+/**
  * Fires on every change to a trip.
  *
  * Keeps the path on the share document in step with the trip's position,
@@ -714,6 +741,8 @@ export const onTripUpdated = functions.firestore
       .catch((err) => console.error(`Could not count the positions of trip ${ref.id}`, err));
     await recordVehicle(ref, before, after)
       .catch((err) => console.error(`Could not update the vehicle on trip ${ref.id}'s page`, err));
+    await recordRoute(ref, before, after)
+      .catch((err) => console.error(`Could not update the route on trip ${ref.id}'s page`, err));
 
     // Traveller ended the trip themselves (not the hourly auto-expiry)
     const endedByUser = after.status === 'completed'

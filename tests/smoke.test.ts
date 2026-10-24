@@ -519,6 +519,44 @@ async function adminAddVehicle(token: string) {
   if (!response.ok) throw new Error(`Could not add the vehicle: ${response.status}`);
 }
 
+/** Puts the planned route on the shared trip, as the server does when directions (Beta) are on */
+async function adminAddRoute(token: string) {
+  const url = `http://127.0.0.1:8080/v1/projects/${getProjectId()}/databases/(default)/documents/sharedTrips/${token}`
+    + '?updateMask.fieldPaths=route';
+  const route = {
+    overview: { stringValue: 'gfo}EtohhUxD@bAxJmGF' },
+    distanceM: { integerValue: '5100' },
+    durationS: { integerValue: '660' },
+    profile: { stringValue: 'driving-traffic' }
+  };
+  const response = await fetch(url, {
+    method: 'PATCH',
+    headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fields: { route: { mapValue: { fields: route } } } })
+  });
+  if (!response.ok) throw new Error(`Could not add the route: ${response.status}`);
+}
+
+async function sharedTripChangeRoute(ctx: AppContext, token: string) {
+  await updateDoc(doc(ctx.db, 'sharedTrips', token), { 'route.overview': 'somewhereElse' });
+}
+
+async function sharedTripRemoveRoute(ctx: AppContext, token: string) {
+  await updateDoc(doc(ctx.db, 'sharedTrips', token), { route: deleteField() });
+}
+
+async function sharedTripCreateWithRoute(ctx: AppContext, uid: string, token: string) {
+  await setDoc(doc(ctx.db, 'sharedTrips', token), {
+    uid,
+    tripId: token,
+    status: 'active',
+    expiresAt: Timestamp.fromDate(new Date(Date.now() + 60 * 60 * 1000)),
+    lastUpdate: Timestamp.now(),
+    createdAt: Timestamp.now(),
+    route: { overview: 'gfo}EtohhU', distanceM: 100, durationS: 60, profile: 'walking' }
+  });
+}
+
 async function sharedTripChangeVehicle(ctx: AppContext, token: string) {
   await updateDoc(doc(ctx.db, 'sharedTrips', token), { vehicle: { plate: 'OTHER 02', details: '' } });
 }
@@ -1115,6 +1153,16 @@ async function run() {
     await runStep('User: changing the vehicle on the shared trip denied', () =>
       sharedTripChangeVehicle(user, ids.tripId), true
     );
+    await runStep('Server: add the planned route to shared trip', () => adminAddRoute(ids.tripId));
+    await runStep('User: update shared trip after the server added the route', () =>
+      sharedTripUpdateAfterServerFields(user, ids.tripId)
+    );
+    await runStep('User: changing the route on the shared trip denied', () =>
+      sharedTripChangeRoute(user, ids.tripId), true
+    );
+    await runStep('User: removing the route from the shared trip denied', () =>
+      sharedTripRemoveRoute(user, ids.tripId), true
+    );
     await runStep('User: changing the shared trip path denied', () =>
       sharedTripChangePath(user, ids.tripId), true
     );
@@ -1126,6 +1174,9 @@ async function run() {
     );
     await runStep('User: creating a shared trip with a path and a name denied', () =>
       sharedTripCreateWithServerFields(user, userUid, `shared_serverfields_${runId}`), true
+    );
+    await runStep('User: creating a shared trip with a route denied', () =>
+      sharedTripCreateWithRoute(user, userUid, `shared_route_${runId}`), true
     );
 
     await runStep('User: create a shared test trip', () =>
