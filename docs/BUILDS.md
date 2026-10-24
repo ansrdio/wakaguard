@@ -1137,7 +1137,12 @@ store uploads.
       question to the problem form (Google then asks everyone to sign in to
       open the form); an in-app "Report a problem" with a screenshot is the
       later option
-- [ ] Build 25. Quick choices for long road trips: 6 hr, 8 hr and 12 hr, after 15 min to 4 hr
+- [x] Build 25 started 23 October: build numbers set to 25 (`src/lib/appVersion.ts`, `android/app/build.gradle`
+      versionCode, the Xcode project). This also fixed `functions/test/appVersion.test.ts`. That test had failed
+      since the 24.1 commit (`537ec16`) because the Xcode project said 24.1; I had not run the unit tests before
+      that commit. Unit tests 321 of 321, rules checks 129 of 129
+- [x] Build 25 (done in code 23 October; checked in a phone-sized browser against the emulators: the nine
+      buttons sit in three rows of three). Quick choices for long road trips: 6 hr, 8 hr and 12 hr, after 15 min to 4 hr
       (the owner, 21 October). The idea came from the tester whose crash led to 24.1, who said WakaGuard is most
       useful for long journeys by road, for example NYSC members travelling to camp in another state, set up
       before the trip to keep the family informed.
@@ -1146,7 +1151,8 @@ store uploads.
       - **Unchanged:** these trips text contacts at the start by default, as every trip of 2 hr or more already
         does.
       - **To check:** eight buttons still fit on a small phone (a second row, or the row scrolling sideways)
-- [ ] Build 25. Phones with an old Android System WebView: tell the person, and count them (the owner, 21 October,
+- [x] Build 25 (done in code 23 October, except `minWebViewVersion`; not yet on a phone). Phones with an old
+      Android System WebView: tell the person, and count them (the owner, 21 October,
       from efaevalele's report of 19 October on an Itel A56: the switches in Settings change colour but do not
       slide).
       - **The cause:** Android phones run the app inside Android System WebView. Our styling (Tailwind 4) needs a
@@ -1163,9 +1169,20 @@ store uploads.
         - Below 111, show a one-time notice with a button to Android System WebView and Chrome in the Play Store.
         - Make the switches move with `transform`, which works on every WebView.
         - Consider Capacitor's `android.minWebViewVersion` with an error page, for WebViews too old to lay the
-          app out at all.
+          app out at all. Not done: wait to see how many testers have one.
+      - **Done:**
+        - `src/lib/webView.ts` reads the version and calls anything below 111 old (`functions/test/webView.test.ts`).
+        - Fault reports now say "· WebView 120" after the phone.
+        - The notification record keeps `webView`, allowed by `firestore.rules` and proven by two new rules checks
+          (129 of 129 pass).
+        - A card at the top of the Trip and Profile screens asks to update WebView and Chrome, with a button to
+          each in the Play Store. Closing it hides it until the version changes.
+        - `globals.css` makes `translate-x-1` and `translate-x-6` use `transform` where `translate` is not understood.
+      - **Release order:** `firestore.rules` must be deployed before build 25 reaches anyone. The rules reject an
+        unknown field, so a build 25 phone would fail to save its notification token.
       - **Now:** ask efaevalele to update Android System WebView and Chrome from the Play Store
-- [ ] Build 25. The push notifications switch in Profile stays off (efaevalele, 19 October).
+- [x] Build 25 (done in code 23 October; not yet on a phone). The push notifications switch in Profile stays off
+      (efaevalele, 19 October).
       - **The cause:** `subscribe()` in `src/hooks/usePushNotifications.ts` saves the notification token, then
         demands location permission and a fresh GPS position, and only then shows the switch as on. If location
         is refused, or slow indoors on a cheap phone, the switch stays off although notifications are set up.
@@ -1176,9 +1193,12 @@ store uploads.
 - [ ] Build 25. A full-screen map for placing the destination pin (BrightEkpe, Redmi 11 Pro, 19 October: "The map
       is too tiny for maneuvers and point selection"). An "expand" button on the pin map opens it full screen
       with the same pin; Done brings it back to the start form, with the place name looked up as now
-- [ ] Build 25. Say on the start form that ending early is fine (modesola, Infinix Hot 40i, 21 October, asked for
+- [x] Build 25 (done in code 23 October). Say on the start form that ending early is fine (modesola, Infinix Hot 40i,
+      21 October, asked for
       2 to 3 minute trips). No shorter choices: a 15-minute trip ended with "I've arrived" after 3 minutes alerts
-      nobody. One short line under the time choices; the owner approves the wording
+      nobody. One short line under the time choices; the owner approves the wording. Added to the end of the
+      arrival line: 'Arrived sooner? Tap "I've arrived" and no alert is sent.' ("no alert", not "nobody is texted":
+      the arrival text still goes when it was chosen). Waiting for the owner's approval
 
 ## Server, website and store work before launch
 

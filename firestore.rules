@@ -519,7 +519,7 @@ service cloud.firestore {
       function isValidPushSub(data) {
         return data is map
           && data.keys().hasOnly([
-            'uid','fcmToken','platform','appBuild','appBuildToken','location','alertMode','zones','states','createdAt','updatedAt','locationUpdatedAt'
+            'uid','fcmToken','platform','appBuild','appBuildToken','webView','location','alertMode','zones','states','createdAt','updatedAt','locationUpdatedAt'
           ])
           && data.uid == request.auth.uid
           && data.fcmToken is string
@@ -527,6 +527,8 @@ service cloud.firestore {
           && data.platform in ['android','ios','web']
           && (!('appBuild' in data) || (data.appBuild is int && data.appBuild > 0 && data.appBuild < 100000))
           && (!('appBuildToken' in data) || (data.appBuildToken is string && data.appBuildToken.size() <= 4096))
+          // The Android WebView's Chrome version (src/lib/webView.ts), from build 25
+          && (!('webView' in data) || (data.webView is int && data.webView > 0 && data.webView < 1000))
           && (!('alertMode' in data) || isValidAlertMode(data.alertMode))
           && (!('location' in data) || data.location == null || isValidLatLngMap(data.location))
           && (!('zones' in data) || data.zones == null || isValidZones(data.zones))

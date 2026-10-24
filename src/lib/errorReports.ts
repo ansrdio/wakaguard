@@ -15,6 +15,8 @@
  * @module errorReports
  */
 
+import { androidWebViewMajor } from './webView';
+
 export const ERROR_REPORT_DAYS = 30;
 /** At most this many reports from one opening of the app: a fault in a loop must not flood the database */
 export const MAX_PER_SESSION = 5;
@@ -52,7 +54,11 @@ export function scrub(text: string): string {
 
 const cut = (text: string, max: number) => (text.length > max ? `${text.slice(0, max - 1)}…` : text);
 
-/** "Android 14 · Infinix X6837", "iPhone · iOS 18.0", or the browser for the website */
+/**
+ * "Android 14 · Infinix X6837 · WebView 120" in the Android app, "iPhone · iOS 18.0",
+ * or the browser for the website. The WebView version shows which phones run one
+ * too old for the app's styling (src/lib/webView.ts).
+ */
 export function deviceFromUserAgent(userAgent: string): string {
   // "(Linux; Android 11; Infinix X688B Build/RP1A.200720.011; wv)": the model follows the Android version
   const parts = (/\(([^)]*)\)/.exec(userAgent)?.[1] ?? '').split(';').map((part) => part.trim());
@@ -61,7 +67,8 @@ export function deviceFromUserAgent(userAgent: string): string {
     const model = parts.slice(at + 1)
       .map((part) => part.replace(/\s*Build\/.*$/, '').trim())
       .find((part) => part && !/^(wv|K|U|[a-z]{2}(-[a-z]{2})?)$/i.test(part)) ?? 'phone';
-    return cut(`${parts[at]} · ${model}`, MAX_DEVICE);
+    const webView = androidWebViewMajor(userAgent);
+    return cut(`${parts[at]} · ${model}${webView !== null ? ` · WebView ${webView}` : ''}`, MAX_DEVICE);
   }
   const ios = /(iPhone|iPad)[^)]*? OS ([\d_]+)/.exec(userAgent);
   if (ios) return `${ios[1]} · iOS ${ios[2].replace(/_/g, '.')}`;

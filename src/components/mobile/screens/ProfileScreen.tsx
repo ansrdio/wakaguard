@@ -287,7 +287,11 @@ export function ProfileScreen() {
                       <span className="text-xs text-slate-500">Not supported in this browser</span>
                     )}
                     {pushSupported && permission === 'denied' && (
-                      <span className="text-xs text-red-500">Blocked - enable in browser settings</span>
+                      <span className="text-xs text-red-500">
+                        {Capacitor.isNativePlatform()
+                          ? 'Turned off for WakaGuard in your phone’s Settings'
+                          : 'Blocked - enable in browser settings'}
+                      </span>
                     )}
                   </div>
                 </div>

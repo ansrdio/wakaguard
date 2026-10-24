@@ -113,3 +113,14 @@ body.dark-mode {
 .leaflet-control-zoom {
   margin-top: 0 !important;
 }
+
+/*
+ * Older Android System WebViews (Chrome below 104) ignore the `translate`
+ * property Tailwind 4 writes for translate-x-*, so the switches changed colour
+ * but did not slide (a tester's Itel A56, 19 October 2026). `transform` works
+ * on every WebView; this only applies where `translate` is not understood.
+ */
+@supports not (translate: 1px) {
+  .translate-x-1 { transform: translateX(0.25rem); }
+  .translate-x-6 { transform: translateX(1.5rem); }
+}

@@ -105,7 +105,7 @@ export function usePushNotifications() {
           const platform = Capacitor.getPlatform();
 
           const existing = await getDoc(doc(db, 'pushSubscriptions', uid));
-          
+
           if (existing.exists()) {
             await setDoc(doc(db, 'pushSubscriptions', uid), {
               fcmToken: token.value,
@@ -122,33 +122,37 @@ export function usePushNotifications() {
               updatedAt: serverTimestamp(),
             });
           }
+        } catch (err) {
+          console.error('Failed to save the notification token:', err);
+          setState(prev => ({ ...prev, loading: false }));
+          tokenListener.remove();
+          return;
+        }
 
+        // Notifications work from here. The switch used to wait for a fresh GPS
+        // position too, so it stayed off when location was refused or slow
+        // indoors (a tester's report, 19 October 2026), though trip reminders
+        // were already reaching the phone
+        setState(prev => ({ ...prev, isSubscribed: true, loading: false }));
+        tokenListener.remove();
+
+        // The rough location only serves alerts about reports nearby: best effort
+        try {
           const perm = await Geolocation.requestPermissions();
-          if (perm.location !== 'granted' && perm.coarseLocation !== 'granted') {
-            throw new Error('Location permission not granted');
-          }
+          if (perm.location !== 'granted' && perm.coarseLocation !== 'granted') return;
 
-          const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true });
-          const lat = pos.coords.latitude;
-          const lng = pos.coords.longitude;
-
+          const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: false, timeout: 15000 });
           await setDoc(
             doc(db, 'pushSubscriptions', uid),
             {
-              location: { lat, lng },
+              location: { lat: pos.coords.latitude, lng: pos.coords.longitude },
               locationUpdatedAt: serverTimestamp(),
               updatedAt: serverTimestamp(),
             },
             { merge: true }
           );
-
-          console.log('Location updated for push notifications');
-          setState(prev => ({ ...prev, isSubscribed: true, loading: false }));
-          tokenListener.remove();
         } catch (err) {
-          console.error('Failed to complete push subscription setup:', err);
-          setState(prev => ({ ...prev, loading: false }));
-          tokenListener.remove();
+          console.warn('No location saved for nearby alerts:', err);
         }
       });
 

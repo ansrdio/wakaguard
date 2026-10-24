@@ -25,7 +25,7 @@ test('ordinary fault text and stack positions are kept', () => {
 });
 
 test('the kind of phone is read from the browser it runs in', () => {
-  assert.equal(deviceFromUserAgent(INFINIX), 'Android 11 · Infinix X688B');
+  assert.equal(deviceFromUserAgent(INFINIX), 'Android 11 · Infinix X688B · WebView 120');
   assert.equal(deviceFromUserAgent(SAMSUNG), 'Android 14 · SM-S156V');
   assert.equal(deviceFromUserAgent(IPHONE), 'iPhone · iOS 18.0');
   assert.equal(deviceFromUserAgent(DESKTOP), 'Chrome · Mac OS X');

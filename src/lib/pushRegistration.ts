@@ -21,6 +21,7 @@ import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { settleWithin } from '@/lib/timeLimit';
 import { APP_BUILD } from '@/lib/appVersion';
+import { androidWebViewMajor } from '@/lib/webView';
 
 const OPT_OUT_KEY = 'wakaguard_push_opt_out';
 
@@ -89,6 +90,9 @@ async function saveToken(uid: string, token: string): Promise<void> {
   const ref = doc(db, 'pushSubscriptions', uid);
   const existing = await getDoc(ref);
   const platform = Capacitor.getPlatform();
+  // Which Android phones run a WebView too old for the app's styling (src/lib/webView.ts)
+  const webView = typeof navigator === 'undefined' ? null : androidWebViewMajor(navigator.userAgent);
+  const withWebView = webView === null ? {} : { webView };
 
   // The build tells the server whether this app can draw reminders with buttons
   // (functions/src/reminderPush.ts). It is saved with the token it belongs to: an
@@ -101,6 +105,7 @@ async function saveToken(uid: string, token: string): Promise<void> {
       platform,
       appBuild: APP_BUILD,
       appBuildToken: token,
+      ...withWebView,
       location: null,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
@@ -109,8 +114,9 @@ async function saveToken(uid: string, token: string): Promise<void> {
   }
   // Tokens rarely change; do not rewrite the document on every launch
   const saved = existing.data();
-  if (saved.fcmToken === token && saved.platform === platform && saved.appBuild === APP_BUILD && saved.appBuildToken === token) return;
-  await setDoc(ref, { fcmToken: token, platform, appBuild: APP_BUILD, appBuildToken: token, updatedAt: serverTimestamp() }, { merge: true });
+  if (saved.fcmToken === token && saved.platform === platform && saved.appBuild === APP_BUILD && saved.appBuildToken === token
+    && (webView === null || saved.webView === webView)) return;
+  await setDoc(ref, { fcmToken: token, platform, appBuild: APP_BUILD, appBuildToken: token, ...withWebView, updatedAt: serverTimestamp() }, { merge: true });
 }
 
 /**

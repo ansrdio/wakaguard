@@ -49,8 +49,10 @@ const MINUTE_MS = 60 * 1000;
 const HOUR_MS = 60 * MINUTE_MS;
 
 /**
- * Quick choices for how long a trip will take. Weighted towards trips within a
- * city, which is where most early use is expected; longer journeys use "Other".
+ * Quick choices for how long a trip will take: city trips first, then long
+ * road journeys between states (6, 8 and 12 hours, added in build 25 after a
+ * tester said long trips are where WakaGuard helps most). Anything else uses
+ * "Other".
  */
 export const ARRIVAL_PRESETS = [
   { minutes: 15, label: '15 min' },
@@ -58,6 +60,9 @@ export const ARRIVAL_PRESETS = [
   { minutes: 60, label: '1 hr' },
   { minutes: 120, label: '2 hr' },
   { minutes: 240, label: '4 hr' },
+  { minutes: 360, label: '6 hr' },
+  { minutes: 480, label: '8 hr' },
+  { minutes: 720, label: '12 hr' },
 ] as const;
 
 export const DEFAULT_TRIP_MINUTES = 30;

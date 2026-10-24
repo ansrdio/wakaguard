@@ -657,6 +657,11 @@ async function pushSubSaveBuild(ctx: AppContext, uid: string, appBuild: unknown)
   await setDoc(doc(ctx.db, 'pushSubscriptions', uid), { fcmToken: `token_${uid}`, platform: 'android', appBuild, appBuildToken: `token_${uid}`, updatedAt: Timestamp.now() }, { merge: true });
 }
 
+/** From build 25 the Android app also saves its WebView's Chrome version (src/lib/webView.ts) */
+async function pushSubSaveWebView(ctx: AppContext, uid: string, webView: unknown) {
+  await setDoc(doc(ctx.db, 'pushSubscriptions', uid), { fcmToken: `token_${uid}`, platform: 'android', appBuild: 25, appBuildToken: `token_${uid}`, webView, updatedAt: Timestamp.now() }, { merge: true });
+}
+
 async function pushSubGet(ctx: AppContext, uid: string) {
   const subRef = doc(ctx.db, 'pushSubscriptions', uid);
   const snapshot = await getDoc(subRef);
@@ -1175,6 +1180,8 @@ async function run() {
     await runStep('User: update push location', () => pushSubUpdateLocation(user, userUid));
     await runStep('User: save the app build with the push subscription', () => pushSubSaveBuild(user, userUid, 23));
     await runStep('User: an app build that is not a number denied', () => pushSubSaveBuild(user, userUid, '23'), true);
+    await runStep('User: save the WebView version with the push subscription', () => pushSubSaveWebView(user, userUid, 101));
+    await runStep('User: a WebView version that is not a whole number denied', () => pushSubSaveWebView(user, userUid, '101'), true);
 
     await runStep('Read: guest can read report', () => readReport(guest));
     await runStep('Read: guest can read comment', () => readComment(guest));

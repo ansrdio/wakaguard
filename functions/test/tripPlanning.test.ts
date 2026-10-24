@@ -87,8 +87,8 @@ test('location status tells fresh from stale from missing', () => {
   assert.equal(describeLocationStatus(NOW, false, NOW).state, 'none');
 });
 
-test('quick choices suit city trips and the default is one of them', () => {
-  assert.deepEqual(ARRIVAL_PRESETS.map((p) => p.minutes), [15, 30, 60, 120, 240]);
+test('quick choices suit city trips and long road journeys, and the default is one of them', () => {
+  assert.deepEqual(ARRIVAL_PRESETS.map((p) => p.minutes), [15, 30, 60, 120, 240, 360, 480, 720]);
   assert.ok(ARRIVAL_PRESETS.some((p) => p.minutes === DEFAULT_TRIP_MINUTES));
   for (const preset of ARRIVAL_PRESETS) {
     assert.deepEqual(validateTripPlan({ ...valid, durationMinutes: preset.minutes }), {});

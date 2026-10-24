@@ -378,7 +378,8 @@ export function StartTripForm({
           <p className="text-sm text-slate-600 dark:text-slate-300 mt-2">
             Arrive by <span className="font-semibold text-slate-900 dark:text-white">{formatClock(arriveByMs, nowMs)}</span>
             {' '}({formatDuration(durationMinutes)}). If the trip is still running {ALERT_GRACE_MINUTES} minutes after
-            that, your contacts are texted, even if your phone is off.
+            that, your contacts are texted, even if your phone is off. Arrived sooner? Tap &ldquo;I&apos;ve
+            arrived&rdquo; and no alert is sent.
           </p>
         )}
       </div>
