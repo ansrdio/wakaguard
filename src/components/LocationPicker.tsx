@@ -18,6 +18,8 @@ interface LocationPickerProps {
    * the map opens far enough out to find the right town on it.
    */
   startsFarOut?: boolean;
+  /** Fill the space it is given (a full-screen picker) instead of a fixed-height box */
+  fill?: boolean;
 }
 
 /** Close enough to tell one side of a junction from the other */
@@ -65,9 +67,9 @@ function PinInTheMiddle({ location, onLocationSelect }: Pick<LocationPickerProps
   return null;
 }
 
-export default function LocationPicker({ location, onLocationSelect, startsFarOut = false }: LocationPickerProps) {
+export default function LocationPicker({ location, onLocationSelect, startsFarOut = false, fill = false }: LocationPickerProps) {
   return (
-    <div className="relative h-72 rounded-lg overflow-hidden border border-gray-300">
+    <div className={fill ? 'relative h-full overflow-hidden' : 'relative h-72 rounded-lg overflow-hidden border border-gray-300'}>
       <MapContainer
         center={[location.lat, location.lng]}
         zoom={startsFarOut ? CITY_ZOOM : STREET_ZOOM}
@@ -78,10 +80,15 @@ export default function LocationPicker({ location, onLocationSelect, startsFarOu
         <PinInTheMiddle location={location} onLocationSelect={onLocationSelect} />
       </MapContainer>
 
-      {/* The pin, with its point on the middle of the map. Touches pass through it to the map. */}
+      {/*
+        The pin, with its point on the middle of the map. Touches pass through it to the map.
+        Moved with `transform`, not Tailwind's translate classes: older Android WebViews ignore
+        the `translate` property, and the pin would sit off the spot being chosen.
+      */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute left-1/2 top-1/2 z-[650] -translate-x-1/2 -translate-y-full drop-shadow-md"
+        className="pointer-events-none absolute left-1/2 top-1/2 z-[650] drop-shadow-md"
+        style={{ transform: 'translate(-50%, -100%)' }}
       >
         <svg width="34" height="44" viewBox="0 0 34 44">
           <path d="M17 43 L4.5 22.5 A15 15 0 1 1 29.5 22.5 Z" fill="#C2410C" stroke="#FBF3E0" strokeWidth="2" strokeLinejoin="round" />

@@ -1190,9 +1190,21 @@ store uploads.
         optional step (it only serves nearby report alerts).
       - **Also:** the "Blocked - enable in browser settings" line is browser wording inside the phone app;
         replace it with the phone's own settings
-- [ ] Build 25. A full-screen map for placing the destination pin (BrightEkpe, Redmi 11 Pro, 19 October: "The map
+- [x] Build 25 (done in code 23 October; checked in a phone-sized browser against the emulators, not yet on a phone).
+      A full-screen map for placing the destination pin (BrightEkpe, Redmi 11 Pro, 19 October: "The map
       is too tiny for maneuvers and point selection"). An "expand" button on the pin map opens it full screen
-      with the same pin; Done brings it back to the start form, with the place name looked up as now
+      with the same pin; Done brings it back to the start form, with the place name looked up as now.
+      - **What changed from the plan:** the pin screen itself is now full screen, so no expand button is needed
+        (one tap fewer). It is laid out like the trip map: a back arrow, a one-line hint, the map filling the
+        screen, and "Use this spot" at the bottom (`DestinationPinSheet.tsx`, with a `fill` option on
+        `LocationPicker.tsx`).
+      - **Checked:**
+        - The pin sits on the middle of the map.
+        - "Use this spot" sets it, and the name filled in ("Yaba Flyover Bridge, Ojuelegba, ...").
+        - The back arrow closes it and keeps the pin.
+      - **Also fixed:** the pin in the middle of both pickers (this one and the road report form) was placed with
+        Tailwind's translate classes, which old Android WebViews ignore, so on those phones the pin would sit
+        away from the spot being chosen. It now uses `transform`
 - [x] Build 25 (done in code 23 October). Say on the start form that ending early is fine (modesola, Infinix Hot 40i,
       21 October, asked for
       2 to 3 minute trips). No shorter choices: a 15-minute trip ended with "I've arrived" after 3 minutes alerts
