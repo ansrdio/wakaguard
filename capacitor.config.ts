@@ -40,9 +40,14 @@ const config: CapacitorConfig = {
       style: 'DARK',
       backgroundColor: '#1e293b',
     },
-    // Android 15+: light icons on the dark strip behind both system bars
+    // Android 15+: light icons on the dark strip behind both system bars.
+    // insetsHandling 'disable': MainActivity.java keeps the page clear of the bars
+    // and the keyboard itself. From Capacitor 8.5 this plugin pads the window as
+    // well, so the keyboard's height was taken off twice and the page shrank to a
+    // strip above a dark gap whenever someone typed (seen on build 25, 23 October)
     SystemBars: {
       style: 'DARK',
+      insetsHandling: 'disable',
     },
     SplashScreen: {
       launchShowDuration: 2000,

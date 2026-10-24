@@ -1120,7 +1120,7 @@ store uploads.
       owner asked Mapbox on 14 October; the account sign-up failed that day
       and is to be tried again)
 
-- [x] Build 25 (done in code 23 October; compiles; not yet on a phone). Fewer trips to Settings for "Keep WakaGuard running" (a
+- [x] Build 25 (done in code 23 October; checked on the owner's Galaxy the same evening). Fewer trips to Settings for "Keep WakaGuard running" (a
       tester's problem report, 18 October: could the steps be permissions
       people simply accept?). Asked on the first trip, not when the account is
       made, so the reason is plain. Android: Android's own "Allow WakaGuard to
@@ -1148,8 +1148,24 @@ store uploads.
       - **iPhone: nothing to add.** The trip's location watcher passes a background message, so the
         background-geolocation plugin calls `requestAlwaysAuthorization` (and asks to upgrade from "While Using").
         iOS shows its own "Change to Always Allow" later.
-      - **Still to do:** try it on the owner's Galaxy; declare the permission in Play Console with the reason
-        before build 25 goes to the closed test.
+      - **On the owner's Galaxy (SM-S156V, Android 16, 23 October):**
+        - A release-signed test build was installed over build 24, after checking no trip was running.
+        - The owner started a test trip: "Keep your trip running", then Android's question, then Allow.
+        - Afterwards Android's list showed `user,com.wakaguard.app` (allowed by the person), and the trip had
+          ended.
+      - **Still to do:** declare the permission in Play Console with the reason before build 25 goes to the
+        closed test.
+- [x] Build 25 (found and fixed 23 October on the owner's Galaxy). Typing squeezed the app into a strip above a dark gap.
+      - **Seen:** tapping "Where are you going?" brought up the keyboard, and the page shrank to a strip at the top with
+        dark space down to the keyboard.
+      - **Cause:** Capacitor 8.5's SystemBars plugin (`SystemBars.java`, "use native safe area insets on Android")
+        now pads the whole window by the system bars and the keyboard. `MainActivity.keepWebViewClearOfSystemBars`
+        already pads the page by both on Android 15 and later, so the keyboard's height was taken off twice. It
+        came in with the move from 8.0.2 to 8.5.3 for the iOS 27 fix, and only affects Android; iPhone 24.1 is not
+        touched.
+      - **Fix:** `SystemBars.insetsHandling: 'disable'` in `capacitor.config.ts`, leaving it to `MainActivity` as in
+        build 24.
+      - **Checked:** the owner typed a destination on the Galaxy and the page stayed whole
 - [x] Build 25 started 23 October: build numbers set to 25 (`src/lib/appVersion.ts`, `android/app/build.gradle`
       versionCode, the Xcode project). This also fixed `functions/test/appVersion.test.ts`. That test had failed
       since the 24.1 commit (`537ec16`) because the Xcode project said 24.1; I had not run the unit tests before
