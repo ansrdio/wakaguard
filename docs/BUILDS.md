@@ -648,7 +648,10 @@ What was agreed:
     the rest under "More options";
   - plain labels: "Blocked people" becomes the people hidden from your road reports, explained in a line, and
     hidden when nobody is blocked.
-- **January, version 2:** a designer and a brand kit, as planned.
+- **Correction (24 October):** an earlier line here said "January, version 2: a designer and a brand kit, as
+  planned". That was only my suggestion; the owner has no designer. The design to follow is the outside
+  "WakaGuard complete design v2" PDF the owner shared on 24 October (its colours, text sizes and button sizes);
+  where and when it is applied is the owner's call.
 - **Bolt rides:** WakaGuard cannot read them, and Bolt has its own ride sharing. WakaGuard's place is keke, danfo,
   okada, unknown taxis and long road trips; the answer to "extra work" is a quicker start.
 - **First step:** a keep / move / remove list for every screen, made from the app at phone size against the
@@ -1164,6 +1167,32 @@ store uploads.
             turn right onto F266/Herbert Macaulay…".
           - At the destination: "You are at your destination".
           - After "I've arrived" the kept route was gone.
+      - **Piece 4 done 23 October:** the planned route on the page contacts open, kept only while the trip runs.
+        - **The app** saves the route's outline, length, time and kind (by road or on foot) on the trip
+          (`users/{uid}/trips/{id}.route`, `routeToStore` in `src/lib/directions.ts`) whenever it gets a new one.
+          Only the phone sending the trip's location does this, and only while the trip is open.
+        - **The server** (`recordRoute` in `functions/src/tripMonitor.ts`, checks in `functions/src/tripRoute.ts`)
+          copies it to `sharedTrips/{id}.route` after checking it (only those four keys, outline characters
+          Mapbox uses, at most 20,000 characters, sensible length and time). It never creates the page. When the
+          trip ends it deletes the route from both, including one the app wrote just as the trip ended.
+        - **Rules:** `sharedTrips` allows `route` with the same shape; the app may not add, change or remove it
+          (`serverFieldsUntouched`), nor create a page with one. **Deploy `firestore.rules` before build 25
+          reaches anyone.**
+        - **The contacts' page** (`src/app/s/page.tsx`) draws it as the grey dotted line and adds a row:
+          "Planned route · Beta · The grey dotted line on the map. They may go another way."
+          `readRouteOutline` drops any point off the map, so a bad outline draws nothing.
+        - **Privacy page (draft, waiting for the owner's approval):** four lines in `src/app/privacy/page.tsx`:
+          the route stored with the trip; the dotted line on the trip page; deleted when the trip ends; Mapbox
+          sees the two points and the IP address. The "Last Updated" date changes when it is published.
+        - **Tests:** `functions/test/tripRoute.test.ts` (5: the app's stored route passes the server's check;
+          bad routes refused; the page's reader); 3 emulator tests in `tripMonitor.test.ts` (copied while open,
+          replaced, removed when bad or when the trip ends; removed if written after the end; no page created);
+          5 rule checks in `tests/smoke.test.ts`. 337 unit, 109 server and 134 rule checks pass.
+        - **Checked** against the emulators with the real Mapbox key: a trip from a pretend Yaba position to a
+          pin in Ikeja (16 km, about 27 min). The app saved the route, the server copied the same outline to
+          the page, and the page showed the dotted line and the "Planned route" row on a phone-sized screen.
+          After "I've arrived" the route was gone from the trip and the page, and the link said the trip is no
+          longer shared.
 
 - [x] Build 25 (done in code 23 October; checked on the owner's Galaxy the same evening). Fewer trips to Settings for "Keep WakaGuard running" (a
       tester's problem report, 18 October: could the steps be permissions
@@ -1285,6 +1314,77 @@ store uploads.
       nobody. One short line under the time choices; the owner approves the wording. Added to the end of the
       arrival line: 'Arrived sooner? Tap "I've arrived" and no alert is sent.' ("no alert", not "nobody is texted":
       the arrival text still goes when it was chosen). Waiting for the owner's approval
+- [ ] Build 25 (the owner, 24 October: "Yes do that"). The colours and text sizes of the outside design PDF
+      ("WakaGuard complete design v2", 23 October, shared 24 October). Before the directions voice (piece 5).
+      - **Colours:**
+        - Light: warm paper background #F6F5F0, white cards, main text #142B25, secondary text #52635B.
+        - Main green #176B4F, a quiet green #E5F2E8 for selected things.
+        - Amber #8A4B0F on #FFF3D8 for warnings; red #B42318 only for SOS and failures.
+        - Dark: #10231D background, #192D25 cards, #EFF5EF text, green #76D4AC.
+        - The blue buttons and links become green.
+      - **Text and touch:** the phone's own font; titles 28, body and boxes 16, secondary text 14; main buttons at
+        least 52 high, other tap targets at least 48.
+      - **How:** remap the colour scales in `src/app/globals.css`, so screens keep their classes and only the
+        colours change. Store approval is not affected, but the store screenshots must be taken after this.
+      - **Not included:** the PDF's new screens and features (polling units, services, business dashboard); those
+        are the 31 October decision sheet or after launch.
+      - **Done in code 24 October; checked in a phone-sized browser against the emulators, light and dark:**
+        - **Colours:** `globals.css` sets four scales in plain hex (green, grey, amber, red). Tailwind's other
+          families point at them: gray to the greys; blue, sky, indigo, purple, green and emerald to the green;
+          yellow and orange to amber; rose to red. The undefined `dark-bg`, `dark-card` and `dark-border` now
+          have colours too.
+        - **Fixed colour codes:** the trip map, the page shown when the app fails, the browser bar and manifest,
+          the phone's status bar and loading colour, and the Android notification colour.
+        - **Map:** groups of reports on the Nearby map are green at every size; they were blue, orange and red.
+          The blue "you are here" dot stays blue.
+        - **Font:** the phone's own, so Inter is no longer downloaded.
+        - **Sizes:** the screen titles in the top bar are 28. Undersized tap targets on the start form, the trip
+          card, the location line and the Nearby map were raised to 48: time choices, add-time choices, "Other
+          amount", "Add another person", the two tick-box rows, "Set it on the map", "Add plate number", "Check
+          my location", "Search and filters", "List", "Legend", the hint's close button and the map zoom
+          buttons. Small links inside a row ("Manage", "Change", "Remove", the trip card's "Add", the state chip)
+          get a larger invisible tap area, so the row keeps its height.
+        - **Left for build 26:** the 216 landmark icons on the Nearby map (28 wide); the darker box borders the
+          PDF asks for (#7A8C81); the remaining coloured icons (Profile's amber "Upvotes", the red emergency
+          numbers icon).
+        - **Phone-only parts** (status bar, loading colour, notification colour) show only in a new build.
+- [ ] Build 25, before launch (the owner, 24 October: "let us also add matching logos before launch"). A new logo
+      and app icon in the same green, replacing the blue W.
+      - **First step:** drafts for the owner to pick from. Three were drawn on 24 October (shield and tick; pin with
+        a shield; the W as a road). **The owner picked B, the pin with a shield ("go with B", 24 October):** a
+        white map pin carrying a green shield on the green #176B4F.
+      - **Then the picked one everywhere:**
+        - the iPhone and Android app icons (Android's adaptive icon and the white notification icon);
+        - the opening screen;
+        - the website's logo, its tab icon and the icons saved to a home screen;
+        - the picture shown when a trip link is shared;
+        - the Play Store icon (512) and feature graphic (1024 × 500).
+      - Into build 25 if picked by Friday 30 October, otherwise build 26.
+      - **Done in code 24 October (build 25).** Every file was made from one drawing by a script in the session
+        folder (`tools/make-logo-assets.py`; Chrome draws the SVG, Pillow shrinks it):
+        - **iPhone:** the 1024 icon, square and without transparency (iOS rounds it); the six opening-screen
+          pictures (2732 square), the icon on the dark green #10231D.
+        - **Android:**
+          - launcher icons for every density: square-ish, round and the adaptive foreground, with the pin kept
+            inside the middle Android shows. The adaptive icon's background colour is #176B4F.
+          - the white notification icon (`ic_stat_wakaguard.xml`), now the pin with the shield cut out;
+          - the ten opening-screen pictures;
+          - the dark green behind the icon on Android 12 and later's own opening screen
+            (`windowSplashScreenBackground`).
+          - The resources compile (`processDebugResources`).
+        - **Website:** every size in `public/icons` (the 180 Apple icon and the 512 "maskable" icon square, the
+          rest rounded), `public/icon.svg`, `favicon.ico`. The pages that show the logo (front page, welcome,
+          contacts' page, About, delete-account) use those files, so they changed with them.
+        - **Link preview:** new `public/og-image.png` (1200 × 630: the logo, "WakaGuard", "If you don't arrive,
+          the people you chose are told."), named in `layout.tsx` with `metadataBase` from `APP_URL`, so a trip
+          link shared in WhatsApp or a text shows the card.
+        - **Play Store** (not in the repo): `play-store/listing-2026-10-24/icon-512.png` and
+          `feature-graphic-1024x500.png` in the session folder, for the owner to upload to the store listing.
+        - **Master drawings:** `documents/logo/` in the session folder (rounded, square, circle, foreground SVGs
+          and a 1024 PNG).
+        - **Checked** in a phone-sized browser: the front page, the welcome screen and the contacts' page show
+          the new logo; the page carries `og:image`. The phone icons and opening screens show only in the new
+          builds.
 
 ## Server, website and store work before launch
 
