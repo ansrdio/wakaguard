@@ -1119,6 +1119,24 @@ store uploads.
       that its terms allow spoken directions without its native kit (the
       owner asked Mapbox on 14 October; the account sign-up failed that day
       and is to be tried again)
+      - **Plan (23 October), in five pieces:**
+        1. The directions logic.
+        2. The start form: "By road: about 25 min, 16 km · Use 40 min".
+        3. During the trip: the next turn on the trip card and the route on the trip map, marked Beta, with a new
+           route when the traveller leaves it.
+        4. The contacts' page: the planned route, kept only while the trip runs (rules and server).
+        5. The voice, behind a second switch `directionsVoice` until Mapbox answers. Android needs a small native
+           speech piece, because its WebView has no speech.
+      - **Piece 1 done 23 October:**
+        - `src/lib/directions.ts`: reads Mapbox's answer; follows a position along the route; gives the next turn
+          and the distance to it; notices leaving the route (over 60 m, two positions running) and arriving
+          (within 30 m); decides which spoken line is due, each once; suggests a trip length of Mapbox's minutes
+          × 1.3 + 5, rounded up to 5, at least 15.
+        - `src/lib/directionsFetch.ts`: asks Mapbox from the phone with the public key, and keeps the running
+          trip's route on the phone.
+        - `config/app` `directionsVoice`, which counts only with `directions` on.
+        - **Tests:** `functions/test/directions.test.ts` uses a real Mapbox answer (Yaba to Ikeja, 16 km,
+          25 minutes) as its fixture; `appConfig.test.ts` covers the new switch. 332 of 332 unit tests pass
 
 - [x] Build 25 (done in code 23 October; checked on the owner's Galaxy the same evening). Fewer trips to Settings for "Keep WakaGuard running" (a
       tester's problem report, 18 October: could the steps be permissions

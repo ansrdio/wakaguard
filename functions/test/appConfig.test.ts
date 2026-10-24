@@ -19,8 +19,17 @@ test('an empty or missing document means no switches and the default store links
       updateUrlIos: DEFAULT_UPDATE_URL_IOS,
       signInWith: { google: false, apple: false },
       directions: false,
+      directionsVoice: false,
     });
   }
+});
+
+test('spoken directions need both switches, and only a real true counts', () => {
+  assert.equal(readAppConfig({ directions: true }).directions, true);
+  assert.equal(readAppConfig({ directions: true }).directionsVoice, false);
+  assert.equal(readAppConfig({ directions: true, directionsVoice: true }).directionsVoice, true);
+  assert.equal(readAppConfig({ directionsVoice: true }).directionsVoice, false, 'never without directions');
+  assert.equal(readAppConfig({ directions: 'true', directionsVoice: 'true' }).directionsVoice, false);
 });
 
 test('build numbers must be whole and positive', () => {

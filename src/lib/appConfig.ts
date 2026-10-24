@@ -36,6 +36,12 @@ export interface AppConfig {
    * so they can be hidden at once, without a new build, if they misbehave
    */
   directions: boolean;
+  /**
+   * Spoken directions, on top of `directions`. Off unless set true: it waits for
+   * Mapbox to confirm in writing that its terms allow speaking its directions
+   * without its navigation kit (asked on 14 October 2026)
+   */
+  directionsVoice: boolean;
 }
 
 export const DEFAULT_UPDATE_URL_ANDROID = 'https://play.google.com/store/apps/details?id=com.wakaguard.app';
@@ -79,6 +85,7 @@ export function readAppConfig(data: unknown): AppConfig {
       apple: (d.signInWith as Record<string, unknown> | undefined)?.apple === true,
     },
     directions: d.directions === true,
+    directionsVoice: d.directions === true && d.directionsVoice === true,
   };
 }
 
