@@ -283,7 +283,7 @@ export function StartTripForm({
                 Finding its name…
               </span>
             )}
-            <button type="button" onClick={() => setPinOpen(true)} className="font-medium text-blue-600 dark:text-blue-400 hover:underline">Change</button>
+            <button type="button" onClick={() => setPinOpen(true)} className="relative after:absolute after:-inset-x-2 after:-inset-y-3.5 font-medium text-blue-600 dark:text-blue-400 hover:underline">Change</button>
             <button
               type="button"
               onClick={() => {
@@ -291,7 +291,7 @@ export function StartTripForm({
                 setNamingPin(false);
                 setDestinationPoint(null);
               }}
-              className="font-medium text-blue-600 dark:text-blue-400 hover:underline"
+              className="relative after:absolute after:-inset-x-2 after:-inset-y-3.5 font-medium text-blue-600 dark:text-blue-400 hover:underline"
             >
               Remove
             </button>
@@ -300,7 +300,7 @@ export function StartTripForm({
           <button
             type="button"
             onClick={() => setPinOpen(true)}
-            className="mt-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+            className="mt-1 min-h-12 text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
           >
             <MapPin className="w-4 h-4" aria-hidden="true" />
             Set it on the map (optional)
@@ -334,7 +334,7 @@ export function StartTripForm({
                   setDurationMinutes(preset.minutes);
                   setCustomOpen(false);
                 }}
-                className={`py-2.5 px-2 rounded-xl text-sm font-medium transition-colors ${
+                className={`min-h-12 py-2.5 px-2 rounded-xl text-sm font-medium transition-colors ${
                   selected
                     ? 'bg-brand-600 text-white'
                     : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600'
@@ -348,7 +348,7 @@ export function StartTripForm({
             type="button"
             aria-pressed={showCustom}
             onClick={() => setCustomOpen(true)}
-            className={`py-2.5 px-2 rounded-xl text-sm font-medium transition-colors ${
+            className={`min-h-12 py-2.5 px-2 rounded-xl text-sm font-medium transition-colors ${
               showCustom
                 ? 'bg-brand-600 text-white'
                 : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600'
@@ -474,7 +474,7 @@ export function StartTripForm({
             <button
               type="button"
               onClick={() => setVehicleOpen(true)}
-              className="mt-3 text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+              className="mt-1 min-h-12 text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
             >
               <Plus className="w-4 h-4" aria-hidden="true" />
               Add plate number or driver (optional)
@@ -493,7 +493,7 @@ export function StartTripForm({
             <button
               type="button"
               onClick={onManageContacts}
-              className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
+              className="relative after:absolute after:-inset-x-2 after:-inset-y-3.5 text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
             >
               Manage
             </button>
@@ -630,7 +630,7 @@ export function StartTripForm({
           <button
             type="button"
             onClick={() => setAddOpenAtCount(contacts.length)}
-            className="mt-2 w-full py-2.5 rounded-xl border border-dashed border-slate-300 dark:border-slate-600 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center justify-center gap-2"
+            className="mt-2 w-full min-h-12 py-2.5 rounded-xl border border-dashed border-slate-300 dark:border-slate-600 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center justify-center gap-2"
           >
             <Plus className="w-4 h-4" />
             Add another person
@@ -640,23 +640,23 @@ export function StartTripForm({
         {errors.contacts && <p role="alert" className={errorClass}>{errors.contacts}</p>}
 
         {contacts.length > 0 && (
-          <label className="flex items-center gap-3 mt-3 cursor-pointer">
+          <label className="flex items-center gap-3 mt-1 min-h-12 cursor-pointer">
             <input
               type="checkbox"
               checked={textContacts}
               onChange={(e) => setTextContactsChoice(e.target.checked)}
-              className="w-4 h-4 rounded border-slate-300 accent-brand-600 focus:ring-brand-500"
+              className="w-5 h-5 rounded border-slate-300 accent-brand-600 focus:ring-brand-500"
             />
             <span className="text-sm text-slate-700 dark:text-slate-200">Text them the trip link when I start</span>
           </label>
         )}
         {contacts.length > 0 && (
-          <label className="flex items-start gap-3 mt-3 cursor-pointer">
+          <label className="flex items-start gap-3 mt-1 py-1.5 min-h-12 cursor-pointer">
             <input
               type="checkbox"
               checked={textOnArrival}
               onChange={(e) => setTextOnArrival(e.target.checked)}
-              className="w-4 h-4 mt-0.5 rounded border-slate-300 accent-brand-600 focus:ring-brand-500"
+              className="w-5 h-5 mt-0.5 rounded border-slate-300 accent-brand-600 focus:ring-brand-500"
             />
             <span className="text-sm text-slate-700 dark:text-slate-200">
               Text them when I arrive
@@ -702,7 +702,7 @@ export function StartTripForm({
             <button
               type="button"
               onClick={() => setEditingName(true)}
-              className="font-medium text-blue-600 dark:text-blue-400 hover:underline"
+              className="relative after:absolute after:-inset-x-2 after:-inset-y-3.5 font-medium text-blue-600 dark:text-blue-400 hover:underline"
             >
               Change
             </button>

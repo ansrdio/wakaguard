@@ -39,7 +39,7 @@ export function MapLegend() {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="absolute left-4 z-[400] bg-white dark:bg-slate-800 rounded-lg shadow-md px-3 py-2 flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors border border-slate-200 dark:border-slate-700"
+        className="absolute left-4 z-[400] bg-white dark:bg-slate-800 rounded-lg shadow-md px-3 min-h-12 flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors border border-slate-200 dark:border-slate-700"
         style={ABOVE_MAP_EDGE}
         aria-label="Show map legend"
       >

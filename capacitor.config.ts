@@ -38,7 +38,7 @@ const config: CapacitorConfig = {
     StatusBar: {
       overlaysWebView: false,
       style: 'DARK',
-      backgroundColor: '#1e293b',
+      backgroundColor: '#10231D',
     },
     // Android 15+: light icons on the dark strip behind both system bars.
     // insetsHandling 'disable': MainActivity.java keeps the page clear of the bars
@@ -52,7 +52,7 @@ const config: CapacitorConfig = {
     SplashScreen: {
       launchShowDuration: 2000,
       launchAutoHide: true,
-      backgroundColor: '#1e293b',
+      backgroundColor: '#10231D',
       showSpinner: false,
       splashFullScreen: true,
       splashImmersive: true,
@@ -73,11 +73,11 @@ const config: CapacitorConfig = {
     },
   },
   ios: {
-    backgroundColor: '#1e293b',
+    backgroundColor: '#10231D',
     contentInset: 'automatic',
   },
   android: {
-    backgroundColor: '#1e293b',
+    backgroundColor: '#10231D',
     // Only needed when loading from a plain-http dev server
     allowMixedContent: !!devServerUrl && devServerUrl.startsWith('http://'),
     // Stops background location updates halting after 5 minutes

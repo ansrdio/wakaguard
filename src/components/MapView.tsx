@@ -376,14 +376,13 @@ const MapView = memo(function MapView({ reports, selectedReportId, onMarkerClick
         iconCreateFunction={(cluster: any) => {
           const count = cluster.getChildCount();
           let size = 'small';
-          let color = '#3b82f6';
+          // One green for every group: red is kept for SOS (design PDF, build 25)
+          const color = '#176B4F';
           
           if (count >= 10) {
             size = 'large';
-            color = '#dc2626';
           } else if (count >= 5) {
             size = 'medium';
-            color = '#ea580c';
           }
           
           return L.divIcon({

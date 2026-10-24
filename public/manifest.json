@@ -4,8 +4,8 @@
   "description": "Start a trip before you travel. If you do not arrive, WakaGuard texts the people you chose with your last known location.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f8fafc",
-  "theme_color": "#1e2a4a",
+  "background_color": "#F6F5F0",
+  "theme_color": "#10231D",
   "orientation": "portrait-primary",
   "scope": "/",
   "icons": [

@@ -451,7 +451,7 @@ export function MobileHome({
               </p>
               <button
                 onClick={dismissWelcomeHint}
-                className="p-1 -m-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                className="p-3.5 -m-3.5 text-slate-500 hover:text-slate-700 dark:hover:text-slate-200"
                 aria-label="Dismiss"
               >
                 <X className="w-4 h-4" />
@@ -477,7 +477,7 @@ export function MobileHome({
         <div className="fixed left-4 right-4 z-20 flex gap-2" style={{ top: 'calc(env(safe-area-inset-top, 0px) + 70px)' }}>
           <button
             onClick={() => setShowFilterSheet(true)}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full shadow-md transition-colors"
+            className="flex-1 flex items-center justify-center gap-2 px-4 min-h-12 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full shadow-md transition-colors"
           >
             <Search className="w-4 h-4 text-slate-700 dark:text-slate-200" />
             <span className="text-sm font-medium text-slate-900 dark:text-white">Search and filters</span>
@@ -489,7 +489,7 @@ export function MobileHome({
           </button>
           <button
             onClick={() => setNearbyView('list')}
-            className="flex items-center gap-1.5 px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full shadow-md text-sm font-medium text-slate-900 dark:text-white"
+            className="flex items-center gap-1.5 px-4 min-h-12 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full shadow-md text-sm font-medium text-slate-900 dark:text-white"
           >
             <List className="w-4 h-4" />
             List

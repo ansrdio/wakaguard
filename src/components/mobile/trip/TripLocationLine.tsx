@@ -56,7 +56,7 @@ export function TripLocationLine({ trip, nowMs, sendsHere, className = '', iconC
             <button
               type="button"
               onClick={act}
-              className="px-3 py-1.5 rounded-xl bg-amber-100 text-amber-900 font-semibold hover:bg-amber-200"
+              className="min-h-12 px-4 py-2 rounded-xl bg-amber-100 text-amber-900 font-semibold hover:bg-amber-200"
             >
               {ACTION_WORDS[advice.action]}
             </button>
@@ -64,7 +64,7 @@ export function TripLocationLine({ trip, nowMs, sendsHere, className = '', iconC
               <button
                 type="button"
                 onClick={() => setChecking(true)}
-                className="px-3 py-1.5 rounded-xl text-blue-700 dark:text-blue-300 font-semibold hover:underline"
+                className="min-h-12 px-3 py-2 rounded-xl text-blue-700 dark:text-blue-300 font-semibold hover:underline"
               >
                 Check my location
               </button>

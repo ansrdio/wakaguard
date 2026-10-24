@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  The small icon for WakaGuard's notifications: the shield with its tick.
-  Android draws a notification's small icon from its shape alone, in one
-  colour. The launcher icon is a full picture with no see-through parts, so
-  used here it came out as a plain square.
+  The small icon for WakaGuard's notifications: the map pin carrying a shield
+  (the logo picked on 24 October 2026), with the shield cut out. Android draws
+  a notification's small icon from its shape alone, in one colour. The launcher
+  icon is a full picture with no see-through parts, so used here it came out as
+  a plain square.
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
@@ -13,5 +14,5 @@
     <path
         android:fillColor="#FFFFFFFF"
         android:fillType="evenOdd"
-        android:pathData="M12,2 L4,5 V11 C4,16 7.4,20.7 12,22 C16.6,20.7 20,16 20,11 V5 Z M10.6,15.6 L7.4,12.4 L8.8,11 L10.6,12.8 L15.2,8.2 L16.6,9.6 Z" />
+        android:pathData="M 12,2 C 7.45,2 3.86,5.59 3.86,10.14 C 3.86,15.77 12,22 12,22 C 12,22 20.14,15.77 20.14,10.14 C 20.14,5.59 16.55,2 12,2 Z M 12,6.07 L 15.59,7.39 V 10.38 C 15.59,12.66 14.1,14.22 12,15.17 C 9.9,14.22 8.41,12.66 8.41,10.38 V 7.39 Z" />
 </vector>

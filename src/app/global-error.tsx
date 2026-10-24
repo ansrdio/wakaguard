@@ -29,14 +29,14 @@ export default function AppError({ error }: { error: Error & { digest?: string }
           justifyContent: 'center',
           padding: 24,
           textAlign: 'center',
-          background: '#f8fafc',
-          color: '#0f172a',
+          background: '#F6F5F0',
+          color: '#10231D',
           fontFamily: 'system-ui, -apple-system, sans-serif',
         }}
       >
         <div role="alert" style={{ maxWidth: 360 }}>
           <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>WakaGuard hit a problem</h1>
-          <p style={{ marginTop: 8, color: '#334155' }}>
+          <p style={{ marginTop: 8, color: '#34473F' }}>
             Reload to carry on. A trip that is running keeps running, and the people you chose are still told if you
             do not arrive.
           </p>
@@ -47,7 +47,7 @@ export default function AppError({ error }: { error: Error & { digest?: string }
               marginTop: 20,
               width: '100%',
               padding: '14px 0',
-              background: '#11763f',
+              background: '#176B4F',
               color: '#ffffff',
               border: 0,
               borderRadius: 16,

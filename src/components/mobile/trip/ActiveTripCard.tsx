@@ -239,7 +239,7 @@ export function ActiveTripCard({
               type="button"
               onClick={onEditVehicle}
               disabled={processing}
-              className="flex-shrink-0 text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline disabled:opacity-50"
+              className="relative after:absolute after:-inset-x-2 after:-inset-y-3.5 flex-shrink-0 text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline disabled:opacity-50"
             >
               {vehicle ? 'Change' : 'Add'}
             </button>
@@ -341,7 +341,7 @@ export function ActiveTripCard({
                 type="button"
                 onClick={() => onExtend(option.minutes)}
                 disabled={processing}
-                className={`py-3 rounded-xl text-sm font-semibold border transition-colors disabled:opacity-50 ${
+                className={`min-h-12 py-3 rounded-xl text-sm font-semibold border transition-colors disabled:opacity-50 ${
                   shortOfTime
                     ? 'bg-amber-50 border-amber-400 text-amber-900 hover:bg-amber-100 dark:bg-amber-950 dark:border-amber-600 dark:text-amber-200'
                     : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-700'
@@ -355,7 +355,7 @@ export function ActiveTripCard({
             type="button"
             onClick={onMoreTime}
             disabled={processing}
-            className={`mt-2 w-full py-2.5 rounded-xl text-sm font-semibold border transition-colors disabled:opacity-50 ${
+            className={`mt-2 w-full min-h-12 py-2.5 rounded-xl text-sm font-semibold border transition-colors disabled:opacity-50 ${
               shortOfTime
                 ? 'bg-amber-50 border-amber-400 text-amber-900 hover:bg-amber-100 dark:bg-amber-950 dark:border-amber-600 dark:text-amber-200'
                 : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-700'

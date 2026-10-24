@@ -26,10 +26,10 @@ export interface TripMapProps {
   route?: { lat: number; lng: number }[] | null;
 }
 
-const BRAND = '#11763f';
+const BRAND = '#176B4F';
 /** The destination's pin, in the road report pin's orange */
 const DESTINATION = '#C2410C';
-const STALE = '#64748b';
+const STALE = '#63746B';
 
 const EDGE = 48;
 
@@ -114,7 +114,7 @@ export default function TripMap({ path, latest, stale = false, topInset = 0, des
         {route && route.length > 1 && (
           <Polyline
             positions={route.map((p) => [p.lat, p.lng] as [number, number])}
-            pathOptions={{ color: '#64748b', weight: 5, opacity: 0.55, dashArray: '2 9', lineCap: 'round' }}
+            pathOptions={{ color: STALE, weight: 5, opacity: 0.55, dashArray: '2 9', lineCap: 'round' }}
           />
         )}
 

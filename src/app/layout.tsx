@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter } from 'next/font/google';
 import './globals.css';
 import 'leaflet/dist/leaflet.css';
 import { AuthProvider } from '@/components/AuthProvider';
@@ -8,10 +7,11 @@ import { NativeSetup } from '@/components/NativeSetup';
 import { ErrorReporting } from '@/components/ErrorReporting';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { IN_APP_SCRIPT } from '@/lib/frontPage';
-
-const inter = Inter({ subsets: ['latin'] });
+import { APP_URL } from '@/lib/appUrl';
 
 export const metadata: Metadata = {
+  // Link previews need full addresses for their picture
+  metadataBase: new URL(APP_URL),
   title: 'WakaGuard - Travel Safety',
   description: 'Start a trip before you travel. If you do not arrive, WakaGuard texts the people you chose with your last known location.',
   manifest: '/manifest.json',
@@ -28,16 +28,19 @@ export const metadata: Metadata = {
     siteName: 'WakaGuard',
     title: 'WakaGuard - Travel Safety',
     description: 'Start a trip before you travel. If you do not arrive, WakaGuard texts the people you chose with your last known location.',
+    // The logo card shown when a trip link or the website is shared (build 25)
+    images: [{ url: '/og-image.png', width: 1200, height: 630, alt: 'WakaGuard' }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'WakaGuard - Travel Safety',
     description: 'Start a trip before you travel. If you do not arrive, WakaGuard texts the people you chose with your last known location.',
+    images: ['/og-image.png'],
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: '#1e2a4a',
+  themeColor: '#10231D',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
@@ -60,7 +63,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
-      <body className={`${inter.className} min-h-screen bg-slate-50 dark:bg-dark-bg transition-colors`} suppressHydrationWarning>
+      <body className="min-h-screen bg-slate-50 dark:bg-dark-bg transition-colors" suppressHydrationWarning>
         <NativeSetup />
         <ErrorReporting />
         <ThemeProvider>
