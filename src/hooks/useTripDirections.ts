@@ -4,12 +4,14 @@ import { useEffect, useRef, useState } from 'react';
 import { guide, Guidance, LatLng, OFF_ROUTE_FIXES, Route, routeProfile } from '@/lib/directions';
 import { fetchRoute, forgetTripRoute, keepTripRoute, keptTripRoute } from '@/lib/directionsFetch';
 import { whereThePhoneIs } from '@/lib/reportDistance';
+import type { DirectionsVoice } from '@/hooks/useDirectionsVoice';
 
 export type TripDirections =
   | { state: 'off' }
   | { state: 'finding' }
   | { state: 'none' }
-  | { state: 'ready'; route: Route; guidance: Guidance | null; rerouting: boolean };
+  // `voice` is added by the trip screen when spoken directions are on (useDirectionsVoice)
+  | { state: 'ready'; route: Route; guidance: Guidance | null; rerouting: boolean; voice?: DirectionsVoice };
 
 /** A new route is asked for at most this often when the traveller keeps leaving it */
 const REROUTE_GAP_MS = 30000;

@@ -53,6 +53,8 @@ import { shouldAskAfterTrip } from '@/lib/keepRunningPermission';
 import { keepTripRoute } from '@/lib/directionsFetch';
 import { routeToStore } from '@/lib/directions';
 import { useTripDirections } from '@/hooks/useTripDirections';
+import { useDirectionsVoice } from '@/hooks/useDirectionsVoice';
+import { primeSpeech, voiceMuted } from '@/lib/speech';
 import { useAppConfig } from '@/hooks/useAppConfig';
 import { readPoint } from '@/lib/destinationPoint';
 import { pickPhoneContact } from '@/lib/contactPicker';
@@ -130,13 +132,20 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
   const scrollRef = useRef<HTMLDivElement>(null);
   const activeTripId = activeTrip?.id ?? null;
   // Directions (Beta, build 25): only on the phone sending this trip's location
-  const directionsOn = useAppConfig()?.directions === true;
+  const appConfig = useAppConfig();
+  const directionsOn = appConfig?.directions === true;
   const tripDirections = useTripDirections({
     tripId: activeTripId,
     destination: readPoint(activeTrip?.destinationPoint),
     travelMode: activeTrip?.travelMode ?? null,
     enabled: directionsOn && !!activeTrip && sendsTripLocation(activeTrip.trackingDeviceId, getDeviceId()),
   });
+  // Spoken too, with the second switch on (piece 5); the panel gets the mute button
+  const directionsVoiceOn = appConfig?.directionsVoice === true;
+  const directionsVoice = useDirectionsVoice(tripDirections, directionsVoiceOn);
+  const shownDirections = tripDirections.state === 'ready' && directionsVoice
+    ? { ...tripDirections, voice: directionsVoice }
+    : tripDirections;
   // The route goes on the trip, and the server puts it on the page contacts open
   const plannedRoute = tripDirections.state === 'ready' ? tripDirections.route : null;
   const storedOverview = activeTrip?.route?.overview ?? null;
@@ -354,6 +363,8 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
     ?? (isTravelMode(activeTrip?.travelMode) ? activeTrip.travelMode : rememberedMode);
 
   const handleStartTrip = async (request: StartTripRequest) => {
+    // Still inside the tap, so an iPhone will speak the directions later
+    if (directionsVoiceOn && request.destinationPoint && !voiceMuted()) primeSpeech();
     if (!requireAccount('start safe trip')) return;
     if (!uid || isAnonymous) return;
     setRememberedMode(request.travelMode);
@@ -979,7 +990,7 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
           onTextOkay={handleCheckinSms}
           onReportRoad={onReportRoad}
           onSOS={() => setActiveModal('sos')}
-          directions={tripDirections}
+          directions={shownDirections}
         />
       ) : savedAlertName === null ? (
         <div className="rounded-3xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-10 flex justify-center">
@@ -1187,7 +1198,7 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
             startEnding();
           }}
           onExtend={handleExtendTrip}
-          directions={tripDirections}
+          directions={shownDirections}
         />
       )}
 

@@ -83,4 +83,12 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <!-- Android's own "Allow WakaGuard to always run in the background?" (KeepRunningPlugin.java) -->
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+
+    <!-- From Android 11 an app must name the outside services it uses: the
+         phone's text-to-speech, for spoken directions (SpeakPlugin.java) -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE" />
+        </intent>
+    </queries>
 </manifest>

@@ -13,6 +13,7 @@ import {
   parseRoute,
   placeOnRoute,
   routeProfile,
+  spokenNextTurn,
   suggestedTripMinutes,
   OFF_ROUTE_M,
 } from '../../src/lib/directions';
@@ -107,6 +108,30 @@ test('each spoken line is due once, when its mark is reached', () => {
   assert.deepEqual(linesDue(route, g, new Set([due[0].key])), [], 'not said twice');
 });
 
+test('a line whose mark was passed long ago is not said with its wrong distance', () => {
+  const second = route.steps[1];
+  const line = second.voice.find((v) => v.text.startsWith('In 400 meters'))!;
+  // 150 m from the turn, the phone quiet since before the 400 m mark
+  const i = route.along.findIndex((m) => m >= second.endM - 150);
+  const g = guide(route, route.points[i]);
+  assert.ok(line.atRemainingM - g.stepLeftM > 100);
+  assert.ok(!linesDue(route, g, new Set()).some((d) => d.text === line.text));
+});
+
+test('a line skipped because a later one was due is never read out after it', () => {
+  const second = route.steps[1];
+  const lines = [...second.voice].sort((a, b) => b.atRemainingM - a.atRemainingM);
+  assert.ok(lines.length >= 2, 'the fixture has several lines for this turn');
+  // Just past the last line's mark, as if the phone had been quiet until then
+  const target = second.endM - lines[lines.length - 1].atRemainingM + 2;
+  const i = route.along.findIndex((m) => m >= target);
+  const g = guide(route, route.points[i]);
+  const due = linesDue(route, g, new Set());
+  assert.equal(due.length, 1);
+  assert.equal(due[0].text, lines[lines.length - 1].text, 'only the latest');
+  assert.deepEqual(linesDue(route, g, new Set([due[0].key])), [], 'the earlier ones are not said afterwards');
+});
+
 test('the suggested trip length adds a margin for traffic', () => {
   assert.equal(suggestedTripMinutes(1484), 40); // 25 min by Mapbox
   assert.equal(suggestedTripMinutes(300), 15); // never under 15
@@ -118,4 +143,13 @@ test('distances read the way people say them', () => {
   assert.equal(formatDistance(437), '440 m');
   assert.equal(formatDistance(1520), '1.5 km');
   assert.equal(formatDistance(15898), '16 km');
+});
+
+test('the next turn is spoken with its distance', () => {
+  const g = { nextInstruction: 'Make a left U-turn onto E1/Lagos-Ibadan Expressway, if permitted.', toNextM: 16240, remainingM: 40000, offRoute: false, arrived: false, stepIndex: 3, stepLeftM: 16240 };
+  assert.equal(spokenNextTurn(g), 'In 16 kilometers, Make a left U-turn onto E1, Lagos-Ibadan Expressway, if permitted.');
+  assert.equal(spokenNextTurn({ ...g, nextInstruction: 'Turn left.', toNextM: 1260 }), 'In 1.3 kilometers, Turn left.');
+  assert.equal(spokenNextTurn({ ...g, nextInstruction: 'Turn left.', toNextM: 1000 }), 'In 1 kilometer, Turn left.');
+  assert.equal(spokenNextTurn({ ...g, nextInstruction: 'Turn left.', toNextM: 230 }), 'In 250 meters, Turn left.');
+  assert.equal(spokenNextTurn({ ...g, nextInstruction: 'Turn left.', toNextM: 12 }), 'In 50 meters, Turn left.');
 });

@@ -78,6 +78,12 @@ export const OFF_ROUTE_M = 60;
 export const OFF_ROUTE_FIXES = 2;
 /** Closer to the destination than this counts as arrived (the trip is never ended for them) */
 export const ARRIVED_M = 30;
+/**
+ * A spoken line whose mark was passed by more than this, or by more than half
+ * its distance, is skipped: after a gap in positions "In 400 metres" would be
+ * said 100 m from the turn
+ */
+export const LATE_LINE_M = 100;
 /** The stored outline is refused above this length; a Lagos to Abuja route is a few thousand */
 export const MAX_OVERVIEW_LENGTH = 20000;
 
@@ -264,10 +270,16 @@ export function guide(route: Route, here: LatLng): Guidance {
 export function linesDue(route: Route, g: Guidance, said: ReadonlySet<string>): { key: string; text: string }[] {
   const step = route.steps[g.stepIndex];
   if (!step || g.offRoute) return [];
-  const due = step.voice
-    .filter((v) => g.stepLeftM <= v.atRemainingM + 5)
-    .map((v) => ({ key: `${g.stepIndex}:${Math.round(v.atRemainingM)}`, text: v.text }))
-    .filter((v) => !said.has(v.key));
+  const key = (v: RouteVoiceLine) => `${g.stepIndex}:${Math.round(v.atRemainingM)}`;
+  // Furthest first, the order they are said in
+  const lines = [...step.voice].sort((a, b) => b.atRemainingM - a.atRemainingM);
+  // Once a line has been said, the ones before it count as said too, so a line
+  // skipped below is never read out after a later one
+  const saidUpTo = Math.min(Infinity, ...lines.filter((v) => said.has(key(v))).map((v) => v.atRemainingM));
+  const late = (v: RouteVoiceLine) => v.atRemainingM - g.stepLeftM > Math.max(LATE_LINE_M, v.atRemainingM / 2);
+  const due = lines
+    .filter((v) => v.atRemainingM < saidUpTo && g.stepLeftM <= v.atRemainingM + 5 && !late(v))
+    .map((v) => ({ key: key(v), text: v.text }));
   // Only the latest of several due at once: arriving late at a mark should not read out the whole list
   return due.length > 1 ? [due[due.length - 1]] : due;
 }
@@ -287,4 +299,19 @@ export function formatDistance(metres: number): string {
   if (metres < 1000) return `${Math.max(10, Math.round(metres / 10) * 10)} m`;
   const km = metres / 1000;
   return km < 10 ? `${(Math.round(km * 10) / 10).toString()} km` : `${Math.round(km)} km`;
+}
+
+/**
+ * The next turn as a spoken line, with its distance in Mapbox's own style
+ * ("In 16 kilometers, Make a left U-turn onto E1, Lagos-Ibadan Expressway."),
+ * for when the voice is turned back on between Mapbox's lines
+ */
+export function spokenNextTurn(g: Guidance): string {
+  const m = g.toNextM;
+  const km = Number((m / 1000).toFixed(m < 10000 ? 1 : 0));
+  const distance = m < 1000
+    ? `${Math.max(50, Math.round(m / 50) * 50)} meters`
+    : `${km} ${km === 1 ? 'kilometer' : 'kilometers'}`;
+  const turn = g.nextInstruction.replace(/\s*\/\s*/g, ', ');
+  return `In ${distance}, ${turn}`;
 }

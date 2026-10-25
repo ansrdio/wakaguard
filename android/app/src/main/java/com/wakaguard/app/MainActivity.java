@@ -22,6 +22,7 @@ public class MainActivity extends BridgeActivity {
         // The app's own plugins have to be named before the bridge starts
         registerPlugin(ContactPickerPlugin.class);
         registerPlugin(KeepRunningPlugin.class);
+        registerPlugin(SpeakPlugin.class);
         super.onCreate(savedInstanceState);
         // The trip alerts channel exists from the first launch, so it is in the
         // phone's settings and ready before any reminder arrives

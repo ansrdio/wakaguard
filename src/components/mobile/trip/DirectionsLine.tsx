@@ -1,8 +1,9 @@
 'use client';
 
-import { ArrowUp, CornerUpLeft, CornerUpRight, Flag, Loader2, Navigation, RotateCw } from 'lucide-react';
+import { ArrowUp, CornerUpLeft, CornerUpRight, Flag, Loader2, Navigation, RotateCw, Volume2, VolumeX } from 'lucide-react';
 import { formatDistance } from '@/lib/directions';
 import type { TripDirections } from '@/hooks/useTripDirections';
+import type { DirectionsVoice } from '@/hooks/useDirectionsVoice';
 
 /** An arrow for the turn, read from Mapbox's own wording */
 function TurnIcon({ instruction, arrived }: { instruction: string; arrived: boolean }) {
@@ -17,6 +18,22 @@ function TurnIcon({ instruction, arrived }: { instruction: string; arrived: bool
           ? CornerUpRight
           : ArrowUp;
   return <Icon className="w-6 h-6" aria-hidden="true" />;
+}
+
+/** Mutes or unmutes the spoken directions (piece 5); the choice is kept on the phone */
+function VoiceButton({ voice }: { voice: DirectionsVoice }) {
+  const Icon = voice.muted ? VolumeX : Volume2;
+  return (
+    <button
+      type="button"
+      onClick={voice.toggle}
+      aria-pressed={!voice.muted}
+      aria-label={voice.muted ? 'Speak the directions' : 'Mute the spoken directions'}
+      className="w-12 h-12 flex-shrink-0 rounded-xl flex items-center justify-center text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600"
+    >
+      <Icon className="w-5 h-5" aria-hidden="true" />
+    </button>
+  );
 }
 
 /**
@@ -48,11 +65,17 @@ export function DirectionsLine({ directions, className = '' }: { directions: Tri
     );
   }
 
-  const { route, guidance, rerouting } = directions;
+  const { route, guidance, rerouting, voice } = directions;
+  const ready = (content: React.ReactNode) => (
+    <div className={`flex items-center gap-2 ${className}`}>
+      <div className="flex-1 min-w-0">{content}</div>
+      {voice && <VoiceButton voice={voice} />}
+    </div>
+  );
 
   if (rerouting) {
-    return (
-      <div className={`flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200 ${className}`} role="status">
+    return ready(
+      <div className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200" role="status">
         <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
         You left the route. Finding a new one&hellip; {beta}
       </div>
@@ -60,8 +83,8 @@ export function DirectionsLine({ directions, className = '' }: { directions: Tri
   }
 
   if (!guidance) {
-    return (
-      <div className={`flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300 ${className}`}>
+    return ready(
+      <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
         <Navigation className="w-4 h-4" aria-hidden="true" />
         Directions ready: {formatDistance(route.distanceM)} to go. Waiting for your position&hellip; {beta}
       </div>
@@ -69,8 +92,8 @@ export function DirectionsLine({ directions, className = '' }: { directions: Tri
   }
 
   if (guidance.arrived) {
-    return (
-      <div className={`flex items-center gap-3 ${className}`} role="status">
+    return ready(
+      <div className="flex items-center gap-3" role="status">
         <span className="w-10 h-10 rounded-xl bg-brand-600 text-white flex items-center justify-center flex-shrink-0">
           <Flag className="w-5 h-5" aria-hidden="true" />
         </span>
@@ -81,8 +104,8 @@ export function DirectionsLine({ directions, className = '' }: { directions: Tri
     );
   }
 
-  return (
-    <div className={`flex items-center gap-3 ${className}`} role="status" aria-live="polite">
+  return ready(
+    <div className="flex items-center gap-3" role="status" aria-live="polite">
       <span className="w-10 h-10 rounded-xl bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 flex items-center justify-center flex-shrink-0">
         <TurnIcon instruction={guidance.nextInstruction} arrived={false} />
       </span>
