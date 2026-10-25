@@ -1193,6 +1193,42 @@ store uploads.
           the page, and the page showed the dotted line and the "Planned route" row on a phone-sized screen.
           After "I've arrived" the route was gone from the trip and the page, and the link said the trip is no
           longer shared.
+      - **Piece 5 done in code 24 October:** spoken directions, behind the second switch `directionsVoice`.
+        - **What is said:**
+          - Mapbox's own lines as each mark is reached ("In 400 meters, Turn left onto Hughes Avenue.").
+          - "You left the route. Finding a new one." when a new route is fetched.
+          - "You are at your destination. Tap I've arrived to end the trip." once on arrival.
+          - Only while the screen is on, like the directions, and never while off the route.
+        - **Mute:** a speaker button on the directions panel (trip card and trip map), 48 × 48. The choice is
+          kept on the phone. Turning it back on says the next turn with its distance ("In 13 kilometers, Make a
+          left U-turn onto E1, Lagos-Ibadan Expressway, if permitted."), unless a line is due anyway.
+        - **How it speaks:**
+          - `src/lib/speech.ts`.
+          - iPhone and browsers: the Web Speech API, Nigerian English voice if the phone has one, else British.
+            The tap that starts a trip (and the speaker button) "primes" speech, because an iPhone only lets a
+            page speak after a tap.
+          - Android: the WebView's speech says nothing, so the new `SpeakPlugin.java` uses the phone's own
+            text-to-speech (en-NG, else UK). It lowers music while speaking (navigation audio, transient duck).
+            The manifest now names the text-to-speech service (`<queries>`, needed from Android 11). Compiles.
+          - `src/hooks/useDirectionsVoice.ts` decides what to say.
+        - **Two fixes to piece 1's `linesDue`:**
+          - A line skipped because a later one was due could have been read out after it. Lines up to the last
+            one said now count as said.
+          - After a gap in positions, "In 400 meters" could be said 120 m from the turn. A line whose mark was
+            passed by more than 100 m, or by more than half its distance, is now skipped.
+        - **Tests:** `speech.test.ts` (3), `directions.test.ts` (3 new). 343 unit tests pass.
+        - **Checked** in a phone-sized browser against the emulators with the real Mapbox key, the browser's
+          speech replaced by a recorder (nothing played aloud), on a pretend trip from Yaba (70 km route):
+          - the first line at the start ("Drive southeast. Then Turn left onto Murtula Muhammed Way.");
+          - each turn's lines in order, none repeated, out-of-date ones skipped;
+          - leaving the route, then the new route's first line;
+          - mute: nothing said, the choice kept; unmute: one line;
+          - arrival: said once;
+          - with `directionsVoice` off: silent and no button, the written directions unchanged.
+        - **Still to check on real phones (build 25):**
+          - Android: the plugin speaks and lowers music.
+          - iPhone: the WebView speaks after the priming tap, and whether the silent switch mutes it.
+          - Both: the voice stops when the screen goes off.
 
 - [x] Build 25 (done in code 23 October; checked on the owner's Galaxy the same evening). Fewer trips to Settings for "Keep WakaGuard running" (a
       tester's problem report, 18 October: could the steps be permissions
