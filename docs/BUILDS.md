@@ -1227,6 +1227,27 @@ store uploads.
           - with `directionsVoice` off: silent and no button, the written directions unchanged.
         - **Still to check on real phones (build 25):**
           - Android: the plugin speaks and lowers music.
+      - **Two extras from the design PDF, done in code 24 October** (the owner: "yes add both extras to build 25"):
+        - **The check-in time under the directions.** Both screens with the panel already show the arrival time
+          just above it, so the panel adds what they lack:
+          - when contacts are told: "Check in by 11:18 PM. Your contacts are told from 11:33 PM.";
+          - in amber, when the rest of the route will not fit: "At this pace you will arrive after 8:58 PM. Add
+            time, or your contacts are told from 9:13 PM." The estimate is Mapbox's time for the distance left,
+            plus a third for traffic (`minutesToGo` in `src/lib/directions.ts`);
+          - "You are past your … check-in" between the check-in time and the alert;
+          - nothing once contacts are being told, which the trip card already shows.
+          - "Add time" opens the any-amount sheet, which is now drawn above the full-screen trip map
+            (`AddTimeSheet` in a portal; it used to open underneath).
+          - The trip map's card measures its own height, so the map keeps the position clear of it.
+        - **"Stop directions"** hides the directions while the trip, its location sharing and its alerts carry
+          on. The panel then reads "Directions stopped. Your trip carries on." with "Show directions". It stays
+          stopped if the app is reopened, and is forgotten when the trip ends. The voice stops with it.
+        - **Checked** in a phone-sized browser against the emulators, on a 30-minute trip with a 67 km route:
+          - the amber warning, then the normal line after adding 2 h 20 min from the trip map's sheet;
+          - stopping: no more spoken lines, the trip still running;
+          - still stopped after a reload, and back with "Show directions";
+          - both kept values cleared after "I've arrived".
+          - 344 unit tests pass (one new, for `minutesToGo`).
           - iPhone: the WebView speaks after the priming tap, and whether the silent switch mutes it.
           - Both: the voice stops when the screen goes off.
 
