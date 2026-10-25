@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { AlertTriangle, Check, Lightbulb, Loader2, MapPin, Navigation, Plus, UserPlus } from 'lucide-react';
+import { AlertTriangle, Check, History, Lightbulb, Loader2, MapPin, Navigation, Plus, UserPlus } from 'lucide-react';
 import {
   ALERT_GRACE_MINUTES,
   ARRIVAL_PRESETS,
@@ -20,7 +20,8 @@ import {
   validateTripPlan,
 } from '@/lib/tripPlanning';
 import { askedForNoTexts, canBeTexted } from '@/lib/contactPhone';
-import { TRAVEL_MODES, TravelMode, lastTravelMode, rememberTravelMode, tipBeforeSettingOff } from '@/lib/travelMode';
+import { TRAVEL_MODES, TravelMode, isTravelMode, lastTravelMode, rememberTravelMode, tipBeforeSettingOff } from '@/lib/travelMode';
+import type { UsualTrip } from '@/lib/usualTrips';
 import { TravelPicture } from '@/components/pictures/Pictures';
 import { VehicleFields } from '@/components/mobile/trip/VehicleFields';
 import { readVehicle, Vehicle } from '@/lib/vehicle';
@@ -83,6 +84,8 @@ interface StartTripFormProps {
   onAddContact: () => void;
   onPickFromPhone: () => void;
   onManageContacts: () => void;
+  /** Places they went before, to fill the form in one tap (lib/usualTrips.ts) */
+  usualTrips?: UsualTrip[];
 }
 
 const CUSTOM_HOURS = Array.from({ length: MAX_TRIP_MINUTES / 60 + 1 }, (_, h) => h);
@@ -111,6 +114,7 @@ export function StartTripForm({
   onAddContact,
   onPickFromPhone,
   onManageContacts,
+  usualTrips = [],
 }: StartTripFormProps) {
   const [destination, setDestination] = useState('');
   // "Set it on the map": optional, alongside the typed destination
@@ -214,6 +218,24 @@ export function StartTripForm({
     if (target instanceof HTMLInputElement) target.focus({ preventScroll: true });
   }, [refusals]);
 
+  // Repeat a usual trip (build 25): fills where, how long and how, then shows
+  // the Start button with its arrival time, so nothing starts unseen
+  const startRef = useRef<HTMLButtonElement>(null);
+  const [chosenUsual, setChosenUsual] = useState<string | null>(null);
+  const usualText = (trip: UsualTrip) => (trip.destination === 'Pin on the map' ? '' : trip.destination);
+  const chooseUsualTrip = (trip: UsualTrip) => {
+    namingFor.current = null;
+    setNamingPin(false);
+    setPinName(null);
+    setDestination(usualText(trip));
+    setDestinationPoint(trip.point);
+    setDurationMinutes(trip.minutes);
+    setCustomOpen(false);
+    if (isTravelMode(trip.travelMode)) setTravelMode(trip.travelMode);
+    setChosenUsual(trip.key);
+    setTimeout(() => startRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 50);
+  };
+
   const handleSubmit = () => {
     setSubmitted(true);
     if (Object.keys(validateTripPlan(plan)).length > 0) {
@@ -254,6 +276,40 @@ export function StartTripForm({
         </p>
         <WeatherLine ahead={weather} travelMode={travelMode} className="mt-3" />
       </div>
+
+      {usualTrips.length > 0 && (
+        <div>
+          <p className={labelClass} id="usual-trips-label">Your usual trips</p>
+          <div className="flex flex-wrap gap-2" role="group" aria-labelledby="usual-trips-label">
+            {usualTrips.map((trip) => {
+              // Not shown as chosen once they change where or how long
+              const chosen = chosenUsual === trip.key && durationMinutes === trip.minutes && destination === usualText(trip);
+              const mode = TRAVEL_MODES.find((m) => m.id === trip.travelMode);
+              return (
+                <button
+                  key={trip.key}
+                  type="button"
+                  onClick={() => chooseUsualTrip(trip)}
+                  aria-pressed={chosen}
+                  className={`min-h-12 max-w-full px-3 py-2 rounded-xl text-left flex items-center gap-2 border transition-colors ${
+                    chosen
+                      ? 'bg-brand-600 border-brand-600 text-white'
+                      : 'bg-slate-100 dark:bg-slate-700 border-transparent text-slate-800 dark:text-slate-100 hover:bg-slate-200 dark:hover:bg-slate-600'
+                  }`}
+                >
+                  <History className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+                  <span className="min-w-0">
+                    <span className="block text-sm font-semibold truncate max-w-[13rem]">{trip.destination}</span>
+                    <span className={`block text-xs ${chosen ? 'text-white/90' : 'text-slate-600 dark:text-slate-300'}`}>
+                      {formatDuration(trip.minutes)}{mode ? ` · ${mode.short}` : ''}
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Where */}
       <div>
@@ -717,6 +773,7 @@ export function StartTripForm({
       )}
 
       <button
+        ref={startRef}
         type="button"
         onClick={handleSubmit}
         disabled={processing}

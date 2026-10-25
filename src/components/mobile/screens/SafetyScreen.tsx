@@ -54,6 +54,7 @@ import { keepTripRoute } from '@/lib/directionsFetch';
 import { routeToStore } from '@/lib/directions';
 import { useTripDirections } from '@/hooks/useTripDirections';
 import { useDirectionsVoice } from '@/hooks/useDirectionsVoice';
+import { useUsualTrips } from '@/hooks/useUsualTrips';
 import { primeSpeech, voiceMuted } from '@/lib/speech';
 import { useAppConfig } from '@/hooks/useAppConfig';
 import { readPoint } from '@/lib/destinationPoint';
@@ -140,6 +141,8 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
     travelMode: activeTrip?.travelMode ?? null,
     enabled: directionsOn && !!activeTrip && sendsTripLocation(activeTrip.trackingDeviceId, getDeviceId()),
   });
+  // Places they went before, offered on the start form; read again after each trip
+  const usualTrips = useUsualTrips(isAnonymous ? null : uid, !activeTrip);
   // Spoken too, with the second switch on (piece 5); the panel gets the mute button
   const directionsVoiceOn = appConfig?.directionsVoice === true;
   const directionsVoice = useDirectionsVoice(tripDirections, directionsVoiceOn);
@@ -1010,6 +1013,7 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
           onAddContact={handleAddContact}
           onPickFromPhone={handlePickFromPhone}
           onManageContacts={() => setActiveModal('contacts')}
+          usualTrips={usualTrips}
         />
       )}
 

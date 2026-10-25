@@ -965,11 +965,30 @@ store uploads.
       passed here earlier."; and the weekly ranking leaves it out ("posted from
       far away"). Unknown position: no mark. The author cannot remove the mark
       (rules). `src/lib/reportDistance.ts`
-- [ ] Build 25 (moved back from after launch on 17 October, on the owner's
-      word, after the tester survey: "I forgot to start a trip" was the most
-      common reason for using WakaGuard less, 4 of 9). Repeat a usual trip:
-      one tap to start a trip made before, with the time it usually takes
-      filled in
+- [x] Build 25 (done in code 25 October; not yet on a phone; moved back from
+      after launch on 17 October, on the owner's word, after the tester
+      survey: "I forgot to start a trip" was the most common reason for using
+      WakaGuard less, 4 of 9). Repeat a usual trip: one tap to start a trip
+      made before, with the time it usually takes filled in. The start form
+      shows "Your usual trips", up to three places from the traveller's own
+      last 40 trips (read only, nothing new stored): trips ended with "I've
+      arrived" in the last 60 days, not tests; trips cancelled or closed by the
+      server are left out. The same pin within 300 m, or without pins the same
+      typed name, is one place, named as on its latest trip ("Pin on the map"
+      for a pin with no name). Most trips first, then most recent. The length
+      is the middle of what the latest five took, a third more and 5 minutes
+      (the directions' margin, so it errs long rather than alert contacts
+      early), rounded up to 5 minutes, 15 minutes to 20 hours; with no end
+      time, the length they chose. A tap fills in where (and the pin), how long
+      and how they travel, then scrolls to Start with its arrival time; it
+      never starts the trip itself. Not shown while signed out or on a trip.
+      `src/lib/usualTrips.ts`, `src/hooks/useUsualTrips.ts`. Checked in a
+      phone-sized browser against the emulators with 12 past trips: the list
+      was Office (4 trips, 1 h 5 min, Okada), Home (1 h 30 min, Bus), Church
+      (35 min, Car); the test, cancelled, forgotten and 70-day-old trips and a
+      fourth place were left out; each tap filled the right place, pin, length
+      and travel mode (a place with no pin cleared the last one's), and the
+      highlight went off when the place was edited
 - [x] Build 24 (done in code 18 October; not yet on a phone). "Stop texting
       me" for contacts, proved by the trip link (the owner chose this on 18
       October over a code sent by text, which our sender is not approved for).
