@@ -14,7 +14,7 @@ import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
     // Shown behind the status and navigation bars. Matches backgroundColor in capacitor.config.ts.
-    private static final int BARS_BACKGROUND = Color.parseColor("#1e293b");
+    private static final int BARS_BACKGROUND = Color.parseColor("#10231D");
 
     @Override
     public void onCreate(Bundle savedInstanceState) {

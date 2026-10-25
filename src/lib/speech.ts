@@ -17,6 +17,7 @@ import { Capacitor, registerPlugin } from '@capacitor/core';
 interface SpeakPlugin {
   speak(options: { text: string }): Promise<void>;
   stop(): Promise<void>;
+  volume(): Promise<{ level: number; max: number }>;
 }
 
 const Speak = registerPlugin<SpeakPlugin>('Speak');
@@ -83,6 +84,19 @@ export function primeSpeech(): void {
   const silent = new SpeechSynthesisUtterance(' ');
   silent.volume = 0;
   window.speechSynthesis.speak(silent);
+}
+
+/**
+ * True when the phone's media volume, which the spoken lines use, is all the way
+ * down. Null where it cannot be read: iPhones and browsers do not say.
+ */
+export async function mediaVolumeOff(): Promise<boolean | null> {
+  if (!androidApp() || !Capacitor.isPluginAvailable('Speak')) return null;
+  try {
+    return (await Speak.volume()).level === 0;
+  } catch {
+    return null;
+  }
 }
 
 export function stopSpeaking(): void {

@@ -173,6 +173,11 @@ export function DirectionsLine({ directions, deadline = null, className = '' }: 
         <div className="flex-1 min-w-0">{content}</div>
         {voice && <VoiceButton voice={voice} />}
       </div>
+      {voice && !voice.muted && voice.volumeOff && (
+        <p className="mt-2 text-sm font-medium text-amber-800 dark:text-amber-300" role="status">
+          Your media volume is off. Turn it up to hear the directions.
+        </p>
+      )}
       {!guidance?.arrived && <DirectionsFooter deadline={deadline} route={route} guidance={guidance} onStop={stop} />}
     </div>
   );

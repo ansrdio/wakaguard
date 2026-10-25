@@ -2,13 +2,18 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { linesDue, Route, spokenNextTurn } from '@/lib/directions';
-import { canSpeak, primeSpeech, setVoiceMuted, speak, stopSpeaking, voiceMuted } from '@/lib/speech';
+import { canSpeak, mediaVolumeOff, primeSpeech, setVoiceMuted, speak, stopSpeaking, voiceMuted } from '@/lib/speech';
 import type { TripDirections } from '@/hooks/useTripDirections';
 
 export interface DirectionsVoice {
   muted: boolean;
   toggle: () => void;
+  /** The phone's media volume is at 0, so nothing would be heard (Android only) */
+  volumeOff: boolean;
 }
+
+/** How often the media volume is looked at while directions are spoken */
+const VOLUME_CHECK_MS = 10000;
 
 /** Said once when the traveller reaches the destination; matches the panel */
 export const ARRIVED_LINE = "You are at your destination. Tap I've arrived to end the trip.";
@@ -74,6 +79,28 @@ export function useDirectionsVoice(directions: TripDirections, enabled: boolean)
   useEffect(() => {
     if (!active) stopSpeaking();
   }, [active]);
+
+  // A media volume at 0 says nothing aloud: look at it while the voice is on
+  const [volumeReadOff, setVolumeReadOff] = useState(false);
+  useEffect(() => {
+    if (!active) return;
+    let live = true;
+    const check = () => {
+      if (document.visibilityState !== 'visible') return;
+      void mediaVolumeOff().then((off) => {
+        if (live) setVolumeReadOff(off === true);
+      });
+    };
+    check();
+    const timer = setInterval(check, VOLUME_CHECK_MS);
+    document.addEventListener('visibilitychange', check);
+    return () => {
+      live = false;
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', check);
+    };
+  }, [active]);
+  const volumeOff = active && volumeReadOff;
   useEffect(() => {
     const onVisibility = () => {
       if (document.visibilityState !== 'visible') stopSpeaking();
@@ -98,5 +125,5 @@ export function useDirectionsVoice(directions: TripDirections, enabled: boolean)
     }
   }, [muted]);
 
-  return available ? { muted, toggle } : null;
+  return available ? { muted, toggle, volumeOff } : null;
 }

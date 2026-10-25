@@ -7,6 +7,7 @@ import android.media.AudioManager;
 import android.os.Build;
 import android.speech.tts.TextToSpeech;
 import android.speech.tts.UtteranceProgressListener;
+import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
@@ -85,6 +86,23 @@ public class SpeakPlugin extends Plugin {
             waiting = text;
         }
         call.resolve();
+    }
+
+    /**
+     * The media volume, which the spoken lines play at. Volume buttons pressed
+     * with nothing playing change the ringer instead, so it is easily left at 0
+     * (the owner's Galaxy, 24 October 2026: the directions spoke, silently).
+     */
+    @PluginMethod
+    public void volume(PluginCall call) {
+        if (audio == null) {
+            call.reject("No audio service");
+            return;
+        }
+        JSObject result = new JSObject();
+        result.put("level", audio.getStreamVolume(AudioManager.STREAM_MUSIC));
+        result.put("max", audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC));
+        call.resolve(result);
     }
 
     @PluginMethod
