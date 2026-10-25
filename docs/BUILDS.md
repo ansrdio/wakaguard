@@ -1181,7 +1181,8 @@ store uploads.
         - **The contacts' page** (`src/app/s/page.tsx`) draws it as the grey dotted line and adds a row:
           "Planned route · Beta · The grey dotted line on the map. They may go another way."
           `readRouteOutline` drops any point off the map, so a bad outline draws nothing.
-        - **Privacy page (draft, waiting for the owner's approval):** four lines in `src/app/privacy/page.tsx`:
+        - **Privacy page (approved by the owner on 24 October; goes live with the next website release, when its
+          "Last Updated" date changes):** four lines in `src/app/privacy/page.tsx`:
           the route stored with the trip; the dotted line on the trip page; deleted when the trip ends; Mapbox
           sees the two points and the IP address. The "Last Updated" date changes when it is published.
         - **Tests:** `functions/test/tripRoute.test.ts` (5: the app's stored route passes the server's check;
@@ -1796,6 +1797,7 @@ Changes that went live without an app build.
 
 | Date | What |
 |---|---|
+| Sat 24 Oct, night in Arizona | **Database rules only**, on the owner's word ("release the database rules"), from `4f4aabd` (unchanged since). Released ahead of build 25, as planned: `sharedTrips` may carry the planned `route` (written by the server only); `pushSubscriptions` may carry `webView`. Both are new optional fields, so phones on builds 24 and 24.1 are unaffected. Checked before release: 134 of 134 rule checks pass. **Not yet released:** `onTripUpdated` with `recordRoute` (the route on the contacts' page), a separate deploy on the owner's word; until then build 25 saves the route on the trip and the contacts' page simply shows none. Earlier the same evening, for the Galaxy test only: `config/app` `directions` and `directionsVoice` switched on, then removed again after the test |
 | Fri 23 Oct | Website only, on the owner's word ("commit, push and deploy the website"), from `afc70e2`: the Privacy page no longer mentions unsent report drafts kept on the device, and is dated 23 October. Checked live the same minute |
 | Mon 19 Oct | Website, on the owner's word, from `0d860e9`: map pictures now come from **Mapbox's business account** (`wakaguard`, made by the owner on Mapbox's invite), with its own public token, in place of the owner's personal account. Checked: the token is refused nowhere (the website, the iPhone and Android apps' addresses all get map pictures), the live site's code carries the business account, and the Nearby map draws. Phones on builds 23 and 24 keep the personal account's token until build 25, so it stays active there until then |
 | Mon 19 Oct, evening in Nigeria | Server: `onTripUpdated` only, on the owner's word, from `fa23071`: each running trip counts the positions it receives, with the first, the last and the longest silence between two. Checked live minutes later: the two trips then running (BrightEkpe, adex) each had their first position counted |
