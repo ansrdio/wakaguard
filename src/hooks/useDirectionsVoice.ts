@@ -8,7 +8,7 @@ import type { TripDirections } from '@/hooks/useTripDirections';
 export interface DirectionsVoice {
   muted: boolean;
   toggle: () => void;
-  /** The phone's media volume is at 0, so nothing would be heard (Android only) */
+  /** The phone's media volume is at 0, so nothing would be heard (phone apps from build 25) */
   volumeOff: boolean;
 }
 

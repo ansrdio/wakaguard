@@ -514,7 +514,8 @@ export function MobileHome({
     <div className="fixed inset-0 bg-slate-50 flex flex-col">
       {/* Top Bar */}
       <MobileTopBar
-        title={activeTab === 'safety' ? 'Safe Trip' : activeTab === 'map' ? 'Nearby' : 'Profile'}
+        // Each title matches its tab's name (the owner, 25 October 2026)
+        title={activeTab === 'safety' ? 'Trip' : activeTab === 'map' ? 'Nearby' : 'Profile'}
         showAreaControls={activeTab === 'map'}
         selectedState={selectedState}
         onStateClick={() => setShowStateSelector(true)}

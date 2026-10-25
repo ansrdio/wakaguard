@@ -1,11 +1,12 @@
 /**
  * @fileoverview Speaking the directions (Beta, build 25, piece 5)
  *
- * The iPhone app and browsers use the Web Speech API. Android's WebView has a
- * `speechSynthesis` that says nothing, so the Android app speaks through the
- * phone's own text-to-speech (android/app/src/main/java/com/wakaguard/app/
- * SpeakPlugin.java, from build 25). Lines are only spoken while the screen is
- * on, like the directions themselves.
+ * Both phone apps speak through the phone's own voice (SpeakPlugin.java and
+ * ios/App/App/SpeakPlugin.swift, from build 25): Android's WebView has a
+ * `speechSynthesis` that says nothing, and the iPhone's is muted by silent mode
+ * (the owner's iPhone 16, 25 October 2026), where navigation prompts should be
+ * heard. Browsers use the Web Speech API. Lines are only spoken while the screen
+ * is on, like the directions themselves.
  *
  * Only used while config/app `directionsVoice` is on (lib/appConfig.ts).
  *
@@ -28,13 +29,19 @@ function androidApp(): boolean {
   return Capacitor.getPlatform() === 'android';
 }
 
+/** The phone's own voice, in the Android and iPhone apps from build 25 */
+function nativeSpeech(): boolean {
+  return Capacitor.isNativePlatform() && Capacitor.isPluginAvailable('Speak');
+}
+
 function webSpeech(): boolean {
   return typeof window !== 'undefined' && 'speechSynthesis' in window && typeof SpeechSynthesisUtterance !== 'undefined';
 }
 
 /** False in Android builds before 25 and in browsers without speech */
 export function canSpeak(): boolean {
-  if (androidApp()) return Capacitor.isPluginAvailable('Speak');
+  if (nativeSpeech()) return true;
+  if (androidApp()) return false;
   return webSpeech();
 }
 
@@ -56,11 +63,11 @@ export function pickVoice<T extends VoiceInfo>(voices: readonly T[]): T | null {
 
 /** Says a line, cutting off one still being said */
 export function speak(text: string): void {
-  if (androidApp()) {
-    if (Capacitor.isPluginAvailable('Speak')) void Speak.speak({ text }).catch(() => undefined);
+  if (nativeSpeech()) {
+    void Speak.speak({ text }).catch(() => undefined);
     return;
   }
-  if (!webSpeech()) return;
+  if (androidApp() || !webSpeech()) return;
   const synth = window.speechSynthesis;
   synth.cancel();
   const line = new SpeechSynthesisUtterance(text);
@@ -80,7 +87,7 @@ export function speak(text: string): void {
  * first real line is not lost.
  */
 export function primeSpeech(): void {
-  if (androidApp() || !webSpeech()) return;
+  if (nativeSpeech() || androidApp() || !webSpeech()) return;
   const silent = new SpeechSynthesisUtterance(' ');
   silent.volume = 0;
   window.speechSynthesis.speak(silent);
@@ -88,10 +95,10 @@ export function primeSpeech(): void {
 
 /**
  * True when the phone's media volume, which the spoken lines use, is all the way
- * down. Null where it cannot be read: iPhones and browsers do not say.
+ * down. Null where it cannot be read: browsers do not say.
  */
 export async function mediaVolumeOff(): Promise<boolean | null> {
-  if (!androidApp() || !Capacitor.isPluginAvailable('Speak')) return null;
+  if (!nativeSpeech()) return null;
   try {
     return (await Speak.volume()).level === 0;
   } catch {
@@ -100,11 +107,11 @@ export async function mediaVolumeOff(): Promise<boolean | null> {
 }
 
 export function stopSpeaking(): void {
-  if (androidApp()) {
-    if (Capacitor.isPluginAvailable('Speak')) void Speak.stop().catch(() => undefined);
+  if (nativeSpeech()) {
+    void Speak.stop().catch(() => undefined);
     return;
   }
-  if (webSpeech()) window.speechSynthesis.cancel();
+  if (!androidApp() && webSpeech()) window.speechSynthesis.cancel();
 }
 
 /** The traveller's choice to keep the directions quiet, kept on the phone */

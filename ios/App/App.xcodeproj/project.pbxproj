@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		2E6916B0388AB9983429DE57 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 10747E3226DDEC8ED7380476 /* GoogleService-Info.plist */; };
 		2F1ABDAAD7D26720AF52EA98 /* ContactPickerPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB941B9FF361ACA60EBA5984 /* ContactPickerPlugin.swift */; };
+		5BEA4C02A1B2C3D4E5F60718 /* SpeakPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BEA4C01A1B2C3D4E5F60718 /* SpeakPlugin.swift */; };
 		2FAD9763203C412B000D30F8 /* config.xml in Resources */ = {isa = PBXBuildFile; fileRef = 2FAD9762203C412B000D30F8 /* config.xml */; };
 		50379B232058CBB4000EE86E /* capacitor.config.json in Resources */ = {isa = PBXBuildFile; fileRef = 50379B222058CBB4000EE86E /* capacitor.config.json */; };
 		503876C7872B66C84C93A604 /* MainViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16D1E18B9B5AA5EE161C8AA5 /* MainViewController.swift */; };
@@ -41,6 +42,7 @@
 		958DCC722DB07C7200EA8C5F /* debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = debug.xcconfig; path = ../debug.xcconfig; sourceTree = SOURCE_ROOT; };
 		A1C0A1E2B3D4F5061728394A /* wakaguard_alert.caf */ = {isa = PBXFileReference; lastKnownFileType = file; path = wakaguard_alert.caf; sourceTree = "<group>"; };
 		EB941B9FF361ACA60EBA5984 /* ContactPickerPlugin.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ContactPickerPlugin.swift; sourceTree = "<group>"; };
+		5BEA4C01A1B2C3D4E5F60718 /* SpeakPlugin.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SpeakPlugin.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -105,6 +107,7 @@
 				50B271D01FEDC1A000F3C39B /* public */,
 				250B0DD648CF940E0DFBE6C1 /* App */,
 				EB941B9FF361ACA60EBA5984 /* ContactPickerPlugin.swift */,
+				5BEA4C01A1B2C3D4E5F60718 /* SpeakPlugin.swift */,
 				16D1E18B9B5AA5EE161C8AA5 /* MainViewController.swift */,
 			);
 			path = App;
@@ -298,6 +301,7 @@
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				5CE4E0A22F8B4C1D9E6A7B30 /* SceneDelegate.swift in Sources */,
 				2F1ABDAAD7D26720AF52EA98 /* ContactPickerPlugin.swift in Sources */,
+				5BEA4C02A1B2C3D4E5F60718 /* SpeakPlugin.swift in Sources */,
 				503876C7872B66C84C93A604 /* MainViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
