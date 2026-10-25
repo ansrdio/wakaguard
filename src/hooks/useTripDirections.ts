@@ -10,11 +10,33 @@ export type TripDirections =
   | { state: 'off' }
   | { state: 'finding' }
   | { state: 'none' }
+  // The traveller stopped directions on this trip; the trip itself carries on
+  | { state: 'stopped'; resume: () => void }
   // `voice` is added by the trip screen when spoken directions are on (useDirectionsVoice)
-  | { state: 'ready'; route: Route; guidance: Guidance | null; rerouting: boolean; voice?: DirectionsVoice };
+  | { state: 'ready'; route: Route; guidance: Guidance | null; rerouting: boolean; stop: () => void; voice?: DirectionsVoice };
 
 /** A new route is asked for at most this often when the traveller keeps leaving it */
 const REROUTE_GAP_MS = 30000;
+
+/** The trip whose directions the traveller stopped, so reopening the app keeps them stopped */
+const STOPPED_KEY = 'wakaguard_directions_stopped';
+
+function readStopped(): string | null {
+  try {
+    return window.localStorage.getItem(STOPPED_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function keepStopped(tripId: string | null): void {
+  try {
+    if (tripId) window.localStorage.setItem(STOPPED_KEY, tripId);
+    else window.localStorage.removeItem(STOPPED_KEY);
+  } catch {
+    // No storage: they stay stopped until the app closes
+  }
+}
 
 /**
  * Directions during a trip (Beta, build 25): the route found on the start form,
@@ -32,9 +54,11 @@ export function useTripDirections({ tripId, destination, travelMode, enabled }: 
   const [finding, setFinding] = useState<'idle' | 'finding' | 'none'>('idle');
   const [guidance, setGuidance] = useState<Guidance | null>(null);
   const [rerouting, setRerouting] = useState(false);
+  const [stoppedTrip, setStoppedTrip] = useState<string | null>(() => (typeof window === 'undefined' ? null : readStopped()));
   const offCount = useRef(0);
   const lastRerouteMs = useRef(0);
-  const active = enabled && !!tripId && !!destination;
+  const stopped = !!tripId && stoppedTrip === tripId;
+  const active = enabled && !!tripId && !!destination && !stopped;
 
   // A trip that ended takes its kept route with it
   const previousTrip = useRef<string | null>(null);
@@ -42,6 +66,8 @@ export function useTripDirections({ tripId, destination, travelMode, enabled }: 
     if (previousTrip.current && previousTrip.current !== tripId) {
       forgetTripRoute();
       setGuidance(null);
+      keepStopped(null);
+      setStoppedTrip(null);
     }
     previousTrip.current = tripId;
   }, [tripId]);
@@ -123,7 +149,21 @@ export function useTripDirections({ tripId, destination, travelMode, enabled }: 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [current, tripId]);
 
+  // Stopping only hides the directions: the trip, its location sharing and its alerts carry on
+  const stop = () => {
+    if (!tripId) return;
+    keepStopped(tripId);
+    setStoppedTrip(tripId);
+    setGuidance(null);
+    setRerouting(false);
+  };
+  const resume = () => {
+    keepStopped(null);
+    setStoppedTrip(null);
+  };
+
+  if (stopped && enabled && destination) return { state: 'stopped', resume };
   if (!active) return { state: 'off' };
-  if (current) return { state: 'ready', route: current, guidance, rerouting };
+  if (current) return { state: 'ready', route: current, guidance, rerouting, stop };
   return finding === 'none' ? { state: 'none' } : { state: 'finding' };
 }

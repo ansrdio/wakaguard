@@ -7,6 +7,7 @@
  */
 
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { useBackToClose } from '@/hooks/useBackToClose';
 import { EXTRA_TIME_STEP, formatClock, formatDuration, MAX_EXTRA_MINUTES, readExtraMinutes } from '@/lib/tripPlanning';
@@ -43,8 +44,9 @@ export function AddTimeSheet({
   // Added to the arrival time, or to now once that has passed (as extendSafeTrip does)
   const newArrivalMs = extra === null ? null : Math.max(nowMs, endsAtMs ?? 0) + extra * 60 * 1000;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" role="dialog" aria-modal="true" aria-labelledby="add-time-title">
+  // Drawn at the top of the page, above the full-screen trip map, which opens it from "Add time"
+  return createPortal(
+    <div className="fixed inset-0 z-[10001] flex items-center justify-center p-4 bg-black/50" role="dialog" aria-modal="true" aria-labelledby="add-time-title">
       <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-sm p-6 space-y-4">
         <div className="flex items-center justify-between">
           <h2 id="add-time-title" className="text-xl font-bold text-slate-900 dark:text-white">Add more time</h2>
@@ -78,6 +80,7 @@ export function AddTimeSheet({
           {extra === null ? 'Add time' : `Add ${formatDuration(extra)}`}
         </button>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

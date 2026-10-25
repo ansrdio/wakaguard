@@ -291,7 +291,21 @@ export function linesDue(route: Route, g: Guidance, said: ReadonlySet<string>): 
  */
 export function suggestedTripMinutes(durationS: number): number {
   const minutes = durationS / 60;
-  return Math.max(15, Math.ceil((minutes * 1.3 + 5) / 5) * 5);
+  return Math.max(15, Math.ceil((minutes * TRAFFIC_MARGIN + 5) / 5) * 5);
+}
+
+/** Mapbox's times leave out Lagos traffic: a third more (see suggestedTripMinutes) */
+const TRAFFIC_MARGIN = 1.3;
+
+/**
+ * Minutes still needed on the route from here, at Mapbox's pace for the
+ * distance left plus the traffic margin. Used to warn when the rest of the
+ * route will not fit before the check-in time.
+ */
+export function minutesToGo(route: Route, g: Guidance): number {
+  if (route.distanceM <= 0 || g.arrived) return 0;
+  const share = Math.min(1, g.remainingM / route.distanceM);
+  return Math.ceil((route.durationS * share * TRAFFIC_MARGIN) / 60);
 }
 
 /** "80 m", "400 m", "1.5 km", "16 km" */

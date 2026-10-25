@@ -1198,6 +1198,7 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
             startEnding();
           }}
           onExtend={handleExtendTrip}
+          onMoreTime={() => setAddTimeOpen(true)}
           directions={shownDirections}
         />
       )}

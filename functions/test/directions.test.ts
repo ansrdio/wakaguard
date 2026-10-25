@@ -10,6 +10,7 @@ import {
   guide,
   isOverview,
   linesDue,
+  minutesToGo,
   parseRoute,
   placeOnRoute,
   routeProfile,
@@ -152,4 +153,17 @@ test('the next turn is spoken with its distance', () => {
   assert.equal(spokenNextTurn({ ...g, nextInstruction: 'Turn left.', toNextM: 1000 }), 'In 1 kilometer, Turn left.');
   assert.equal(spokenNextTurn({ ...g, nextInstruction: 'Turn left.', toNextM: 230 }), 'In 250 meters, Turn left.');
   assert.equal(spokenNextTurn({ ...g, nextInstruction: 'Turn left.', toNextM: 12 }), 'In 50 meters, Turn left.');
+});
+
+test('the minutes still needed on the route add the traffic margin', () => {
+  // The whole fixture route: 1,484 s by Mapbox, a third more for traffic
+  const start = guide(route, route.points[0]);
+  assert.equal(minutesToGo(route, start), Math.ceil((1484 * 1.3 * Math.min(1, start.remainingM / route.distanceM)) / 60));
+  assert.ok(minutesToGo(route, start) >= 32 && minutesToGo(route, start) <= 33);
+  // Halfway along, about half
+  const half = route.along.findIndex((m) => m >= route.distanceM / 2);
+  const g = guide(route, route.points[half]);
+  assert.ok(minutesToGo(route, g) >= 15 && minutesToGo(route, g) <= 18);
+  // Arrived: nothing left
+  assert.equal(minutesToGo(route, { ...g, arrived: true }), 0);
 });

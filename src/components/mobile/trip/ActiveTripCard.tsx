@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { AlertTriangle, Check, ChevronRight, Clock, Loader2, Map as MapIcon, Navigation, Phone, Share2, ShieldCheck } from 'lucide-react';
 import { Trip, TripStatus } from '@/lib/types';
-import { describeTimeLeft, formatClock, initialsOf, joinNames } from '@/lib/tripPlanning';
+import { ALERT_GRACE_MINUTES, describeTimeLeft, formatClock, initialsOf, joinNames, TEST_ALERT_GRACE_MINUTES } from '@/lib/tripPlanning';
 import { TripLocationLine } from '@/components/mobile/trip/TripLocationLine';
 import { DirectionsLine } from '@/components/mobile/trip/DirectionsLine';
 import type { TripDirections } from '@/hooks/useTripDirections';
@@ -247,7 +247,15 @@ export function ActiveTripCard({
         )}
 
         {/* Location */}
-        {directions && <DirectionsLine directions={directions} className={`${divider} px-5 py-4`} />}
+        {directions && (
+          <DirectionsLine
+            directions={directions}
+            deadline={!isEmergency && endsAtMs != null
+              ? { endsAtMs, graceMinutes: trip.isTest ? TEST_ALERT_GRACE_MINUTES : ALERT_GRACE_MINUTES, nowMs, onAddTime: onMoreTime }
+              : null}
+            className={`${divider} px-5 py-4`}
+          />
+        )}
         <TripLocationLine trip={trip} nowMs={nowMs} sendsHere={!locationFromElsewhere} className={`${divider} px-5 py-4`} />
 
         {locationFromElsewhere && (

@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import dynamic from 'next/dynamic';
 import { ArrowLeft, Check, Clock, Loader2, Users } from 'lucide-react';
 import { Trip, TripStatus } from '@/lib/types';
-import { TEST_TRIP_MINUTES, describeLocationStatus, describeTimeLeft, formatClock, joinNames } from '@/lib/tripPlanning';
+import { ALERT_GRACE_MINUTES, TEST_ALERT_GRACE_MINUTES, TEST_TRIP_MINUTES, describeLocationStatus, describeTimeLeft, formatClock, joinNames } from '@/lib/tripPlanning';
 import { TripLocationLine } from '@/components/mobile/trip/TripLocationLine';
 import { getDeviceId, sendsTripLocation } from '@/lib/deviceId';
 import { readTripPath } from '@/lib/tripPath';
@@ -34,6 +34,8 @@ interface TripMapScreenProps {
   onClose: () => void;
   onArrive: () => void;
   onExtend: (minutes: number) => void;
+  /** Opens the sheet for any amount of extra time ("Add time" under the directions) */
+  onMoreTime: () => void;
   /** The route and the next turn, when directions (Beta) are on for this trip */
   directions?: TripDirections;
 }
@@ -50,7 +52,7 @@ const PILLS = {
  * and where it last reported. It is the same picture a contact gets from the
  * trip link, which is the point: the traveller can see what is being shared.
  */
-export function TripMapScreen({ trip, watcherNames, processing, onClose, onArrive, onExtend, directions }: TripMapScreenProps) {
+export function TripMapScreen({ trip, watcherNames, processing, onClose, onArrive, onExtend, onMoreTime, directions }: TripMapScreenProps) {
   const [nowMs, setNowMs] = useState(() => Date.now());
   useEffect(() => {
     const interval = setInterval(() => setNowMs(Date.now()), 5000);
@@ -68,6 +70,18 @@ export function TripMapScreen({ trip, watcherNames, processing, onClose, onArriv
   const location = describeLocationStatus(trip.lastUpdate?.toMillis() ?? null, !!trip.lastLocation, nowMs);
   // A quarter of an hour more would end a two-minute test
   const extraMinutes = trip.isTest ? TEST_TRIP_MINUTES : 15;
+
+  // The map keeps the latest position clear of the card over it, whose height
+  // changes with the directions under it
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [cardHeight, setCardHeight] = useState(130);
+  useEffect(() => {
+    const card = cardRef.current;
+    if (!card || typeof ResizeObserver === 'undefined') return;
+    const watch = new ResizeObserver(() => setCardHeight(card.offsetHeight + 12));
+    watch.observe(card);
+    return () => watch.disconnect();
+  }, []);
 
   // Drawn at the top of the page, not inside the Trip screen: on iPhone a
   // scrolling area keeps everything in it underneath the app's own bars, which
@@ -98,12 +112,12 @@ export function TripMapScreen({ trip, watcherNames, processing, onClose, onArriv
           path={path}
           latest={trip.lastLocation ?? null}
           stale={location.state === 'stale'}
-          topInset={directions?.state === 'ready' ? 200 : 130}
+          topInset={cardHeight}
           destination={readPoint(trip.destinationPoint)}
           route={directions?.state === 'ready' ? decodePolyline6(directions.route.overview) : null}
         />
 
-        <div className="absolute top-3 left-3 right-3 z-[1000] bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-4">
+        <div ref={cardRef} className="absolute top-3 left-3 right-3 z-[1000] bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-4">
           <div className="flex items-start justify-between gap-3">
             <p className="text-lg font-bold text-slate-900 dark:text-white truncate">
               Trip to {trip.destination || 'your destination'}
@@ -123,7 +137,15 @@ export function TripMapScreen({ trip, watcherNames, processing, onClose, onArriv
             className="mt-1 !gap-1.5"
             iconClassName="w-4 h-4 mt-0.5"
           />
-          {directions && <DirectionsLine directions={directions} className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700" />}
+          {directions && (
+            <DirectionsLine
+              directions={directions}
+              deadline={!isEmergency && endsAtMs != null
+                ? { endsAtMs, graceMinutes: trip.isTest ? TEST_ALERT_GRACE_MINUTES : ALERT_GRACE_MINUTES, nowMs, onAddTime: onMoreTime }
+                : null}
+              className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700"
+            />
+          )}
         </div>
       </div>
 
