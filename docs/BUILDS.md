@@ -1271,6 +1271,26 @@ store uploads.
             seconds of the owner sliding media to 0, and went when it was turned up.
           - Android only: iPhones do not let an app read the volume.
         - **Both live switches were turned off again afterwards** (the fields removed, as before the test).
+      - **Checked on the owner's iPhone 16 (25 October)**, development builds installed by cable, both switches on
+        for the test and removed again afterwards:
+        - **First build** (the web view's speech): the first line spoke, but nothing in silent mode, and mute then
+          unmute said nothing.
+        - **Fix: `ios/App/App/SpeakPlugin.swift`**, registered in `MainViewController`.
+          - The iPhone's own voice (`AVSpeechSynthesizer`, en-NG else en-GB) as a spoken prompt: `.playback`,
+            mode `.voicePrompt`, ducking other audio. So it is heard in silent mode, like Apple Maps, and avoids
+            WebKit dropping a line started straight after another.
+          - `src/lib/speech.ts` now uses the native voice on both phones when present; browsers keep the Web
+            Speech API.
+          - `volume()` reads the output volume. iOS only updates it while the app's sound is on, so between lines
+            the sound is switched on briefly, mixed with other audio, to read it.
+          - Log lines (no street names) go to the app's output for `devicectl ... --console`.
+        - **Result:**
+          - the voice at the start;
+          - mute then unmute speaks;
+          - heard with silent mode on and the volume low.
+          - The volume warning did not show. The volume buttons changed the ringer, which never reaches 0; media
+            volume (Control Center's slider) was not taken to 0, so this is not yet seen on an iPhone.
+        - **Also:** the Trip tab's title is "Trip", matching its tab (the owner: "change title to Trip").
           - iPhone: the WebView speaks after the priming tap, and whether the silent switch mutes it.
           - Both: the voice stops when the screen goes off.
 
