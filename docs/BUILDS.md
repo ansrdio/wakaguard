@@ -1248,6 +1248,28 @@ store uploads.
           - still stopped after a reload, and back with "Show directions";
           - both kept values cleared after "I've arrived".
           - 344 unit tests pass (one new, for `minutesToGo`).
+      - **Checked on the owner's Galaxy (24 October, a build with the live settings, installed by cable):**
+        - **The new look:**
+          - the pin-and-shield icon in the app drawer;
+          - the opening screen, the logo on dark green (Android 12's own splash);
+          - the colours, the titles at 28 and the phone's own font.
+        - **Found and fixed:** on Android 15 the strip behind the status and navigation bars was still the old
+          slate blue (#1e293b): `BARS_BACKGROUND` in `MainActivity.java` had been missed. Now #10231D, checked.
+        - **Directions:** the owner turned on both live switches for the test (only this phone had build 25). Then:
+          - the start form found routes in Mesa ("By road: about 6 min, 3.2 km");
+          - the trip card showed the next turn and the check-in line;
+          - the place name filled itself in.
+        - **"No voice" was the media volume at 0.** The plugin did speak: the phone's audio log shows WakaGuard
+          asking for navigation audio and Google's voice playing for about 4 seconds, silently. Volume buttons
+          pressed with nothing playing change the ringer, not media. With the volume up, the owner heard it.
+        - **Added for that, done in code and checked on the Galaxy:**
+          - `SpeakPlugin.volume()` reads the media volume;
+          - `mediaVolumeOff` in `src/lib/speech.ts`;
+          - `useDirectionsVoice` looks every 10 seconds while the voice is on;
+          - the panel says "Your media volume is off. Turn it up to hear the directions." It showed within 10
+            seconds of the owner sliding media to 0, and went when it was turned up.
+          - Android only: iPhones do not let an app read the volume.
+        - **Both live switches were turned off again afterwards** (the fields removed, as before the test).
           - iPhone: the WebView speaks after the priming tap, and whether the silent switch mutes it.
           - Both: the voice stops when the screen goes off.
 
