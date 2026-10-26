@@ -1718,17 +1718,18 @@ Made from `13dfd40` on the owner's word ("build 25"), nine days before it was du
 (real everyday trips). Live settings with the **business** Mapbox token (account `wakaguard`); checked in the built
 files: business token present, personal token absent, live project, no test project.
 - **iPhone:** `WakaGuard-1.2.0-25.xcarchive`, 1.2.0 (25), uploaded to App Store Connect on the owner's "upload
-  both" (the first try, before that word, was blocked by the safety check). The owner adds it to the testers and
-  sends it for beta review.
+  both" (the first try, before that word, was blocked by the safety check). On the owner's "prepare the apple
+  one", in the owner's Chrome: "What to Test" saved (the store notes without the Android-only line) and the
+  external group waka added, up to the last box; the owner presses "Submit for Review".
 - **Android:** `WakaGuard-1.2.0-25.aab`, version code 25, signed with the upload key (FC:87:11:4B:42…, as build
   24). Added in the owner's Chrome to Closed testing - Alpha with the release notes below (build 24 left out; no
   devices lost, 12,259 phones; the same two warnings as build 24, no crash-decoding files), saved to Publishing
-  overview. The owner presses "Submit 1 change for review".
+  overview. The owner pressed "Submit 1 change for review" the same afternoon (in review).
 - **Release notes** (both stores, 478 characters; `wording/build-25-release-notes.txt` in the session folder):
   new look and logo, usual trips, directions (Beta), the background question on Android, the full-screen pin
   map, 6/8/12 hour choices, two fixes, and a request to use it for real everyday trips ending with "I've arrived".
 - **Directions:** on for testers (the owner, "directions on"); the voice stays off until Mapbox answers in writing.
-- **Not in it:** nothing held back. The website's own copy of the app is still from `c6800cb` (no usual trips).
+- **Not in it:** nothing held back. The website was released from the same code the same afternoon (see below).
 
 ### Build 24.1, Tuesday 20 October 2026 (iPhone only)
 
@@ -1854,6 +1855,7 @@ Changes that went live without an app build.
 
 | Date | What |
 |---|---|
+| Sun 25 Oct, afternoon in Arizona (later) | **Website**, on the owner's word ("release the website"), from `59a3a0e` (build 25's app code, `13dfd40`), built with the live settings and the **business** Mapbox key: the website's copy of the app gains usual trips and the iPhone voice code (unused on the web). Hosting only. The Firebase CLI sign-in had expired: renewed with `npx firebase login --reauth --no-localhost` (copy and paste the code). Checked live: home and Privacy answer 200, Privacy still dated October 24, 2026, and the live file holding "Your usual trips" is served |
 | Sun 25 Oct, afternoon in Arizona | **Directions switched on** for testers, on the owner's word ("directions on"), with build 25 uploaded to both stores: `config/app` `directions: true` (was absent). `directionsVoice` stays absent (off) until Mapbox answers in writing. Phones on builds 24 and 24.1 have no directions and are unaffected; the website's copy of the app (`c6800cb`) shows them from now on. The database sign-in on this Mac had expired: renewed with `gcloud auth application-default login --no-launch-browser` (copy and paste the code), because the usual sign-in kept failing on its localhost page |
 | Sat 24 Oct, night in Arizona (later) | **Server piece and website**, on the owner's word ("release the server piece and the website"). First `onTripUpdated` only, from `4f4aabd` (the only server change since its last release on 19 October: `recordRoute` and `tripRoute.ts`, copying a trip's planned route to the contacts' page and deleting it when the trip ends); "Successful update". Then the website from `c6800cb`, built with the live settings and the **business** Mapbox key (account `wakaguard`): build 25's look and logo, the contacts' page's planned-route row, the link-preview picture, and the Privacy page with the four approved directions lines, dated 24 October. Directions stay hidden on the website while `config/app` `directions` is off. Checked live: the Privacy page's date and lines, `/og-image.png`, the new icons (green) and the contacts' page naming the preview picture |
 | Sat 24 Oct, night in Arizona | **Database rules only**, on the owner's word ("release the database rules"), from `4f4aabd` (unchanged since). Released ahead of build 25, as planned: `sharedTrips` may carry the planned `route` (written by the server only); `pushSubscriptions` may carry `webView`. Both are new optional fields, so phones on builds 24 and 24.1 are unaffected. Checked before release: 134 of 134 rule checks pass. **Not yet released:** `onTripUpdated` with `recordRoute` (the route on the contacts' page), a separate deploy on the owner's word; until then build 25 saves the route on the trip and the contacts' page simply shows none. Earlier the same evening, for the Galaxy test only: `config/app` `directions` and `directionsVoice` switched on, then removed again after the test |
