@@ -1720,11 +1720,12 @@ files: business token present, personal token absent, live project, no test proj
 - **iPhone:** `WakaGuard-1.2.0-25.xcarchive`, 1.2.0 (25), uploaded to App Store Connect on the owner's "upload
   both" (the first try, before that word, was blocked by the safety check). On the owner's "prepare the apple
   one", in the owner's Chrome: "What to Test" saved (the store notes without the Android-only line) and the
-  external group waka added, up to the last box; the owner presses "Submit for Review".
+  external group waka added, up to the last box; the owner pressed "Submit for Review". **Approved the same day:**
+  "Testing" in both groups (10 invites).
 - **Android:** `WakaGuard-1.2.0-25.aab`, version code 25, signed with the upload key (FC:87:11:4B:42…, as build
   24). Added in the owner's Chrome to Closed testing - Alpha with the release notes below (build 24 left out; no
   devices lost, 12,259 phones; the same two warnings as build 24, no crash-decoding files), saved to Publishing
-  overview. The owner pressed "Submit 1 change for review" the same afternoon (in review).
+  overview. The owner pressed "Submit 1 change for review" the same afternoon. **Approved the same day.**
 - **Release notes** (both stores, 478 characters; `wording/build-25-release-notes.txt` in the session folder):
   new look and logo, usual trips, directions (Beta), the background question on Android, the full-screen pin
   map, 6/8/12 hour choices, two fixes, and a request to use it for real everyday trips ending with "I've arrived".
