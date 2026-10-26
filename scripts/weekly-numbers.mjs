@@ -33,7 +33,7 @@ const WEEK_STARTS_HOUR = 18;
 /** The start of week one. "Since the beta began" is counted from here. */
 export const BETA_STARTED = '2026-10-11';
 
-export const POINTS = { realTrip: 3, roadReport: 2, firstTestTrip: 2, problemReport: 5 };
+export const POINTS = { realTrip: 3, roadReport: 2, firstTestTrip: 2, problemReport: 5, everydayBonus: 5 };
 export const DAILY_LIMIT = { realTrips: 2, roadReports: 3 };
 export const MIN_TRIP_MS = 10 * MINUTE;
 export const MIN_TRIP_METRES = 500;
@@ -51,6 +51,14 @@ export const QUIET_GAP_MS = 10 * MINUTE;
  * false alarm to someone's family once texting is on.
  */
 export const LATE_TRIP_RULE_FROM_MS = Date.UTC(2026, 9, 14, 23, 0);
+/**
+ * The everyday bonus (the owner, 25 October 2026): counted real trips on this
+ * many different days of the week, Nigeria calendar days, earn it once. From
+ * week three, which starts Sunday 25 October 2026 at 18:00 in Nigeria; earlier
+ * weeks are scored as they were announced.
+ */
+export const EVERYDAY_DAYS = 5;
+export const EVERYDAY_BONUS_FROM_MS = Date.UTC(2026, 9, 25, 17, 0);
 
 export const REASONS = {
   notEnded: 'not ended by the traveller',
@@ -141,6 +149,7 @@ export function judgeTrips(trips, fromMs, toMs) {
   const inPeriod = (ms) => ms != null && ms >= fromMs && ms < toMs;
   const rejected = tally();
   const perDay = {};
+  const days = new Set();
   let inThePeriod = 0;
   let counted = 0;
 
@@ -154,12 +163,13 @@ export function judgeTrips(trips, fromMs, toMs) {
       perDay[day] = (perDay[day] || 0) + 1;
       if (perDay[day] > DAILY_LIMIT.realTrips) { rejected.add(REASONS.overLimit); continue; }
       counted++;
+      days.add(day);
     } else if (inPeriod(trip.startMs)) {
       inThePeriod++;
       rejected.add(ended && trip.endMs >= toMs ? REASONS.endedLater : REASONS.notEnded);
     }
   }
-  return { inThePeriod, counted, rejected: rejected.counts };
+  return { inThePeriod, counted, days: days.size, rejected: rejected.counts };
 }
 
 /**
@@ -267,6 +277,7 @@ export function scoreWeek(data, options) {
     const firstTest = Math.min(...(testTrips.get(uid) || []).map((trip) => trip.startMs ?? Infinity));
     const firstTestTrip = inWeek(firstTest);
     const problemReports = problemCounts.get(uid) || 0;
+    const everydayBonus = fromMs >= EVERYDAY_BONUS_FROM_MS && week.days >= EVERYDAY_DAYS;
     rows.push({
       uid,
       name: nameOf(uid),
@@ -274,8 +285,10 @@ export function scoreWeek(data, options) {
       roadReports: roadReports.counted,
       firstTestTrip,
       problemReports,
+      everydayBonus,
       total: week.counted * POINTS.realTrip + roadReports.counted * POINTS.roadReport
-        + (firstTestTrip ? POINTS.firstTestTrip : 0) + problemReports * POINTS.problemReport,
+        + (firstTestTrip ? POINTS.firstTestTrip : 0) + problemReports * POINTS.problemReport
+        + (everydayBonus ? POINTS.everydayBonus : 0),
       week,
       sinceBeta,
       reportCheck: roadReports,
@@ -357,8 +370,8 @@ export function scoreWeek(data, options) {
   }));
 
   return {
-    ranking: ranking.map(({ name, realTrips: tripsCounted, roadReports, firstTestTrip, problemReports, total }) => (
-      { name, realTrips: tripsCounted, roadReports, firstTestTrip, problemReports, total }
+    ranking: ranking.map(({ name, realTrips: tripsCounted, roadReports, firstTestTrip, problemReports, everydayBonus, total }) => (
+      { name, realTrips: tripsCounted, roadReports, firstTestTrip, problemReports, everydayBonus, total }
     )),
     ties,
     health,
@@ -413,14 +426,17 @@ export function formatReport(result, { fromMs, toMs, nowMs, source }) {
     say(table(
       ranking.map((row, index) => [
         index + 1, row.name, row.realTrips, row.roadReports, row.firstTestTrip ? 'yes' : 'no',
-        row.problemReports, row.total,
+        row.problemReports, row.everydayBonus ? 'yes' : 'no', row.total,
       ]),
-      ['#', 'Username', 'Real trips', 'Road reports', 'First test trip', 'Problem reports', 'Points'],
+      ['#', 'Username', 'Real trips', 'Road reports', 'First test trip', 'Problem reports', 'Everyday bonus', 'Points'],
     ));
     say();
     say(`Points: real trip ${POINTS.realTrip} (at most ${DAILY_LIMIT.realTrips} a day), confirmed road report `
       + `${POINTS.roadReport} (at most ${DAILY_LIMIT.roadReports} a day), first test trip ${POINTS.firstTestTrip}, `
-      + `problem report ${POINTS.problemReport}.`);
+      + `problem report ${POINTS.problemReport}`
+      + (fromMs >= EVERYDAY_BONUS_FROM_MS
+        ? `, everyday bonus ${POINTS.everydayBonus} (counted real trips on ${EVERYDAY_DAYS} different days).`
+        : '.'));
     for (const tie of result.ties) {
       say(`TIE on ${tie.total} points: ${tie.names.join(', ')}. The order above is by real trips, then road `
         + 'reports; a prize tie is yours to decide.');

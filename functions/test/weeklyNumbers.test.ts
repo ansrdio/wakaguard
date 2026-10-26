@@ -81,7 +81,7 @@ test('Ikeja to Yaba is about ten kilometres in a straight line', () => {
 test('a real trip the traveller ended earns 3 points', () => {
   const result = score({ users: users('ada'), trips: [trip('uid-ada', MONDAY)] });
   assert.deepEqual(result.ranking, [
-    { name: 'ada', realTrips: 1, roadReports: 0, firstTestTrip: false, problemReports: 0, total: 3 },
+    { name: 'ada', realTrips: 1, roadReports: 0, firstTestTrip: false, problemReports: 0, everydayBonus: false, total: 3 },
   ]);
 });
 
@@ -161,6 +161,7 @@ test('trips that break a rule earn nothing and say why', () => {
   assert.deepEqual(checkFor(result, 'ada')?.trips, {
     inThePeriod: 7,
     counted: 1,
+    days: 1,
     rejected: {
       'too short': 1,
       'did not move': 1,
@@ -183,6 +184,30 @@ test('at most two real trips count on one day', () => {
   });
   assert.equal(rowFor(result, 'ada')?.realTrips, 3);
   assert.deepEqual(checkFor(result, 'ada')?.trips.rejected, { 'over the daily limit': 1 });
+});
+
+test('from week three, counted real trips on five different days earn the everyday bonus once', () => {
+  // Week three: Sunday 25 October 18:00 to Sunday 1 November 18:00, Nigeria time
+  const week3 = Date.UTC(2026, 9, 25, 17);
+  const monday = week3 + 15 * HOUR;
+  const days = (count: number, uid: string) => Array.from({ length: count }, (_, i) => trip(uid, monday + i * DAY));
+  const result = score({
+    users: users('ada', 'tunde', 'bisi'),
+    trips: [
+      ...days(5, 'uid-ada'),
+      // Two on Monday still make one day, so four days in all
+      ...days(4, 'uid-tunde'), trip('uid-tunde', monday + 2 * HOUR),
+      // Five days, but one trip did not move, so four counted days
+      ...days(4, 'uid-bisi'), trip('uid-bisi', monday + 4 * DAY, { endLocation: NEAR_IKEJA }),
+    ],
+  }, { fromMs: week3, toMs: week3 + WEEK_MS });
+  assert.equal(rowFor(result, 'ada')?.total, 5 * 3 + 5);
+  assert.equal(rowFor(result, 'tunde')?.total, 5 * 3);
+  assert.equal(rowFor(result, 'bisi')?.total, 4 * 3);
+
+  // Earlier weeks are scored as they were announced, without it
+  const weekOne = score({ users: users('ada'), trips: days(5, 'uid-ada').map((t) => ({ ...t, startMs: t.startMs - 14 * DAY, endMs: t.endMs - 14 * DAY })) });
+  assert.equal(rowFor(weekOne, 'ada')?.total, 5 * 3);
 });
 
 test('a trip belongs to the week it ended in', () => {
@@ -266,7 +291,7 @@ test('the first test trip earns 2 points once, in the week it happened', () => {
   };
   const result = score(data);
   assert.deepEqual(rowFor(result, 'ada'), {
-    name: 'ada', realTrips: 0, roadReports: 0, firstTestTrip: true, problemReports: 0, total: 2,
+    name: 'ada', realTrips: 0, roadReports: 0, firstTestTrip: true, problemReports: 0, everydayBonus: false, total: 2,
   });
   assert.equal(rowFor(result, 'tunde'), undefined);
   assert.equal(result.health.everTestTrip, 2);
@@ -388,7 +413,7 @@ test('the printed report has usernames and counts, and nothing private', () => {
 
   assert.match(text, /Week: Sun,? 11 Oct 2026,? 18:00 to Sun,? 18 Oct 2026,? 18:00, Nigeria time/);
   assert.match(text, /still running/);
-  assert.match(text, /1\s+ada\s+1\s+1\s+no\s+0\s+5/);
+  assert.match(text, /1\s+ada\s+1\s+1\s+no\s+0\s+no\s+5/);
   assert.match(text, /Real trips: 2 this week, 1 counted\. Not counted: 1 did not move\./);
   assert.match(text, /report \w{6} voted up by tunde/);
   assert.match(text, /Road reports created\s+1 \(1 with photos\)/);
