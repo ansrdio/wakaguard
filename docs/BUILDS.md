@@ -707,6 +707,15 @@ What was agreed:
   - **Already done, no build needed:** the full points list goes in the group each Sunday; last week's
     winners sit out the prize places (`--last-winners`), and everyone else with 3 or more counted real
     trips goes into a draw (`--draw`).
+- **Redmi, Xiaomi and POCO phones in "Keep WakaGuard running", added 28 October** (a tester on a Redmi:
+  "The app close a few times", "after I returned"; the owner: "approve both").
+  - His two trips on 22 October went silent for 52 and 31 minutes, and no phone has sent a fault report
+    in 30 days. So the phone closed WakaGuard in the background; the app did not crash.
+  - `src/lib/keepRunning.ts` has a step for Tecno, Infinix and itel (Phone Master) but none for Xiaomi's
+    phones, which are common in Nigeria too. Add one: Autostart on for WakaGuard, "No restrictions"
+    under Battery saver, and WakaGuard locked in recent apps.
+  - Check the menu names on a Redmi first: the cheaper Redmi A phones run a plainer Android that may
+    have no Autostart.
 - **Morning heads-up with nearby road reports, proposed 28 October** (the owner: "a push notification
   based on the location and give them value information").
   - The 6:30am notification would also mention road reports within about 10 km of the person's rough
