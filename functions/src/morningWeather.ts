@@ -68,7 +68,8 @@ export function morningMessage(day: DayOutlook, nowMs: number): TravellerMessage
     case 'fog':
       return { title: 'Fog expected today', body: `${from} Slow down and keep your lights on.`, data };
     case 'heat': {
-      // How hot it feels says more than the air temperature in humid places
+      // How hot it feels says more than the air temperature in humid places.
+      // 11 am to 4 pm are the hours NEMA advised staying out of (26 October 2026)
       const feels = day.feelsLike ?? null;
       const peak = day.hottestAtMs ? ` around ${lagosHour(day.hottestAtMs)}` : '';
       const how = feels !== null && feels > (day.hottest ?? 0)
@@ -76,7 +77,7 @@ export function morningMessage(day: DayOutlook, nowMs: number): TravellerMessage
         : `Up to ${day.hottest ?? 38}°C where you are.`;
       return {
         title: feels !== null && feels >= FEELS_DANGEROUS_FROM ? 'Dangerously hot today' : 'Very hot today',
-        body: `${how} Carry water, wait in the shade, and travel before noon or after 4 pm if you can.`,
+        body: `${how} Carry water, wait in the shade, and travel before 11 am or after 4 pm if you can.`,
         data,
       };
     }

@@ -1647,7 +1647,7 @@ From the roadmap, with its dates. None of these needs an app build.
         formula) reaches 41°C, as well as at 38°C air temperature. In the humid south, 33°C at 70%
         humidity feels like about 43°C.
       - **The 6:30am message:** for example, "It will feel like 43°C where you are around 2 pm. Carry
-        water, wait in the shade, and travel before noon or after 4 pm if you can." The title becomes
+        water, wait in the shade, and travel before 11 am or after 4 pm if you can." The title becomes
         "Dangerously hot today" from 46°C.
       - **The forecast store:** cached forecasts now keep humidity.
       - **Checked against MET Norway's forecast on 28 October** for Lagos, Uyo, Calabar, Abuja and
