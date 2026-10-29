@@ -224,6 +224,8 @@ export async function deliverSafetySms(params: {
       error: r.error ?? null,
       provider: r.provider ?? null,
     })),
+    // So that a delivery report can find this entry (smsReport.ts)
+    sids: providerResults.flatMap((r) => (r.sid ? [r.sid] : [])),
     createdAt: FieldValue.serverTimestamp(),
   });
 

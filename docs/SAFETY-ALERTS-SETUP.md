@@ -26,6 +26,18 @@ Copy `functions/.env.example` to `functions/.env` and fill it in. That file is g
 3. Ask Termii support to activate the **DND route** on the account and keep `TERMII_CHANNEL=dnd`. This matters for a safety alert: per Termii's docs, the `generic` route does not reach numbers with Do-Not-Disturb on, and does not deliver to MTN numbers between 8pm and 8am.
 4. Set `SMS_PROVIDER=termii`, `TERMII_API_KEY`, `TERMII_SENDER_ID` and `TERMII_BASE_URL`.
 
+### Africa's Talking, with Termii as the backup
+
+Africa's Talking registered the sender ID **WakaGuard** with all four Nigerian networks on 28 October 2026, so its texts show "WakaGuard" rather than Termii's "OE Alert". The plan is Africa's Talking first and Termii as the backup:
+
+1. In the Africa's Talking dashboard, use the live app (username `wakaguard`, not the sandbox), create an API key and top up the wallet.
+2. Set `AFRICASTALKING_USERNAME`, `AFRICASTALKING_API_KEY` and `AFRICASTALKING_SENDER_ID="WakaGuard"` (the owner's helper script asks for the key without showing it).
+3. Set `SMS_REPORT_KEY` to 32 or more random characters (`openssl rand -hex 24`).
+4. In the dashboard, under SMS > SMS Callback URLs, set both **Delivery Reports** and **Bulk SMS Opt Out** to `https://us-central1-<project id>.cloudfunctions.net/smsReport/<SMS_REPORT_KEY>`, and deploy `smsReport`.
+5. Set `SMS_PROVIDER=africastalking` and `SMS_FALLBACK_PROVIDER=termii`, then deploy every function that sends texts: `sendSafetySms`, `checkOverdueTrips`, `checkQuietTrips`, `onTripUpdated`, `onSafetyTimerUpdated`, `onSOSAlert` and `watchTexts`, and `smsReport` again so that it knows the backup.
+
+Why the delivery reports matter: Africa's Talking takes on a text for a number with Do-Not-Disturb on and only later reports it "Failed" or "Rejected", with no reason given. Its non-financial senders cannot reach Do-Not-Disturb numbers on Airtel. The ordinary backup (below) only covers a text refused straight away, so `smsReport` sends a text reported Failed, Rejected or Expired again through Termii, once, if the report comes within 30 minutes. Each log entry notes every report under `reports` and every resend under `resends`. Someone who opts out with Africa's Talking is added to `smsOptOuts`, so Termii does not text them either.
+
 To keep Twilio as a backup, set `SMS_FALLBACK_PROVIDER=twilio` and the three `TWILIO_*` values. The fallback is tried for each recipient when the first provider fails.
 
 `SMS_PROVIDER=mock` logs messages and sends nothing. `SMS_ENABLED=false` stops all SMS.

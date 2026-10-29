@@ -24,7 +24,7 @@ export default function PrivacyPage() {
           </div>
 
           <p className="text-gray-600 mb-8">
-            Last Updated: October 24, 2026
+            Last Updated: October 28, 2026
           </p>
 
           <section className="mb-8">
@@ -249,26 +249,31 @@ export default function PrivacyPage() {
             </p>
             <ul className="list-disc list-inside text-gray-700 mb-4 space-y-2">
               <li><strong>Stop all WakaGuard texts to their number</strong> from the trip page that our texts link to, even after the trip has ended. They enter the number the text came to and, if it is one of that trip&apos;s contacts, we stop texting it, for that traveller and for anyone else who has saved the same number. They can turn texts back on the same way.</li>
+              <li><strong>Opt out with Africa&apos;s Talking</strong>, if a text offers it. We then stop all WakaGuard texts to that number in the same way, including any we would send through Termii.</li>
               <li>Ask you to remove them from your trusted contacts list</li>
               <li>Block the sending number on their device</li>
               <li>Contact us at <a href={`mailto:${CONTACT_EMAIL}`} className="text-blue-600 hover:underline">{CONTACT_EMAIL}</a> to request removal</li>
             </ul>
             <p className="text-gray-700 leading-relaxed mb-4">
               When someone stops texts, we keep their phone number, when they stopped (or turned texts back
-              on), and which trip link they used, so that we never text that number by mistake and can answer
+              on), and which trip link they used (or that they opted out with Africa&apos;s Talking), so that we
+              never text that number by mistake and can answer
               them if they ask. Anyone who has saved that number as a trusted contact sees that the contact
               asked not to be texted. That contact is not told about their trips, including overdue alerts
               and SOS alerts.
             </p>
 
-            <h3 className="text-xl font-semibold text-gray-800 mb-3">SMS Service Provider</h3>
+            <h3 className="text-xl font-semibold text-gray-800 mb-3">SMS Service Providers</h3>
             <p className="text-gray-700 leading-relaxed mb-4">
-              We send texts through Termii, a third-party SMS service provider. By using our SMS features:
+              We send texts through Africa&apos;s Talking, a third-party SMS service provider. If Africa&apos;s
+              Talking cannot deliver a text, we send it through Termii, another third-party SMS service
+              provider. By using our SMS features:
             </p>
             <ul className="list-disc list-inside text-gray-700 mb-4 space-y-2">
-              <li>Recipient phone numbers and message content are passed to Termii, which hands them to the mobile networks</li>
-              <li>Termii may retain message logs for troubleshooting and its own records</li>
-              <li>Termii&apos;s privacy policy applies: <a href="https://termii.com/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">https://termii.com/privacy-policy</a></li>
+              <li>Recipient phone numbers and message content are passed to Africa&apos;s Talking (or to Termii, for a text it carries), which hands them to the mobile networks</li>
+              <li>Africa&apos;s Talking and Termii may retain message logs for troubleshooting and their own records</li>
+              <li>Africa&apos;s Talking&apos;s privacy policy applies to texts it carries: <a href="https://africastalking.com/privacy_policy" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">https://africastalking.com/privacy_policy</a></li>
+              <li>Termii&apos;s privacy policy applies to texts it carries: <a href="https://termii.com/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">https://termii.com/privacy-policy</a></li>
               <li>Text messages are not encrypted</li>
             </ul>
 
@@ -282,12 +287,14 @@ export default function PrivacyPage() {
               <li>Message type (trip link, &quot;I&apos;m okay&quot;, arrival, overdue alert, SOS, follow-up)</li>
               <li>The text of the message, which can include a location link</li>
               <li>Whether the provider accepted it (sent, partly sent, failed or blocked)</li>
+              <li>For texts sent through Africa&apos;s Talking: whether the mobile network reported it delivered, and whether we sent it again through Termii</li>
               <li>Timestamp</li>
             </ul>
             <p className="text-gray-700 leading-relaxed">
               We use these logs for troubleshooting and abuse prevention. &quot;Sent&quot; in a log, and in the
-              app, means the provider accepted the text; we cannot see whether it reached the recipient&apos;s
-              phone.
+              app, means the provider accepted the text. Africa&apos;s Talking later tells us whether the
+              network delivered it to the recipient&apos;s phone; for texts sent through Termii we cannot see
+              this.
             </p>
           </section>
 
@@ -394,7 +401,7 @@ export default function PrivacyPage() {
               <li><strong>Your Trusted Contacts:</strong> The texts described above share your name, location, destination and trip status with the phone numbers you chose</li>
               <li><strong>Anyone With Your Trip Link:</strong> While a trip is open, its page can be opened by anyone who has the link</li>
               <li><strong>Public Display:</strong> Reports, comments, and photos are publicly visible to all users</li>
-              <li><strong>Service Providers:</strong> We use Firebase (Google) for sign-in, data storage, hosting and notifications, and Termii and the mobile networks for SMS. These providers may process data on servers outside Nigeria</li>
+              <li><strong>Service Providers:</strong> We use Firebase (Google) for sign-in, data storage, hosting and notifications, and Africa&apos;s Talking, Termii and the mobile networks for SMS. These providers may process data on servers outside Nigeria</li>
               <li><strong>Maps:</strong> Map images are loaded by your device from Mapbox, which sees your IP address and the area you are viewing. Location links in texts and on the trip page open in Google Maps</li>
               <li><strong>Directions (Beta):</strong> When directions are on, your device asks Mapbox for a route from where you are to the pin you set, and again if you leave the route. Mapbox sees those two points and your IP address, not who you are</li>
               <li><strong>Weather:</strong> Our server asks MET Norway (the Norwegian Meteorological Institute) for the forecast for your rough area, about 10 km across. MET Norway is not told who asked or where exactly you are. The forecasts shown in the app are data from MET Norway</li>

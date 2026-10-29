@@ -80,11 +80,11 @@ test('reads only what the ranking needs and scores it', async () => {
   const result = scoreWeek(data, { fromMs: FROM, toMs: TO });
   // The real trip went overdue, which earns nothing since 15 October 2026
   assert.deepEqual(result.ranking.find((row: Named) => row.name === ada), {
-    name: ada, realTrips: 0, roadReports: 1, firstTestTrip: true, problemReports: 0, total: 4,
+    name: ada, realTrips: 0, roadReports: 1, firstTestTrip: true, problemReports: 0, everydayBonus: false, total: 4,
   });
   const check: Check = result.checks.find((item: Named) => item.name === ada);
   assert.deepEqual(check.trips, {
-    inThePeriod: 2, counted: 0, rejected: { 'too short': 1, 'ended after contacts would have been texted': 1 },
+    inThePeriod: 2, counted: 0, days: 0, rejected: { 'too short': 1, 'ended after contacts would have been texted': 1 },
   });
   assert.deepEqual(check.reports.confirmed[0].upvoters, [tunde]);
   assert.equal(result.health.realOverdue, 1);

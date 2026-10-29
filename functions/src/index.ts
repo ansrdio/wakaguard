@@ -17,6 +17,7 @@ export { weatherAhead } from './weather';
 export { placeName } from './placeName';
 export { deleteOldRecords } from './recordRetention';
 export { watchTexts } from './serverWatch';
+export { smsReport } from './smsReport';
 export {
   checkOverdueTrips,
   checkQuietTrips,

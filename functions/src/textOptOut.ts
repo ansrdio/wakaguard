@@ -12,6 +12,7 @@
  * (getTrustedContacts in safetyDelivery.ts). Every traveller's copy of that
  * contact carries smsOptedOut: true, so the app shows they will not be told
  * and leaves them out of trips. Texts can be turned back on the same way.
+ * Someone who opts out with Africa's Talking is added the same way (smsReport.ts).
  *
  * @module textOptOut
  */
@@ -38,6 +39,24 @@ async function markCopies(refs: FirebaseFirestore.DocumentReference[], stopped: 
       batch.update(ref, { smsOptedOut: stopped ? true : FieldValue.delete() })
     );
     await batch.commit();
+  }
+}
+
+/** Set or clear the mark on every traveller's copy of this number, the given copies first */
+export async function markEveryCopy(
+  phoneE164: string,
+  stopped: boolean,
+  first: FirebaseFirestore.DocumentReference[] = []
+): Promise<void> {
+  await markCopies(first, stopped);
+  try {
+    const everywhere = await admin.firestore().collectionGroup('trustedContacts').where('phoneE164', '==', phoneE164).get();
+    const firstPaths = new Set(first.map((r) => r.path));
+    await markCopies(everywhere.docs.map((d) => d.ref).filter((r) => !firstPaths.has(r.path)), stopped);
+  } catch (err) {
+    // Texts are still stopped (the list is checked before every text); other
+    // travellers' copies are marked when they are next saved
+    console.error(`Could not mark other travellers' copies of a contact: ${String(err)}`);
   }
 }
 
@@ -80,16 +99,7 @@ export async function applyOptOut(request: OptOutRequest, nowMs = Date.now()): P
 
   // This traveller's copies first: they need no index and matter most
   const own = contacts.docs.filter((d) => d.get('phoneE164') === phoneE164).map((d) => d.ref);
-  await markCopies(own, stopped);
-  try {
-    const everywhere = await db.collectionGroup('trustedContacts').where('phoneE164', '==', phoneE164).get();
-    const ownPaths = new Set(own.map((r) => r.path));
-    await markCopies(everywhere.docs.map((d) => d.ref).filter((r) => !ownPaths.has(r.path)), stopped);
-  } catch (err) {
-    // Texts are still stopped (the list is checked before every text); other
-    // travellers' copies are marked when they are next saved
-    console.error(`Could not mark other travellers' copies of a contact: ${String(err)}`);
-  }
+  await markEveryCopy(phoneE164, stopped, own);
 
   console.log(`Texts ${stopped ? 'stopped' : 'turned back on'} for a contact of ${uid}, from trip ${token}`);
   return stopped ? 'stopped' : 'resumed';

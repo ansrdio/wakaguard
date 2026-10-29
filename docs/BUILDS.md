@@ -658,6 +658,20 @@ What was agreed:
   emulators, for the owner to approve.
 - **Decided 23 October:** the directions beta stays in build 25 and is built last, after every other build 25
   item (the owner first said to drop it, then the same day: "No put it back, It will be the last thing we add").
+- **App Check, added 28 October** ("add app check to build 26"). It lets Firebase tell our apps from scripts
+  calling the server. The phones run the app bundled inside them, not wakaguard.com, so the reCAPTCHA provider
+  already in `src/lib/firebase.ts` is not enough there. The work:
+  - **Android:** Play Integrity, registered in Firebase App Check with the app signing certificate from Play
+    Console (App integrity).
+  - **iPhone:** App Attest, which needs the capability added in Xcode.
+  - **Website:** reCAPTCHA v3 for wakaguard.com.
+  - **In the app:** a Capacitor App Check plugin supplies the phones' tokens to the Firebase web SDK.
+  - **Then:** watch the App Check numbers with nothing enforced. Enforce Firestore, Storage and the functions
+    (`ENFORCE_APP_CHECK=true`) only once phones on build 25 are gone, or they would stop working.
+  - **Estimate:** about a day of code plus testing on both phones. The owner does a few clicks in the Firebase,
+    Play and Apple consoles, with guidance.
+  - **Optional, same build:** an 8-character minimum password, with the app's "at least 6 characters"
+    messages changed to match.
 
 ### Build 24.1, iPhone only: the iOS 27 launch crash
 
@@ -1573,10 +1587,29 @@ From the roadmap, with its dates. None of these needs an app build.
       the emulator
 - [ ] By Fri 30 Oct. Store listing drafts and a reviewer account; final by
       Fri 13 Nov. Wording check: never "emergency service"
+- [ ] Before Mon 2 Nov. Texts from "WakaGuard" through Africa's Talking, with
+      Termii ("OE Alert") as the backup (agreed 28 October). Africa's Talking
+      registered the sender ID with all four networks on 28 October; its key
+      is saved and its wallet topped up. Africa's Talking reports a refusal for
+      a do-not-disturb number only later, in its delivery report, so the
+      ordinary backup would miss it. Built 28 October, not live: `smsReport`
+      takes those reports and sends a text reported Failed, Rejected or
+      Expired again through Termii, once, within 30 minutes. It also stops
+      texts to anyone who opts out with Africa's Talking. Log entries now
+      carry `sids`, `reports` and `resends`. The Privacy page wording naming
+      Africa's Talking, with its opt-out and delivery-report lines, was
+      approved on 28 October. To go live, each on the owner's word:
+      1. Deploy `smsReport` and put its address in the Africa's Talking
+         dashboard.
+      2. Send a test text.
+      3. Switch providers and deploy the texting functions.
+      4. Release the website.
 - [ ] Mon 2 Nov. Text alerts switched on, then proven on MTN, Airtel, Glo and
       9mobile, including a do-not-disturb number
 - [ ] Week of Mon 2 Nov. Security check of the server, and Firebase's app
-      check for the phone apps
+      check for the phone apps (App Check itself moved into build 26 on
+      28 October; the settings check of 28 October is in "Website and server
+      releases")
 - [ ] By Fri 6 Nov. The go or no-go checklist for Fri 13 Nov
 - [ ] Launch day. "Get WakaGuard" on the page contacts see, and store links
       on the website
@@ -1856,6 +1889,8 @@ Changes that went live without an app build.
 
 | Date | What |
 |---|---|
+| Wed 28 Oct (later) | **Firebase settings**, on the owner's word ("yes do the four"), after a read-only check of the project. The check found backups, TTL deletion, indexes, Node 22, both alarms, the USD 20 budget and email enumeration protection all in place, and the live Firestore and Storage rules identical to the repo. The four changes: (1) database delete protection on; (2) point-in-time recovery on (7 days, minute by minute); (3) the old preview domain `routepulse-5701f--map-fix-xlby2axy.web.app` removed from Auth's authorized domains, leaving localhost, the two Firebase domains and wakaguard.com; (4) the console labels "RoutePulse Web" renamed "WakaGuard Web", and the unnamed iOS app named "WakaGuard iPhone". All checked afterwards. The old-build-image cleanup (1 day) was already on. Usage numbers come from `tools/firebase-numbers.mjs` (session folder, read-only, counts only) |
+| Wed 28 Oct | **`smsReport` deployed** on its own, on the owner's word ("deploy smsReport"), from the working copy, which was not yet committed. It is the address for Africa's Talking's delivery reports and opt-outs (`https://us-central1-routepulse-5701f.cloudfunctions.net/smsReport/<SMS_REPORT_KEY>`, the key only in `functions/.env`). Nothing else changed: texts still go through Termii and `SMS_FALLBACK_PROVIDER` is unset, so nothing can be sent again yet. Checked live: GET 405, a wrong or missing key 403, the right key with a made-up report "not_ours", a malformed one 400. The Firebase CLI sign-in had expired again and was renewed the same way |
 | Sun 25 Oct, afternoon in Arizona (later) | **Website**, on the owner's word ("release the website"), from `59a3a0e` (build 25's app code, `13dfd40`), built with the live settings and the **business** Mapbox key: the website's copy of the app gains usual trips and the iPhone voice code (unused on the web). Hosting only. The Firebase CLI sign-in had expired: renewed with `npx firebase login --reauth --no-localhost` (copy and paste the code). Checked live: home and Privacy answer 200, Privacy still dated October 24, 2026, and the live file holding "Your usual trips" is served |
 | Sun 25 Oct, afternoon in Arizona | **Directions switched on** for testers, on the owner's word ("directions on"), with build 25 uploaded to both stores: `config/app` `directions: true` (was absent). `directionsVoice` stays absent (off) until Mapbox answers in writing. Phones on builds 24 and 24.1 have no directions and are unaffected; the website's copy of the app (`c6800cb`) shows them from now on. The database sign-in on this Mac had expired: renewed with `gcloud auth application-default login --no-launch-browser` (copy and paste the code), because the usual sign-in kept failing on its localhost page |
 | Sat 24 Oct, night in Arizona (later) | **Server piece and website**, on the owner's word ("release the server piece and the website"). First `onTripUpdated` only, from `4f4aabd` (the only server change since its last release on 19 October: `recordRoute` and `tripRoute.ts`, copying a trip's planned route to the contacts' page and deleting it when the trip ends); "Successful update". Then the website from `c6800cb`, built with the live settings and the **business** Mapbox key (account `wakaguard`): build 25's look and logo, the contacts' page's planned-route row, the link-preview picture, and the Privacy page with the four approved directions lines, dated 24 October. Directions stay hidden on the website while `config/app` `directions` is off. Checked live: the Privacy page's date and lines, `/og-image.png`, the new icons (green) and the contacts' page naming the preview picture |

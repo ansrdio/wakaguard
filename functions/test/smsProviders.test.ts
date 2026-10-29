@@ -1,6 +1,6 @@
 import { test, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { getProviders, sendSms, sendSmsBatch } from '../src/sms';
+import { getFallbackProvider, getProviders, sendSms, sendSmsBatch } from '../src/sms';
 
 const ENV_KEYS = [
   'SMS_PROVIDER', 'SMS_FALLBACK_PROVIDER', 'TWILIO_MOCK',
@@ -124,6 +124,15 @@ test('provider order and legacy mock switch', () => {
 
   process.env.TWILIO_MOCK = 'true';
   assert.deepEqual(getProviders().map((p) => p.name), ['mock']);
+});
+
+test('the backup provider on its own, for texts reported undelivered later', () => {
+  process.env.SMS_PROVIDER = 'africastalking';
+  assert.equal(getFallbackProvider(), null, 'no backup set');
+  process.env.SMS_FALLBACK_PROVIDER = 'termii';
+  assert.equal(getFallbackProvider()?.name, 'termii');
+  process.env.SMS_FALLBACK_PROVIDER = 'africastalking';
+  assert.equal(getFallbackProvider(), null, 'the same provider is no backup');
 });
 
 test('a batch reports each recipient separately', async () => {

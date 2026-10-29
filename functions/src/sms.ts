@@ -76,6 +76,15 @@ export function getProviders(): SmsProvider[] {
   return providers;
 }
 
+/**
+ * The backup provider on its own, to send again a text the first one later
+ * reports as not delivered (smsReport.ts). Null if there is no backup.
+ */
+export function getFallbackProvider(): SmsProvider | null {
+  const providers = getProviders();
+  return providers.length > 1 ? providers[1] : null;
+}
+
 export async function sendSms(to: string, body: string): Promise<SendSmsResult> {
   const providers = getProviders();
   if (providers.length === 0) {
