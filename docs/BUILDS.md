@@ -694,6 +694,19 @@ What was agreed:
     shows only one refused position for an ended trip in 7 days, so nothing is sent. What they saw is
     likely the iPhone's location arrow, from the weather line or the map reading location while the app is
     open. Also check on the owner's iPhone that the arrow goes away when the app is minimised after a trip.
+- **"Your points this week", added 28 October** (another regular tester: "if it's possible for us to see our
+  points", and the same people win every Sunday; the owner: "yes approve both").
+  - **Today** points exist only in the Sunday script, so nobody can see theirs or why a trip did not count.
+    That tester used the app on 8 days, yet in week 2 none of their 6 real trips counted: 3 ran past their
+    time (contacts would have been texted) and 3 were judged "did not move" while the phone sent nothing
+    for 18 and 168 minutes.
+  - **The change:** a small card with this week's points and counted trips, and, for the last trip that did
+    not count, why, with the fix: "More time…" before the time runs out, or "Keep WakaGuard running".
+  - **Needs:** a callable function that scores only the signed-in person's week with the same rules as
+    `scripts/weekly-numbers.mjs`. Move the rules into one shared module so the two cannot drift apart.
+  - **Already done, no build needed:** the full points list goes in the group each Sunday; last week's
+    winners sit out the prize places (`--last-winners`), and everyone else with 3 or more counted real
+    trips goes into a draw (`--draw`).
 - **Morning heads-up with nearby road reports, proposed 28 October** (the owner: "a push notification
   based on the location and give them value information").
   - The 6:30am notification would also mention road reports within about 10 km of the person's rough
