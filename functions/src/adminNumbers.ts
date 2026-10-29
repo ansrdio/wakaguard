@@ -1,9 +1,10 @@
 /**
  * @fileoverview The owner's Numbers page (wakaguard.com/admin/numbers)
  *
- * Counts of people, trips, texts, phones and database use, worked out each
- * time the page is opened. Only an account with the admin claim may ask, and
- * only counts come back: no names, numbers, emails, places or messages.
+ * Counts of people, trips, distance and time travelled, reports, texts, phones
+ * and database use, worked out each time the page is opened. Only an account
+ * with the admin claim may ask, and only counts come back: no names, numbers,
+ * emails, places or messages.
  *
  * People are counted from sign-in activity, as the app has no analytics.
  * NUMBERS_LEAVE_OUT (functions/.env, comma-separated) names the owner's own
@@ -18,12 +19,16 @@ import { Timestamp } from 'firebase-admin/firestore';
 import type { UserRecord } from 'firebase-admin/auth';
 import { getSetting } from './config';
 import {
-  Account, countDays, countPeople, countPhones, countTexts, DatabaseDay, DAY_MS, DAYS_SHOWN,
+  Account, countDays, countPeople, countPhones, countReports, countTexts, countTravel, DatabaseDay, DAY_MS,
   FREE_READS_PER_DAY, FREE_WRITES_PER_DAY, messageFromLog, Numbers, TEXT_DAYS, TripRow,
 } from './adminNumbersPlan';
+import { distanceMeters } from './tripPath';
 
 const millis = (value: unknown): number | null =>
   typeof (value as Timestamp | undefined)?.toMillis === 'function' ? (value as Timestamp).toMillis() : null;
+
+const place = (value: any): { lat: number; lng: number } | null =>
+  value && Number.isFinite(value.lat) && Number.isFinite(value.lng) ? { lat: value.lat, lng: value.lng } : null;
 
 async function allAccounts(): Promise<UserRecord[]> {
   const accounts: UserRecord[] = [];
@@ -84,13 +89,19 @@ export async function gatherNumbers(nowMs = Date.now()): Promise<Numbers> {
   const db = admin.firestore();
   const leaveOut = new Set(getSetting('NUMBERS_LEAVE_OUT').split(',').map((n) => n.trim().toLowerCase()).filter(Boolean));
 
-  // Trips and SOS alerts are kept 90 days, so reading them all stays small
-  const [profiles, accounts, trips, alerts, roadReports, logs, phones, database] = await Promise.all([
+  // Trips and SOS alerts are kept 90 days, and road reports expire too, so reading them all stays small.
+  // Contacts are only counted: select() with no fields reads none of their names or numbers
+  const [profiles, accounts, trips, alerts, roadReports, votes, contacts, logs, phones, database] = await Promise.all([
     db.collection('users').select('username').get(),
     allAccounts(),
-    db.collectionGroup('trips').select('startTime', 'isTest', 'overdueAt').get(),
+    db.collectionGroup('trips').select(
+      'startTime', 'endTime', 'endsAt', 'status', 'isTest', 'overdueAt',
+      'distanceM', 'farthestFromStartM', 'startLocation', 'endLocation',
+    ).get(),
     db.collectionGroup('alerts').select('createdAt', 'type').get(),
-    db.collection('reports').where('createdAt', '>=', Timestamp.fromMillis(nowMs - DAYS_SHOWN * DAY_MS)).select('uid', 'createdAt').get(),
+    db.collection('reports').select('uid', 'createdAt', 'photoUrls').get(),
+    db.collection('votes').select('uid', 'reportId', 'value').get(),
+    db.collectionGroup('trustedContacts').select().get(),
     db.collection('safetyMessageLogs').where('createdAt', '>=', Timestamp.fromMillis(nowMs - TEXT_DAYS * DAY_MS))
       .select('uid', 'provider', 'providerResult', 'reports', 'resends', 'createdAt').get(),
     db.collection('pushSubscriptions').select('platform', 'appBuild').get(),
@@ -108,17 +119,49 @@ export async function gatherNumbers(nowMs = Date.now()): Promise<Numbers> {
   // Sign-ins with no email, Google or Apple are anonymous ones left from the
   // RoutePulse app (January 2026); WakaGuard never makes them
   const signedUp = accounts.filter((u) => u.providerData.length > 0);
+  // Testers: signed up, and not the owner's
+  const testers = new Set(signedUp.map((u) => u.uid).filter(counted));
 
   const tripRows: TripRow[] = trips.docs.flatMap((d) => {
     const uid = ownerOf(d);
     const startMs = millis(d.get('startTime'));
-    return uid && counted(uid) && startMs !== null
-      ? [{ uid, startMs, isTest: d.get('isTest') === true, wentOverdue: !!d.get('overdueAt') }]
-      : [];
+    if (!uid || !counted(uid) || startMs === null) return [];
+    const start = place(d.get('startLocation'));
+    const end = place(d.get('endLocation'));
+    const farthest = typeof d.get('farthestFromStartM') === 'number' ? d.get('farthestFromStartM') : null;
+    return [{
+      uid,
+      startMs,
+      isTest: d.get('isTest') === true,
+      wentOverdue: !!d.get('overdueAt'),
+      arrivedMs: d.get('status') === 'completed' ? millis(d.get('endTime')) : null,
+      plannedEndMs: millis(d.get('endsAt')),
+      distanceM: typeof d.get('distanceM') === 'number' ? d.get('distanceM') : null,
+      leastDistanceM: start && end ? Math.max(distanceMeters(start, end), farthest ?? 0) : farthest,
+    }];
   });
   const messages = logs.docs
     .filter((d) => counted(d.get('uid')))
     .map((d) => messageFromLog(d.data(), millis(d.get('createdAt')) ?? nowMs));
+  // Only SOS here: the same collection holds checkpoint stops and missed check-ins
+  const alertTimes = (type: string) => alerts.docs.flatMap((d) => {
+    const ms = millis(d.get('createdAt'));
+    return d.get('type') === type && counted(ownerOf(d)) && ms !== null ? [ms] : [];
+  });
+  const checkpointMs = alertTimes('checkpoint_stop');
+
+  // Reports by testers; old ones from RoutePulse's anonymous sign-ins are not theirs
+  const reportRows = roadReports.docs.flatMap((d) => {
+    const ms = millis(d.get('createdAt'));
+    return testers.has(d.get('uid')) && ms !== null
+      ? [{ id: d.id, uid: d.get('uid') as string, ms, hasPhotos: (d.get('photoUrls') || []).length > 0 }]
+      : [];
+  });
+  const authorOf = new Map(reportRows.map((r) => [r.id, r.uid]));
+  const votedUp = new Set(votes.docs
+    .filter((v) => v.get('value') === 1 && counted(v.get('uid')) && authorOf.get(v.get('reportId')) !== v.get('uid'))
+    .map((v) => v.get('reportId')));
+  const withContacts = new Set(contacts.docs.map(ownerOf).filter((uid): uid is string => !!uid && testers.has(uid)));
 
   return {
     asOfMs: nowMs,
@@ -127,18 +170,18 @@ export async function gatherNumbers(nowMs = Date.now()): Promise<Numbers> {
     people: countPeople(signedUp.filter((u) => counted(u.uid)).map(toAccount), nowMs),
     days: countDays({
       trips: tripRows,
-      // Only SOS: the same collection holds checkpoint stops and missed check-ins
-      sosMs: alerts.docs.flatMap((d) => {
-        const ms = millis(d.get('createdAt'));
-        return d.get('type') === 'sos' && counted(ownerOf(d)) && ms !== null ? [ms] : [];
-      }),
-      roadReportMs: roadReports.docs.flatMap((d) => {
-        const ms = millis(d.get('createdAt'));
-        return counted(d.get('uid')) && ms !== null ? [ms] : [];
-      }),
+      sosMs: alertTimes('sos'),
+      checkpointMs,
+      roadReportMs: reportRows.map((r) => r.ms),
       texts: messages
         .filter((m) => !m.heldBack)
         .map((m) => ({ ms: m.createdMs, count: m.texts.filter((t) => t.sent).length })),
+    }, nowMs),
+    travel: countTravel(tripRows, nowMs),
+    reports: countReports({
+      roadReports: reportRows.map((r) => ({ ms: r.ms, hasPhotos: r.hasPhotos, votedUp: votedUp.has(r.id) })),
+      checkpointMs,
+      withContacts: withContacts.size,
     }, nowMs),
     textDays: TEXT_DAYS,
     texts: countTexts(messages),

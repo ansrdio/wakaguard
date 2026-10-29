@@ -573,6 +573,34 @@ test('the path is removed when the trip ends, and kept through an SOS', async ()
   assert.equal(after.name, 'Ada', 'the rest of the document is untouched');
 });
 
+test('how far a trip went is kept on the trip when it ends, leaving out a wild fix', async () => {
+  const { uid, contactIds } = await makeUser();
+  const now = Date.now();
+  const id = await makeTrip(uid, contactIds, {
+    endsAt: ts(now + 30 * MIN),
+    startTime: ts(now - 12 * MIN),
+    startLocation: { lat: 6.6, lng: 3.35 },
+  });
+  await moveTo(uid, id, 6.61, 3.35, now - 10 * MIN);
+  // About 10 km off in a minute, as a phone guessing before it has GPS
+  await moveTo(uid, id, 6.7, 3.35, now - 9 * MIN);
+  await moveTo(uid, id, 6.62, 3.35, now - 8 * MIN);
+
+  await updateAndTrigger(onTripUpdated, `users/${uid}/trips/${id}`, {
+    status: 'completed', endTime: ts(now - 5 * MIN), endLocation: { lat: 6.63, lng: 3.35 },
+  }, { uid, tripId: id });
+
+  const metres = (await trip(uid, id)).distanceM;
+  assert.ok(metres > 3300 && metres < 3370, `three steps of about 1.1 km, got ${metres}`);
+  assert.equal((await shared(id)).path, undefined, 'the path itself is still dropped');
+
+  // Storing it changes the trip again; that must not send anything or measure twice
+  await updateAndTrigger(onTripUpdated, `users/${uid}/trips/${id}`, { distanceM: metres }, { uid, tripId: id });
+  assert.equal((await trip(uid, id)).distanceM, metres);
+  assert.equal((await logs(uid, 'arrival')).length, 0);
+  assert.equal((await logs(uid, 'all_clear')).length, 0);
+});
+
 test('a trip with no share document does not get one created by the path', async () => {
   const { uid, contactIds } = await makeUser();
   const id = await makeTrip(uid, contactIds, { endsAt: ts(Date.now() + 30 * MIN) });

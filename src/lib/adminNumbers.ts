@@ -11,7 +11,9 @@ export interface DayNumbers {
   realTrips: number;
   testTrips: number;
   overdue: number;
+  km: number;
   sos: number;
+  checkpointStops: number;
   roadReports: number;
   texts: number;
 }
@@ -31,6 +33,28 @@ export interface Numbers {
     joinedByWeek: Array<{ weekEnding: string; count: number }>;
   };
   days: DayNumbers[];
+  travel: {
+    trips: number;
+    km: number;
+    hours: number;
+    recentTrips: number;
+    recentKm: number;
+    recentHours: number;
+    recentTravellers: number;
+    hoursPerTravellerWeekly: number;
+    medianMinutes: number | null;
+    endedOnTime: number;
+    measured: number;
+  };
+  reports: {
+    roadReports: number;
+    recentRoadReports: number;
+    withPhotos: number;
+    votedUp: number;
+    checkpointStops: number;
+    recentCheckpointStops: number;
+    withContacts: number;
+  };
   textDays: number;
   texts: {
     messages: number;
@@ -70,6 +94,18 @@ export function momentLabel(ms: number): string {
 
 export function count(n: number): string {
   return n.toLocaleString('en-GB');
+}
+
+/** Kilometres or hours to one decimal place under 100, whole above: "7.4", "1,240" */
+export function amount(n: number): string {
+  return n.toLocaleString('en-GB', { maximumFractionDigits: n < 100 ? 1 : 0 });
+}
+
+/** Minutes as "25 min" or "1 h 10 min" */
+export function minutesLabel(minutes: number): string {
+  const h = Math.floor(minutes / 60);
+  const m = Math.round(minutes % 60);
+  return h === 0 ? `${m} min` : m === 0 ? `${h} h` : `${h} h ${m} min`;
 }
 
 /** Whole per cent of a part, or a dash when there is nothing to divide by */

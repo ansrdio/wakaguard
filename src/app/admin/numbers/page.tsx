@@ -1,8 +1,8 @@
 'use client';
 
 /**
- * The owner's Numbers page: who uses WakaGuard, trips, texts, phones and
- * database use. Counts only, worked out by the adminNumbers server function
+ * The owner's Numbers page: who uses WakaGuard, trips, distance and time
+ * travelled, reports, texts, phones and database use. Counts only, worked out by the adminNumbers server function
  * each time the page is opened. Only accounts with the admin claim see them;
  * anyone else is told why and offered sign-in, rather than sent away.
  */
@@ -18,7 +18,7 @@ import { auth } from '@/lib/firebase';
 import { functions } from '@/lib/firebaseFunctions';
 import { APP_BUILD } from '@/lib/appVersion';
 import {
-  count, dayLabel, methodLabel, momentLabel, Numbers, percent, platformLabel,
+  amount, count, dayLabel, methodLabel, minutesLabel, momentLabel, Numbers, percent, platformLabel,
 } from '@/lib/adminNumbers';
 
 function Section({ title, note, children }: { title: string; note?: ReactNode; children: ReactNode }) {
@@ -47,10 +47,13 @@ function Tile({ label, value, note }: { label: string; value: string; note?: str
   );
 }
 
-/** A part against a whole or a limit. The fill turns amber from 80% and red past 100% */
-function Meter({ label, part, whole, detail }: { label: string; part: number; whole: number; detail: string }) {
+/**
+ * A part against a whole, or against a limit. Only against a limit, where
+ * more is worse, does the fill turn amber from 80% and red past 100%
+ */
+function Meter({ label, part, whole, detail, limit = false }: { label: string; part: number; whole: number; detail: string; limit?: boolean }) {
   const share = whole > 0 ? part / whole : 0;
-  const fill = share > 1 ? 'bg-red-600' : share >= 0.8 ? 'bg-amber-500' : 'bg-brand-500';
+  const fill = !limit ? 'bg-brand-500' : share > 1 ? 'bg-red-600' : share >= 0.8 ? 'bg-amber-500' : 'bg-brand-500';
   return (
     <div className="bg-white rounded-lg border border-slate-200 p-4">
       <div className="flex items-baseline justify-between gap-3">
@@ -144,7 +147,7 @@ function plural(n: number, one: string, many = `${one}s`): string {
 }
 
 function NumbersView({ n }: { n: Numbers }) {
-  const { people, texts } = n;
+  const { people, texts, travel, reports } = n;
   const newestDays = [...n.days].reverse();
   const phones = n.phones.reduce((total, p) => total + p.count, 0);
   const onLatest = n.phones.filter((p) => (p.build ?? 0) >= APP_BUILD).reduce((total, p) => total + p.count, 0);
@@ -196,8 +199,55 @@ function NumbersView({ n }: { n: Numbers }) {
           }))}
         />
         <Table
-          head={['Day', 'People', 'Real trips', 'Test trips', 'Overdue', 'SOS', 'Road reports', 'Texts']}
-          rows={newestDays.map((d) => [dayLabel(d.date), d.people, d.realTrips, d.testTrips, d.overdue, d.sos, d.roadReports, d.texts])}
+          head={['Day', 'People', 'Real trips', 'Test trips', 'Overdue', 'Km', 'SOS', 'Checkpoint stops', 'Road reports', 'Texts']}
+          rows={newestDays.map((d) => [
+            dayLabel(d.date), d.people, d.realTrips, d.testTrips, d.overdue, amount(d.km), d.sos, d.checkpointStops, d.roadReports, d.texts,
+          ])}
+        />
+      </Section>
+
+      <Section
+        title="Travel and reports"
+        note={
+          <>
+            Real trips ended with &ldquo;I&apos;ve arrived&rdquo;, since the beta began. Distance is measured along the
+            route for {plural(travel.measured, 'trip')}; the other {plural(travel.trips - travel.measured, 'trip')}, from
+            before that was switched on, count only the straight line from start to end or the farthest point, so the real
+            distance is higher. A trip left running past its arrival time counts only up to that time.
+          </>
+        }
+      >
+        <Tiles>
+          <Tile label="Kilometres travelled" value={amount(travel.km)} note={`${amount(travel.recentKm)} in the last 14 days`} />
+          <Tile label="Hours on the move" value={amount(travel.hours)} note={`${amount(travel.recentHours)} in the last 14 days`} />
+          <Tile
+            label="Hours a week, per traveller"
+            value={amount(travel.hoursPerTravellerWeekly)}
+            note={`last 14 days, ${plural(travel.recentTravellers, 'person', 'people')} travelled`}
+          />
+          <Tile
+            label="Typical trip"
+            value={travel.medianMinutes === null ? '–' : minutesLabel(travel.medianMinutes)}
+            note={travel.recentTrips > 0 ? `${amount(travel.recentKm / travel.recentTrips)} km on average, last 14 days` : 'no trips in the last 14 days'}
+          />
+        </Tiles>
+        <Meter
+          label="Ended before contacts were alerted"
+          part={travel.endedOnTime}
+          whole={travel.recentTrips}
+          detail={`${count(travel.endedOnTime)} of ${plural(travel.recentTrips, 'real trip')} in the last 14 days`}
+        />
+        <Tiles>
+          <Tile label="Road reports" value={count(reports.roadReports)} note={`${count(reports.recentRoadReports)} in the last 14 days`} />
+          <Tile label="With photos" value={count(reports.withPhotos)} />
+          <Tile label="Voted up by another tester" value={count(reports.votedUp)} />
+          <Tile label="Checkpoint stops" value={count(reports.checkpointStops)} note={`${count(reports.recentCheckpointStops)} in the last 14 days`} />
+        </Tiles>
+        <Meter
+          label="Added at least one contact"
+          part={reports.withContacts}
+          whole={people.accounts}
+          detail={`${count(reports.withContacts)} of ${plural(people.accounts, 'account')}`}
         />
       </Section>
 
@@ -240,12 +290,14 @@ function NumbersView({ n }: { n: Numbers }) {
           <>
             <div className="grid md:grid-cols-2 gap-3">
               <Meter
+                limit
                 label="Reads on the busiest day"
                 part={busiest.reads}
                 whole={n.database.freeReadsPerDay}
                 detail={`${count(busiest.reads)} of ${count(n.database.freeReadsPerDay)} free`}
               />
               <Meter
+                limit
                 label="Writes on the busiest day"
                 part={busiest.writes}
                 whole={n.database.freeWritesPerDay}

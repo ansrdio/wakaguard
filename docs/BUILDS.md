@@ -721,7 +721,9 @@ What was agreed:
   - The start form's own time picks minutes in fives (`CUSTOM_MINUTES` in `StartTripForm.tsx`, from the
     13 October request to say "2 hours 10 minutes" exactly). Make it every minute, 0 to 59.
   - Trips under 10 minutes still earn no ranking points; this is about the alert coming at the right time.
-  - "More time…" keeps its five-minute steps (`EXTRA_TIME_STEP`) unless testers ask.
+  - "More time…" too (`AddTimeSheet.tsx`, `EXTRA_TIME_STEP` in `tripPlanning.ts`): a second regular tester
+    asked on 28 October ("one should be able to type the particular time or minutes the want, not just in
+    5s"; the owner: "add more time"). The server's check on added time must accept any whole minute.
 - **Ignore wild positions, added 28 October** (our most active tester sent a screenshot: the path on a short
   trip in Calabar shot several kilometres north to the airport and back; "I didn't went to anywhere close
   to airport"; the owner: "add to build 26").

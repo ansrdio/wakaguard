@@ -21,7 +21,7 @@ import { checkAndIncrementRateLimit } from './rateLimit';
 import { getNumberSetting } from './config';
 import { deliverSafetySms, DeliveryResult, getSenderProfile, getTrustedContacts, Recipient, UNKNOWN_NAME } from './safetyDelivery';
 import { AllClearReason, buildAllClearMessage, buildOverdueMessage, buildSosMessage, markAsTest } from './templates';
-import { addPathPoint, distanceMeters, nextPositionStats, readPath } from './tripPath';
+import { addPathPoint, distanceMeters, nextPositionStats, pathLengthMeters, readPath } from './tripPath';
 import { buildTravellerPush, TravellerMessage } from './reminderPush';
 import { plateForText, readTripVehicle, vehicleForContacts } from './vehicle';
 import { readStoredRoute, sameRoute } from './tripRoute';
@@ -632,7 +632,16 @@ async function recordPath(tripRef: DocRef, before: DocData, after: DocData): Pro
     if (isOpenStatus(before.status)) {
       await db.runTransaction(async (tx) => {
         const snap = await tx.get(sharedRef);
-        if (snap.exists && snap.data()!.path !== undefined) tx.update(sharedRef, { path: FieldValue.delete() });
+        if (!snap.exists || snap.data()!.path === undefined) return;
+        // How far the trip went is kept on the private trip, for the owner's
+        // Numbers page, before the path is dropped. The last leg runs to where
+        // it ended
+        const path = readPath(snap.data()!.path);
+        const end = readLocation(after.endLocation);
+        const endMs = toMillis(after.endTime);
+        const whole = (end && endMs != null && addPathPoint(path, { ...end, at: endMs })) || path;
+        tx.update(tripRef, { distanceM: pathLengthMeters(whole) });
+        tx.update(sharedRef, { path: FieldValue.delete() });
       });
     }
     return;

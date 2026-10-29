@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { MAX_PATH_POINTS, MIN_PATH_MOVE_M, addPathPoint, distanceMeters, readPath, nextPositionStats } from '../src/tripPath';
+import { MAX_PATH_POINTS, MIN_PATH_MOVE_M, addPathPoint, distanceMeters, pathLengthMeters, readPath, nextPositionStats } from '../src/tripPath';
 
 const T0 = Date.UTC(2026, 9, 7, 12, 0, 0);
 // Roughly 111 m per 0.001 degree of latitude
@@ -64,4 +64,24 @@ test('positions are counted once each, with the longest silence between two', ()
   stats = nextPositionStats(stats!, 5000);
   assert.deepEqual(stats, { count: 3, firstAtMs: 1000, lastAtMs: 5000, longestGapMs: 3000 });
   assert.deepEqual(nextPositionStats({ count: 'x' as unknown as number }, 10), { count: 1, firstAtMs: 10, lastAtMs: 10, longestGapMs: 0 });
+});
+
+test('pathLengthMeters: adds up the steps of a path', () => {
+  const metres = pathLengthMeters([at(0), at(1), at(2), at(3)]);
+  assert.ok(metres > 330 && metres < 336, `about 333 m, got ${metres}`);
+  assert.equal(pathLengthMeters([]), 0);
+  assert.equal(pathLengthMeters([at(0)]), 0);
+});
+
+test('pathLengthMeters: a wild fix far off the route is left out', () => {
+  // About 11 km away a minute later, then back on the route
+  const wild = { lat: 6.7, lng: 3.35, at: T0 + 60000 };
+  const metres = pathLengthMeters([at(0), wild, at(1, 2)]);
+  assert.ok(metres > 110 && metres < 112, `only the real step, got ${metres}`);
+});
+
+test('pathLengthMeters: when the first point was the wild one, counting starts again from the route', () => {
+  const wild = { lat: 6.7, lng: 3.35, at: T0 };
+  const metres = pathLengthMeters([wild, at(0, 1), at(1, 2), at(2, 3), at(3, 4)]);
+  assert.ok(metres > 110 && metres < 112, `the route after it settled, got ${metres}`);
 });

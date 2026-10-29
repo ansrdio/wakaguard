@@ -77,6 +77,29 @@ export interface TripRow {
   startMs: number;
   isTest: boolean;
   wentOverdue: boolean;
+  /** When the traveller ended it with "I've arrived"; null while running, cancelled or expired */
+  arrivedMs?: number | null;
+  /** When they planned to arrive */
+  plannedEndMs?: number | null;
+  /** Metres travelled, measured from the trip's path when it ended (tripMonitor.ts, from late October 2026) */
+  distanceM?: number | null;
+  /** For older trips, the most we know it went: start to end, or the farthest it got from the start */
+  leastDistanceM?: number | null;
+}
+
+/** A trip left running is counted at most to its planned arrival, or this long when it had none */
+export const LONGEST_TRIP_MS = 12 * 60 * 60 * 1000;
+
+/** How long a finished real trip was on the move; a forgotten one counts only to its planned arrival */
+export function movingMs(trip: TripRow): number {
+  if (trip.arrivedMs == null) return 0;
+  const end = trip.wentOverdue && trip.plannedEndMs != null ? Math.min(trip.arrivedMs, trip.plannedEndMs) : trip.arrivedMs;
+  return Math.min(Math.max(0, end - trip.startMs), LONGEST_TRIP_MS);
+}
+
+/** Metres a finished trip went, measured or at least as far as we know */
+export function tripMetres(trip: TripRow): number {
+  return trip.distanceM ?? trip.leastDistanceM ?? 0;
 }
 
 export interface DayNumbers {
@@ -88,7 +111,10 @@ export interface DayNumbers {
   testTrips: number;
   /** Real trips that went past their time */
   overdue: number;
+  /** Kilometres on real trips started that day and ended with "I've arrived" */
+  km: number;
   sos: number;
+  checkpointStops: number;
   roadReports: number;
   /** Texts that went out, one per contact */
   texts: number;
@@ -96,13 +122,22 @@ export interface DayNumbers {
 
 /** The last DAYS_SHOWN days in Nigeria, oldest first, today last */
 export function countDays(
-  input: { trips: TripRow[]; sosMs: number[]; roadReportMs: number[]; texts: Array<{ ms: number; count: number }> },
+  input: {
+    trips: TripRow[];
+    sosMs: number[];
+    checkpointMs?: number[];
+    roadReportMs: number[];
+    texts: Array<{ ms: number; count: number }>;
+  },
   nowMs: number
 ): DayNumbers[] {
-  const days = new Map<string, DayNumbers & { uids: Set<string> }>();
+  const days = new Map<string, DayNumbers & { uids: Set<string>; metres: number }>();
   for (let i = DAYS_SHOWN - 1; i >= 0; i--) {
     const date = lagosDate(nowMs - i * DAY_MS);
-    days.set(date, { date, people: 0, realTrips: 0, testTrips: 0, overdue: 0, sos: 0, roadReports: 0, texts: 0, uids: new Set() });
+    days.set(date, {
+      date, people: 0, realTrips: 0, testTrips: 0, overdue: 0, km: 0, sos: 0, checkpointStops: 0, roadReports: 0, texts: 0,
+      uids: new Set(), metres: 0,
+    });
   }
   const on = (ms: number) => days.get(lagosDate(ms));
   for (const trip of input.trips) {
@@ -114,12 +149,93 @@ export function countDays(
     } else {
       day.realTrips += 1;
       if (trip.wentOverdue) day.overdue += 1;
+      if (trip.arrivedMs != null) day.metres += tripMetres(trip);
     }
   }
   for (const ms of input.sosMs) { const day = on(ms); if (day) day.sos += 1; }
+  for (const ms of input.checkpointMs ?? []) { const day = on(ms); if (day) day.checkpointStops += 1; }
   for (const ms of input.roadReportMs) { const day = on(ms); if (day) day.roadReports += 1; }
   for (const t of input.texts) { const day = on(t.ms); if (day) day.texts += t.count; }
-  return [...days.values()].map(({ uids, ...day }) => ({ ...day, people: uids.size }));
+  return [...days.values()].map(({ uids, metres, ...day }) => ({ ...day, people: uids.size, km: Math.round(metres / 100) / 10 }));
+}
+
+export interface TravelNumbers {
+  /** Real trips ended with "I've arrived", since the beta began (trips are kept 90 days) */
+  trips: number;
+  km: number;
+  hours: number;
+  /** The same for the last DAYS_SHOWN days */
+  recentTrips: number;
+  recentKm: number;
+  recentHours: number;
+  /** People with a real trip in the last DAYS_SHOWN days */
+  recentTravellers: number;
+  /** Hours on the move a week, per person who travelled, over the last DAYS_SHOWN days */
+  hoursPerTravellerWeekly: number;
+  /** The middle trip's length in minutes, last DAYS_SHOWN days */
+  medianMinutes: number | null;
+  /** Of those trips, how many were ended before their contacts were alerted */
+  endedOnTime: number;
+  /** Trips whose distance was measured from their path; the rest are at-least figures */
+  measured: number;
+}
+
+/** Distance and time on real trips the traveller ended themselves */
+export function countTravel(trips: TripRow[], nowMs: number): TravelNumbers {
+  const finished = trips.filter((t) => !t.isTest && t.arrivedMs != null);
+  const recent = finished.filter((t) => t.startMs >= nowMs - DAYS_SHOWN * DAY_MS);
+  const km = (list: TripRow[]) => Math.round(list.reduce((sum, t) => sum + tripMetres(t), 0) / 100) / 10;
+  const hours = (list: TripRow[]) => Math.round(list.reduce((sum, t) => sum + movingMs(t), 0) / 360_000) / 10;
+  const minutes = recent.map((t) => movingMs(t) / 60_000).sort((a, b) => a - b);
+  const travellers = new Set(recent.map((t) => t.uid)).size;
+  const middle = Math.floor(minutes.length / 2);
+  return {
+    trips: finished.length,
+    km: km(finished),
+    hours: hours(finished),
+    recentTrips: recent.length,
+    recentKm: km(recent),
+    recentHours: hours(recent),
+    recentTravellers: travellers,
+    hoursPerTravellerWeekly: travellers > 0 ? Math.round((hours(recent) / travellers / (DAYS_SHOWN / 7)) * 10) / 10 : 0,
+    medianMinutes: minutes.length === 0 ? null
+      : Math.round(minutes.length % 2 ? minutes[middle] : (minutes[middle - 1] + minutes[middle]) / 2),
+    endedOnTime: recent.filter((t) => !t.wentOverdue).length,
+    measured: finished.filter((t) => t.distanceM != null).length,
+  };
+}
+
+export interface ReportNumbers {
+  /** Road reports since the beta began */
+  roadReports: number;
+  recentRoadReports: number;
+  withPhotos: number;
+  /** Voted up by at least one other tester */
+  votedUp: number;
+  checkpointStops: number;
+  recentCheckpointStops: number;
+  /** Accounts with at least one trusted contact */
+  withContacts: number;
+}
+
+export function countReports(
+  input: {
+    roadReports: Array<{ ms: number; hasPhotos: boolean; votedUp: boolean }>;
+    checkpointMs: number[];
+    withContacts: number;
+  },
+  nowMs: number
+): ReportNumbers {
+  const recent = (ms: number) => ms >= nowMs - DAYS_SHOWN * DAY_MS;
+  return {
+    roadReports: input.roadReports.length,
+    recentRoadReports: input.roadReports.filter((r) => recent(r.ms)).length,
+    withPhotos: input.roadReports.filter((r) => r.hasPhotos).length,
+    votedUp: input.roadReports.filter((r) => r.votedUp).length,
+    checkpointStops: input.checkpointMs.length,
+    recentCheckpointStops: input.checkpointMs.filter(recent).length,
+    withContacts: input.withContacts,
+  };
 }
 
 /** One safetyMessageLogs entry, cut down to what the page counts */
@@ -223,6 +339,8 @@ export interface Numbers {
   oldAnonymous: number;
   people: PeopleNumbers;
   days: DayNumbers[];
+  travel: TravelNumbers;
+  reports: ReportNumbers;
   textDays: number;
   texts: TextNumbers;
   phones: PhoneNumbers[];

@@ -31,7 +31,7 @@ test('only an account with the admin claim gets the numbers', async () => {
   assert.equal((await refusal(call({ email: 'someone@example.com' }))).code, 'permission-denied');
 });
 
-test("the numbers count people, trips and texts, leaving out the owner's accounts", async () => {
+test("the numbers count people, trips, distance, reports and texts, leaving out the owner's accounts", async () => {
   // Other test files share the emulators and run at the same time, so this
   // one dates its trips and texts twelve days back and gives its phones app
   // builds nobody else uses, and checks those exactly
@@ -69,6 +69,21 @@ test("the numbers count people, trips and texts, leaving out the owner's account
   await db().doc(`users/${tester.uid}/alerts/a1`).set({ type: 'sos', createdAt: Timestamp.fromMillis(then) });
   await db().doc(`users/${tester.uid}/alerts/a2`).set({ type: 'checkpoint_stop', createdAt: Timestamp.fromMillis(then) });
 
+  // A real trip ended with "I've arrived", its distance measured, and one of the owner's, not counted
+  const arrived = { isTest: false, status: 'completed', startTime: Timestamp.fromMillis(then), endTime: Timestamp.fromMillis(then + 30 * 60_000) };
+  await db().doc(`users/${tester.uid}/trips/t3`).set({ ...arrived, distanceM: 5000 });
+  await db().doc(`users/${owner.uid}/trips/o2`).set({ ...arrived, distanceM: 9000 });
+
+  // A road report with a photo, voted up by another tester; the owner's report is not counted
+  const voter = await admin.auth().createUser({ email: `voter-${run}@example.com`, password: 'not-a-real-one' });
+  const report = await db().collection('reports').add({ uid: tester.uid, createdAt: Timestamp.fromMillis(then), photoUrls: ['photo'] });
+  await db().collection('votes').add({ uid: voter.uid, reportId: report.id, value: 1 });
+  await db().collection('reports').add({ uid: owner.uid, createdAt: Timestamp.fromMillis(then), photoUrls: [] });
+
+  // Contacts are counted by who has one, the owner's left out
+  await db().doc(`users/${tester.uid}/trustedContacts/c1`).set({ name: 'Mum', phone: 'not a real number' });
+  await db().doc(`users/${owner.uid}/trustedContacts/c1`).set({ name: 'Me', phone: 'not a real number' });
+
   // An anonymous sign-in, as the old RoutePulse app made
   await admin.auth().createUser({});
 
@@ -77,19 +92,27 @@ test("the numbers count people, trips and texts, leaving out the owner's account
   assert.ok(after.people.last24h >= before.people.last24h + 1);
   assert.ok(after.oldAnonymous >= before.oldAnonymous + 1);
   assert.ok(after.leftOut >= 1);
-  assert.equal(thatDay(after).realTrips, thatDay(before).realTrips + 1, "the owner's trip is not counted");
+  assert.equal(thatDay(after).realTrips, thatDay(before).realTrips + 2, "the tester's two; the owner's are not counted");
   assert.equal(thatDay(after).testTrips, thatDay(before).testTrips + 1);
   assert.equal(thatDay(after).overdue, thatDay(before).overdue + 1);
   assert.equal(thatDay(after).people, thatDay(before).people + 1);
   assert.equal(thatDay(after).sos, thatDay(before).sos + 1, 'only the SOS, not the checkpoint stop');
   assert.equal(thatDay(after).texts, thatDay(before).texts + 2, "the owner's text is not counted");
+  assert.ok(Math.abs(thatDay(after).km - thatDay(before).km - 5) < 0.11, "5 km from the tester's trip, none from the owner's");
+  assert.equal(thatDay(after).checkpointStops, thatDay(before).checkpointStops + 1);
+  assert.equal(thatDay(after).roadReports, thatDay(before).roadReports + 1, "the owner's report is not counted");
+  assert.ok(after.travel.trips >= before.travel.trips + 1);
+  assert.ok(after.travel.measured >= before.travel.measured + 1);
+  assert.ok(after.reports.withPhotos >= before.reports.withPhotos + 1);
+  assert.ok(after.reports.votedUp >= before.reports.votedUp + 1);
+  assert.ok(after.reports.withContacts >= before.reports.withContacts + 1);
   assert.equal(phonesOn(after, 9001), 1);
   assert.equal(phonesOn(after, 9002), 0, "the owner's phone is not counted");
   assert.equal(after.database, null, 'no Google Cloud figures against the emulators');
 
   // Nothing personal comes back
   const everything = JSON.stringify(after);
-  for (const secret of [tester.uid, owner.uid, `numbers-${run}@example.com`, `tester_${run}`]) {
+  for (const secret of [tester.uid, owner.uid, voter.uid, `numbers-${run}@example.com`, `tester_${run}`, 'Mum', 'not a real number']) {
     assert.ok(!everything.includes(secret), `the answer must not include ${secret}`);
   }
 });

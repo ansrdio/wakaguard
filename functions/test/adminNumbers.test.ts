@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  Account, countDays, countPeople, countPhones, countTexts, DAY_MS, DAYS_SHOWN, lagosDate, messageFromLog, WEEKS_SHOWN,
+  Account, countDays, countPeople, countPhones, countReports, countTexts, countTravel, DAY_MS, DAYS_SHOWN, lagosDate,
+  messageFromLog, movingMs, TripRow, WEEKS_SHOWN,
 } from '../src/adminNumbersPlan';
 
 // Wednesday 28 October 2026, 22:30 in Nigeria
@@ -40,13 +41,14 @@ test('each of the last fourteen days counts trips, people and the rest', () => {
   const at = (daysAgo: number) => NOW - daysAgo * DAY_MS;
   const days = countDays({
     trips: [
-      { uid: 'a', startMs: at(0), isTest: false, wentOverdue: false },
-      { uid: 'a', startMs: at(0), isTest: false, wentOverdue: true },
+      { uid: 'a', startMs: at(0), isTest: false, wentOverdue: false, arrivedMs: at(0) + 30 * 60_000, distanceM: 4200 },
+      { uid: 'a', startMs: at(0), isTest: false, wentOverdue: true, arrivedMs: at(0) + 90 * 60_000, leastDistanceM: 1250 },
       { uid: 'b', startMs: at(0), isTest: true, wentOverdue: true },
       { uid: 'c', startMs: at(1), isTest: false, wentOverdue: false },
       { uid: 'd', startMs: at(30), isTest: false, wentOverdue: false },
     ],
     sosMs: [at(0), at(2)],
+    checkpointMs: [at(0), at(0), at(5)],
     roadReportMs: [at(1)],
     texts: [{ ms: at(0), count: 3 }, { ms: at(0), count: 2 }],
   }, NOW);
@@ -54,7 +56,7 @@ test('each of the last fourteen days counts trips, people and the rest', () => {
   assert.equal(days[0].date, '2026-10-15');
   const today = days[DAYS_SHOWN - 1];
   assert.deepEqual(today, {
-    date: '2026-10-28', people: 2, realTrips: 2, testTrips: 1, overdue: 1, sos: 1, roadReports: 0, texts: 5,
+    date: '2026-10-28', people: 2, realTrips: 2, testTrips: 1, overdue: 1, km: 5.5, sos: 1, checkpointStops: 2, roadReports: 0, texts: 5,
   });
   assert.equal(days[DAYS_SHOWN - 2].people, 1);
   assert.equal(days[DAYS_SHOWN - 2].roadReports, 1);
@@ -97,4 +99,57 @@ test('phones by platform and build, newest build first', () => {
     { platform: 'ios', build: 25, count: 1 },
     { platform: 'unknown', build: null, count: 1 },
   ]);
+});
+
+test('time on the move: a trip left running counts only to its planned arrival', () => {
+  const start = NOW - 3 * 60 * 60_000;
+  const trip = (over: Partial<TripRow>): TripRow => ({ uid: 'a', startMs: start, isTest: false, wentOverdue: false, ...over });
+  assert.equal(movingMs(trip({ arrivedMs: start + 25 * 60_000 })), 25 * 60_000);
+  assert.equal(movingMs(trip({ arrivedMs: start + 13 * 60 * 60_000, plannedEndMs: start + 40 * 60_000, wentOverdue: true })), 40 * 60_000);
+  assert.equal(movingMs(trip({ arrivedMs: start + 20 * 60 * 60_000 })), 12 * 60 * 60_000, 'never more than twelve hours');
+  assert.equal(movingMs(trip({})), 0, 'still running');
+});
+
+test('distance and time on real trips the traveller ended, overall and for the last fourteen days', () => {
+  const at = (daysAgo: number) => NOW - daysAgo * DAY_MS;
+  const trip = (uid: string, daysAgo: number, minutes: number, over: Partial<TripRow> = {}): TripRow => ({
+    uid, startMs: at(daysAgo), isTest: false, wentOverdue: false, arrivedMs: at(daysAgo) + minutes * 60_000, ...over,
+  });
+  const travel = countTravel([
+    trip('a', 1, 30, { distanceM: 6000 }),
+    trip('a', 2, 20, { leastDistanceM: 2000 }),
+    trip('b', 3, 60, { distanceM: 12000, wentOverdue: true, plannedEndMs: at(3) + 45 * 60_000 }),
+    trip('c', 20, 120, { distanceM: 30000 }),
+    trip('a', 0, 5, { isTest: true, distanceM: 500 }),
+    { uid: 'd', startMs: at(0), isTest: false, wentOverdue: false, arrivedMs: null, distanceM: 999 },
+  ], NOW);
+  assert.deepEqual(travel, {
+    trips: 4,
+    km: 50,
+    hours: 3.6,
+    recentTrips: 3,
+    recentKm: 20,
+    recentHours: 1.6,
+    recentTravellers: 2,
+    hoursPerTravellerWeekly: 0.4,
+    medianMinutes: 30,
+    endedOnTime: 2,
+    measured: 3,
+  });
+  assert.equal(countTravel([], NOW).medianMinutes, null);
+});
+
+test('road reports, photos, votes, checkpoint stops and contacts', () => {
+  const at = (daysAgo: number) => NOW - daysAgo * DAY_MS;
+  assert.deepEqual(countReports({
+    roadReports: [
+      { ms: at(1), hasPhotos: true, votedUp: true },
+      { ms: at(2), hasPhotos: false, votedUp: false },
+      { ms: at(20), hasPhotos: true, votedUp: false },
+    ],
+    checkpointMs: [at(1), at(30)],
+    withContacts: 7,
+  }, NOW), {
+    roadReports: 3, recentRoadReports: 2, withPhotos: 2, votedUp: 1, checkpointStops: 2, recentCheckpointStops: 1, withContacts: 7,
+  });
 });

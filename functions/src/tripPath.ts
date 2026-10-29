@@ -77,6 +77,37 @@ export function addPathPoint(path: PathPoint[], point: PathPoint): PathPoint[] |
   return next.length > MAX_PATH_POINTS ? thin(next) : next;
 }
 
+/** Faster than this between two positions (about 200 km/h) is a wrong fix, not travel */
+export const MAX_TRAVEL_SPEED_MPS = 55;
+
+/**
+ * How far a path went, in metres: the sum of its steps, leaving out a point
+ * that could only have been reached faster than MAX_TRAVEL_SPEED_MPS from the
+ * last one kept, such as a rough fix before the phone had GPS (a tester's
+ * short trip in Calabar once jumped to the airport and back). Three such
+ * points in a row mean the kept one was the wrong one, so counting starts
+ * again from there.
+ */
+export function pathLengthMeters(path: PathPoint[]): number {
+  let total = 0;
+  let last: PathPoint | null = null;
+  let skipped = 0;
+  for (const point of path) {
+    if (last) {
+      const metres = distanceMeters(last, point);
+      const tooFast = metres / Math.max((point.at - last.at) / 1000, 1) > MAX_TRAVEL_SPEED_MPS;
+      if (tooFast && skipped < 2) {
+        skipped += 1;
+        continue;
+      }
+      if (!tooFast) total += metres;
+    }
+    skipped = 0;
+    last = point;
+  }
+  return Math.round(total);
+}
+
 /** How many positions a running trip has received, and the longest silence between two */
 export interface PositionStats {
   count: number;
