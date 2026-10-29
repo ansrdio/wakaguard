@@ -1,6 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { ForecastHour, inServiceArea, keepWhatIsUsed, kindOfHour, readAhead, roughArea } from '../src/weather';
+import {
+  FEELS_HOT_FROM, feelsLike, feelsLikeOfHour, ForecastHour, inServiceArea, keepWhatIsUsed, kindOfHour, readAhead, roughArea,
+} from '../src/weather';
 
 const NOW = Date.UTC(2026, 9, 14, 12, 20);
 const HOUR = 60 * 60 * 1000;
@@ -27,6 +29,29 @@ test('each hour is read for the one thing worth saying', () => {
   assert.equal(kindOfHour({}), null);
 });
 
+test('how hot it feels follows the US weather service heat index', () => {
+  const fahrenheit = (c: number) => Math.round((c * 9) / 5 + 32);
+  const celsius = (f: number) => ((f - 32) * 5) / 9;
+  // Values from the published heat index table
+  assert.equal(fahrenheit(feelsLike(celsius(90), 70)), 106);
+  assert.equal(fahrenheit(feelsLike(celsius(86), 70)), 95);
+  assert.equal(fahrenheit(feelsLike(celsius(100), 40)), 109);
+  // Dry air never makes it count as cooler than the air
+  assert.equal(Math.round(feelsLike(40, 10)), 40);
+});
+
+test('humid heat is worth a word even below 38°C', () => {
+  const humid = (temperature: number, humidity: number): ForecastHour => ({
+    time: at(0),
+    data: { instant: { details: { air_temperature: temperature, relative_humidity: humidity } }, next_1_hours: { summary: { symbol_code: 'fair_day' } } },
+  });
+  assert.equal(kindOfHour(humid(33, 70)), 'heat', '33°C at 70% feels like about 43°C');
+  assert.equal(kindOfHour(humid(31, 60)), null);
+  assert.equal(kindOfHour(humid(36, 15)), null, 'dry 36°C stays below both limits');
+  assert.equal(FEELS_HOT_FROM, 41);
+  assert.equal(feelsLikeOfHour(hour(0)), null, 'no humidity, no feels-like');
+});
+
 test('the most serious thing in the hours ahead is chosen, with when it starts', () => {
   const series = [hour(-2, 'heavyrain'), hour(0), hour(1, 'rain'), hour(2, 'rainandthunder'), hour(5, 'heavyrain')];
   assert.deepEqual(readAhead(series, NOW, 3), { kind: 'storm', startsInHours: 1, hottest: 30, hours: 3 });
@@ -50,6 +75,8 @@ test('it never looks further ahead than six hours, nor less than one', () => {
 test('the forecast is kept with only what is used, and nothing empty', () => {
   const full = { time: at(1), data: { instant: { details: { air_temperature: 31, wind_speed: 3 } }, next_1_hours: { summary: { symbol_code: 'rain' }, details: { precipitation_amount: 1.2 } }, next_6_hours: {} } };
   assert.deepEqual(keepWhatIsUsed(full as ForecastHour), hour(1, 'rain', 1.2, 31));
+  const withHumidity = { time: at(1), data: { instant: { details: { air_temperature: 31, relative_humidity: 74, dew_point_temperature: 26 } } } };
+  assert.deepEqual(keepWhatIsUsed(withHumidity as ForecastHour).data?.instant, { details: { air_temperature: 31, relative_humidity: 74 } });
   const bare = keepWhatIsUsed({ time: at(1), data: {} });
   assert.equal(JSON.stringify(bare).includes('undefined'), false);
   assert.deepEqual(bare.data?.next_1_hours, { summary: {}, details: {} });

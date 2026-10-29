@@ -28,6 +28,15 @@ export const AREA_DECIMALS = 1;
 export const MAX_HOURS = 6;
 /** Hotter than this, in °C, is worth a word */
 export const HOT_FROM = 38;
+/**
+ * Feeling hotter than this, in °C, is worth a word too, whatever the air
+ * temperature: in the humid south 33°C can feel like 41°C, which the US
+ * weather service counts as dangerous heat. Added for the heatwaves of
+ * late 2026 (the owner, 28 October 2026).
+ */
+export const FEELS_HOT_FROM = 41;
+/** Feeling hotter than this is dangerous for anyone out in it */
+export const FEELS_DANGEROUS_FROM = 46;
 /** An hour with this much rain or more, in mm, is heavy rain whatever its symbol says */
 export const HEAVY_RAIN_MM = 4;
 /** A forecast kept past its expiry, for when MET Norway cannot be reached */
@@ -41,7 +50,7 @@ const SERIOUSNESS: WeatherKind[] = ['storm', 'heavy-rain', 'rain', 'fog', 'heat'
 export interface ForecastHour {
   time?: string;
   data?: {
-    instant?: { details?: { air_temperature?: number } };
+    instant?: { details?: { air_temperature?: number; relative_humidity?: number } };
     next_1_hours?: { summary?: { symbol_code?: string }; details?: { precipitation_amount?: number } };
   };
 }
@@ -82,6 +91,32 @@ export function inServiceArea(area: { lat: number; lng: number }): boolean {
 /** How long MET Norway is waited for before a kept forecast, or none, is used */
 const FETCH_WAIT_MS = 8000;
 
+/**
+ * How hot it feels, in °C: the US National Weather Service's heat index from
+ * the air temperature and relative humidity (per cent). Never below the air
+ * temperature, as dry air does not make heat any safer to travel in.
+ */
+export function feelsLike(temperatureC: number, humidity: number): number {
+  const t = (temperatureC * 9) / 5 + 32;
+  const rh = humidity;
+  let index = 0.5 * (t + 61 + (t - 68) * 1.2 + rh * 0.094);
+  if (index >= 80) {
+    index = -42.379 + 2.04901523 * t + 10.14333127 * rh - 0.22475541 * t * rh - 0.00683783 * t * t
+      - 0.05481717 * rh * rh + 0.00122874 * t * t * rh + 0.00085282 * t * rh * rh - 0.00000199 * t * t * rh * rh;
+    if (rh < 13 && t >= 80 && t <= 112) index -= ((13 - rh) / 4) * Math.sqrt((17 - Math.abs(t - 95)) / 17);
+    else if (rh > 85 && t >= 80 && t <= 87) index += ((rh - 85) / 10) * ((87 - t) / 5);
+  }
+  return Math.max(temperatureC, ((index - 32) * 5) / 9);
+}
+
+/** How hot one hour of the forecast feels, or null without both temperature and humidity */
+export function feelsLikeOfHour(hour: ForecastHour): number | null {
+  const details = hour.data?.instant?.details;
+  const temperature = details?.air_temperature;
+  const humidity = details?.relative_humidity;
+  return typeof temperature === 'number' && typeof humidity === 'number' ? feelsLike(temperature, humidity) : null;
+}
+
 /** What one hour of the forecast says, if anything */
 export function kindOfHour(hour: ForecastHour): WeatherKind | null {
   const symbol = hour.data?.next_1_hours?.summary?.symbol_code ?? '';
@@ -92,6 +127,7 @@ export function kindOfHour(hour: ForecastHour): WeatherKind | null {
   if (symbol.includes('rain') || symbol.includes('sleet')) return 'rain';
   if (symbol.includes('fog')) return 'fog';
   if (typeof temperature === 'number' && temperature >= HOT_FROM) return 'heat';
+  if ((feelsLikeOfHour(hour) ?? 0) >= FEELS_HOT_FROM) return 'heat';
   return null;
 }
 
@@ -159,6 +195,10 @@ export interface DayOutlook {
   startsAtMs: number | null;
   /** The hottest temperature in the rest of the day, rounded */
   hottest: number | null;
+  /** How hot the hottest hour feels, rounded; null when the forecast has no humidity */
+  feelsLike?: number | null;
+  /** When it feels hottest */
+  hottestAtMs?: number | null;
 }
 
 /**
@@ -169,6 +209,8 @@ export function readDay(timeseries: ForecastHour[], nowMs: number, untilMs: numb
   let kind: WeatherKind | null = null;
   let startsAtMs: number | null = null;
   let hottest: number | null = null;
+  let feels: number | null = null;
+  let hottestAtMs: number | null = null;
   const coming = timeseries
     .map((hour) => ({ hour, startMs: Date.parse(hour.time ?? '') }))
     .filter(({ startMs }) => Number.isFinite(startMs) && startMs + HOUR_MS > nowMs && startMs < untilMs)
@@ -176,6 +218,11 @@ export function readDay(timeseries: ForecastHour[], nowMs: number, untilMs: numb
   for (const { hour, startMs } of coming) {
     const temperature = hour.data?.instant?.details?.air_temperature;
     if (typeof temperature === 'number') hottest = Math.max(hottest ?? -Infinity, Math.round(temperature));
+    const hourFeels = feelsLikeOfHour(hour);
+    if (hourFeels !== null && (feels === null || Math.round(hourFeels) > feels)) {
+      feels = Math.round(hourFeels);
+      hottestAtMs = Math.max(nowMs, startMs);
+    }
     const found = kindOfHour(hour);
     if (!found) continue;
     if (kind === null || SERIOUSNESS.indexOf(found) < SERIOUSNESS.indexOf(kind)) {
@@ -183,25 +230,31 @@ export function readDay(timeseries: ForecastHour[], nowMs: number, untilMs: numb
       startsAtMs = Math.max(nowMs, startMs);
     }
   }
-  return { kind, startsAtMs, hottest };
+  return { kind, startsAtMs, hottest, feelsLike: feels, hottestAtMs };
 }
 
 /** Where someone last looked at the weather, kept for the morning notification (morningWeather.ts) */
 export const WEATHER_AREAS = 'weatherAreas';
 
 /**
- * Only what the line uses from one hour: its symbol, rain and temperature.
- * Parts the forecast leaves out are left out here too (the database refuses
- * an empty value).
+ * Only what the line uses from one hour: its symbol, rain, temperature and
+ * humidity (for how hot it feels). Parts the forecast leaves out are left out
+ * here too (the database refuses an empty value).
  */
 export function keepWhatIsUsed(hour: ForecastHour): ForecastHour {
   const temperature = hour.data?.instant?.details?.air_temperature;
+  const humidity = hour.data?.instant?.details?.relative_humidity;
   const symbol = hour.data?.next_1_hours?.summary?.symbol_code;
   const rain = hour.data?.next_1_hours?.details?.precipitation_amount;
   return {
     time: hour.time ?? '',
     data: {
-      instant: { details: typeof temperature === 'number' ? { air_temperature: temperature } : {} },
+      instant: {
+        details: {
+          ...(typeof temperature === 'number' ? { air_temperature: temperature } : {}),
+          ...(typeof humidity === 'number' ? { relative_humidity: humidity } : {}),
+        },
+      },
       next_1_hours: {
         summary: typeof symbol === 'string' ? { symbol_code: symbol } : {},
         details: typeof rain === 'number' ? { precipitation_amount: rain } : {},

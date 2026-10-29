@@ -681,6 +681,14 @@ What was agreed:
     and every step can be skipped.
   - **Fits with:** the short start form of the simplification pass, and the existing "first test trip" points.
   - **Afterwards:** the Numbers page shows whether more people come back.
+- **Morning heads-up with nearby road reports, proposed 28 October** (the owner: "a push notification
+  based on the location and give them value information").
+  - The 6:30am notification would also mention road reports within about 10 km of the person's rough
+    area since the night before. It still goes only when there is something worth saying, at most once
+    a day.
+  - It needs the Settings switch renamed "Morning heads-up" with its line changed (an app change), and a
+    Privacy page line on using the rough area for road reports.
+  - The heat warnings above went first, server-only.
 
 ### Build 24.1, iPhone only: the iOS 27 launch crash
 
@@ -1632,6 +1640,21 @@ From the roadmap, with its dates. None of these needs an app build.
         3. Release the website. The Privacy page changes wait for the switch to Africa's
            Talking, so the site is either built with the current live Privacy page or
            released together with the switch.
+- [ ] Heat warnings by how hot it feels (the owner, 28 October: "especially with the El Niño
+      heatwave"). Built 28 October, not live.
+      - **What changes:** the morning notification and the app's weather line now also warn when
+        the heat index ("feels like", from temperature and humidity, US National Weather Service
+        formula) reaches 41°C, as well as at 38°C air temperature. In the humid south, 33°C at 70%
+        humidity feels like about 43°C.
+      - **The 6:30am message:** for example, "It will feel like 43°C where you are around 2 pm. Carry
+        water, wait in the shade, and travel before noon or after 4 pm if you can." The title becomes
+        "Dangerously hot today" from 46°C.
+      - **The forecast store:** cached forecasts now keep humidity.
+      - **Checked against MET Norway's forecast on 28 October** for Lagos, Uyo, Calabar, Abuja and
+        Kano: no day in the coming week reaches 41°C feels-like (highest 39°C, Calabar), so it will not
+        fire daily. It fires when a real heatwave comes.
+      - **Privacy page:** no change needed; it already says "great heat".
+      - **To go live, on the owner's word:** deploy `weatherAhead` and `morningWeather`.
 - [ ] Mon 2 Nov. Text alerts switched on, then proven on MTN, Airtel, Glo and
       9mobile, including a do-not-disturb number
 - [ ] Week of Mon 2 Nov. Security check of the server, and Firebase's app

@@ -18,7 +18,7 @@
 import * as functions from 'firebase-functions/v1';
 import * as admin from 'firebase-admin';
 import type { TokenMessage } from 'firebase-admin/messaging';
-import { DayOutlook, forecastFor, readDay, WEATHER_AREAS } from './weather';
+import { DayOutlook, FEELS_DANGEROUS_FROM, forecastFor, readDay, WEATHER_AREAS } from './weather';
 import { believedBuild, PushSubscription, TravellerMessage } from './reminderPush';
 
 /** The first build with the Settings switch: no one is sent what they cannot turn off */
@@ -67,12 +67,19 @@ export function morningMessage(day: DayOutlook, nowMs: number): TravellerMessage
       return { title: 'Rain expected today', body: `${from} Allow extra time on the road.`, data };
     case 'fog':
       return { title: 'Fog expected today', body: `${from} Slow down and keep your lights on.`, data };
-    case 'heat':
+    case 'heat': {
+      // How hot it feels says more than the air temperature in humid places
+      const feels = day.feelsLike ?? null;
+      const peak = day.hottestAtMs ? ` around ${lagosHour(day.hottestAtMs)}` : '';
+      const how = feels !== null && feels > (day.hottest ?? 0)
+        ? `It will feel like ${feels}°C where you are${peak}.`
+        : `Up to ${day.hottest ?? 38}°C where you are.`;
       return {
-        title: 'Very hot today',
-        body: `Up to ${day.hottest ?? 38}°C where you are. Carry water when you travel.`,
+        title: feels !== null && feels >= FEELS_DANGEROUS_FROM ? 'Dangerously hot today' : 'Very hot today',
+        body: `${how} Carry water, wait in the shade, and travel before noon or after 4 pm if you can.`,
         data,
       };
+    }
   }
 }
 

@@ -35,6 +35,29 @@ test('a notification only on a day worth one, in the approved style', () => {
   assert.equal(morningMessage({ kind: null, startsAtMs: null, hottest: 30 }, MORNING), null);
 });
 
+test('a hot day says how hot it will feel, and when, with what to do', () => {
+  const humid = morningMessage({
+    kind: 'heat', startsAtMs: MORNING, hottest: 34, feelsLike: 43, hottestAtMs: Date.UTC(2026, 9, 19, 13),
+  }, MORNING)!;
+  assert.equal(humid.title, 'Very hot today');
+  assert.equal(humid.body, 'It will feel like 43°C where you are around 2 pm. Carry water, wait in the shade, and travel before noon or after 4 pm if you can.');
+  assert.equal(morningMessage({ kind: 'heat', startsAtMs: MORNING, hottest: 37, feelsLike: 47, hottestAtMs: MORNING }, MORNING)!.title, 'Dangerously hot today');
+  // Dry heat, where it feels no hotter than the air, gives the temperature
+  assert.match(morningMessage({ kind: 'heat', startsAtMs: MORNING, hottest: 41, feelsLike: 41, hottestAtMs: MORNING }, MORNING)!.body, /^Up to 41°C where you are\./);
+});
+
+test('the day is read for how hot it will feel at its hottest', () => {
+  const humid = (h: number, temperature: number, humidity: number) => ({
+    time: new Date(Date.UTC(2026, 9, 19, 5) + h * HOUR).toISOString(),
+    data: { instant: { details: { air_temperature: temperature, relative_humidity: humidity } }, next_1_hours: { summary: { symbol_code: 'fair_day' } } },
+  });
+  const day = readDay([humid(1, 29, 80), humid(7, 33, 70), humid(9, 32, 60)], MORNING, endOfLagosDay(MORNING));
+  assert.equal(day.kind, 'heat');
+  assert.equal(day.hottest, 33);
+  assert.equal(day.feelsLike, 43);
+  assert.equal(day.hottestAtMs, Date.UTC(2026, 9, 19, 12), 'the hottest-feeling hour, 1 pm in Nigeria');
+});
+
 test('it goes out as an ordinary notification, never like a trip alert', () => {
   const push = buildWeatherPush({ fcmToken: 'token-1' }, { title: 't', body: 'b', data: { kind: 'weather' } }) as any;
   assert.equal(push.android.notification.channelId, WEATHER_CHANNEL_ID);
