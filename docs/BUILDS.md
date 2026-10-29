@@ -746,6 +746,17 @@ What was agreed:
   - The change: on returning to the front, re-read the trip from the server (or hold the stale warning
     for a few seconds until a fresh copy arrives) before saying sharing stopped. Testers who see a false
     alarm stop trusting the real one.
+- **A reminder at each person's usual travel times, added 28 October** (a regular tester: "most times I
+  forget to use it while going out"; the owner: "add the reminder to build 26"). "I forgot to start a trip"
+  was the top reason for using WakaGuard less in the 17 October survey (4 of 9).
+  - The server already knows when each person's real trips start. Where someone has started one at about
+    the same time of day (within 30 minutes, Nigeria time) on at least 3 of the last 14 days, send a push a
+    few minutes before that time, "Heading out? Start your trip", opening the start form with their usual
+    trip filled in, and only when no trip of theirs is running. At most once a day.
+  - Its own switch in Settings, on by default for build 26 and later, so nobody turns off all notifications
+    (and with them trip reminders) to stop it. Older builds get none: they would have no switch.
+  - Needs a Privacy page line: the times of their past trips are used to time the reminder.
+  - Watch afterwards on the Numbers page whether more trips start near those times.
 - **Morning heads-up with nearby road reports, proposed 28 October** (the owner: "a push notification
   based on the location and give them value information").
   - The 6:30am notification would also mention road reports within about 10 km of the person's rough
@@ -1784,6 +1795,11 @@ From the first week of testing (agreed 12 October):
 - [ ] Check-ins on long trips: "Still okay?" every couple of hours
 - [ ] Nigerian languages for the alert texts and the main screens: Pidgin,
       Yoruba, Hausa, Igbo
+- [ ] Notice movement and ask "Are you on a trip?" (a regular tester, 28
+      October, like Sweatcoin). Needs the physical activity permission on
+      Android and motion on iPhone, a Privacy page line and store-form changes,
+      and costs battery, so not before launch; build 26's usual-time reminder
+      covers the same problem without a new permission
 
 Places and adverts by location (the owner asked on 12 October where these
 stand; neither exists yet):
