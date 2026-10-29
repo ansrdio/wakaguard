@@ -746,6 +746,17 @@ What was agreed:
   - The change: on returning to the front, re-read the trip from the server (or hold the stale warning
     for a few seconds until a fresh copy arrives) before saying sharing stopped. Testers who see a false
     alarm stop trusting the real one.
+- **SOS from the lock screen, added 29 October** (a regular tester's voice note: in an ambush "there will be
+  no time for me to pick up my phone", and Google's Personal Safety calls 112 on five presses of the power
+  button; the owner: "add to build 26").
+  - Android and iOS let no app use the power button, film in the background with the screen off, or dial
+    112 by itself; only the phone's own Emergency SOS can. Testers are pointed to that (Settings, "Emergency
+    SOS", with location shared to emergency contacts) alongside WakaGuard.
+  - The change: an "SOS" button on the "Safe Trip active" notification, which shows on the lock screen, next
+    to the existing actions (`TripReminderMessagingService.java`, `tripNotificationActions.ts`). A press asks
+    once more ("Send SOS to your contacts?") so a pocket press cannot set it off, then sends it as the app's
+    SOS button does, with the latest position. iPhone: a notification action too, or a Live Activity later.
+  - The overdue alert stays the backstop for someone who cannot touch their phone at all.
 - **A reminder at each person's usual travel times, added 28 October** (a regular tester: "most times I
   forget to use it while going out"; the owner: "add the reminder to build 26"). "I forgot to start a trip"
   was the top reason for using WakaGuard less in the 17 October survey (4 of 9).
