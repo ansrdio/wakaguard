@@ -716,6 +716,12 @@ What was agreed:
     under Battery saver, and WakaGuard locked in recent apps.
   - Check the menu names on a Redmi first: the cheaper Redmi A phones run a plainer Android that may
     have no Autostart.
+- **Any number of minutes under "Other", added 28 October** (a regular tester: "my trip could be 7 mins
+  but there's no option for that so I have to either choose 5 or 10"; the owner: "add to build 26").
+  - The start form's own time picks minutes in fives (`CUSTOM_MINUTES` in `StartTripForm.tsx`, from the
+    13 October request to say "2 hours 10 minutes" exactly). Make it every minute, 0 to 59.
+  - Trips under 10 minutes still earn no ranking points; this is about the alert coming at the right time.
+  - "More time…" keeps its five-minute steps (`EXTRA_TIME_STEP`) unless testers ask.
 - **Morning heads-up with nearby road reports, proposed 28 October** (the owner: "a push notification
   based on the location and give them value information").
   - The 6:30am notification would also mention road reports within about 10 km of the person's rough
