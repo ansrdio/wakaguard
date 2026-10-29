@@ -16,6 +16,7 @@
  * this ranking and is not read.
  */
 
+import { randomInt } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
@@ -58,6 +59,15 @@ export const LATE_TRIP_RULE_FROM_MS = Date.UTC(2026, 9, 14, 23, 0);
  * weeks are scored as they were announced.
  */
 export const EVERYDAY_DAYS = 5;
+/**
+ * Prizes (the owner, 28 October 2026), so the same people cannot win every
+ * week: last week's winners sit out the prize places but stay on the list, and
+ * everyone else with this many counted real trips goes into a draw. Last
+ * week's winners are named by hand (--last-winners), as the repository is
+ * public.
+ */
+export const PRIZE_PLACES = 3;
+export const DRAW_MIN_TRIPS = 3;
 export const EVERYDAY_BONUS_FROM_MS = Date.UTC(2026, 9, 25, 17, 0);
 
 export const REASONS = {
@@ -216,7 +226,8 @@ const groupBy = (items, keyOf) => {
  *   reportId, value} on those reports, alerts {uid, type, createdMs, tripId}
  * @param options fromMs, toMs, sinceMs (when the beta began), excluded
  *   (usernames or uids to leave out), problems ({username: count}, judged by a
- *   person from the problem-report sheet), top (how many to check for cheating)
+ *   person from the problem-report sheet), top (how many to check for cheating),
+ *   lastWinners (usernames who won last week and sit out the prize places)
  */
 export function scoreWeek(data, options) {
   const { fromMs, toMs, sinceMs = fromMs, top = 10 } = options;
@@ -300,12 +311,28 @@ export function scoreWeek(data, options) {
     .sort((a, b) => b.total - a.total || b.realTrips - a.realTrips || b.roadReports - a.roadReports
       || a.name.localeCompare(b.name));
 
+  // Last week's winners sit out the prize places
+  const lastWinners = new Set();
+  for (const entry of options.lastWinners || []) {
+    const uid = uidByUsername.get(entry.toLowerCase());
+    if (uid) lastWinners.add(uid);
+    else warnings.push(`"${entry}" won last week, but no account has that username. Check the spelling.`);
+  }
+  const inTheRunning = ranking.filter((row) => !lastWinners.has(row.uid));
+  const prizes = inTheRunning.slice(0, PRIZE_PLACES);
+
   // A tie that decides a prize is the owner's to settle
   const ties = [];
-  for (const total of new Set(ranking.slice(0, 3).map((row) => row.total))) {
-    const tied = ranking.filter((row) => row.total === total);
+  for (const total of new Set(prizes.map((row) => row.total))) {
+    const tied = inTheRunning.filter((row) => row.total === total);
     if (tied.length > 1) ties.push({ total, names: tied.map((row) => row.name) });
   }
+
+  const prizeWinners = new Set(prizes.map((row) => row.uid));
+  const drawEntrants = rows
+    .filter((row) => row.week.counted >= DRAW_MIN_TRIPS && !prizeWinners.has(row.uid))
+    .map((row) => row.name)
+    .sort((a, b) => a.localeCompare(b));
 
   const real = [...realTrips.values()].flat();
   const tests = [...testTrips.values()].flat();
@@ -374,12 +401,23 @@ export function scoreWeek(data, options) {
       { name, realTrips: tripsCounted, roadReports, firstTestTrip, problemReports, everydayBonus, total }
     )),
     ties,
+    prizes: prizes.map(({ name, total }) => ({ name, total })),
+    satOut: ranking.filter((row) => lastWinners.has(row.uid)).map((row) => row.name),
+    drawEntrants,
     health,
     checks,
     mutual,
     leftOut: leftOut.size,
     warnings,
   };
+}
+
+/** Picks up to `count` different entrants; `randomInt(n)` gives a whole number from 0 to n - 1. */
+export function drawFrom(entrants, count, randomInt) {
+  const pool = [...entrants];
+  const drawn = [];
+  while (drawn.length < count && pool.length > 0) drawn.push(pool.splice(randomInt(pool.length), 1)[0]);
+  return drawn;
 }
 
 // ---------------------------------------------------------------- printing
@@ -405,8 +443,8 @@ function table(rows, headings) {
 
 const listReasons = (rejected) => Object.entries(rejected).map(([reason, count]) => `${count} ${reason}`).join(', ');
 
-/** The report as text. `source` says where the numbers came from. */
-export function formatReport(result, { fromMs, toMs, nowMs, source }) {
+/** The report as text. `source` says where the numbers came from; `drawn` is who the draw picked. */
+export function formatReport(result, { fromMs, toMs, nowMs, source, drawn = [] }) {
   const lines = [];
   const say = (text = '') => lines.push(text);
   const { ranking, health, checks } = result;
@@ -437,11 +475,17 @@ export function formatReport(result, { fromMs, toMs, nowMs, source }) {
       + (fromMs >= EVERYDAY_BONUS_FROM_MS
         ? `, everyday bonus ${POINTS.everydayBonus} (counted real trips on ${EVERYDAY_DAYS} different days).`
         : '.'));
+    say();
+    say(`Prizes: ${result.prizes.map((row, index) => `${index + 1}. ${row.name} (${row.total})`).join(', ')}`);
+    if (result.satOut.length > 0) say(`Sitting out the prizes, as last week's winners: ${result.satOut.join(', ')}`);
     for (const tie of result.ties) {
       say(`TIE on ${tie.total} points: ${tie.names.join(', ')}. The order above is by real trips, then road `
         + 'reports; a prize tie is yours to decide.');
     }
   }
+  say(`Draw (${DRAW_MIN_TRIPS} or more counted real trips, no prize this week): `
+    + `${result.drawEntrants.join(', ') || 'nobody yet'}`);
+  if (drawn.length > 0) say(`Drawn: ${drawn.join(', ')}`);
   say(`Accounts with a username and no points this week: ${health.namedWithoutPoints}`);
 
   say();
@@ -563,7 +607,7 @@ export async function collect(db, { fromMs, toMs }) {
 // ---------------------------------------------------------------- command
 
 const FLAGS = ['emulator', 'live', 'help'];
-const VALUES = ['from', 'to', 'since', 'exclude', 'problems', 'problems-file', 'top', 'project'];
+const VALUES = ['from', 'to', 'since', 'exclude', 'problems', 'problems-file', 'top', 'project', 'last-winners', 'draw'];
 
 export function readArgs(argv) {
   const args = {};
@@ -599,7 +643,9 @@ const HELP = `Weekly numbers for the WakaGuard beta ranking. Read-only.
   --exclude a,b         usernames (or uids) to leave out: the owner, the test account, the reviewers
   --problems a=2,b=1    problem reports judged from the sheet, ${POINTS.problemReport} points each
   --problems-file path  the same, one "username,count" a line
-  --top 10              how many of the ranking to check for cheating`;
+  --top 10              how many of the ranking to check for cheating
+  --last-winners a,b    last week's prize winners, who sit out the prize places
+  --draw 2              how many to pick in the draw (default: list the entrants only)`;
 
 async function main() {
   const args = readArgs(process.argv.slice(2));
@@ -640,12 +686,14 @@ async function main() {
     excluded: splitList(args.exclude),
     problems,
     top: Number(args.top) || 10,
+    lastWinners: splitList(args['last-winners']),
   });
   console.log(formatReport(result, {
     fromMs,
     toMs,
     nowMs: Date.now(),
     source: args.emulator ? `local emulator (${projectId})` : `live project ${projectId}, read-only`,
+    drawn: drawFrom(result.drawEntrants, Number(args.draw) || 0, (n) => randomInt(n)),
   }));
   await admin.app().delete();
 }

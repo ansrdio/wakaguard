@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
   parseLagosTime, weekStartBefore, lagosDay, metresBetween, scoreWeek, formatReport, readArgs, readProblems,
-  WEEK_MS, stillnessOf,
+  WEEK_MS, stillnessOf, drawFrom,
   // @ts-expect-error plain JavaScript module, run by hand as a script
 } from '../../scripts/weekly-numbers.mjs';
 
@@ -383,6 +383,50 @@ test('two people who voted up each other are named, and prize ties are pointed o
   assert.deepEqual(result.ties, [{ total: 2, names: ['ada', 'tunde'] }]);
 });
 
+// One counted real trip a day, from Monday
+const tripsOnDays = (uid: string, days: number) => Array.from({ length: days }, (_, day) => trip(uid, MONDAY + day * DAY));
+
+test('last week\'s winners sit out the prizes but stay on the list', () => {
+  const result = score({
+    users: users('ada', 'tunde', 'bisi', 'kemi', 'femi'),
+    trips: [...tripsOnDays('uid-ada', 5), ...tripsOnDays('uid-tunde', 4), ...tripsOnDays('uid-bisi', 3),
+      ...tripsOnDays('uid-kemi', 2), ...tripsOnDays('uid-femi', 1)],
+  }, { lastWinners: ['ada', 'Tunde', 'nobody'] });
+
+  assert.deepEqual(result.ranking.map((row: Row) => row.name), ['ada', 'tunde', 'bisi', 'kemi', 'femi']);
+  assert.deepEqual(result.prizes, [{ name: 'bisi', total: 9 }, { name: 'kemi', total: 6 }, { name: 'femi', total: 3 }]);
+  assert.deepEqual(result.satOut, ['ada', 'tunde']);
+  assert.ok(result.warnings.some((warning: string) => warning.includes('"nobody" won last week')));
+  const text = formatReport(result, { fromMs: FROM, toMs: TO, nowMs: TO, source: 'a test' });
+  assert.match(text, /Prizes: 1\. bisi \(9\), 2\. kemi \(6\), 3\. femi \(3\)/);
+  assert.match(text, /Sitting out the prizes, as last week's winners: ada, tunde/);
+});
+
+test('the draw is for everyone with three counted real trips who took no prize', () => {
+  const result = score({
+    users: users('ada', 'tunde', 'bisi', 'kemi', 'femi', 'gbenga'),
+    trips: [...tripsOnDays('uid-ada', 6), ...tripsOnDays('uid-tunde', 5), ...tripsOnDays('uid-bisi', 4),
+      ...tripsOnDays('uid-kemi', 3), ...tripsOnDays('uid-femi', 3), ...tripsOnDays('uid-gbenga', 2)],
+  });
+  assert.deepEqual(result.prizes.map((row: Row) => row.name), ['ada', 'tunde', 'bisi']);
+  assert.deepEqual(result.drawEntrants, ['femi', 'kemi']);
+
+  // Last week's winners sit out the prizes, not the draw
+  const sittingOut = score({
+    users: users('ada', 'tunde', 'bisi', 'kemi'),
+    trips: [...tripsOnDays('uid-ada', 6), ...tripsOnDays('uid-tunde', 5), ...tripsOnDays('uid-bisi', 4),
+      ...tripsOnDays('uid-kemi', 3)],
+  }, { lastWinners: ['ada'] });
+  assert.deepEqual(sittingOut.drawEntrants, ['ada']);
+
+  assert.deepEqual(drawFrom(['femi', 'kemi', 'tolu'], 2, () => 0), ['femi', 'kemi']);
+  assert.deepEqual(drawFrom(['femi', 'kemi'], 5, (n: number) => n - 1), ['kemi', 'femi']);
+  assert.deepEqual(drawFrom(['femi'], 0, () => 0), []);
+  const text = formatReport(result, { fromMs: FROM, toMs: TO, nowMs: TO, source: 'a test', drawn: ['kemi'] });
+  assert.match(text, /Draw \(3 or more counted real trips, no prize this week\): femi, kemi/);
+  assert.match(text, /Drawn: kemi/);
+});
+
 test('someone with no username is shown by the start of their id', () => {
   const result = score({ trips: [trip('AbCdEfGhIjKlMnOp', MONDAY)] });
   assert.equal(result.ranking[0].name, 'AbCdEf');
@@ -427,6 +471,7 @@ test('the command line is read strictly', () => {
     readArgs(['--live', '--from', '2026-10-11', '--exclude', 'a,b']),
     { live: true, from: '2026-10-11', exclude: 'a,b' },
   );
+  assert.deepEqual(readArgs(['--last-winners', 'a,b', '--draw', '2']), { 'last-winners': 'a,b', draw: '2' });
   assert.throws(() => readArgs(['--frm', '2026-10-11']), /Did not understand/);
   assert.deepEqual(readProblems(['ada=2', 'tunde,1', 'ada: 1']), { ada: 3, tunde: 1 });
   assert.throws(() => readProblems(['ada']), /not a username and a count/);
