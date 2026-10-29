@@ -21,7 +21,9 @@ async function area(key: string, symbol: string) {
     time: new Date(MORNING + h * HOUR).toISOString(),
     data: { instant: { details: { air_temperature: 30 } }, next_1_hours: { summary: { symbol_code: h === 9 ? symbol : 'cloudy' }, details: {} } },
   }));
-  await db().doc(`weatherForecasts/${key}`).set({ timeseries, expiresMs: MORNING + 2 * HOUR, lastModified: null, fetchedMs: MORNING });
+  // Fetched "now", so the record-deletion test running alongside does not
+  // take it for an old forecast and delete it mid-test
+  await db().doc(`weatherForecasts/${key}`).set({ timeseries, expiresMs: MORNING + 2 * HOUR, lastModified: null, fetchedMs: Date.now() });
 }
 
 async function person(key: string, opts: { build?: number; off?: boolean; lookedDaysAgo?: number } = {}) {
