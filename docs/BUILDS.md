@@ -681,6 +681,19 @@ What was agreed:
     and every step can be skipped.
   - **Fits with:** the short start form of the simplification pass, and the existing "first test trip" points.
   - **Afterwards:** the Numbers page shows whether more people come back.
+- **From a regular tester's feedback (28 October; the owner: "yes add all three"):**
+  - **Search for where you are going,** instead of only the pin. Use Google's place search, as Mapbox
+    found no Nigerian landmarks on 18 October. It should stay within Google's free monthly allowance at our
+    size. It needs a Privacy page line: what is typed is sent to Google.
+  - **"Stopped at a checkpoint?" that does something.** Today one tap saves an alert (`checkpoint_stop`) and
+    shows "Checkpoint stop logged", but no one is told and it is not on the contacts' trip page. Testers have
+    pressed it 20 times. The change: a short confirmation, then the stop shows on the contacts' trip page
+    ("Stopped at a checkpoint, 2:14 pm", with a map pin).
+  - **"Trip ended. Your location is no longer shared."** shown after "I've arrived". The tester thought
+    their location was still shared after ending a trip and closed the app to be sure. The server log
+    shows only one refused position for an ended trip in 7 days, so nothing is sent. What they saw is
+    likely the iPhone's location arrow, from the weather line or the map reading location while the app is
+    open. Also check on the owner's iPhone that the arrow goes away when the app is minimised after a trip.
 - **Morning heads-up with nearby road reports, proposed 28 October** (the owner: "a push notification
   based on the location and give them value information").
   - The 6:30am notification would also mention road reports within about 10 km of the person's rough

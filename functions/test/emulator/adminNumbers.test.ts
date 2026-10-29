@@ -65,6 +65,10 @@ test("the numbers count people, trips and texts, leaving out the owner's account
   });
   await db().doc(`pushSubscriptions/${owner.uid}`).set({ platform: 'android', appBuild: 9002 });
 
+  // An SOS counts; a checkpoint stop in the same collection does not
+  await db().doc(`users/${tester.uid}/alerts/a1`).set({ type: 'sos', createdAt: Timestamp.fromMillis(then) });
+  await db().doc(`users/${tester.uid}/alerts/a2`).set({ type: 'checkpoint_stop', createdAt: Timestamp.fromMillis(then) });
+
   // An anonymous sign-in, as the old RoutePulse app made
   await admin.auth().createUser({});
 
@@ -77,6 +81,7 @@ test("the numbers count people, trips and texts, leaving out the owner's account
   assert.equal(thatDay(after).testTrips, thatDay(before).testTrips + 1);
   assert.equal(thatDay(after).overdue, thatDay(before).overdue + 1);
   assert.equal(thatDay(after).people, thatDay(before).people + 1);
+  assert.equal(thatDay(after).sos, thatDay(before).sos + 1, 'only the SOS, not the checkpoint stop');
   assert.equal(thatDay(after).texts, thatDay(before).texts + 2, "the owner's text is not counted");
   assert.equal(phonesOn(after, 9001), 1);
   assert.equal(phonesOn(after, 9002), 0, "the owner's phone is not counted");

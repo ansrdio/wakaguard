@@ -89,7 +89,7 @@ export async function gatherNumbers(nowMs = Date.now()): Promise<Numbers> {
     db.collection('users').select('username').get(),
     allAccounts(),
     db.collectionGroup('trips').select('startTime', 'isTest', 'overdueAt').get(),
-    db.collectionGroup('alerts').select('createdAt').get(),
+    db.collectionGroup('alerts').select('createdAt', 'type').get(),
     db.collection('reports').where('createdAt', '>=', Timestamp.fromMillis(nowMs - DAYS_SHOWN * DAY_MS)).select('uid', 'createdAt').get(),
     db.collection('safetyMessageLogs').where('createdAt', '>=', Timestamp.fromMillis(nowMs - TEXT_DAYS * DAY_MS))
       .select('uid', 'provider', 'providerResult', 'reports', 'resends', 'createdAt').get(),
@@ -127,9 +127,10 @@ export async function gatherNumbers(nowMs = Date.now()): Promise<Numbers> {
     people: countPeople(signedUp.filter((u) => counted(u.uid)).map(toAccount), nowMs),
     days: countDays({
       trips: tripRows,
+      // Only SOS: the same collection holds checkpoint stops and missed check-ins
       sosMs: alerts.docs.flatMap((d) => {
         const ms = millis(d.get('createdAt'));
-        return counted(ownerOf(d)) && ms !== null ? [ms] : [];
+        return d.get('type') === 'sos' && counted(ownerOf(d)) && ms !== null ? [ms] : [];
       }),
       roadReportMs: roadReports.docs.flatMap((d) => {
         const ms = millis(d.get('createdAt'));
