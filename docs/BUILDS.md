@@ -732,9 +732,18 @@ What was agreed:
   - The change: on the server, a position much less accurate than recent ones, or one that would mean an
     impossible speed from the last good one, is kept for the record but does not move the map, the path or
     the farthest distance. Test it with a still phone indoors, where rough fixes are common.
-  - The same tester believes his location stops when the app is minimised. His 17 trips in the 10 days
-    to 29 October say otherwise: a position every 30 to 60 seconds throughout, never more than 2 minutes
-    apart, on build 25. Ask what he saw before changing anything for it.
+- **No false "No location received" after coming back to the app, added 28 October** (the same tester:
+  "if I minimize for a long while say 10-15 mins, an error message will flash on the app saying, my
+  location stopped sharing… I should check my Internet connection"; the owner: "add to build 26").
+  - His 17 trips in the 10 days to 29 October had a position every 30 to 60 seconds, never more than
+    2 minutes apart, on build 25 (Infinix). So sharing never stopped; the warning was wrong.
+  - Cause: `describeLocationStatus` (`src/lib/tripPlanning.ts`) reads `lastUpdate` from the app's own copy
+    of the trip. Background positions go to the server straight from the native plugin, and the copy is
+    not refreshed while the app is minimised, so on return it looks 10 or more minutes old until the
+    listener catches up.
+  - The change: on returning to the front, re-read the trip from the server (or hold the stale warning
+    for a few seconds until a fresh copy arrives) before saying sharing stopped. Testers who see a false
+    alarm stop trusting the real one.
 - **Morning heads-up with nearby road reports, proposed 28 October** (the owner: "a push notification
   based on the location and give them value information").
   - The 6:30am notification would also mention road reports within about 10 km of the person's rough
