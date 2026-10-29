@@ -722,6 +722,19 @@ What was agreed:
     13 October request to say "2 hours 10 minutes" exactly). Make it every minute, 0 to 59.
   - Trips under 10 minutes still earn no ranking points; this is about the alert coming at the right time.
   - "More time…" keeps its five-minute steps (`EXTRA_TIME_STEP`) unless testers ask.
+- **Ignore wild positions, added 28 October** (our most active tester sent a screenshot: the path on a short
+  trip in Calabar shot several kilometres north to the airport and back; "I didn't went to anywhere close
+  to airport"; the owner: "add to build 26").
+  - That trip (Wed 28 October, 06:02) reached 3,638 m from its start against about 2,000 m on his other 16
+    trips that week, so one rough fix, likely before the phone had GPS, was taken as real.
+  - Today the app sends each position's accuracy and `tripLocation` stores it, but nothing uses it: every
+    position moves the contacts' map, the trip path and `farthestFromStartM` (which the weekly ranking reads).
+  - The change: on the server, a position much less accurate than recent ones, or one that would mean an
+    impossible speed from the last good one, is kept for the record but does not move the map, the path or
+    the farthest distance. Test it with a still phone indoors, where rough fixes are common.
+  - The same tester believes his location stops when the app is minimised. His 17 trips in the 10 days
+    to 29 October say otherwise: a position every 30 to 60 seconds throughout, never more than 2 minutes
+    apart, on build 25. Ask what he saw before changing anything for it.
 - **Morning heads-up with nearby road reports, proposed 28 October** (the owner: "a push notification
   based on the location and give them value information").
   - The 6:30am notification would also mention road reports within about 10 km of the person's rough
