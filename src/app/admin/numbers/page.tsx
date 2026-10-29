@@ -3,14 +3,18 @@
 /**
  * The owner's Numbers page: who uses WakaGuard, trips, texts, phones and
  * database use. Counts only, worked out by the adminNumbers server function
- * each time the page is opened. Admins only (useAdminAuth).
+ * each time the page is opened. Only accounts with the admin claim see them;
+ * anyone else is told why and offered sign-in, rather than sent away.
  */
 
 import { ReactNode, useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { signOut } from 'firebase/auth';
 import { httpsCallable } from 'firebase/functions';
 import { RefreshCw } from 'lucide-react';
-import { useAdminAuth } from '@/hooks/useAdminAuth';
+import { AuthModal } from '@/components/AuthModal';
+import { useAuthedUser } from '@/hooks/useAuthedUser';
+import { auth } from '@/lib/firebase';
 import { functions } from '@/lib/firebaseFunctions';
 import { APP_BUILD } from '@/lib/appVersion';
 import {
@@ -261,8 +265,77 @@ function NumbersView({ n }: { n: Numbers }) {
   );
 }
 
+type Access = 'checking' | 'signed-out' | 'not-admin' | 'admin';
+
+/** Whether the signed-in account may see the numbers, read from its admin claim */
+function useNumbersAccess(): { access: Access; email: string | null } {
+  const { uid, ready, email, isAnonymous } = useAuthedUser();
+  const [claim, setClaim] = useState<{ uid: string; admin: boolean } | null>(null);
+
+  useEffect(() => {
+    const user = auth.currentUser;
+    if (!ready || !uid || !user || user.uid !== uid) return;
+    let live = true;
+    // Asked fresh, so rights given since the last sign-in count straight away
+    user.getIdTokenResult(true)
+      .then((token) => { if (live) setClaim({ uid, admin: token.claims.admin === true }); })
+      .catch(() => { if (live) setClaim({ uid, admin: false }); });
+    return () => {
+      live = false;
+    };
+  }, [ready, uid]);
+
+  if (!ready) return { access: 'checking', email: null };
+  if (!uid || isAnonymous) return { access: 'signed-out', email: null };
+  if (claim?.uid !== uid) return { access: 'checking', email };
+  return { access: claim.admin ? 'admin' : 'not-admin', email };
+}
+
+/** Shown instead of the numbers to anyone who cannot see them */
+function NoAccess({ access, email }: { access: 'signed-out' | 'not-admin'; email: string | null }) {
+  const [signingIn, setSigningIn] = useState(false);
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
+      <div className="w-full max-w-sm bg-white rounded-lg border border-slate-200 p-6 text-center">
+        <h1 className="text-xl font-semibold text-slate-900">
+          {access === 'signed-out' ? 'Sign in to see the numbers' : 'This account cannot see the numbers'}
+        </h1>
+        <p className="text-sm text-slate-600 mt-2">
+          {access === 'signed-out'
+            ? "This page is for WakaGuard's owner. Sign in with your admin account."
+            : `You are signed in as ${email ?? 'an account'}, which is not an admin account. Sign out, then sign in with your admin account.`}
+        </p>
+        <div className="mt-5 flex flex-col gap-2">
+          {access === 'signed-out' ? (
+            <button
+              type="button"
+              onClick={() => setSigningIn(true)}
+              className="w-full px-4 py-2.5 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700"
+            >
+              Sign in
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => void signOut(auth)}
+              className="w-full px-4 py-2.5 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700"
+            >
+              Sign out
+            </button>
+          )}
+          <Link href="/" className="w-full px-4 py-2.5 text-sm text-slate-700 rounded-lg hover:bg-slate-100">
+            Go to the home page
+          </Link>
+        </div>
+      </div>
+      <AuthModal isOpen={signingIn} onClose={() => setSigningIn(false)} />
+    </div>
+  );
+}
+
 export default function AdminNumbersPage() {
-  const { isAdmin, checking } = useAdminAuth();
+  const { access, email } = useNumbersAccess();
+  const isAdmin = access === 'admin';
   const [numbers, setNumbers] = useState<Numbers | null>(null);
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -287,7 +360,8 @@ export default function AdminNumbersPage() {
     return () => clearTimeout(start);
   }, [isAdmin, load]);
 
-  if (checking || !isAdmin) {
+  if (access === 'signed-out' || access === 'not-admin') return <NoAccess access={access} email={email} />;
+  if (!isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <p className="text-slate-600">Checking your account…</p>
