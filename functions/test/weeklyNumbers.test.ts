@@ -143,6 +143,39 @@ test('a trip that did not move says whether the phone stayed put or went quiet',
   assert.match(formatReport(result, { fromMs: FROM, toMs: TO, nowMs: TO + DAY, source: 'test' }), /Did not move: .*stayed put/);
 });
 
+test('from week three, a trip that did not move counts when the phone went quiet', () => {
+  // Week three: Sunday 25 October 18:00 to Sunday 1 November 18:00, Nigeria time
+  const from = Date.UTC(2026, 9, 25, 17);
+  const monday = Date.UTC(2026, 9, 26, 8);
+  const still = { endLocation: NEAR_IKEJA };
+  const result = score({
+    users: users('ada'),
+    trips: [
+      // Kept reporting from one spot
+      trip('uid-ada', monday, { ...still, positions: 30, longestGapMs: 3 * MIN }),
+      // Silent for 35 minutes between two positions
+      trip('uid-ada', monday + DAY, { ...still, positions: 2, longestGapMs: 35 * MIN }),
+      // Sent positions for 5 minutes, then nothing until "I've arrived"
+      trip('uid-ada', monday + 2 * DAY, {
+        ...still, positions: 5, longestGapMs: MIN, firstPositionMs: monday + 2 * DAY + MIN,
+        lastPositionMs: monday + 2 * DAY + 5 * MIN,
+      }),
+      // Quiet, but ran past its time
+      trip('uid-ada', monday + 3 * DAY, { ...still, positions: 2, longestGapMs: 35 * MIN, overdueMs: monday + 3 * DAY + HOUR }),
+    ],
+  }, { fromMs: from, toMs: from + WEEK_MS });
+
+  assert.equal(rowFor(result, 'ada')?.realTrips, 2);
+  assert.deepEqual(checkFor(result, 'ada')?.trips.rejected, { 'did not move': 1, 'ended after contacts would have been texted': 1 });
+  const check = checkFor(result, 'ada') as Check & { still: { quiet: boolean; counted: boolean; stillness: string }[] };
+  assert.deepEqual(check.still.map((t) => [t.quiet, t.counted]), [[false, false], [true, true], [true, true]]);
+  assert.match(check.still[2].stillness, /went quiet for 35 min/);
+  assert.match(
+    formatReport(result, { fromMs: from, toMs: from + WEEK_MS, nowMs: from + WEEK_MS, source: 'test' }),
+    /Did not move: .*went quiet for 35 min \(counted, as the phone went quiet\)/,
+  );
+});
+
 test('trips that break a rule earn nothing and say why', () => {
   const result = score({
     users: users('ada'),

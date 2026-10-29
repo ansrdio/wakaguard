@@ -46,6 +46,13 @@ export const MIN_TRIP_METRES = 500;
  */
 export const QUIET_GAP_MS = 10 * MINUTE;
 /**
+ * From week three (the owner, 28 October 2026), a trip that did not move
+ * counts when its phone went quiet: location stopping on its own is the
+ * phone's or the app's doing, not the traveller's. One that kept reporting
+ * from one spot still earns nothing.
+ */
+export const QUIET_TRIPS_COUNT_FROM_MS = Date.UTC(2026, 9, 25, 17, 0);
+/**
  * From this moment (midnight starting Thursday 15 October 2026, Nigeria time,
  * after the testers were told), a trip that ran past the wait before contacts
  * are texted earns nothing. A third of beta trips did, which would have been a
@@ -130,18 +137,37 @@ export function tripProblem(trip) {
   if (trip.startMs == null || trip.endMs - trip.startMs < MIN_TRIP_MS) return REASONS.tooShort;
   if (trip.overdueMs != null && trip.startMs >= LATE_TRIP_RULE_FROM_MS) return REASONS.wentOverdue;
   if (!isPlace(trip.startLocation) || !isPlace(trip.endLocation)) return REASONS.noLocation;
-  // A round trip ends where it began, so the farthest it went counts too (recorded since 14 October 2026)
-  const went = Math.max(metresBetween(trip.startLocation, trip.endLocation), trip.farthestM ?? 0);
-  if (went < MIN_TRIP_METRES) return REASONS.didNotMove;
+  if (distanceOf(trip) < MIN_TRIP_METRES && !quietTripCounts(trip)) return REASONS.didNotMove;
   return null;
 }
+
+/** How far a trip went: a round trip ends where it began, so the farthest it got counts too (recorded since 14 October 2026) */
+const distanceOf = (trip) => Math.max(metresBetween(trip.startLocation, trip.endLocation), trip.farthestM ?? 0);
+
+/**
+ * The longest the phone sent no position during a trip: before the first,
+ * between two, or after the last until the trip ended. Null for trips from
+ * before positions were counted.
+ */
+export function longestSilenceMs(trip) {
+  if (typeof trip.positions !== 'number') return null;
+  const silences = [trip.longestGapMs ?? 0];
+  if (trip.positions === 0) silences.push(trip.endMs - trip.startMs);
+  if (trip.firstPositionMs != null) silences.push(trip.firstPositionMs - trip.startMs);
+  if (trip.lastPositionMs != null) silences.push(trip.endMs - trip.lastPositionMs);
+  return Math.max(...silences.filter(Number.isFinite));
+}
+
+/** A trip that did not move still counts from week three when its phone went quiet */
+const quietTripCounts = (trip) => trip.startMs >= QUIET_TRIPS_COUNT_FROM_MS && (longestSilenceMs(trip) ?? 0) > QUIET_GAP_MS;
 
 /** What the positions say about a trip that did not move, in a few words */
 export function stillnessOf(trip) {
   if (typeof trip.positions !== 'number') return 'positions not counted (before 19 October)';
   if (trip.positions === 0) return 'no positions after the start';
-  const gapMin = Math.round((trip.longestGapMs ?? 0) / MINUTE);
-  if ((trip.longestGapMs ?? 0) > QUIET_GAP_MS) return `${trip.positions} positions; the phone went quiet for ${gapMin} min`;
+  const quietMs = longestSilenceMs(trip) ?? 0;
+  const gapMin = Math.round(quietMs / MINUTE);
+  if (quietMs > QUIET_GAP_MS) return `${trip.positions} positions; the phone went quiet for ${gapMin} min`;
   return `${trip.positions} positions, never more than ${Math.max(gapMin, 1)} min apart: stayed put`;
 }
 
@@ -340,14 +366,18 @@ export function scoreWeek(data, options) {
   const sos = data.alerts.filter(included).filter((alert) => alert.type === 'sos' && inWeek(alert.createdMs));
   const withUsername = [...people].filter((uid) => usernames.get(uid));
   const ranked = new Set(ranking.map((row) => row.uid));
-  // Real trips this week that did not move, with what their positions say
+  // Real trips this week that did not move, with what their positions say,
+  // including those that count because the phone went quiet
   const stillTrips = (uid) => (realTrips.get(uid) || [])
-    .filter((trip) => trip.status === 'completed' && inWeek(trip.endMs) && tripProblem(trip) === REASONS.didNotMove)
+    .filter((trip) => trip.status === 'completed' && inWeek(trip.endMs))
+    .filter((trip) => tripProblem(trip) === REASONS.didNotMove
+      || (tripProblem(trip) === null && distanceOf(trip) < MIN_TRIP_METRES))
     .map((trip) => ({
       startMs: trip.startMs,
       minutes: Math.round((trip.endMs - trip.startMs) / MINUTE),
       stillness: stillnessOf(trip),
-      quiet: (trip.longestGapMs ?? 0) > QUIET_GAP_MS,
+      quiet: (longestSilenceMs(trip) ?? 0) > QUIET_GAP_MS,
+      counted: tripProblem(trip) === null,
     }));
 
   const health = {
@@ -515,7 +545,8 @@ export function formatReport(result, { fromMs, toMs, nowMs, source, drawn = [] }
       + (tripsOut ? ` Not counted: ${tripsOut}.` : ''));
     const reportsOut = listReasons(check.reports.rejected);
     for (const still of check.still || []) {
-      say(`  Did not move: ${lagosTime.format(still.startMs)}, ${still.minutes} min: ${still.stillness}`);
+      say(`  Did not move: ${lagosTime.format(still.startMs)}, ${still.minutes} min: ${still.stillness}`
+        + (still.counted ? ' (counted, as the phone went quiet)' : ''));
     }
     say(`  Road reports: ${check.reports.created} created, ${check.reports.counted} counted.`
       + (reportsOut ? ` Not counted: ${reportsOut}.` : ''));
@@ -585,6 +616,8 @@ export async function collect(db, { fromMs, toMs }) {
       farthestM: typeof doc.get('farthestFromStartM') === 'number' ? doc.get('farthestFromStartM') : null,
       positions: typeof doc.get('positionCount') === 'number' ? doc.get('positionCount') : null,
       longestGapMs: typeof doc.get('longestPositionGapMs') === 'number' ? doc.get('longestPositionGapMs') : null,
+      firstPositionMs: typeof doc.get('firstPositionAtMs') === 'number' ? doc.get('firstPositionAtMs') : null,
+      lastPositionMs: typeof doc.get('lastPositionAtMs') === 'number' ? doc.get('lastPositionAtMs') : null,
     })),
     alerts: alerts.docs.filter(ownerOf).map((doc) => ({
       uid: ownerOf(doc),
