@@ -672,6 +672,15 @@ What was agreed:
     Play and Apple consoles, with guidance.
   - **Optional, same build:** an 8-character minimum password, with the app's "at least 6 characters"
     messages changed to match.
+- **A first trip on day one, added 28 October** ("add item 3"). Of the 41 testers' accounts (28 October):
+  - **Came back after day one (22):** 20 had started a trip.
+  - **Never came back (19):** only 10 had ever started one, and 11 had added a contact.
+  - **So:** a first trip is what keeps people.
+  - **The change:** right after sign-up, lead straight into adding one contact and then a 2-minute test trip,
+    instead of leaving people on the home screen. It ends on the trip screen with a plain "That's how it works",
+    and every step can be skipped.
+  - **Fits with:** the short start form of the simplification pass, and the existing "first test trip" points.
+  - **Afterwards:** the Numbers page shows whether more people come back.
 
 ### Build 24.1, iPhone only: the iOS 27 launch crash
 
@@ -1908,6 +1917,7 @@ Changes that went live without an app build.
 
 | Date | What |
 |---|---|
+| Wed 28 Oct (late evening in Arizona) | **Website**, on the owner's word ("release the website"), from `4afef2c`: the Numbers page now explains instead of sending people away (signed out: "Sign in to see the numbers" with the sign-in window; another account: says which, with Sign out). The Privacy page was held at its 24 October version again. Checked live: the page matches the build, Privacy has no "Africa", home 200 |
 | Wed 28 Oct (evening in Arizona) | **The Numbers page**, on the owner's word ("deploy numbers"), from `0693679`. (1) `adminNumbers` deployed on its own. (2) The website released with the live settings and business Mapbox key, with the **Privacy page held at its live version** (from `6d7529c`, dated October 24, 2026), so the approved Africa's Talking wording waits for the switch. The repo keeps that wording. Hosting's predeploy (`build-sw.mjs`) needs `.env.local`, so remove it only after the hosting deploy. Checked live: `/admin/numbers` serves the built page byte for byte; Privacy has no "Africa"; home 200; the function answers PERMISSION_DENIED to a caller who is not signed in. (3) **Admin rights:** the session's safety check refused my granting the claim, so the owner ran the script (`tools/make-admin.mjs`, session folder) and gave the account hii (info@inskriba.com) the admin claim the same evening |
 | Wed 28 Oct (later) | **Firebase settings**, on the owner's word ("yes do the four"), after a read-only check of the project. The check found backups, TTL deletion, indexes, Node 22, both alarms, the USD 20 budget and email enumeration protection all in place, and the live Firestore and Storage rules identical to the repo. The four changes: (1) database delete protection on; (2) point-in-time recovery on (7 days, minute by minute); (3) the old preview domain `routepulse-5701f--map-fix-xlby2axy.web.app` removed from Auth's authorized domains, leaving localhost, the two Firebase domains and wakaguard.com; (4) the console labels "RoutePulse Web" renamed "WakaGuard Web", and the unnamed iOS app named "WakaGuard iPhone". All checked afterwards. The old-build-image cleanup (1 day) was already on. Usage numbers come from `tools/firebase-numbers.mjs` (session folder, read-only, counts only) |
 | Wed 28 Oct | **`smsReport` deployed** on its own, on the owner's word ("deploy smsReport"), from the working copy, committed afterwards as `63c2a27`. It is the address for Africa's Talking's delivery reports and opt-outs (`https://us-central1-routepulse-5701f.cloudfunctions.net/smsReport/<SMS_REPORT_KEY>`, the key only in `functions/.env`). Nothing else changed: texts still go through Termii and `SMS_FALLBACK_PROVIDER` is unset, so nothing can be sent again yet. Checked live: GET 405, a wrong or missing key 403, the right key with a made-up report "not_ours", a malformed one 400. The Firebase CLI sign-in had expired again and was renewed the same way |
