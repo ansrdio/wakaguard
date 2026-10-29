@@ -1809,6 +1809,22 @@ regulator and advert approval, the bank account and sponsor agreement.
 
 Agreed as wanted, not yet given a build. Nothing here is started.
 
+**First after launch: WakaGuard Pioneers** (the owner, 29 October: "that will be one of the first todos after
+launch… this will be especially good when we start adding places"). A founding group for the beta testers who
+travelled with WakaGuard, sent feedback that changed it and kept the tester group going. The one-page plan is a
+private claude.ai artifact (https://claude.ai/artifact/3H9iHvPoWyKNY77H7GMMvR); names and the candidate list are
+kept out of this public file.
+
+- [ ] Choose the first intake (10 to 12) before 1 December; invitations and a one-paragraph volunteer note
+      (voluntary, no payment or shares promised, Inskriba may use ideas and work, names only with consent)
+- [ ] Turn the beta group into a WhatsApp Community: announcements, city groups, a private Pioneers group
+- [ ] "Pioneer" badge on the profile (a small app change; the claim lives on the user document, set by the
+      server only, never by the app)
+- [ ] "Built with" page on wakaguard.com, for Pioneers who agree, with a Privacy page line
+- [ ] Roles as people want them: community lead, city captains, road report leads, language champions
+- [ ] Places: Pioneers suggest and check landmarks, bus parks and junctions in their cities before they go
+      public (ties in with the directory of places below)
+
 From the first week of testing (agreed 12 October):
 
 - [ ] One-tap road reports: "Checkpoint", "Accident", "Bad road", "Flooding"
