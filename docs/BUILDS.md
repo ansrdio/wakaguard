@@ -746,6 +746,18 @@ What was agreed:
   - The change: on returning to the front, re-read the trip from the server (or hold the stale warning
     for a few seconds until a fresh copy arrives) before saying sharing stopped. Testers who see a false
     alarm stop trusting the real one.
+- **Cancel trip, added 29 October** (a regular tester: "an option to abort a trip if someone changes his or her
+  mind on travelling after already setting up the trip… due to an emergency I have to discontinue the trip";
+  it has happened to him twice, and both times he "let it run till the stipulated time and clicked I have
+  arrived"; the owner: "add to lists").
+  - Today "I've arrived" is the only way to end a trip, so someone who never set off either waits it out (and
+    risks an overdue alert to their contacts) or ends it as arrived, which sends "has arrived safely" when
+    "Text them when I arrive" was ticked.
+  - The change: a "Cancel trip" action on the trip card and the trip screen, asking once ("Cancel this trip?
+    Your contacts won't be told you arrived."), that ends the trip as `cancelled` with no arrival text. The
+    server already treats a cancelled trip as ended by the traveller (`tripMonitor.ts`), so an alert already
+    sent still gets its all-clear.
+  - A cancelled trip earns no ranking points, like any trip that is not a real journey.
 - **SOS from the lock screen, added 29 October** (a regular tester's voice note: in an ambush "there will be
   no time for me to pick up my phone", and Google's Personal Safety calls 112 on five presses of the power
   button; the owner: "add to build 26").
@@ -1806,6 +1818,17 @@ From the first week of testing (agreed 12 October):
 - [ ] Check-ins on long trips: "Still okay?" every couple of hours
 - [ ] Nigerian languages for the alert texts and the main screens: Pidgin,
       Yoruba, Hausa, Igbo
+- [ ] Spoken warnings for road reports on your route (a regular tester who
+      rides, 29 October: "I don't usually use my phone while riding. So the
+      audio will be very helpful"). While directions run, warn once when a
+      route is planned that reports lie along it, and again by voice when
+      close to one (pothole, roadworks, holdup). Needs voice directions,
+      still waiting on Mapbox's terms
+- [ ] Voice directions in Yoruba, Hausa and Igbo (the same tester, 29
+      October: people without formal education "can understand their
+      language to also use the app and get directions"). Needs a speech
+      service that speaks them well; do it alongside the alert texts in
+      Nigerian languages above
 - [ ] Notice movement and ask "Are you on a trip?" (a regular tester, 28
       October, like Sweatcoin). Needs the physical activity permission on
       Android and motion on iPhone, a Privacy page line and store-form changes,
