@@ -1604,6 +1604,25 @@ From the roadmap, with its dates. None of these needs an app build.
       2. Send a test text.
       3. Switch providers and deploy the texting functions.
       4. Release the website.
+- [ ] The owner's Numbers page (agreed 28 October: "yes build the numbers page"), at
+      wakaguard.com/admin/numbers, for admin accounts only. Built 28 October, not live.
+      - **Server:** `adminNumbers`, a callable function that checks the admin claim and returns
+        counts only. It covers people from sign-in activity (active in the last 24 hours, 7
+        days and 30 days; came back after day one; new accounts per week), each of the last 14
+        days (people, real and test trips, overdue, SOS, road reports, texts), texts over 30
+        days (with Africa's Talking's delivered and failed counts and Termii resends), phones by
+        app build, and Firestore reads and writes against the free allowance, from Cloud
+        Monitoring.
+      - **Left out:** the owner's usernames in `NUMBERS_LEAVE_OUT` (functions/.env), and the 314
+        anonymous RoutePulse sign-ins.
+      - **Checks:** previewed against the emulators with made-up data, at computer and phone
+        size; dry run against live data, read-only.
+      - **To go live, on the owner's word:**
+        1. Deploy `adminNumbers`.
+        2. Give the owner's chosen account the admin claim.
+        3. Release the website. The Privacy page changes wait for the switch to Africa's
+           Talking, so the site is either built with the current live Privacy page or
+           released together with the switch.
 - [ ] Mon 2 Nov. Text alerts switched on, then proven on MTN, Airtel, Glo and
       9mobile, including a do-not-disturb number
 - [ ] Week of Mon 2 Nov. Security check of the server, and Firebase's app
