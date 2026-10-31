@@ -746,6 +746,15 @@ What was agreed:
   - The change: on returning to the front, re-read the trip from the server (or hold the stale warning
     for a few seconds until a fresh copy arrives) before saying sharing stopped. Testers who see a false
     alarm stop trusting the real one.
+- **The Nearby tab's location button, added 31 October** (a regular tester's problem report of 26 October:
+  "The location button on the nearby tab doesn't work. It supposed to auto pinpoint your location when you
+  tap on it."; the owner: "yes add the fix and count it").
+  - Cause: `handleLocateClick` in `src/components/MapView.tsx` lets the map follow the person for only
+    2 seconds, but the position request it starts (`handleLocateMe` in `AppHome.tsx`: high accuracy, up to
+    10 seconds) often takes longer for a first fix. The position then arrives after the map has stopped
+    following, and nothing moves. It only seems to work when the phone already holds a recent position.
+  - The change: keep following until the request ends (the position arrives or the error shows), not for a
+    fixed 2 seconds. Test on a phone with location only just turned on.
 - **Cancel trip, added 29 October** (a regular tester: "an option to abort a trip if someone changes his or her
   mind on travelling after already setting up the trip… due to an emergency I have to discontinue the trip";
   it has happened to him twice, and both times he "let it run till the stipulated time and clicked I have
