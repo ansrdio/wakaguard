@@ -750,7 +750,7 @@ What was agreed:
     moves on the third; nothing is left out during an SOS; a position left out still counts as the phone being
     heard, so it cannot cause "No location received" or an alert. The latest one left out, and how many, stay on
     the private trip only.
-  - **Needs:** a deploy of `tripLocation`. No app build is needed, so it can go out before build 26.
+  - **Live Sun 1 November** (`tripLocation`; see "Website and server releases"), for phones on any build.
   - **Not covered:** trips run in a website browser, which write their positions straight to the database.
   - Still to do: the still phone indoors test.
 - [x] **No false "No location received" after coming back to the app, added 28 October** (the same tester:
@@ -794,8 +794,8 @@ What was agreed:
     says so when contacts already alerted will get the all-clear. No share sheet follows, unlike "I've arrived".
   - The backup route takes it too (`tripAction`, action `cancel`), so a slow connection cannot turn a cancelled
     trip into an arrival.
-  - **Needs:** a deploy of `tripAction` before build 26 reaches phones. Without it Cancel trip still works through
-    the database, but the backup route refuses it.
+  - **Server side live Sun 1 November** (`tripAction`; see "Website and server releases"). The button itself comes
+    with build 26.
 - **SOS from the lock screen, added 29 October** (a regular tester's voice note: in an ambush "there will be
   no time for me to pick up my phone", and Google's Personal Safety calls 112 on five presses of the power
   button; the owner: "add to build 26").
@@ -2109,6 +2109,7 @@ Changes that went live without an app build.
 
 | Date | What |
 |---|---|
+| Sun 1 Nov (evening in Arizona) | **Wild positions and the Cancel trip backup route**, on the owner's word ("commit and push, then deploy both"), from `27bc66c`: `tripLocation` and `tripAction` deployed by name. `tripLocation` now leaves wild positions off the contacts' map, the path and the farthest distance, for phones on any build. `tripAction` takes `cancel`, ready for build 26's Cancel trip button; nothing sends it yet. The website and the apps do not have the rest of `27bc66c` yet. Checked live with made-up ids, so no trip was touched: a cancel request is refused at the trip check (403), an unknown action as a bad request (400), and `tripLocation` answers 403, 400 and 405 as before. No server errors in the last 60 log lines of either function |
 | Wed 28 Oct (just before midnight in Arizona) | **Website caching**, on the owner's word ("make the change and release the website"), from `45dc7f7`: pages are now `no-cache` (browsers check for a newer one each time, and reuse their copy when nothing changed), the build's code files under `/_next/static/` are kept a year (`immutable`), and `sw.js` stays never-stored. Before, Firebase Hosting let browsers keep a page an hour, so the owner did not see the Numbers page's new section after its release. Checked on the hosting emulator first, then live: each of the three answers as meant, Privacy still dated October 24, 2026, home 200 |
 | Wed 28 Oct (near midnight in Arizona) | **Numbers page: travel and reports**, on the owner's word ("release the numbers"), from `bc3d894`. (1) `adminNumbers` and `onTripUpdated` deployed by name; `onTripUpdated` now keeps each trip's distance (`distanceM`) along its path when it ends, before dropping the path, leaving out fixes faster than about 200 km/h. (2) The website, with the Privacy page held at its 24 October version again. Checked live: the new section's code is served and Privacy still has no "Africa"; the function's sums, run once read-only against live data, gave 187 real trips since the beta began, at least 940 km and 137 hours, about 2 hours a week per traveller over the last 14 days, a typical trip of 30 minutes, 130 of 140 recent trips ended before contacts were alerted, 11 road reports, 20 checkpoint stops and 32 people with a contact. Distance is measured from trips ended after this release; older trips count as at least their straight line or farthest point |
 | Wed 28 Oct (late night in Arizona) | **One-off heat-season notice scheduled**, on the owner's word ("schedule it"), from `cb73825`: `heatSeasonNotice` created, with Cloud Scheduler job `firebase-schedule-heatSeasonNotice-us-central1` at `0 9 2 11 *` Africa/Lagos, ENABLED. It sends "Heat season is here" once on **Mon 2 Nov, 9 am Nigeria time**, to morning-weather users. A dry run against live data counted 21 phones (2 left out for builds before 24). **Delete the function after 2 November** (`firebase functions:delete heatSeasonNotice`, on the owner's word); until then it does nothing on any other date |
