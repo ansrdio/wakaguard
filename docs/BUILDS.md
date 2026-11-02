@@ -656,6 +656,23 @@ What was agreed:
   okada, unknown taxis and long road trips; the answer to "extra work" is a quicker start.
 - **First step:** a keep / move / remove list for every screen, made from the app at phone size against the
   emulators, for the owner to approve.
+- **The owner's choices, 1 November** (all 31 answered on the Build 26 page). What is to be done:
+  - **Start form:** the time buttons cut from 9 to 5 (15 min, 30 min, 1 hr, 2 hr, Other); the paragraph under them
+    cut to one line; the test trip note cut to one line; "How are you travelling?" and "Add plate number or driver"
+    moved under "More options"; the "Safety tips" row removed. The two text checkboxes stay on the form (their
+    choice). The destination box takes an address or the name of a place, not only a city: this joins "Search for
+    where you are going" below.
+  - **During a trip:** "Text I'm okay", "Share link" and "Report something on the road" become one row of three small
+    buttons; under the trip, only "Stopped at a checkpoint?" and Emergency numbers; amber becomes green; the yellow
+    test box becomes grey.
+  - **Nearby:** the place pictures come off the map; the computer talk comes off the report form; Filters keep
+    Search, Type and how recent; one set of report type names; severity cut to "Serious" or not, with a red ring
+    (their choice, against my suggestion to leave it).
+  - **Profile:** the three number boxes removed; one plain icon style, Sign out no longer red; Delete account moved
+    to the bottom of Settings; "Blocked people" only when someone is blocked, as "People hidden from your reports".
+  - **Whole app:** green everywhere, red only for SOS and serious road reports.
+  - **Still open:** the owner would like to remove the test trip. I advised keeping it, because "A first trip on
+    day one" is built on it and it is the only way to try alerts safely. Nothing changes until they decide.
 - **Decided 23 October:** the directions beta stays in build 25 and is built last, after every other build 25
   item (the owner first said to drop it, then the same day: "No put it back, It will be the last thing we add").
 - **App Check, added 28 October** ("add app check to build 26"). It lets Firebase tell our apps from scripts
