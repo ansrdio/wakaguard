@@ -66,11 +66,11 @@ export default function GuidelinesPage() {
             <ul className="list-disc list-inside text-gray-700 mb-4 space-y-2">
               <li><strong>Checkpoints:</strong> Where a checkpoint is and how long the wait is</li>
               <li><strong>Potholes:</strong> Damaged or dangerous road surfaces</li>
-              <li><strong>Traffic:</strong> Congestion, slow-moving traffic, or gridlock</li>
+              <li><strong>Heavy traffic:</strong> Congestion, slow-moving traffic, or gridlock</li>
               <li><strong>Accidents:</strong> Collisions affecting traffic flow</li>
-              <li><strong>Roadwork:</strong> Construction zones and lane closures</li>
+              <li><strong>Construction:</strong> Construction zones and lane closures</li>
               <li><strong>Hazards:</strong> Debris, animals, flooding, or other dangers</li>
-              <li><strong>Closures:</strong> Road closures or blocked routes</li>
+              <li><strong>Roadblocks:</strong> Road closures or blocked routes</li>
               <li><strong>Other:</strong> Road-related issues not covered above</li>
             </ul>
 
@@ -157,7 +157,7 @@ export default function GuidelinesPage() {
               <li><strong>Be specific:</strong> Describe the issue clearly and concisely</li>
               <li><strong>Be accurate:</strong> Ensure location and details are correct</li>
               <li><strong>Be timely:</strong> Report issues as you encounter them</li>
-              <li><strong>Choose the right severity:</strong> Critical for immediate dangers, Low for minor issues</li>
+              <li><strong>Mark it serious only when it is:</strong> Tick &quot;This is serious&quot; when people are in danger</li>
               <li><strong>Add photos:</strong> Visual evidence helps others understand the situation</li>
             </ul>
 

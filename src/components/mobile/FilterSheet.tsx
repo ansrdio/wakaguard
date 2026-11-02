@@ -1,8 +1,10 @@
 'use client';
 
+import { reportTypeWord } from '@/lib/reportWords';
 import { X, Search } from 'lucide-react';
-import { ReportType, Severity } from '@/lib/types';
+import { ReportType } from '@/lib/types';
 import { ReportFilters } from '@/lib/filters';
+import { BOTTOM_NAV_HEIGHT } from '@/lib/mobileLayout';
 import { useState } from 'react';
 import { ReportPicture } from '@/components/pictures/Pictures';
 
@@ -11,32 +13,19 @@ interface FilterSheetProps {
   onClose: () => void;
   filters: ReportFilters;
   onFiltersChange: (filters: ReportFilters) => void;
-  userLocation: { lat: number; lng: number } | null;
 }
 
-export function FilterSheet({ isOpen, onClose, filters, onFiltersChange, userLocation }: FilterSheetProps) {
+export function FilterSheet({ isOpen, onClose, filters, onFiltersChange }: FilterSheetProps) {
   const [localFilters, setLocalFilters] = useState<ReportFilters>(filters);
 
   if (!isOpen) return null;
 
   const reportTypes = [
     { value: '', label: 'All Types' },
-    { value: ReportType.CHECKPOINT, label: 'Checkpoint' },
-    { value: ReportType.POTHOLE, label: 'Pothole' },
-    { value: ReportType.ACCIDENT, label: 'Accident' },
-    { value: ReportType.ROADWORK, label: 'Roadwork' },
-    { value: ReportType.HAZARD, label: 'Hazard' },
-    { value: ReportType.CLOSURE, label: 'Closure' },
-    { value: ReportType.TRAFFIC, label: 'Traffic' },
-    { value: ReportType.OTHER, label: 'Other' },
-  ];
-
-  const severities = [
-    { value: '', label: 'All Severities' },
-    { value: Severity.LOW, label: 'Low' },
-    { value: Severity.MEDIUM, label: 'Medium' },
-    { value: Severity.HIGH, label: 'High' },
-    { value: Severity.CRITICAL, label: 'Critical' },
+    ...[
+      ReportType.CHECKPOINT, ReportType.POTHOLE, ReportType.ACCIDENT, ReportType.ROADWORK,
+      ReportType.HAZARD, ReportType.CLOSURE, ReportType.TRAFFIC, ReportType.OTHER,
+    ].map((value) => ({ value, label: reportTypeWord(value) })),
   ];
 
   const recencyOptions = [
@@ -44,12 +33,6 @@ export function FilterSheet({ isOpen, onClose, filters, onFiltersChange, userLoc
     { value: 1, label: 'Last 24 hours' },
     { value: 7, label: 'Last 7 days' },
     { value: 30, label: 'Last 30 days' },
-  ];
-
-  const verificationStatuses = [
-    { value: '', label: 'All Reports' },
-    { value: 'verified', label: 'Verified Only' },
-    { value: 'unverified', label: 'Unverified Only' },
   ];
 
   const handleApply = () => {
@@ -75,7 +58,11 @@ export function FilterSheet({ isOpen, onClose, filters, onFiltersChange, userLoc
       />
 
       {/* Sheet */}
-      <div className="fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-3xl shadow-2xl max-h-[85vh] flex flex-col animate-in slide-in-from-bottom duration-300">
+      {/* Above the tab bar, which is drawn over everything and would hide Apply Filters */}
+      <div
+        className="fixed inset-x-0 z-50 bg-white rounded-t-3xl shadow-2xl flex flex-col animate-in slide-in-from-bottom duration-300"
+        style={{ bottom: BOTTOM_NAV_HEIGHT, maxHeight: `calc(90vh - ${BOTTOM_NAV_HEIGHT})` }}
+      >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-4 border-b border-slate-200">
           <h2 className="text-lg font-semibold text-slate-900">
@@ -136,22 +123,6 @@ export function FilterSheet({ isOpen, onClose, filters, onFiltersChange, userLoc
             </div>
           </div>
 
-          {/* Severity */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">Severity</label>
-            <select
-              value={localFilters.severity || ''}
-              onChange={(e) => setLocalFilters({ ...localFilters, severity: e.target.value as Severity | undefined })}
-              className="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm"
-            >
-              {severities.map((severity) => (
-                <option key={severity.value} value={severity.value}>
-                  {severity.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
           {/* Recency */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">Recency</label>
@@ -165,40 +136,6 @@ export function FilterSheet({ isOpen, onClose, filters, onFiltersChange, userLoc
                   {option.label}
                 </option>
               ))}
-            </select>
-          </div>
-
-          {/* Verification */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">Verification</label>
-            <select
-              value={localFilters.verification || ''}
-              onChange={(e) => setLocalFilters({ ...localFilters, verification: e.target.value as any })}
-              className="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm"
-            >
-              {verificationStatuses.map((status) => (
-                <option key={status.value} value={status.value}>
-                  {status.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Radius */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              Near Me {!userLocation && <span className="text-xs text-slate-400">(Enable location)</span>}
-            </label>
-            <select
-              value={localFilters.radiusKm || 0}
-              onChange={(e) => setLocalFilters({ ...localFilters, radiusKm: parseInt(e.target.value), userLocation: userLocation || undefined })}
-              disabled={!userLocation}
-              className="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm disabled:bg-slate-50 disabled:text-slate-400"
-            >
-              <option value="0">All distances</option>
-              <option value="2">Within 2km</option>
-              <option value="5">Within 5km</option>
-              <option value="10">Within 10km</option>
             </select>
           </div>
         </div>

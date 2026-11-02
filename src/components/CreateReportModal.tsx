@@ -1,5 +1,6 @@
 'use client';
 
+import { isSerious, reportTypeWord } from '@/lib/reportWords';
 import { useState, useEffect } from 'react';
 import { useKeyboardSafeOverlay } from '@/hooks/useKeyboardSafeOverlay';
 import { X, MapPin, Navigation, Loader2, Upload, Image as ImageIcon } from 'lucide-react';
@@ -40,7 +41,6 @@ interface CreateReportModalProps {
 
 export function CreateReportModal({ isOpen, onClose, defaultState, initialLocation }: CreateReportModalProps) {
   const MAX_PHOTOS = 5;
-  const MAX_PHOTO_MB = 5;
   const { uid, isAnonymous } = useAuthedUser();
   const { requireAccount, showAuthModal, closeAuthModal } = useRequireAccount({ uid, isAnonymous });
   const { ref: overlayRef, style: overlayStyle } = useKeyboardSafeOverlay();
@@ -450,14 +450,9 @@ export function CreateReportModal({ isOpen, onClose, defaultState, initialLocati
             </label>
             <div className="grid grid-cols-2 gap-3">
               {[
-                { type: ReportType.CHECKPOINT, label: 'Checkpoint' },
-                { type: ReportType.POTHOLE, label: 'Pothole' },
-                { type: ReportType.ACCIDENT, label: 'Accident' },
-                { type: ReportType.TRAFFIC, label: 'Heavy Traffic' },
-                { type: ReportType.ROADWORK, label: 'Construction' },
-                { type: ReportType.CLOSURE, label: 'Roadblock' },
-                { type: ReportType.HAZARD, label: 'Hazard' },
-              ].map(({ type, label }) => (
+                ReportType.CHECKPOINT, ReportType.POTHOLE, ReportType.ACCIDENT, ReportType.TRAFFIC,
+                ReportType.ROADWORK, ReportType.CLOSURE, ReportType.HAZARD,
+              ].map((type) => (
                 <button
                   key={type}
                   type="button"
@@ -472,40 +467,26 @@ export function CreateReportModal({ isOpen, onClose, defaultState, initialLocati
                   `}
                 >
                   <ReportPicture type={type} size={40} className="mb-2" />
-                  <div className="text-sm font-medium text-slate-900">{label}</div>
+                  <div className="text-sm font-medium text-slate-900">{reportTypeWord(type)}</div>
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Severity */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Severity
-            </label>
-            <div className="grid grid-cols-4 gap-2">
-              {Object.values(Severity).map((severity) => (
-                <button
-                  key={severity}
-                  type="button"
-                  onClick={() => setFormData({ ...formData, severity })}
-                  disabled={submitting}
-                  className={`
-                    px-1 py-2 rounded-lg font-medium text-sm text-center whitespace-nowrap capitalize transition-all
-                    ${formData.severity === severity
-                      ? severity === Severity.CRITICAL ? 'bg-red-600 text-white'
-                        : severity === Severity.HIGH ? 'bg-orange-600 text-white'
-                        : severity === Severity.MEDIUM ? 'bg-yellow-400 text-slate-900'
-                        : 'bg-green-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }
-                  `}
-                >
-                  {severity}
-                </button>
-              ))}
-            </div>
-          </div>
+          {/* A report is serious or it is not (lib/reportWords.ts) */}
+          <label className="flex items-center gap-3 p-4 rounded-2xl border border-slate-200 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={isSerious(formData.severity)}
+              onChange={(e) => setFormData({ ...formData, severity: e.target.checked ? Severity.HIGH : Severity.MEDIUM })}
+              disabled={submitting}
+              className="w-5 h-5 flex-shrink-0 accent-red-600"
+            />
+            <span>
+              <span className="block text-sm font-medium text-slate-900">This is serious</span>
+              <span className="block text-xs text-slate-600">People are in danger here. It shows with a red ring on the map.</span>
+            </span>
+          </label>
 
           {/* Checkpoint-Specific Fields */}
           {formData.type === ReportType.CHECKPOINT && (
@@ -691,12 +672,7 @@ export function CreateReportModal({ isOpen, onClose, defaultState, initialLocati
               <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors">
                 <div className="flex flex-col items-center justify-center pt-5 pb-6">
                   <Upload className="w-8 h-8 text-gray-400 mb-2" />
-                  <p className="text-sm text-gray-600">
-                    <span className="font-semibold">Click to upload</span> or drag and drop
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    JPEG, PNG, WebP (Max {MAX_PHOTO_MB}MB each)
-                  </p>
+                  <p className="text-sm font-semibold text-gray-600">Choose photos</p>
                 </div>
                 <input
                   type="file"
@@ -708,9 +684,6 @@ export function CreateReportModal({ isOpen, onClose, defaultState, initialLocati
                 />
               </label>
             </div>
-            <p className="text-xs text-gray-500 mt-2">
-              Photos will be compressed to ≤600KB and resized to max 1600px width
-            </p>
           </div>
 
           {/* Location */}
@@ -764,18 +737,9 @@ export function CreateReportModal({ isOpen, onClose, defaultState, initialLocati
                   <MapPin className="w-4 h-4 text-slate-600 mt-0.5 flex-shrink-0" />
                   <div className="flex-1">
                     <p className="text-sm text-slate-700">{formData.location.address}</p>
-                    <p className="text-xs text-slate-500 mt-1">
-                      {formData.location.lat.toFixed(6)}, {formData.location.lng.toFixed(6)}
-                    </p>
                   </div>
                 </div>
               </div>
-            )}
-            
-            {!formData.location.address && (
-              <p className="text-xs text-slate-500 mt-2">
-                Coordinates: {formData.location.lat.toFixed(6)}, {formData.location.lng.toFixed(6)}
-              </p>
             )}
             
             {geocoding && (

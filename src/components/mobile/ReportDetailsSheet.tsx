@@ -1,5 +1,6 @@
 'use client';
 
+import { isSerious, reportTypeWord } from '@/lib/reportWords';
 import { useState } from 'react';
 import { useKeyboardSafeOverlay } from '@/hooks/useKeyboardSafeOverlay';
 import { ReportPicture } from '@/components/pictures/Pictures';
@@ -44,7 +45,7 @@ export function ReportDetailsSheet({ report, onClose, onShowToast }: ReportDetai
     if (navigator.share) {
       try {
         await navigator.share({
-          title: `${report.type} - WakaGuard`,
+          title: `${reportTypeWord(report.type)} - WakaGuard`,
           text: report.description,
           url: shareUrl,
         });
@@ -118,7 +119,7 @@ export function ReportDetailsSheet({ report, onClose, onShowToast }: ReportDetai
         <div className="flex items-center justify-between px-4 py-4 border-b border-slate-200">
           <h2 className="flex items-center gap-3 text-lg font-semibold text-slate-900 capitalize">
             <ReportPicture type={report.type} size={36} />
-            {report.type.replace('_', ' ')}
+            {reportTypeWord(report.type)}
           </h2>
           <button
             onClick={onClose}
@@ -145,6 +146,10 @@ export function ReportDetailsSheet({ report, onClose, onShowToast }: ReportDetai
             </div>
           )}
 
+          {isSerious(report.severity) && (
+            <p className="text-sm font-semibold text-red-700">Serious</p>
+          )}
+
           {report.postedFarAway && (
             <p className="text-xs font-medium text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
               Posted from far away, not on the spot. The person may have passed here earlier.
@@ -166,7 +171,7 @@ export function ReportDetailsSheet({ report, onClose, onShowToast }: ReportDetai
           )}
 
           {/* Stats */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <div className="text-center p-3 bg-slate-50 rounded-xl">
               <div className="text-lg font-semibold text-slate-900">{report.upvotes - report.downvotes}</div>
               <div className="text-xs text-slate-500">Votes</div>
@@ -174,10 +179,6 @@ export function ReportDetailsSheet({ report, onClose, onShowToast }: ReportDetai
             <div className="text-center p-3 bg-slate-50 rounded-xl">
               <div className="text-lg font-semibold text-slate-900">{report.commentCount}</div>
               <div className="text-xs text-slate-500">Comments</div>
-            </div>
-            <div className="text-center p-3 bg-slate-50 rounded-xl">
-              <div className="text-lg font-semibold text-slate-900 capitalize">{report.severity}</div>
-              <div className="text-xs text-slate-500">Severity</div>
             </div>
           </div>
 

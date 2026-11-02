@@ -1,5 +1,6 @@
 'use client';
 
+import { isSerious, reportTypeWord } from '@/lib/reportWords';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useState, Suspense } from 'react';
 import { useReport } from '@/hooks/useReport';
@@ -263,17 +264,12 @@ function ReportDetailContent() {
       <main className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="mb-6">
           <div className="flex items-start justify-between mb-3">
-            <h1 className="text-3xl font-bold text-gray-900 capitalize">
-              {report.type}
+            <h1 className="text-3xl font-bold text-gray-900">
+              {reportTypeWord(report.type)}
             </h1>
-            <span className={`px-3 py-1 rounded-lg font-medium text-sm ${
-              report.severity === 'critical' ? 'bg-red-600 text-white' :
-              report.severity === 'high' ? 'bg-orange-600 text-white' :
-              report.severity === 'medium' ? 'bg-yellow-400 text-slate-900' :
-              'bg-green-600 text-white'
-            }`}>
-              {report.severity}
-            </span>
+            {isSerious(report.severity) && (
+              <span className="px-3 py-1 rounded-lg font-medium text-sm bg-red-600 text-white">Serious</span>
+            )}
           </div>
 
           <div className="flex flex-wrap gap-4 text-sm text-gray-600">

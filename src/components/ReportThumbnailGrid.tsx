@@ -1,5 +1,6 @@
 'use client';
 
+import { reportTypeWord } from '@/lib/reportWords';
 import { MapPin, ThumbsUp, MessageCircle, Clock, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { Report, ReportStatus, ReportType } from '@/lib/types';
 import Image from 'next/image';
@@ -74,7 +75,7 @@ export function ReportThumbnailGrid({ reports, onSelectReport, selectedReportId 
             
             {/* Type Badge */}
             <div className={`absolute top-2 left-2 px-2 py-0.5 rounded-full text-xs font-medium text-white ${typeColors[report.type]}`}>
-              {report.type.replace('_', ' ')}
+              {reportTypeWord(report.type)}
             </div>
 
             {/* Status Indicator */}

@@ -665,14 +665,22 @@ What was agreed:
   - **During a trip:** "Text I'm okay", "Share link" and "Report something on the road" become one row of three small
     buttons; under the trip, only "Stopped at a checkpoint?" and Emergency numbers; amber becomes green; the yellow
     test box becomes grey.
-  - **Nearby:** the place pictures come off the map; the computer talk comes off the report form; Filters keep
+  - [x] **Nearby:** the place pictures come off the map; the computer talk comes off the report form; Filters keep
     Search, Type and how recent; one set of report type names; severity cut to "Serious" or not, with a red ring
-    (their choice, against my suggestion to leave it).
+    (their choice, against my suggestion to leave it). Done 1 November:
+    - `src/lib/reportWords.ts` holds the names and `isSerious`. What is stored did not change: a serious report is
+      saved as `high`, a normal one as `medium`, and older reports read correctly.
+    - `src/lib/landmarks.ts` is removed; it is in git for when places come back after launch.
+    - **A fault found on the way:** on phones the tab bar covered Apply Filters, so filters could not be applied.
+      The sheet now sits above the bar.
+    - **Left for later:** the Privacy page still says "Roadwork", changed at its next release. The server's push
+      to people nearby still reads "A high hazard was reported" (`functions/src/index.ts`), which needs a functions
+      deploy.
   - **Profile:** the three number boxes removed; one plain icon style, Sign out no longer red; Delete account moved
     to the bottom of Settings; "Blocked people" only when someone is blocked, as "People hidden from your reports".
   - **Whole app:** green everywhere, red only for SOS and serious road reports.
-  - **Still open:** the owner would like to remove the test trip. I advised keeping it, because "A first trip on
-    day one" is built on it and it is the only way to try alerts safely. Nothing changes until they decide.
+  - **The test trip stays** (the owner, 1 November: "keep the test trip"), with its note cut to one line. They had
+    thought of removing it; "A first trip on day one" is built on it and it is the only way to try alerts safely.
 - **Decided 23 October:** the directions beta stays in build 25 and is built last, after every other build 25
   item (the owner first said to drop it, then the same day: "No put it back, It will be the last thing we add").
 - **App Check, added 28 October** ("add app check to build 26"). It lets Firebase tell our apps from scripts

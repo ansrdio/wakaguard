@@ -1,5 +1,6 @@
 'use client';
 
+import { reportTypeWord } from '@/lib/reportWords';
 import { useState } from 'react';
 import { Info, X } from 'lucide-react';
 import { ReportPicture } from '@/components/pictures/Pictures';
@@ -10,30 +11,13 @@ const ABOVE_MAP_EDGE = { bottom: 'calc(1rem + var(--map-bottom-clear, 0px))' };
 /**
  * MapLegend Component
  * 
- * Displays a collapsible legend showing severity color codes
- * and report type indicators for the map view.
+ * Displays a collapsible legend showing what the red ring and the
+ * pictures on the map's pins mean.
  */
 export function MapLegend() {
   const [isOpen, setIsOpen] = useState(false);
 
-  const severityColors = [
-    { level: 'Critical', color: 'bg-red-500', description: 'Immediate danger' },
-    { level: 'High', color: 'bg-orange-500', description: 'Major hazard' },
-    { level: 'Medium', color: 'bg-amber-400', description: 'Moderate issue' },
-    // Green, as the ring round a pin on the map is (MapView's severityColors)
-    { level: 'Low', color: 'bg-green-600', description: 'Minor issue' },
-  ];
-
-  const kinds = [
-    { type: 'checkpoint', label: 'Checkpoint' },
-    { type: 'pothole', label: 'Pothole' },
-    { type: 'accident', label: 'Accident' },
-    { type: 'traffic', label: 'Heavy traffic' },
-    { type: 'roadwork', label: 'Construction' },
-    { type: 'closure', label: 'Roadblock' },
-    { type: 'hazard', label: 'Hazard' },
-    { type: 'other', label: 'Other' },
-  ];
+  const kinds = ['checkpoint', 'pothole', 'accident', 'traffic', 'roadwork', 'closure', 'hazard', 'other'];
 
   if (!isOpen) {
     return (
@@ -55,7 +39,7 @@ export function MapLegend() {
       style={ABOVE_MAP_EDGE}
     >
       <div className="flex items-center justify-between mb-2">
-        <h4 className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">The ring round a pin</h4>
+        <h4 className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">On the map</h4>
         <button
           onClick={() => setIsOpen(false)}
           className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors"
@@ -65,27 +49,18 @@ export function MapLegend() {
         </button>
       </div>
       
-      <div className="space-y-1.5">
-        {severityColors.map((item) => (
-          <div key={item.level} className="flex items-center gap-2">
-            <span className={`w-3 h-3 rounded-full ${item.color} flex-shrink-0`} />
-            <div className="flex-1 min-w-0">
-              <span className="text-xs font-medium text-slate-700 dark:text-slate-300">{item.level}</span>
-              <span className="text-[10px] text-slate-400 ml-1 hidden sm:inline">
-                — {item.description}
-              </span>
-            </div>
-          </div>
-        ))}
+      <div className="flex items-center gap-2">
+        <span className="w-3 h-3 rounded-full bg-red-600 flex-shrink-0" />
+        <span className="text-xs font-medium text-slate-700 dark:text-slate-300">Red ring: serious</span>
       </div>
 
       <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-700">
         <h4 className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-2">The picture on a pin</h4>
         <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
           {kinds.map((kind) => (
-            <div key={kind.type} className="flex items-center gap-2">
-              <ReportPicture type={kind.type} size={20} />
-              <span className="text-xs text-slate-700 dark:text-slate-300">{kind.label}</span>
+            <div key={kind} className="flex items-center gap-2">
+              <ReportPicture type={kind} size={20} />
+              <span className="text-xs text-slate-700 dark:text-slate-300">{reportTypeWord(kind)}</span>
             </div>
           ))}
         </div>

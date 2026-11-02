@@ -1,16 +1,16 @@
 'use client';
 
-import { useEffect, useRef, useMemo, memo, useState } from 'react';
+import { useEffect, useRef, useMemo, memo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import { MAP_TILES } from '@/lib/mapTiles';
 import { MapboxLogo } from '@/components/MapboxLogo';
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import L from 'leaflet';
 import { Crosshair, MapPin } from 'lucide-react';
-import { Report, Severity } from '@/lib/types';
+import { Report } from '@/lib/types';
 import { NigerianState, STATE_CENTERS, NIGERIA_CENTER } from '@/lib/nigerianStates';
 import { useLeafletResizeObserver } from '@/hooks/useLeafletInvalidateSize';
-import { getLandmarksByState, getLandmarkIcon, Landmark } from '@/lib/landmarks';
+import { isSerious, reportTypeWord } from '@/lib/reportWords';
 import { MapLegend } from '@/components/MapLegend';
 import { reportPictureSvg } from '@/lib/pictures';
 
@@ -26,17 +26,9 @@ const icon = L.icon({
 
 L.Marker.prototype.options.icon = icon;
 
-const severityColors: Record<Severity, string> = {
-  [Severity.CRITICAL]: '#dc2626',
-  [Severity.HIGH]: '#ea580c',
-  [Severity.MEDIUM]: '#ca8a04',
-  [Severity.LOW]: '#16a34a',
-};
-
-// A report's pin is the picture for its kind. How serious it is shows as the
-// ring around the picture, in the colours the legend explains.
-function createCustomIcon(type: string, severity: Severity, isSelected: boolean) {
-  const color = severityColors[severity];
+// A report's pin is the picture for its kind. A serious report has a red ring
+// round the picture, the only red on this map.
+function createCustomIcon(type: string, serious: boolean, isSelected: boolean) {
   const size = 34;
 
   return L.divIcon({
@@ -47,7 +39,7 @@ function createCustomIcon(type: string, severity: Severity, isSelected: boolean)
         border-radius: 10px;
         overflow: hidden;
         line-height: 0;
-        box-shadow: 0 0 0 2px white, 0 0 0 5px ${color}, 0 3px 8px rgba(0,0,0,0.35)${isSelected ? ', 0 0 0 9px rgba(59, 130, 246, 0.55)' : ''};
+        box-shadow: 0 0 0 2px white, ${serious ? '0 0 0 5px #dc2626, ' : ''}0 3px 8px rgba(0,0,0,0.35)${isSelected ? ', 0 0 0 9px rgba(59, 130, 246, 0.55)' : ''};
         transition: all 0.2s;
       ">${reportPictureSvg(type, size)}</div>
     `,
@@ -56,74 +48,6 @@ function createCustomIcon(type: string, severity: Severity, isSelected: boolean)
     iconAnchor: [size / 2, size / 2],
     popupAnchor: [0, -size / 2],
   });
-}
-
-function createLandmarkIcon(emoji: string) {
-  return L.divIcon({
-    html: `
-      <div style="
-        width: 28px;
-        height: 28px;
-        background-color: rgba(255, 255, 255, 0.95);
-        border: 2px solid #94a3b8;
-        border-radius: 6px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 14px;
-        box-shadow: 0 1px 4px rgba(0,0,0,0.2);
-      ">${emoji}</div>
-    `,
-    className: 'landmark-marker',
-    iconSize: [28, 28],
-    iconAnchor: [14, 14],
-    popupAnchor: [0, -14],
-  });
-}
-
-interface LandmarkLayerProps {
-  selectedState: NigerianState | null;
-}
-
-function LandmarkLayer({ selectedState }: LandmarkLayerProps) {
-  const map = useMap();
-  const [zoom, setZoom] = useState(map.getZoom());
-  const [landmarks, setLandmarks] = useState<Landmark[]>([]);
-
-  useEffect(() => {
-    const handleZoom = () => setZoom(map.getZoom());
-    map.on('zoomend', handleZoom);
-    return () => { map.off('zoomend', handleZoom); };
-  }, [map]);
-
-  useEffect(() => {
-    if (selectedState) {
-      setLandmarks(getLandmarksByState(selectedState));
-    } else {
-      setLandmarks([]);
-    }
-  }, [selectedState]);
-
-  if (zoom < 11 || landmarks.length === 0) return null;
-
-  return (
-    <>
-      {landmarks.map((landmark) => (
-        <Marker
-          key={landmark.id}
-          position={[landmark.lat, landmark.lng]}
-          icon={createLandmarkIcon(getLandmarkIcon(landmark.category))}
-        >
-          <Popup>
-            <div className="text-sm">
-              <p className="font-semibold">{landmark.name}</p>
-              <p className="text-xs text-slate-500 capitalize">{landmark.category}</p>
-            </div>
-          </Popup>
-        </Marker>
-      ))}
-    </>
-  );
 }
 
 interface MapControllerProps {
@@ -290,19 +214,6 @@ const MapView = memo(function MapView({ reports, selectedReportId, onMarkerClick
   
   return (
     <div ref={containerRef} className="relative h-full w-full z-0">
-      {/* Compact severity legend - minimal overlay */}
-      <div className="absolute top-4 right-4 z-[1000] bg-white/95 backdrop-blur-sm rounded-lg shadow-md px-2.5 py-2 border border-slate-200">
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5">
-            <div className="w-2 h-2 rounded-full bg-red-600" />
-            <div className="w-2 h-2 rounded-full bg-orange-600" />
-            <div className="w-2 h-2 rounded-full bg-yellow-600" />
-            <div className="w-2 h-2 rounded-full bg-green-600" />
-          </div>
-          <span className="text-[10px] text-slate-500 font-medium">Severity</span>
-        </div>
-      </div>
-
       {/* Floating Locate Me Button */}
       {onLocate && (
         <button
@@ -336,9 +247,6 @@ const MapView = memo(function MapView({ reports, selectedReportId, onMarkerClick
         selectedState={selectedState || null}
         locating={!!locating}
       />
-      
-      {/* Landmark Markers - visible at zoom 11+ */}
-      <LandmarkLayer selectedState={selectedState || null} />
       
       {/* User Location Marker (outside cluster) */}
       {userLocation && (
@@ -410,26 +318,19 @@ const MapView = memo(function MapView({ reports, selectedReportId, onMarkerClick
           <Marker
             key={report.id}
             position={[report.location.lat, report.location.lng]}
-            icon={createCustomIcon(report.type, report.severity, report.id === selectedReportId)}
-            // A report matters more than the landmark it happens to be beside
-            zIndexOffset={1000}
+            icon={createCustomIcon(report.type, isSerious(report.severity), report.id === selectedReportId)}
             eventHandlers={{
               click: () => onMarkerClick(report.id)
             }}
           >
             <Popup>
               <div className="p-2 min-w-[200px]">
-                <h3 className="font-semibold capitalize mb-1">{report.type}</h3>
+                <h3 className="font-semibold mb-1">{reportTypeWord(report.type)}</h3>
                 <p className="text-sm text-gray-600 mb-2">{report.description}</p>
                 <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
-                  <span className={`px-2 py-1 rounded ${
-                    report.severity === 'critical' ? 'bg-red-100 text-red-700' :
-                    report.severity === 'high' ? 'bg-orange-100 text-orange-700' :
-                    report.severity === 'medium' ? 'bg-yellow-100 text-yellow-700' :
-                    'bg-green-100 text-green-700'
-                  }`}>
-                    {report.severity}
-                  </span>
+                  {isSerious(report.severity) && (
+                    <span className="px-2 py-1 rounded bg-red-100 text-red-700">Serious</span>
+                  )}
                   <span>👍 {report.upvotes}</span>
                   <span>👎 {report.downvotes}</span>
                 </div>

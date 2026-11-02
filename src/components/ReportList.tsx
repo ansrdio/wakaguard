@@ -1,5 +1,6 @@
 'use client';
 
+import { isSerious, reportTypeWord } from '@/lib/reportWords';
 import { Report } from '@/lib/types';
 import { Clock, MapPin, ThumbsUp, ThumbsDown, MessageCircle, Navigation2 } from 'lucide-react';
 import { calculateDistance, formatDistance } from '@/lib/geo';
@@ -48,17 +49,12 @@ export function ReportList({ reports, selectedReportId, onReportClick, userLocat
               <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-600 rounded-l-2xl" />
             )}
             <div className="flex items-start justify-between mb-2">
-              <h3 className="font-semibold capitalize text-slate-900">
-                {report.type}
+              <h3 className="font-semibold text-slate-900">
+                {reportTypeWord(report.type)}
               </h3>
-              <span className={`text-xs px-2 py-1 rounded font-medium ${
-                report.severity === 'critical' ? 'bg-red-100 text-red-700' :
-                report.severity === 'high' ? 'bg-orange-100 text-orange-700' :
-                report.severity === 'medium' ? 'bg-yellow-100 text-yellow-700' :
-                'bg-green-100 text-green-700'
-              }`}>
-                {report.severity}
-              </span>
+              {isSerious(report.severity) && (
+                <span className="text-xs px-2 py-1 rounded font-medium bg-red-100 text-red-700">Serious</span>
+              )}
             </div>
             
             <p className="text-sm text-slate-600 mb-2 line-clamp-2 leading-relaxed">

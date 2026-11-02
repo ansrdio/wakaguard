@@ -1,5 +1,6 @@
 'use client';
 
+import { isSerious, reportTypeWord } from '@/lib/reportWords';
 import { useState } from 'react';
 import { Report, FlagReason } from '@/lib/types';
 import { X, MapPin, Calendar, ThumbsUp, ThumbsDown, MessageCircle, Flag, AlertCircle, Share2, CheckCircle, XCircle, Send, Users } from 'lucide-react';
@@ -112,7 +113,7 @@ export function ReportDetailsCard({ report, onClose }: ReportDetailsCardProps) {
       if (navigator.share) {
         await navigator.share({
           title: 'WakaGuard Report',
-          text: `${report.type} report in ${report.state}`,
+          text: `${reportTypeWord(report.type)} report in ${report.state}`,
           url: url,
         });
       } else {
@@ -235,8 +236,8 @@ export function ReportDetailsCard({ report, onClose }: ReportDetailsCardProps) {
         <div className="flex items-start justify-between mb-4">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
-              <h2 className="text-xl font-bold capitalize text-slate-900">
-                {report.type}
+              <h2 className="text-xl font-bold text-slate-900">
+                {reportTypeWord(report.type)}
               </h2>
               <button
                 onClick={handleShare}
@@ -250,14 +251,9 @@ export function ReportDetailsCard({ report, onClose }: ReportDetailsCardProps) {
                 )}
               </button>
             </div>
-            <span className={`inline-block text-xs px-2 py-1 rounded font-medium ${
-              report.severity === 'critical' ? 'bg-red-100 text-red-700' :
-              report.severity === 'high' ? 'bg-orange-100 text-orange-700' :
-              report.severity === 'medium' ? 'bg-yellow-100 text-yellow-700' :
-              'bg-green-100 text-green-700'
-            }`}>
-              {report.severity} severity
-            </span>
+            {isSerious(report.severity) && (
+              <span className="inline-block text-xs px-2 py-1 rounded font-medium bg-red-100 text-red-700">Serious</span>
+            )}
           </div>
           <button
             onClick={onClose}

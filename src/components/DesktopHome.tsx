@@ -1,5 +1,6 @@
 'use client';
 
+import { reportTypeWord } from '@/lib/reportWords';
 import { useState, useMemo } from 'react';
 import { Plus, MapPin, List, Crosshair, ArrowUpDown, AlertCircle, X, Shield, User, Settings, FileText, HelpCircle, LogOut, ChevronDown, Bell, Moon, Sun, Grid, LayoutList, Trash2 } from 'lucide-react';
 import { ReportListSkeleton, MapSkeleton } from '@/components/LoadingSkeletons';
@@ -126,17 +127,6 @@ export function DesktopHome({
       filtered = filtered.filter((report) => report.type === filters.type);
     }
 
-    if (filters.severity) {
-      filtered = filtered.filter((report) => report.severity === filters.severity);
-    }
-
-    if (filters.verification) {
-      filtered = filtered.filter((report) => {
-        const v = (report as any).verification ?? (report as any).verificationStatus;
-        return v === filters.verification;
-      });
-    }
-
     if (filters.recency) {
       const cutoffTime = Date.now() - filters.recency;
       filtered = filtered.filter((report) => {
@@ -152,18 +142,6 @@ export function DesktopHome({
         const addressMatch = report.location?.address?.toLowerCase().includes(query);
         const typeMatch = report.type?.toLowerCase().includes(query);
         return descriptionMatch || addressMatch || typeMatch;
-      });
-    }
-
-    if (filters.radiusKm && filters.radiusKm > 0 && userLocation) {
-      filtered = filtered.filter((report) => {
-        const distance = calculateDistance(
-          userLocation.lat,
-          userLocation.lng,
-          report.location.lat,
-          report.location.lng
-        );
-        return distance <= filters.radiusKm!;
       });
     }
 
@@ -185,7 +163,7 @@ export function DesktopHome({
     ? reports.find(r => r.id === selectedReportId) || null 
     : null;
 
-  const hasActiveFilters = !!(filters.type || filters.severity || filters.recency || filters.verification || filters.radiusKm || filters.searchQuery);
+  const hasActiveFilters = !!(filters.type || filters.recency || filters.searchQuery);
 
   const handleReportSelect = (reportId: string) => {
     const newId = reportId === selectedReportId ? null : reportId;
@@ -363,7 +341,6 @@ export function DesktopHome({
           <FilterBar 
             filters={filters} 
             onFiltersChange={setFilters} 
-            userLocation={userLocation} 
           />
         </div>
       </div>
@@ -625,7 +602,7 @@ export function DesktopHome({
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
-                            <p className="font-semibold text-slate-900 capitalize">{report.type}</p>
+                            <p className="font-semibold text-slate-900">{reportTypeWord(report.type)}</p>
                             <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(report.status)}`}>
                               {report.status}
                             </span>

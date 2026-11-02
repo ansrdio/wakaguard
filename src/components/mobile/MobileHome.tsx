@@ -1,5 +1,6 @@
 'use client';
 
+import { isSerious, reportTypeWord } from '@/lib/reportWords';
 import { useState, useMemo, useCallback } from 'react';
 import { Plus, Search, ThumbsUp, ThumbsDown, Clock, MapPin, ChevronRight, AlertTriangle, X, List, Map as MapIcon, Info } from 'lucide-react';
 import { Report } from '@/lib/types';
@@ -146,16 +147,6 @@ export function MobileHome({
       filtered = filtered.filter((report) => report.type === filters.type);
     }
 
-    // Severity filter
-    if (filters.severity) {
-      filtered = filtered.filter((report) => report.severity === filters.severity);
-    }
-
-    // Verification filter
-    if (filters.verification) {
-      filtered = filtered.filter((report) => report.verification === filters.verification);
-    }
-
     // Recency filter
     if (filters.recency && filters.recency > 0) {
       const cutoffTime = now - filters.recency * 24 * 60 * 60 * 1000;
@@ -173,19 +164,6 @@ export function MobileHome({
         report.type.toLowerCase().includes(query) ||
         report.location.address?.toLowerCase().includes(query)
       );
-    }
-
-    // Radius filter
-    if (filters.radiusKm && filters.radiusKm > 0 && userLocation) {
-      filtered = filtered.filter((report) => {
-        const distance = getDistance(
-          userLocation.lat,
-          userLocation.lng,
-          report.location.lat,
-          report.location.lng
-        );
-        return distance <= filters.radiusKm!;
-      });
     }
 
     // Sort
@@ -241,14 +219,6 @@ export function MobileHome({
     const dist = getDistance(userLocation.lat, userLocation.lng, report.location.lat, report.location.lng);
     if (dist < 1) return `${Math.round(dist * 1000)}m`;
     return `${dist.toFixed(1)}km`;
-  };
-
-  // Severity colors
-  const severityColors: Record<string, string> = {
-    critical: 'bg-red-100 text-red-700 border-red-200',
-    high: 'bg-orange-100 text-orange-700 border-orange-200',
-    medium: 'bg-yellow-100 text-yellow-700 border-yellow-200',
-    low: 'bg-green-100 text-green-700 border-green-200',
   };
 
   // Mobile Reports Screen Component
@@ -344,10 +314,12 @@ export function MobileHome({
                     {/* Top Row */}
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <div className="flex items-center gap-2">
-                        <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold border ${severityColors[r.severity] || severityColors.medium}`}>
-                          {r.severity}
-                        </span>
-                        <span className="text-sm font-bold text-slate-900 dark:text-white capitalize">{r.type}</span>
+                        {isSerious(r.severity) && (
+                          <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold border bg-red-100 text-red-700 border-red-200">
+                            Serious
+                          </span>
+                        )}
+                        <span className="text-sm font-bold text-slate-900 dark:text-white">{reportTypeWord(r.type)}</span>
                       </div>
                       <ChevronRight className="w-4 h-4 text-slate-400 flex-shrink-0" />
                     </div>
@@ -562,7 +534,6 @@ export function MobileHome({
         onClose={() => setShowFilterSheet(false)}
         filters={filters}
         onFiltersChange={setFilters}
-        userLocation={userLocation}
       />
 
       <ReportDetailsSheet
