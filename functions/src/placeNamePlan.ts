@@ -8,7 +8,7 @@
  * "Ikorodu Road, Ojota, Ikeja" for Ojota bus park).
  */
 
-/** As long as a typed destination may be (src/lib/tripPlanning.ts MAX_DESTINATION_LENGTH) */
+/** As long as a text carries (sanitizePlace in smsText.ts, MAX_DESTINATION_LENGTH in src/lib/tripPlanning.ts) */
 export const MAX_NAME_LENGTH = 40;
 
 /** Nominatim's rules: no more than one look-up a second for the whole app */

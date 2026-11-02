@@ -657,11 +657,17 @@ What was agreed:
 - **First step:** a keep / move / remove list for every screen, made from the app at phone size against the
   emulators, for the owner to approve.
 - **The owner's choices, 1 November** (all 31 answered on the Build 26 page). What is to be done:
-  - **Start form:** the time buttons cut from 9 to 5 (15 min, 30 min, 1 hr, 2 hr, Other); the paragraph under them
+  - [x] **Start form:** the time buttons cut from 9 to 5 (15 min, 30 min, 1 hr, 2 hr, Other); the paragraph under them
     cut to one line; the test trip note cut to one line; "How are you travelling?" and "Add plate number or driver"
     moved under "More options"; the "Safety tips" row removed. The two text checkboxes stay on the form (their
     choice). The destination box takes an address or the name of a place, not only a city: this joins "Search for
-    where you are going" below.
+    where you are going" below. Done 1 November:
+    - The 4, 6, 8 and 12 hour choices are one tap away inside Other, above the hours and minutes.
+    - A typed destination can now be 80 characters, as a full address is longer than a town. Texts still carry the
+      first 40 (`sanitizePlace`), and a pin's name stays at 40.
+    - "More options" shows the remembered way of travelling beside it, and any vehicle, so nothing is hidden unseen.
+    - With the "Safety tips" row went the private car checklist inside it (`SAFETY_CHECKLIST`). Testers' saved ticks
+      stay on their profile, unused.
   - **During a trip:** "Text I'm okay", "Share link" and "Report something on the road" become one row of three small
     buttons; under the trip, only "Stopped at a checkpoint?" and Emergency numbers; amber becomes green; the yellow
     test box becomes grey.

@@ -10,6 +10,7 @@ import {
   DEFAULT_TRIP_MINUTES,
   initialsOf,
   joinNames,
+  LONG_TRIP_PRESETS,
   MAX_EXTRA_MINUTES,
   readExtraMinutes,
   RETURN_HOLD_MS,
@@ -54,7 +55,8 @@ test('a complete plan is valid', () => {
 
 test('each missing part of a plan gets its own message', () => {
   assert.equal(validateTripPlan({ ...valid, destination: ' ' }).destination, 'Enter where you are going');
-  assert.match(validateTripPlan({ ...valid, destination: 'x'.repeat(41) }).destination!, /under 40/);
+  assert.deepEqual(validateTripPlan({ ...valid, destination: '12 Adeola Odeku Street, Victoria Island, Lagos' }), {});
+  assert.match(validateTripPlan({ ...valid, destination: 'x'.repeat(81) }).destination!, /under 80/);
   assert.equal(validateTripPlan({ ...valid, durationMinutes: 0 }).duration, 'Choose when you expect to arrive');
   assert.equal(validateTripPlan({ ...valid, durationMinutes: NaN }).duration, 'Choose when you expect to arrive');
   assert.match(validateTripPlan({ ...valid, durationMinutes: 21 * 60 }).duration!, /up to 20 h/);
@@ -102,9 +104,10 @@ test('the warning waits for the app\'s copy of the trip to catch up after coming
 });
 
 test('quick choices suit city trips and long road journeys, and the default is one of them', () => {
-  assert.deepEqual(ARRIVAL_PRESETS.map((p) => p.minutes), [15, 30, 60, 120, 240, 360, 480, 720]);
+  assert.deepEqual(ARRIVAL_PRESETS.map((p) => p.minutes), [15, 30, 60, 120]);
+  assert.deepEqual(LONG_TRIP_PRESETS.map((p) => p.minutes), [240, 360, 480, 720]);
   assert.ok(ARRIVAL_PRESETS.some((p) => p.minutes === DEFAULT_TRIP_MINUTES));
-  for (const preset of ARRIVAL_PRESETS) {
+  for (const preset of [...ARRIVAL_PRESETS, ...LONG_TRIP_PRESETS]) {
     assert.deepEqual(validateTripPlan({ ...valid, durationMinutes: preset.minutes }), {});
   }
 });

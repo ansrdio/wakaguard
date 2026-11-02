@@ -1,16 +1,16 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { AlertTriangle, Check, History, Lightbulb, Loader2, MapPin, Navigation, Plus, UserPlus } from 'lucide-react';
+import { AlertTriangle, Check, ChevronDown, History, Lightbulb, Loader2, MapPin, Navigation, Plus, UserPlus } from 'lucide-react';
 import {
   ALERT_GRACE_MINUTES,
   ARRIVAL_PRESETS,
   DEFAULT_TRIP_MINUTES,
+  LONG_TRIP_PRESETS,
   MAX_ALERT_NAME_LENGTH,
-  MAX_DESTINATION_LENGTH,
   MAX_TRIP_MINUTES,
   MAX_TRUSTED_CONTACTS,
-  TEST_ALERT_GRACE_MINUTES,
+  MAX_TYPED_DESTINATION_LENGTH,
   TEST_TRIP_MINUTES,
   TripPlanErrors,
   formatClock,
@@ -143,6 +143,9 @@ export function StartTripForm({
   const [customOpen, setCustomOpen] = useState(false);
   // Starts on last time's answer, so most trips need no tap here at all
   const [travelMode, setTravelMode] = useState<TravelMode | null>(() => lastTravelMode());
+  // How they are travelling and the vehicle: optional, so kept out of the way.
+  // The last answer is still used, and shown beside "More options"
+  const [moreOpen, setMoreOpen] = useState(false);
   // Optional and folded away: most people only see the plate once they board
   const [vehicleOpen, setVehicleOpen] = useState(false);
   const [plate, setPlate] = useState('');
@@ -192,6 +195,9 @@ export function StartTripForm({
 
   const arriveByMs = nowMs + durationMinutes * 60 * 1000;
   const textContacts = textContactsChoice ?? textContactsByDefault(durationMinutes);
+  const moreSummary = [TRAVEL_MODES.find((m) => m.id === travelMode)?.short, vehicle ? 'vehicle added' : null]
+    .filter(Boolean)
+    .join(', ');
 
   const plan = {
     destination: destination.trim(),
@@ -318,9 +324,9 @@ export function StartTripForm({
           id="trip-destination"
           type="text"
           value={destination}
-          maxLength={MAX_DESTINATION_LENGTH}
+          maxLength={MAX_TYPED_DESTINATION_LENGTH}
           onChange={(e) => setDestination(e.target.value)}
-          placeholder="Benin City"
+          placeholder="Address or name of a place"
           autoComplete="off"
           aria-invalid={!!errors.destination}
           className={inputClass}
@@ -378,7 +384,7 @@ export function StartTripForm({
       {/* When */}
       <div>
         <p className={labelClass} id="trip-duration-label">How long will it take?</p>
-        <div className="grid grid-cols-3 gap-2" role="group" aria-labelledby="trip-duration-label">
+        <div className="grid grid-cols-5 gap-2" role="group" aria-labelledby="trip-duration-label">
           {ARRIVAL_PRESETS.map((preset) => {
             const selected = !showCustom && durationMinutes === preset.minutes;
             return (
@@ -390,7 +396,7 @@ export function StartTripForm({
                   setDurationMinutes(preset.minutes);
                   setCustomOpen(false);
                 }}
-                className={`min-h-12 py-2.5 px-2 rounded-xl text-sm font-medium transition-colors ${
+                className={`min-h-12 py-2.5 px-1 rounded-xl text-sm font-medium transition-colors ${
                   selected
                     ? 'bg-brand-600 text-white'
                     : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600'
@@ -404,7 +410,7 @@ export function StartTripForm({
             type="button"
             aria-pressed={showCustom}
             onClick={() => setCustomOpen(true)}
-            className={`min-h-12 py-2.5 px-2 rounded-xl text-sm font-medium transition-colors ${
+            className={`min-h-12 py-2.5 px-1 rounded-xl text-sm font-medium transition-colors ${
               showCustom
                 ? 'bg-brand-600 text-white'
                 : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600'
@@ -415,7 +421,30 @@ export function StartTripForm({
         </div>
 
         {showCustom && (
-          <div className="flex items-center gap-2 mt-3">
+          <div className="grid grid-cols-4 gap-2 mt-3" role="group" aria-label="Long trips">
+            {LONG_TRIP_PRESETS.map((preset) => {
+              const selected = durationMinutes === preset.minutes;
+              return (
+                <button
+                  key={preset.minutes}
+                  type="button"
+                  aria-pressed={selected}
+                  onClick={() => setDurationMinutes(preset.minutes)}
+                  className={`min-h-12 py-2.5 px-1 rounded-xl text-sm font-medium transition-colors ${
+                    selected
+                      ? 'bg-brand-600 text-white'
+                      : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600'
+                  }`}
+                >
+                  {preset.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {showCustom && (
+          <div className="flex items-center gap-2 mt-2">
             <label className="sr-only" htmlFor="trip-hours">Hours</label>
             <select
               id="trip-hours"
@@ -441,10 +470,9 @@ export function StartTripForm({
           <p role="alert" className={errorClass}>{errors.duration}</p>
         ) : (
           <p className="text-sm text-slate-600 dark:text-slate-300 mt-2">
-            Arrive by <span className="font-semibold text-slate-900 dark:text-white">{formatClock(arriveByMs, nowMs)}</span>
-            {' '}({formatDuration(durationMinutes)}). If the trip is still running {ALERT_GRACE_MINUTES} minutes after
-            that, your contacts are texted, even if your phone is off. Arrived sooner? Tap &ldquo;I&apos;ve
-            arrived&rdquo; and no alert is sent.
+            Not arrived {ALERT_GRACE_MINUTES} min after{' '}
+            <span className="font-semibold text-slate-900 dark:text-white">{formatClock(arriveByMs, nowMs)}</span>?
+            {' '}Your contacts are texted.
           </p>
         )}
 
@@ -482,61 +510,6 @@ export function StartTripForm({
             </div>
           );
         })()}
-      </div>
-
-      {/* How. Never asked for: a trip starts the same with or without an answer */}
-      <div>
-        <p className={labelClass} id="trip-travel-label">
-          How are you travelling? <span className="font-normal text-slate-500 dark:text-slate-400">(optional)</span>
-        </p>
-        <div className="grid grid-cols-4 gap-2" role="group" aria-labelledby="trip-travel-label">
-          {TRAVEL_MODES.map((mode) => {
-            const selected = travelMode === mode.id;
-            return (
-              <button
-                key={mode.id}
-                type="button"
-                aria-pressed={selected}
-                aria-label={mode.label}
-                onClick={() => setTravelMode(selected ? null : mode.id)}
-                className={`flex flex-col items-center gap-1 rounded-xl px-1 pt-2 pb-1.5 border-2 transition-colors ${
-                  selected
-                    ? 'border-brand-600 bg-brand-50 dark:bg-brand-900/40'
-                    : 'border-transparent bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600'
-                }`}
-              >
-                <TravelPicture mode={mode.id} size={36} />
-                <span className={`text-xs font-medium leading-tight text-center ${
-                  selected ? 'text-brand-800 dark:text-brand-100' : 'text-slate-700 dark:text-slate-200'
-                }`}>
-                  {mode.short}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-        {tipBeforeSettingOff(travelMode) && (
-          <p className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300 mt-2" aria-live="polite">
-            <Lightbulb className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" aria-hidden="true" />
-            {tipBeforeSettingOff(travelMode)}
-          </p>
-        )}
-        {travelMode !== 'foot' && (
-          vehicleOpen ? (
-            <div className="mt-3">
-              <VehicleFields plate={plate} details={vehicleDetails} onPlate={setPlate} onDetails={setVehicleDetails} idPrefix="start-vehicle" />
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setVehicleOpen(true)}
-              className="mt-1 min-h-12 text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
-            >
-              <Plus className="w-4 h-4" aria-hidden="true" />
-              Add plate number or driver (optional)
-            </button>
-          )
-        )}
       </div>
 
       {/* Who */}
@@ -724,6 +697,77 @@ export function StartTripForm({
         )}
       </div>
 
+      {/* Never asked for: a trip starts the same with or without these */}
+      <div>
+        <button
+          type="button"
+          aria-expanded={moreOpen}
+          onClick={() => setMoreOpen(!moreOpen)}
+          className="w-full min-h-12 flex items-center justify-between gap-2 text-left text-sm font-semibold text-slate-800 dark:text-slate-100"
+        >
+          <span>
+            More options
+            {moreSummary && <span className="font-normal text-slate-500 dark:text-slate-400"> · {moreSummary}</span>}
+          </span>
+          <ChevronDown className={`w-5 h-5 text-slate-500 transition-transform ${moreOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
+        </button>
+        {moreOpen && (
+          <div className="mt-2">
+            <p className={labelClass} id="trip-travel-label">
+              How are you travelling? <span className="font-normal text-slate-500 dark:text-slate-400">(optional)</span>
+            </p>
+            <div className="grid grid-cols-4 gap-2" role="group" aria-labelledby="trip-travel-label">
+              {TRAVEL_MODES.map((mode) => {
+                const selected = travelMode === mode.id;
+                return (
+                  <button
+                    key={mode.id}
+                    type="button"
+                    aria-pressed={selected}
+                    aria-label={mode.label}
+                    onClick={() => setTravelMode(selected ? null : mode.id)}
+                    className={`flex flex-col items-center gap-1 rounded-xl px-1 pt-2 pb-1.5 border-2 transition-colors ${
+                      selected
+                        ? 'border-brand-600 bg-brand-50 dark:bg-brand-900/40'
+                        : 'border-transparent bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600'
+                    }`}
+                  >
+                    <TravelPicture mode={mode.id} size={36} />
+                    <span className={`text-xs font-medium leading-tight text-center ${
+                      selected ? 'text-brand-800 dark:text-brand-100' : 'text-slate-700 dark:text-slate-200'
+                    }`}>
+                      {mode.short}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            {tipBeforeSettingOff(travelMode) && (
+              <p className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300 mt-2" aria-live="polite">
+                <Lightbulb className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" aria-hidden="true" />
+                {tipBeforeSettingOff(travelMode)}
+              </p>
+            )}
+            {travelMode !== 'foot' && (
+              vehicleOpen ? (
+                <div className="mt-3">
+                  <VehicleFields plate={plate} details={vehicleDetails} onPlate={setPlate} onDetails={setVehicleDetails} idPrefix="start-vehicle" />
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setVehicleOpen(true)}
+                  className="mt-1 min-h-12 text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+                >
+                  <Plus className="w-4 h-4" aria-hidden="true" />
+                  Add plate number or driver (optional)
+                </button>
+              )
+            )}
+          </div>
+        )}
+      </div>
+
       {/* Name shown to contacts */}
       <div>
         {askForName ? (
@@ -801,8 +845,7 @@ export function StartTripForm({
           Try a {TEST_TRIP_MINUTES}-minute test trip instead
         </button>
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-          It works like a real trip, only faster. If you don&apos;t end it, your contacts get a text
-          about {TEST_ALERT_GRACE_MINUTES} minute later that says &quot;WAKAGUARD TEST ALERT&quot;.
+          If you don&apos;t end it, contacts get a text marked TEST.
         </p>
       </div>
     </section>

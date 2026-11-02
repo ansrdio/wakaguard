@@ -31,8 +31,13 @@ export function readExtraMinutes(hours: number, minutes: number): number | null 
   return Number.isInteger(total) && total >= 1 && total <= MAX_EXTRA_MINUTES ? total : null;
 }
 
-/** The server trims longer values before they go into a message */
+/** The longest name a pin can give. The server trims longer values before they go into a message. */
 export const MAX_DESTINATION_LENGTH = 40;
+/**
+ * What can be typed as a destination, as a full address is longer than a town.
+ * A text carries the first 40 characters (sanitizePlace in functions/src/smsText.ts).
+ */
+export const MAX_TYPED_DESTINATION_LENGTH = 80;
 export const MAX_ALERT_NAME_LENGTH = 30;
 
 /** Within this many minutes of the deadline the trip is shown as ending soon */
@@ -44,17 +49,19 @@ const LOCATION_STALE_MS = 5 * 60 * 1000;
 const MINUTE_MS = 60 * 1000;
 const HOUR_MS = 60 * MINUTE_MS;
 
-/**
- * Quick choices for how long a trip will take: city trips first, then long
- * road journeys between states (6, 8 and 12 hours, added in build 25 after a
- * tester said long trips are where WakaGuard helps most). Anything else uses
- * "Other".
- */
+/** Quick choices for how long a trip will take: most trips are across town. Anything else uses "Other". */
 export const ARRIVAL_PRESETS = [
   { minutes: 15, label: '15 min' },
   { minutes: 30, label: '30 min' },
   { minutes: 60, label: '1 hr' },
   { minutes: 120, label: '2 hr' },
+] as const;
+
+/**
+ * One tap away inside "Other": long road journeys between states, which a
+ * tester said are where WakaGuard helps most.
+ */
+export const LONG_TRIP_PRESETS = [
   { minutes: 240, label: '4 hr' },
   { minutes: 360, label: '6 hr' },
   { minutes: 480, label: '8 hr' },
@@ -160,8 +167,8 @@ export function validateTripPlan(plan: TripPlan): TripPlanErrors {
   const destination = plan.destination.trim();
   if (destination.length < 2) {
     errors.destination = 'Enter where you are going';
-  } else if (destination.length > MAX_DESTINATION_LENGTH) {
-    errors.destination = `Keep it under ${MAX_DESTINATION_LENGTH} characters`;
+  } else if (destination.length > MAX_TYPED_DESTINATION_LENGTH) {
+    errors.destination = `Keep it under ${MAX_TYPED_DESTINATION_LENGTH} characters`;
   }
 
   if (!Number.isFinite(plan.durationMinutes) || plan.durationMinutes < MIN_TRIP_MINUTES) {

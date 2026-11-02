@@ -2,10 +2,9 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { 
-  Shield, Users, Phone, X, Check, Loader2,
-  ChevronRight, Heart, Car, Lightbulb, UserPlus, Trash2, CheckCircle2,
-  AlertCircle, Flame, Ambulance, ShieldCheck, Plus,
-  ChevronDown, ChevronUp
+  Shield, Users, Phone, X, Loader2,
+  ChevronRight, Heart, Car, UserPlus, Trash2,
+  AlertCircle, Flame, Ambulance, ShieldCheck, Plus
 } from 'lucide-react';
 import { useSafety } from '@/hooks/useSafety';
 import { useBackToClose } from '@/hooks/useBackToClose';
@@ -45,8 +44,6 @@ import { CancelTripSheet } from '@/components/mobile/trip/CancelTripSheet';
 import { VehicleSheet } from '@/components/mobile/trip/VehicleSheet';
 import { storedVehicle, Vehicle } from '@/lib/vehicle';
 import { ARRIVE_UNDO_MS } from '@/lib/arriveUndo';
-import { TRAVEL_MODES, TravelMode, isTravelMode, lastTravelMode, tipsFor, tipsHeading } from '@/lib/travelMode';
-import { TravelPicture } from '@/components/pictures/Pictures';
 import { hasDoneKeepRunning, rememberKeepRunningDone, shouldOfferKeepRunning } from '@/lib/keepRunning';
 import { KeepRunningHelp } from '@/components/mobile/KeepRunningHelp';
 import { KeepRunningAsk } from '@/components/mobile/KeepRunningAsk';
@@ -100,20 +97,6 @@ const EMERGENCY_CONTACTS = [
   { name: 'Fire Service', number: '199', icon: Flame, color: 'orange', description: 'Fire emergency' },
   { name: 'Ambulance (LASAMBUS)', number: '112', icon: Ambulance, color: 'red', description: 'Lagos State Ambulance' },
   { name: 'NEMA', number: '0800CALLNEMA', icon: AlertCircle, color: 'amber', description: 'Emergency Management Agency' },
-];
-
-// A checklist for a private car, where the driver is the one who can check these
-const SAFETY_CHECKLIST = [
-  { id: 'tires', label: 'Checked tyre pressure and condition', category: 'Vehicle' },
-  { id: 'brakes', label: 'Tested brakes', category: 'Vehicle' },
-  { id: 'lights', label: 'All lights working', category: 'Vehicle' },
-  { id: 'fuel', label: 'Sufficient fuel', category: 'Vehicle' },
-  { id: 'documents', label: "Driver's licence and vehicle papers available", category: 'Documents' },
-  { id: 'insurance', label: 'Valid insurance', category: 'Documents' },
-  { id: 'phone', label: 'Phone fully charged', category: 'Emergency' },
-  { id: 'contacts', label: 'Emergency contacts updated', category: 'Emergency' },
-  { id: 'firstaid', label: 'First aid kit available', category: 'Emergency' },
-  { id: 'water', label: 'Water and snacks for long trips', category: 'Comfort' },
 ];
 
 export function SafetyScreen({ onReportRoad, notificationAction = null, onNotificationActionDone }: {
@@ -205,7 +188,6 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
   const { ref: contactsRef, style: contactsStyle } = useKeyboardSafeOverlay();
 
   // Collapsible sections
-  const [tipsExpanded, setTipsExpanded] = useState(false);
   // On phones known to close apps in the background, the steps that stop that
   // are put in front of the person once, without waiting for a trip to go quiet
   const [keepRunningDue, setKeepRunningDue] = useState(() => (
@@ -218,10 +200,6 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
   // the background?" question, in place of the steps through Settings (build 25)
   const [askKeepRunning, setAskKeepRunning] = useState(false);
   useBackToClose(askKeepRunning, () => setAskKeepRunning(false));
-  // Whose tips the card shows: the one tapped there, else this trip's, else last time's
-  const [tipsModeChosen, setTipsModeChosen] = useState<TravelMode | null>(null);
-  const [rememberedMode, setRememberedMode] = useState<TravelMode | null>(() => lastTravelMode());
-  const [checkedItems, setCheckedItems] = useState<string[]>([]);
   
   // Load the profile and the trusted contacts
   useEffect(() => {
@@ -231,9 +209,6 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
     const loadProfile = async () => {
       try {
         const userDoc = await getDoc(doc(db, 'users', uid));
-        if (userDoc.exists()) {
-          setCheckedItems(userDoc.data().safetyChecklist || []);
-        }
         setSavedAlertName(userDoc.data()?.alertName || '');
       } catch (error) {
         console.warn('Could not load profile:', error);
@@ -391,16 +366,11 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
   const [awaitingLocationConsent, setAwaitingLocationConsent] = useState<StartTripRequest | null>(null);
   useBackToClose(awaitingLocationConsent !== null, () => setAwaitingLocationConsent(null));
 
-  const tipsMode: TravelMode | null = tipsModeChosen
-    ?? (isTravelMode(activeTrip?.travelMode) ? activeTrip.travelMode : rememberedMode);
-
   const handleStartTrip = async (request: StartTripRequest) => {
     // Still inside the tap, so an iPhone will speak the directions later
     if (directionsVoiceOn && request.destinationPoint && !voiceMuted()) primeSpeech();
     if (!requireAccount('start safe trip')) return;
     if (!uid || isAnonymous) return;
-    setRememberedMode(request.travelMode);
-    setTipsModeChosen(null);
     if (!hasSeenLocationExplanation()) {
       setAwaitingLocationConsent(request);
       return;
@@ -850,41 +820,6 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
     }
   };
 
-  // Toggle checklist item
-  const handleToggleChecklist = async (itemId: string) => {
-    if (!requireAccount('update checklist')) return;
-    if (!uid || isAnonymous) return;
-    
-    const newChecked = checkedItems.includes(itemId)
-      ? checkedItems.filter(id => id !== itemId)
-      : [...checkedItems, itemId];
-    
-    setCheckedItems(newChecked);
-    
-    try {
-      await updateDoc(doc(db, 'users', uid), {
-        safetyChecklist: newChecked
-      });
-    } catch (error) {
-      console.error('Failed to save checklist:', error);
-    }
-  };
-
-  // Reset checklist
-  const handleResetChecklist = async () => {
-    if (!requireAccount('reset checklist')) return;
-    if (!uid || isAnonymous) return;
-    setCheckedItems([]);
-    try {
-      await updateDoc(doc(db, 'users', uid), {
-        safetyChecklist: []
-      });
-      showToast('Checklist reset', 'success');
-    } catch (error) {
-      showToast('Failed to reset', 'error');
-    }
-  };
-
   if (loading) {
     return (
       <div className="absolute inset-0 flex items-center justify-center bg-slate-50 dark:bg-slate-900">
@@ -1141,104 +1076,6 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
             ? <Loader2 className="w-5 h-5 text-slate-400 animate-spin" aria-hidden="true" />
             : <ChevronRight className="w-5 h-5 text-slate-400" aria-hidden="true" />}
         </button>
-
-        <button onClick={() => setTipsExpanded(!tipsExpanded)} aria-expanded={tipsExpanded} className={moreRow}>
-          <span className={`${moreIcon} bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-200`}>
-            <Lightbulb className="w-5 h-5" aria-hidden="true" />
-          </span>
-          <span className="flex-1 min-w-0">
-            <span className={moreTitle}>Safety tips</span>
-            <span className={moreSub}>
-              {tipsHeading(tipsMode)}
-            </span>
-          </span>
-          {tipsExpanded
-            ? <ChevronUp className="w-5 h-5 text-slate-400" aria-hidden="true" />
-            : <ChevronDown className="w-5 h-5 text-slate-400" aria-hidden="true" />}
-        </button>
-
-        {tipsExpanded && (
-          <div className="p-4 space-y-4">
-            <div className="grid grid-cols-4 gap-2" role="group" aria-label="Show tips for">
-              {TRAVEL_MODES.filter((mode) => mode.id !== 'other').map((mode) => {
-                const selected = tipsMode === mode.id;
-                return (
-                  <button
-                    key={mode.id}
-                    type="button"
-                    aria-pressed={selected}
-                    aria-label={mode.label}
-                    onClick={() => setTipsModeChosen(mode.id)}
-                    className={`flex flex-col items-center gap-1 rounded-xl px-1 pt-2 pb-1.5 border-2 transition-colors ${
-                      selected
-                        ? 'border-brand-600 bg-brand-50 dark:bg-brand-900/40'
-                        : 'border-transparent bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-700'
-                    }`}
-                  >
-                    <TravelPicture mode={mode.id} size={32} />
-                    <span className={`text-xs font-medium leading-tight text-center ${
-                      selected ? 'text-brand-800 dark:text-brand-100' : 'text-slate-700 dark:text-slate-200'
-                    }`}>
-                      {mode.short}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {tipsFor(tipsMode).length > 0 ? (
-              <ul className="space-y-2">
-                {tipsFor(tipsMode).map((tip) => (
-                  <li key={tip} className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300">
-                    <CheckCircle2 className="w-4 h-4 text-brand-600 dark:text-brand-300 flex-shrink-0 mt-0.5" aria-hidden="true" />
-                    {tip}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-sm text-slate-600 dark:text-slate-300">
-                Tap how you are travelling to see the tips for it.
-              </p>
-            )}
-
-            {tipsMode === 'car' && (
-              <div>
-                <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
-                  Before you set off
-                  <span className="font-normal text-slate-500 dark:text-slate-400">
-                    {' '}({checkedItems.filter((id) => SAFETY_CHECKLIST.some((item) => item.id === id)).length} of {SAFETY_CHECKLIST.length} checked)
-                  </span>
-                </h4>
-                <div className="space-y-2">
-                  {SAFETY_CHECKLIST.map((item) => {
-                    const done = checkedItems.includes(item.id);
-                    return (
-                      <button
-                        key={item.id}
-                        onClick={() => handleToggleChecklist(item.id)}
-                        aria-pressed={done}
-                        className={`w-full flex items-center gap-3 p-2.5 rounded-xl text-left transition-colors ${
-                          done
-                            ? 'bg-brand-50 dark:bg-brand-900/40'
-                            : 'bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-700'
-                        }`}
-                      >
-                        <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                          done ? 'bg-brand-600 border-brand-600' : 'border-slate-300 dark:border-slate-500'
-                        }`}>
-                          {done && <Check className="w-3 h-3 text-white" />}
-                        </span>
-                        <span className={`text-sm ${done ? 'text-brand-800 dark:text-brand-100' : 'text-slate-700 dark:text-slate-200'}`}>
-                          {item.label}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
       </div>
 
       {awaitingLocationConsent && (
