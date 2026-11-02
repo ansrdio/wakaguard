@@ -668,9 +668,18 @@ What was agreed:
     - "More options" shows the remembered way of travelling beside it, and any vehicle, so nothing is hidden unseen.
     - With the "Safety tips" row went the private car checklist inside it (`SAFETY_CHECKLIST`). Testers' saved ticks
       stay on their profile, unused.
-  - **During a trip:** "Text I'm okay", "Share link" and "Report something on the road" become one row of three small
-    buttons; under the trip, only "Stopped at a checkpoint?" and Emergency numbers; amber becomes green; the yellow
-    test box becomes grey.
+  - [x] **During a trip:** "Text I'm okay", "Share link" and "Report something on the road" become one row of three
+    small buttons; under the trip, only "Stopped at a checkpoint?" and Emergency numbers; amber becomes green; the
+    yellow test box becomes grey. Done 1 November:
+    - The small button reads "Report road", and screen readers still say "Report something on the road".
+    - The row has a border, as without one it almost vanished into the page. "I'm okay" never breaks across two lines.
+    - **One exception, for the owner to see:** Trusted contacts stays under the trip when there are none, or one
+      cannot be texted. Messages say to open that row, and it is the only way to the contacts during a trip.
+    - Amber stays where it is a real warning: weather, no location, no connection, another phone sending the trip.
+      Overdue stays red, with the add-time buttons green.
+    - The "Add time" button in the directions panel (Beta) went green with the others; its warning line stays amber.
+    - **Found by testing a real trip:** a long address shrank to about 15 letters on the trip card. The card and the
+      trip map now show two lines. This came from allowing addresses on the Start form.
   - [x] **Nearby:** the place pictures come off the map; the computer talk comes off the report form; Filters keep
     Search, Type and how recent; one set of report type names; severity cut to "Serious" or not, with a red ring
     (their choice, against my suggestion to leave it). Done 1 November:

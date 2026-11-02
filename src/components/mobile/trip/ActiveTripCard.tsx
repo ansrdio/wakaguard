@@ -68,9 +68,9 @@ const TONES = {
     label: 'On trip',
   },
   endingSoon: {
-    card: 'border-amber-300 dark:border-amber-700',
-    pill: 'bg-amber-100 text-amber-900 dark:bg-amber-900 dark:text-amber-100',
-    figure: 'text-amber-700 dark:text-amber-300',
+    card: 'border-brand-300 dark:border-brand-700',
+    pill: 'bg-brand-100 text-brand-800 dark:bg-brand-900 dark:text-brand-100',
+    figure: 'text-brand-700 dark:text-brand-300',
     label: 'Arriving soon',
   },
   overdue: {
@@ -89,8 +89,8 @@ const TONES = {
 } as const;
 
 const quietButton =
-  'py-3.5 rounded-2xl text-base font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2 ' +
-  'bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-slate-800 dark:text-blue-300 dark:hover:bg-slate-700';
+  'min-h-16 px-1 py-2 rounded-2xl text-sm font-semibold leading-tight text-center transition-colors disabled:opacity-50 flex flex-col items-center justify-center gap-1 ' +
+  'border border-slate-300 dark:border-slate-600 bg-white text-blue-700 hover:bg-blue-50 dark:bg-slate-800 dark:text-blue-300 dark:hover:bg-slate-700';
 
 const divider = 'border-t border-slate-100 dark:border-slate-700';
 
@@ -150,7 +150,7 @@ export function ActiveTripCard({
           </span>
           <div className="min-w-0 flex-1">
             <p className="text-sm text-slate-500 dark:text-slate-400">Trip to</p>
-            <h1 id="active-trip-heading" className="text-xl font-bold text-slate-900 dark:text-white truncate">
+            <h1 id="active-trip-heading" className="text-xl font-bold text-slate-900 dark:text-white line-clamp-2 break-words">
               {trip.destination || 'your destination'}
             </h1>
           </div>
@@ -158,7 +158,7 @@ export function ActiveTripCard({
         </div>
 
         {trip.isTest && (
-          <div className="mx-5 mb-4 bg-amber-100 border border-amber-300 rounded-xl p-3 text-sm text-amber-900">
+          <div className="mx-5 mb-4 bg-slate-100 border border-slate-200 dark:bg-slate-700 dark:border-slate-600 rounded-xl p-3 text-sm text-slate-700 dark:text-slate-200">
             <span className="font-semibold">Test trip.</span> Every text about it says &quot;WAKAGUARD TEST ALERT&quot;,
             and 112 is not called.
           </div>
@@ -333,13 +333,13 @@ export function ActiveTripCard({
 
       {/* The choices are on the card, not behind a button: adding time is what
           stops a false alarm, and nobody should have to hunt for it. They turn
-          amber once the arrival time is near or past. */}
+          green once the arrival time is near or past. */}
       {canExtend && (
         <div role="group" aria-labelledby="add-time-label">
           <p
             id="add-time-label"
             className={`flex items-center gap-1.5 text-sm font-semibold mb-2 ${
-              shortOfTime ? 'text-amber-800 dark:text-amber-300' : 'text-slate-700 dark:text-slate-200'
+              shortOfTime ? 'text-brand-800 dark:text-brand-300' : 'text-slate-700 dark:text-slate-200'
             }`}
           >
             <Clock className="w-4 h-4" aria-hidden="true" />
@@ -354,7 +354,7 @@ export function ActiveTripCard({
                 disabled={processing}
                 className={`min-h-12 py-3 rounded-xl text-sm font-semibold border transition-colors disabled:opacity-50 ${
                   shortOfTime
-                    ? 'bg-amber-50 border-amber-400 text-amber-900 hover:bg-amber-100 dark:bg-amber-950 dark:border-amber-600 dark:text-amber-200'
+                    ? 'bg-brand-50 border-brand-400 text-brand-900 hover:bg-brand-100 dark:bg-brand-950 dark:border-brand-600 dark:text-brand-200'
                     : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-700'
                 }`}
               >
@@ -368,7 +368,7 @@ export function ActiveTripCard({
             disabled={processing}
             className={`mt-2 w-full min-h-12 py-2.5 rounded-xl text-sm font-semibold border transition-colors disabled:opacity-50 ${
               shortOfTime
-                ? 'bg-amber-50 border-amber-400 text-amber-900 hover:bg-amber-100 dark:bg-amber-950 dark:border-amber-600 dark:text-amber-200'
+                ? 'bg-brand-50 border-brand-400 text-brand-900 hover:bg-brand-100 dark:bg-brand-950 dark:border-brand-600 dark:text-brand-200'
                 : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-700'
             }`}
           >
@@ -377,34 +377,31 @@ export function ActiveTripCard({
         </div>
       )}
 
-      <button
-        type="button"
-        onClick={onTextOkay}
-        disabled={processing || watcherNames.length === 0}
-        aria-label="Text your contacts that you are okay"
-        className={`${quietButton} w-full`}
-      >
-        <ShieldCheck className="w-5 h-5" aria-hidden="true" />
-        Text &quot;I&apos;m okay&quot;
-      </button>
+      <div className={`grid gap-2 ${onReportRoad ? 'grid-cols-3' : 'grid-cols-2'}`}>
+        <button
+          type="button"
+          onClick={onTextOkay}
+          disabled={processing || watcherNames.length === 0}
+          aria-label="Text your contacts that you are okay"
+          className={quietButton}
+        >
+          <ShieldCheck className="w-5 h-5" aria-hidden="true" />
+          Text &quot;I&apos;m&nbsp;okay&quot;
+        </button>
 
-      <button type="button" onClick={onShare} className={`${quietButton} w-full`}>
-        <Share2 className="w-5 h-5" aria-hidden="true" />
-        Share link
-      </button>
+        <button type="button" onClick={onShare} className={quietButton}>
+          <Share2 className="w-5 h-5" aria-hidden="true" />
+          Share link
+        </button>
 
-      {/* A traveller is the one person who can see what is on this road right now */}
-      {onReportRoad && (
-        <div>
-          <button type="button" onClick={onReportRoad} className={`${quietButton} w-full`}>
+        {/* A traveller is the one person who can see what is on this road right now */}
+        {onReportRoad && (
+          <button type="button" onClick={onReportRoad} aria-label="Report something on the road" className={quietButton}>
             <AlertTriangle className="w-5 h-5" aria-hidden="true" />
-            Report something on the road
+            Report road
           </button>
-          <p className="text-xs text-slate-500 dark:text-slate-400 text-center mt-1.5">
-            A checkpoint, a crash, a bad stretch? Tell other travellers, when it is safe to use your phone.
-          </p>
-        </div>
-      )}
+        )}
+      </div>
 
       <button
         type="button"

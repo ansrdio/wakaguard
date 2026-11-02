@@ -45,7 +45,7 @@ interface TripMapScreenProps {
 
 const PILLS = {
   active: { className: 'bg-brand-100 text-brand-800', label: 'On trip' },
-  endingSoon: { className: 'bg-amber-100 text-amber-900', label: 'Arriving soon' },
+  endingSoon: { className: 'bg-brand-100 text-brand-800', label: 'Arriving soon' },
   overdue: { className: 'bg-red-100 text-red-800', label: 'Overdue' },
   emergency: { className: 'bg-red-600 text-white', label: 'SOS active' },
 } as const;
@@ -122,7 +122,7 @@ export function TripMapScreen({ trip, watcherNames, processing, onClose, onArriv
 
         <div ref={cardRef} className="absolute top-3 left-3 right-3 z-[1000] bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-4">
           <div className="flex items-start justify-between gap-3">
-            <p className="text-lg font-bold text-slate-900 dark:text-white truncate">
+            <p className="text-lg font-bold text-slate-900 dark:text-white line-clamp-2 break-words">
               Trip to {trip.destination || 'your destination'}
             </p>
             <span className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${pill.className}`}>{pill.label}</span>

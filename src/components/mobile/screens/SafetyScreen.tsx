@@ -1034,24 +1034,28 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
       )}
 
       {/* ============================================ */}
-      {/* 3. THE REST: contacts, hotlines, checkpoint log, tips */}
+      {/* 3. THE REST: contacts, hotlines, checkpoint log. During a trip the card
+          says who is told, and the contacts row stays only when something needs
+          fixing, as it is the one way to them while a trip is running. */}
       {/* ============================================ */}
       <div className="rounded-3xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 divide-y divide-slate-100 dark:divide-slate-700 overflow-hidden">
-        <button onClick={() => setActiveModal('contacts')} className={moreRow}>
-          <span className={`${moreIcon} bg-brand-100 text-brand-700 dark:bg-brand-900 dark:text-brand-200`}>
-            <Users className="w-5 h-5" aria-hidden="true" />
-          </span>
-          <span className="flex-1 min-w-0">
-            <span className={moreTitle}>Trusted contacts</span>
-            <span className={moreSub}>{trustedContacts.length === 0 ? 'None saved yet' : `${trustedContacts.length} saved`}</span>
-            {untextableCount > 0 && (
-              <span className="block text-sm font-medium text-amber-700 dark:text-amber-300">
-                {untextableCount === 1 ? '1 cannot be texted' : `${untextableCount} cannot be texted`}
-              </span>
-            )}
-          </span>
-          <ChevronRight className="w-5 h-5 text-slate-400" aria-hidden="true" />
-        </button>
+        {(!activeTrip || trustedContacts.length === 0 || untextableCount > 0) && (
+          <button onClick={() => setActiveModal('contacts')} className={moreRow}>
+            <span className={`${moreIcon} bg-brand-100 text-brand-700 dark:bg-brand-900 dark:text-brand-200`}>
+              <Users className="w-5 h-5" aria-hidden="true" />
+            </span>
+            <span className="flex-1 min-w-0">
+              <span className={moreTitle}>Trusted contacts</span>
+              <span className={moreSub}>{trustedContacts.length === 0 ? 'None saved yet' : `${trustedContacts.length} saved`}</span>
+              {untextableCount > 0 && (
+                <span className="block text-sm font-medium text-amber-700 dark:text-amber-300">
+                  {untextableCount === 1 ? '1 cannot be texted' : `${untextableCount} cannot be texted`}
+                </span>
+              )}
+            </span>
+            <ChevronRight className="w-5 h-5 text-slate-400" aria-hidden="true" />
+          </button>
+        )}
 
         <button onClick={() => setActiveModal('emergency')} className={moreRow}>
           <span className={`${moreIcon} bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-200`}>

@@ -93,7 +93,7 @@ function DirectionsFooter({ deadline, route, guidance, onStop }: {
             onClick={deadline.onAddTime}
             className={`min-h-12 px-4 rounded-xl text-sm font-semibold flex items-center gap-1.5 ${
               late
-                ? 'bg-amber-100 text-amber-900 hover:bg-amber-200 dark:bg-amber-950 dark:text-amber-200'
+                ? 'bg-brand-100 text-brand-900 hover:bg-brand-200 dark:bg-brand-950 dark:text-brand-200'
                 : 'bg-slate-100 text-slate-800 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600'
             }`}
           >
