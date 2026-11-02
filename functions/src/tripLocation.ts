@@ -14,6 +14,7 @@ import * as functions from 'firebase-functions/v1';
 import * as admin from 'firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { timingSafeEqual } from 'crypto';
+import { isWildPosition, MAX_WILD_IN_A_ROW } from './tripPath';
 
 /** Updates arriving faster than this are acknowledged but not written. */
 const MIN_WRITE_INTERVAL_MS = 10 * 1000;
@@ -78,14 +79,39 @@ export const tripLocation = functions.https.onRequest(async (req, res) => {
     lng,
     ...(isNumberInRange(accuracy, 0, 100000) ? { accuracy } : {}),
   };
+  const nowMs = Date.now();
+  const wildInARow = typeof trip.wildInARow === 'number' ? trip.wildInARow : 0;
+  const lastKept = trip.lastLocation ? { ...trip.lastLocation, at: trip.lastKeptAtMs ?? lastUpdateMs } : null;
+
+  // Not during an SOS: then a contact should see everything the phone says
+  if (trip.status === 'active' && lastKept && wildInARow < MAX_WILD_IN_A_ROW
+    && isWildPosition(lastKept, { ...lastLocation, at: nowMs })) {
+    // Kept for the record on the private trip, away from the map, the path and
+    // the farthest distance. lastUpdate still moves: the phone is sending, and
+    // its silence is what alerts and "No location received" go by
+    const heard = { lastUpdate: FieldValue.serverTimestamp() };
+    await Promise.all([
+      tripRef.update({
+        ...heard,
+        wildPosition: { ...lastLocation, at: nowMs },
+        wildPositionCount: FieldValue.increment(1),
+        wildInARow: wildInARow + 1,
+      }),
+      db.doc(`sharedTrips/${tripId}`).set(heard, { merge: true }),
+    ]);
+    res.status(200).json({ ok: true, written: false, wild: true });
+    return;
+  }
+
   const update = {
     lastLocation,
     lastUpdate: FieldValue.serverTimestamp(),
   };
+  const privateUpdate = { ...update, lastKeptAtMs: nowMs, wildInARow: 0 };
 
   await Promise.all([
     // The first position doubles as the start point if the phone had no fix when the trip began
-    tripRef.update(trip.startLocation ? update : { ...update, startLocation: { lat, lng } }),
+    tripRef.update(trip.startLocation ? privateUpdate : { ...privateUpdate, startLocation: { lat, lng } }),
     db.doc(`sharedTrips/${tripId}`).set(update, { merge: true }),
   ]);
 

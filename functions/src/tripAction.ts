@@ -66,6 +66,11 @@ export const tripAction = functions.https.onRequest(async (req, res) => {
       tx.set(sharedRef, { status: 'completed' }, { merge: true });
       return 'did_end' as const;
     }
+    if (plan.kind === 'cancel') {
+      tx.update(tripRef, { status: 'cancelled', cancellationReason: 'traveller', endTime: FieldValue.serverTimestamp(), endedVia: 'backup' });
+      tx.set(sharedRef, { status: 'cancelled' }, { merge: true });
+      return 'did_end' as const;
+    }
     if (plan.kind === 'extend') {
       const times = { endsAt: Timestamp.fromMillis(plan.endsAtMs), expiresAt: Timestamp.fromMillis(plan.expiresAtMs) };
       tx.update(tripRef, {

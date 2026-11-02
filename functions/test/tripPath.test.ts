@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { MAX_PATH_POINTS, MIN_PATH_MOVE_M, addPathPoint, distanceMeters, pathLengthMeters, readPath, nextPositionStats } from '../src/tripPath';
+import { MAX_PATH_POINTS, MAX_TRAVEL_SPEED_MPS, MIN_PATH_MOVE_M, addPathPoint, distanceMeters, isWildPosition, pathLengthMeters, readPath, nextPositionStats } from '../src/tripPath';
 
 const T0 = Date.UTC(2026, 9, 7, 12, 0, 0);
 // Roughly 111 m per 0.001 degree of latitude
@@ -78,6 +78,36 @@ test('pathLengthMeters: a wild fix far off the route is left out', () => {
   const wild = { lat: 6.7, lng: 3.35, at: T0 + 60000 };
   const metres = pathLengthMeters([at(0), wild, at(1, 2)]);
   assert.ok(metres > 110 && metres < 112, `only the real step, got ${metres}`);
+});
+
+test('isWildPosition: a jump no vehicle could make, and nothing else', () => {
+  const start = at(0);
+  // About 11 km in a minute, as a rough fix does
+  assert.equal(isWildPosition(start, { lat: 6.7, lng: 3.35, at: T0 + 60000 }), true);
+  // The same distance after an hour's silence is a trip
+  assert.equal(isWildPosition(start, { lat: 6.7, lng: 3.35, at: T0 + 60 * 60000 }), false);
+  // Normal driving, and a phone that has not moved
+  assert.equal(isWildPosition(start, at(10, 1)), false);
+  assert.equal(isWildPosition(start, { ...start, at: T0 + 10000 }), false);
+});
+
+test('isWildPosition: a fix much rougher than the last good one', () => {
+  const good = { ...at(0), accuracy: 20 };
+  const near = at(1, 1);
+  assert.equal(isWildPosition(good, { ...near, accuracy: 1500 }), true);
+  assert.equal(isWildPosition(good, { ...near, accuracy: 60 }), false);
+  // Rough all along, so nothing is known to be better
+  assert.equal(isWildPosition({ ...good, accuracy: 1000 }, { ...near, accuracy: 1500 }), false);
+  // Without both margins of error there is nothing to compare
+  assert.equal(isWildPosition(at(0), { ...near, accuracy: 1500 }), false);
+  assert.equal(isWildPosition(good, near), false);
+});
+
+test('isWildPosition: a good fix after a rough one is taken, however far it moved', () => {
+  const rough = { lat: 6.6, lng: 3.35, at: T0, accuracy: 3000 };
+  const settled = { lat: 6.626, lng: 3.35, at: T0 + 30000, accuracy: 12 };
+  assert.ok(distanceMeters(rough, settled) / 30 > MAX_TRAVEL_SPEED_MPS, 'too fast if taken at face value');
+  assert.equal(isWildPosition(rough, settled), false);
 });
 
 test('pathLengthMeters: when the first point was the wild one, counting starts again from the route', () => {

@@ -90,8 +90,8 @@ interface UseSafetyReturn {
   // === SAFE TRIP (UNIFIED API) ===
   /** Start a Safe Trip with duration, contacts, and destination */
   startSafeTrip: (options: SafeTripOptions) => Promise<{ success: boolean; tripId?: string; shareUrl?: string; pending?: boolean; error?: string }>;
-  /** End the Safe Trip and associated timer */
-  endSafeTrip: () => Promise<{ success: boolean; pending?: boolean; error?: string }>;
+  /** End the Safe Trip and associated timer, as an arrival unless it is cancelled */
+  endSafeTrip: (how?: 'arrived' | 'cancelled') => Promise<{ success: boolean; pending?: boolean; error?: string }>;
   /** Push back the expected arrival time (also clears an overdue state on the server) */
   extendSafeTrip: (minutes: number) => Promise<{ success: boolean; pending?: boolean; error?: string }>;
   /** Send the trip's positions from this device instead of the one it was started on */
@@ -559,20 +559,23 @@ export function useSafety(): UseSafetyReturn {
   }, [uid]);
 
   // End a Safe Trip and any linked timers
-  const endSafeTrip = useCallback(async () => {
+  const endSafeTrip = useCallback(async (how: 'arrived' | 'cancelled' = 'arrived') => {
     if (!uid || !activeTrip) return { success: false, error: 'No active trip' };
 
+    const cancelled = how === 'cancelled';
+    const status = cancelled ? TripStatus.CANCELLED : TripStatus.COMPLETED;
     try {
       // End the trip
       const saved = await reachedServer(updateDoc(doc(db, 'users', uid, 'trips', activeTrip.id), {
-        status: TripStatus.COMPLETED,
+        status,
+        ...(cancelled ? { cancellationReason: 'traveller' } : {}),
         endTime: serverTimestamp(),
         endLocation: activeTrip.lastLocation
           ? { lat: activeTrip.lastLocation.lat, lng: activeTrip.lastLocation.lng }
           : null,
-      }), undefined, undefined, () => sendTripActionBackup(uid, activeTrip.id, activeTrip.locationKey, { action: 'end' }));
+      }), undefined, undefined, () => sendTripActionBackup(uid, activeTrip.id, activeTrip.locationKey, { action: cancelled ? 'cancel' : 'end' }));
 
-      updateDoc(doc(db, 'sharedTrips', activeTrip.id), { status: TripStatus.COMPLETED }).catch(() => {});
+      updateDoc(doc(db, 'sharedTrips', activeTrip.id), { status }).catch(() => {});
 
       // Also acknowledge any linked timer
       if (activeTimer?.tripId === activeTrip.id) {

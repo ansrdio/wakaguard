@@ -24,15 +24,11 @@ export const MAX_TRIP_MINUTES = 20 * 60;
  * server's backup route takes (MAX_EXTEND_MINUTES in functions/src/tripActionPlan.ts).
  */
 export const MAX_EXTRA_MINUTES = 12 * 60;
-/** "More time…" is chosen in steps of this many minutes, as a trip's length is */
-export const EXTRA_TIME_STEP = 5;
 
 /** Hours and minutes chosen in "More time…" as minutes to add, or null if that is not a choice */
 export function readExtraMinutes(hours: number, minutes: number): number | null {
   const total = hours * 60 + minutes;
-  return Number.isInteger(total) && total >= EXTRA_TIME_STEP && total <= MAX_EXTRA_MINUTES && total % EXTRA_TIME_STEP === 0
-    ? total
-    : null;
+  return Number.isInteger(total) && total >= 1 && total <= MAX_EXTRA_MINUTES ? total : null;
 }
 
 /** The server trims longer values before they go into a message */
@@ -206,11 +202,26 @@ export interface LocationStatus {
   text: string;
 }
 
-/** What to tell the traveller about their own location sharing. */
+/**
+ * How long the app's copy of a trip gets to catch up after the app comes back
+ * to the screen, before "No location received" can show. In the background the
+ * phone sends positions straight to the server, and this copy is not refreshed,
+ * so it looks minutes old until the live data reconnects. A tester on 28 October
+ * saw the warning flash after every 10 minutes away, while their positions had
+ * never stopped; a warning that is wrong teaches people to ignore the real one.
+ */
+export const RETURN_HOLD_MS = 20 * 1000;
+
+/**
+ * What to tell the traveller about their own location sharing.
+ *
+ * @param backAtMs When the app last came back to the screen, if that is known
+ */
 export function describeLocationStatus(
   lastUpdateMs: number | null,
   hasLocation: boolean,
-  nowMs: number
+  nowMs: number,
+  backAtMs: number | null = null
 ): LocationStatus {
   if (!hasLocation || lastUpdateMs == null) {
     return { state: 'none', text: 'No location sent yet. Check that location is switched on.' };
@@ -219,6 +230,9 @@ export function describeLocationStatus(
   const ageMs = Math.max(0, nowMs - lastUpdateMs);
   const ageMinutes = Math.floor(ageMs / MINUTE_MS);
   if (ageMs > LOCATION_STALE_MS) {
+    if (backAtMs != null && nowMs < backAtMs + RETURN_HOLD_MS) {
+      return { state: 'fresh', text: 'Checking your location sharing…' };
+    }
     // The app may well be open, so the advice is about what usually stops a phone reporting
     return { state: 'stale', text: `No location received for ${formatDuration(ageMinutes)}. Check your signal and that location is switched on.` };
   }

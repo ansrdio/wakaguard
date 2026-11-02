@@ -1,7 +1,8 @@
 /**
- * What a backup "I've arrived" or "add time" does to a trip (tripAction.ts).
+ * What a backup "I've arrived", "Cancel trip" or "add time" does to a trip
+ * (tripAction.ts).
  *
- * The app saves both through the database as before. When that save has not
+ * The app saves them through the database as before. When that save has not
  * reached the server in a few seconds, it also posts here by the native route
  * the positions take. Either may land first, or both: ending a trip that has
  * ended changes nothing, and extra time carries the id of the press, so the
@@ -16,6 +17,7 @@ const HOUR_MS = 60 * 60 * 1000;
 
 export type TripActionRequest =
   | { action: 'end' }
+  | { action: 'cancel' }
   | { action: 'extend'; minutes: number; requestId: string };
 
 export interface TripState {
@@ -28,6 +30,7 @@ export interface TripState {
 
 export type TripActionPlan =
   | { kind: 'end' }
+  | { kind: 'cancel' }
   | { kind: 'extend'; endsAtMs: number; expiresAtMs: number; minutes: number; requestId: string }
   | { kind: 'already' }
   | { kind: 'ended' };
@@ -35,6 +38,7 @@ export type TripActionPlan =
 /** The request's action, checked. Null for anything else. */
 export function readTripAction(body: Record<string, unknown>): TripActionRequest | null {
   if (body.action === 'end') return { action: 'end' };
+  if (body.action === 'cancel') return { action: 'cancel' };
   if (body.action !== 'extend') return null;
   const { minutes, requestId } = body;
   if (typeof minutes !== 'number' || !Number.isInteger(minutes) || minutes < 1 || minutes > MAX_EXTEND_MINUTES) return null;
@@ -50,6 +54,9 @@ export function expiryFor(startMs: number, endsAtMs: number): number {
 export function planTripAction(trip: TripState, request: TripActionRequest, nowMs: number): TripActionPlan {
   const running = trip.status === 'active' || trip.status === 'emergency';
   if (request.action === 'end') return running ? { kind: 'end' } : { kind: 'already' };
+  // Not during an SOS, which the app does not offer to cancel: that is ended
+  // with "I'm safe now", so contacts hear that the SOS was closed
+  if (request.action === 'cancel') return trip.status === 'active' ? { kind: 'cancel' } : { kind: 'already' };
 
   if (trip.lastExtendRequestId === request.requestId) return { kind: 'already' };
   if (!running) return { kind: 'ended' };

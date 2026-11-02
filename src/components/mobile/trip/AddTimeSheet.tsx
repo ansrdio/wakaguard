@@ -10,10 +10,10 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { useBackToClose } from '@/hooks/useBackToClose';
-import { EXTRA_TIME_STEP, formatClock, formatDuration, MAX_EXTRA_MINUTES, readExtraMinutes } from '@/lib/tripPlanning';
+import { formatClock, formatDuration, MAX_EXTRA_MINUTES, readExtraMinutes } from '@/lib/tripPlanning';
 
 const HOURS = Array.from({ length: MAX_EXTRA_MINUTES / 60 + 1 }, (_, h) => h);
-const MINUTES = Array.from({ length: 60 / EXTRA_TIME_STEP }, (_, step) => step * EXTRA_TIME_STEP);
+const MINUTES = Array.from({ length: 60 }, (_, minute) => minute);
 
 const selectClass =
   'w-full px-4 py-3 rounded-2xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500';
@@ -68,7 +68,7 @@ export function AddTimeSheet({
           {newArrivalMs === null
             ? hours * 60 + minutes > MAX_EXTRA_MINUTES
               ? `You can add up to ${formatDuration(MAX_EXTRA_MINUTES)} at a time.`
-              : `Choose at least ${EXTRA_TIME_STEP} minutes.`
+              : 'Choose at least 1 minute.'
             : <>New arrival time: <span className="font-semibold text-slate-900 dark:text-white">{formatClock(newArrivalMs, nowMs)}</span></>}
         </p>
         <button

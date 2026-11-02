@@ -25,8 +25,8 @@ before the weekend. Android and iPhone go out on the same day.
 | 23 | Wed 21 Oct | Testers' corrections (checklist, exact trip length, delete my own post); "How are you travelling?" with matching tips; our own road report pictures; "keep WakaGuard running" help; weather (paid maps moved to build 24: Mapbox); reported posts hidden automatically | Uploaded Wed 14 Oct, a week early: Android internal test live; closed test and TestFlight sent for review by the owner |
 | 24 | Wed 28 Oct | Sign in with Google and Apple; "please update" switch; service notice; "stop texting me"; vehicle details; far-away reports marked; Mapbox maps; destination pin with its place name (in place of search by address); "text them when I arrive"; louder reminders, "More time…", Undo; weather icon and morning weather. Sponsor card moved to a later build (no sponsor yet) | Out on both, ten days early: TestFlight passed Apple's beta review at once on Sun 18 Oct; Google approved the closed test (Alpha) by Mon 19 Oct (the owner) |
 | 24.1 | at once | iPhone only: build 24 closes as soon as it opens on iOS 27. Fix only, nothing else (see "Build 24.1" below) | Out on iPhone: TestFlight Tue 20 Oct, beta review passed at once, both groups testing |
-| 25 | Wed 4 Nov | Fixes after text alerts are switched on; one-tap "keep running" permissions on the first trip; 6, 8 and 12-hour trip choices; four fixes from problem reports (old Android WebView, notifications switch, full-screen pin map, "ending early is fine"); last of all, directions on the trip as a beta (the owner, 23 Oct: "It will be the last thing we add") | Planned |
-| 26 | Wed 11 Nov | The launch version, with a simplification pass: one colour plus red for SOS, fewer boxes and icons, a short start form with extras under "More options", plain labels | Planned |
+| 25 | Wed 4 Nov | Fixes after text alerts are switched on; one-tap "keep running" permissions on the first trip; 6, 8 and 12-hour trip choices; four fixes from problem reports (old Android WebView, notifications switch, full-screen pin map, "ending early is fine"); last of all, directions on the trip as a beta (the owner, 23 Oct: "It will be the last thing we add") | Out on both, Sun 25 Oct, ten days early; both stores approved it the same day |
+| 26 | Wed 11 Nov | The launch version, with a simplification pass: one colour plus red for SOS, fewer boxes and icons, a short start form with extras under "More options", plain labels | Started Sun 1 Nov: seven small fixes done in the code, not yet on any phone. The rest is still to do |
 
 | After the last build | Date |
 |---|---|
@@ -689,11 +689,14 @@ What was agreed:
     shows "Checkpoint stop logged", but no one is told and it is not on the contacts' trip page. Testers have
     pressed it 20 times. The change: a short confirmation, then the stop shows on the contacts' trip page
     ("Stopped at a checkpoint, 2:14 pm", with a map pin).
-  - **"Trip ended. Your location is no longer shared."** shown after "I've arrived". The tester thought
+  - [x] **"Trip ended. Your location is no longer shared."** shown after "I've arrived". The tester thought
     their location was still shared after ending a trip and closed the app to be sure. The server log
     shows only one refused position for an ended trip in 7 days, so nothing is sent. What they saw is
     likely the iPhone's location arrow, from the weather line or the map reading location while the app is
     open. Also check on the owner's iPhone that the arrow goes away when the app is minimised after a trip.
+    - Done 1 November: every ending says it, for 6 seconds, in place of "Glad you made it". When the share
+      sheet opens after "I've arrived" it covers the message, so the message shows again once the sheet closes.
+    - Still to do: the location arrow check on the owner's iPhone.
 - **"Your points this week", added 28 October** (another regular tester: "if it's possible for us to see our
   points", and the same people win every Sunday; the owner: "yes approve both").
   - **Today** points exist only in the Sunday script, so nobody can see theirs or why a trip did not count.
@@ -707,7 +710,7 @@ What was agreed:
   - **Already done, no build needed:** the full points list goes in the group each Sunday; last week's
     winners sit out the prize places (`--last-winners`), and everyone else with 3 or more counted real
     trips goes into a draw (`--draw`).
-- **Redmi, Xiaomi and POCO phones in "Keep WakaGuard running", added 28 October** (a tester on a Redmi:
+- [x] **Redmi, Xiaomi and POCO phones in "Keep WakaGuard running", added 28 October** (a tester on a Redmi:
   "The app close a few times", "after I returned"; the owner: "approve both").
   - His two trips on 22 October went silent for 52 and 31 minutes, and no phone has sent a fault report
     in 30 days. So the phone closed WakaGuard in the background; the app did not crash.
@@ -716,7 +719,11 @@ What was agreed:
     under Battery saver, and WakaGuard locked in recent apps.
   - Check the menu names on a Redmi first: the cheaper Redmi A phones run a plainer Android that may
     have no Autostart.
-- **Any number of minutes under "Other", added 28 October** (a regular tester: "my trip could be 7 mins
+  - Done 1 November. The step says "if you see it" for Autostart, since we have no Redmi to check on: the names
+    come from published guides for these phones. Testers on a Redmi can confirm them.
+  - Phones that give their name as Redmi, Xiaomi or POCO now also get the steps offered unasked, as Tecno, Infinix
+    and itel do. Many give only a model code, and those still find the steps on Profile.
+- [x] **Any number of minutes under "Other", added 28 October** (a regular tester: "my trip could be 7 mins
   but there's no option for that so I have to either choose 5 or 10"; the owner: "add to build 26").
   - The start form's own time picks minutes in fives (`CUSTOM_MINUTES` in `StartTripForm.tsx`, from the
     13 October request to say "2 hours 10 minutes" exactly). Make it every minute, 0 to 59.
@@ -724,7 +731,9 @@ What was agreed:
   - "More time…" too (`AddTimeSheet.tsx`, `EXTRA_TIME_STEP` in `tripPlanning.ts`): a second regular tester
     asked on 28 October ("one should be able to type the particular time or minutes the want, not just in
     5s"; the owner: "add more time"). The server's check on added time must accept any whole minute.
-- **Ignore wild positions, added 28 October** (our most active tester sent a screenshot: the path on a short
+  - Done 1 November, both pickers, 1 to 59 minutes. The server's check already took any whole minute, so
+    nothing changed there. The shortest trip stays 5 minutes.
+- [x] **Ignore wild positions, added 28 October** (our most active tester sent a screenshot: the path on a short
   trip in Calabar shot several kilometres north to the airport and back; "I didn't went to anywhere close
   to airport"; the owner: "add to build 26").
   - That trip (Wed 28 October, 06:02) reached 3,638 m from its start against about 2,000 m on his other 16
@@ -734,7 +743,17 @@ What was agreed:
   - The change: on the server, a position much less accurate than recent ones, or one that would mean an
     impossible speed from the last good one, is kept for the record but does not move the map, the path or
     the farthest distance. Test it with a still phone indoors, where rough fixes are common.
-- **No false "No location received" after coming back to the app, added 28 October** (the same tester:
+  - Done 1 November in `tripLocation`, as `isWildPosition` in `functions/src/tripPath.ts`. A position is left out
+    when reaching it would have taken over about 200 km/h, or when it is 500 m rough or worse and at least 3 times
+    rougher than the last good one.
+  - Safeguards: at most 2 in a row are left out, so if the last good position was the wrong one the map still
+    moves on the third; nothing is left out during an SOS; a position left out still counts as the phone being
+    heard, so it cannot cause "No location received" or an alert. The latest one left out, and how many, stay on
+    the private trip only.
+  - **Needs:** a deploy of `tripLocation`. No app build is needed, so it can go out before build 26.
+  - **Not covered:** trips run in a website browser, which write their positions straight to the database.
+  - Still to do: the still phone indoors test.
+- [x] **No false "No location received" after coming back to the app, added 28 October** (the same tester:
   "if I minimize for a long while say 10-15 mins, an error message will flash on the app saying, my
   location stopped sharing… I should check my Internet connection"; the owner: "add to build 26").
   - His 17 trips in the 10 days to 29 October had a position every 30 to 60 seconds, never more than
@@ -746,16 +765,20 @@ What was agreed:
   - The change: on returning to the front, re-read the trip from the server (or hold the stale warning
     for a few seconds until a fresh copy arrives) before saying sharing stopped. Testers who see a false
     alarm stop trusting the real one.
-- **The Nearby tab's location button, added 31 October** (a regular tester's problem report of 26 October:
+  - Done 1 November: the warning is held for 20 seconds after returning (and on opening the app), showing
+    "Checking your location sharing…". A silence that is real shows the warning once the 20 seconds are up.
+- [x] **The Nearby tab's location button, added 31 October** (a regular tester's problem report of 26 October:
   "The location button on the nearby tab doesn't work. It supposed to auto pinpoint your location when you
   tap on it."; the owner: "yes add the fix and count it").
-  - Cause: `handleLocateClick` in `src/components/MapView.tsx` lets the map follow the person for only
-    2 seconds, but the position request it starts (`handleLocateMe` in `AppHome.tsx`: high accuracy, up to
-    10 seconds) often takes longer for a first fix. The position then arrives after the map has stopped
-    following, and nothing moves. It only seems to work when the phone already holds a recent position.
-  - The change: keep following until the request ends (the position arrives or the error shows), not for a
-    fixed 2 seconds. Test on a phone with location only just turned on.
-- **Cancel trip, added 29 October** (a regular tester: "an option to abort a trip if someone changes his or her
+  - **Corrected 1 November.** The cause first written here, a 2-second timer in `handleLocateClick`, applied only to
+    the map's own button on a computer. On a phone that button is not drawn: the one people tap is in the top bar
+    (`MobileTopBar.tsx`). It got a position and drew the dot, but nothing told the map to go there, so on a phone
+    it never moved at all, however quick the fix. A failed request showed nothing either: the message existed
+    only on the computer layout.
+  - Done 1 November: the map moves when a position comes back from a request, whichever button started it and
+    however long it took, even with a report open. A failed request leaves the map alone and says why, in plain
+    words, on phones too. Test on a phone with location only just turned on.
+- [x] **Cancel trip, added 29 October** (a regular tester: "an option to abort a trip if someone changes his or her
   mind on travelling after already setting up the trip… due to an emergency I have to discontinue the trip";
   it has happened to him twice, and both times he "let it run till the stipulated time and clicked I have
   arrived"; the owner: "add to lists").
@@ -767,6 +790,12 @@ What was agreed:
     server already treats a cancelled trip as ended by the traveller (`tripMonitor.ts`), so an alert already
     sent still gets its all-clear.
   - A cancelled trip earns no ranking points, like any trip that is not a real journey.
+  - Done 1 November, on the trip card and the trip map, not during an SOS. It has "Keep trip" as the way out, and
+    says so when contacts already alerted will get the all-clear. No share sheet follows, unlike "I've arrived".
+  - The backup route takes it too (`tripAction`, action `cancel`), so a slow connection cannot turn a cancelled
+    trip into an arrival.
+  - **Needs:** a deploy of `tripAction` before build 26 reaches phones. Without it Cancel trip still works through
+    the database, but the backup route refuses it.
 - **SOS from the lock screen, added 29 October** (a regular tester's voice note: in an ambush "there will be
   no time for me to pick up my phone", and Google's Personal Safety calls 112 on five presses of the power
   button; the owner: "add to build 26").

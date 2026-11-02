@@ -74,11 +74,11 @@ export function AppHome() {
       (error) => {
         setLocating(false);
         if (error.code === error.PERMISSION_DENIED) {
-          setLocationError('Location permission denied. Please enable location in your browser settings.');
+          setLocationError('WakaGuard is not allowed to use your location. Allow it in your settings, then try again.');
         } else if (error.code === error.POSITION_UNAVAILABLE) {
-          setLocationError('Location information unavailable.');
+          setLocationError('Your location could not be found. Check that location is switched on, then try again.');
         } else if (error.code === error.TIMEOUT) {
-          setLocationError('Location request timed out.');
+          setLocationError('Finding your location took too long. Try again, near a window or outdoors if you can.');
         } else {
           setLocationError('An unknown error occurred while getting your location.');
         }
@@ -159,6 +159,8 @@ export function AppHome() {
       userLocation={userLocation}
       onLocate={handleLocateMe}
       locating={locating}
+      locationError={locationError}
+      onClearLocationError={() => setLocationError(null)}
     />
   );
 }

@@ -80,6 +80,42 @@ export function addPathPoint(path: PathPoint[], point: PathPoint): PathPoint[] |
 /** Faster than this between two positions (about 200 km/h) is a wrong fix, not travel */
 export const MAX_TRAVEL_SPEED_MPS = 55;
 
+/** A position this rough, when the last one was far better, came from phone masts and not GPS */
+export const ROUGH_ACCURACY_M = 500;
+
+/**
+ * How many wild positions in a row are left out. The next is taken whatever it
+ * looks like: if the phone keeps saying so, the last good one was the wrong
+ * one, and a contact must not be left looking at it. The same count as
+ * pathLengthMeters below.
+ */
+export const MAX_WILD_IN_A_ROW = 2;
+
+export interface TrackedPosition {
+  lat: number;
+  lng: number;
+  /** When the phone was there, in milliseconds since 1970 */
+  at: number;
+  /** The phone's own margin of error, in metres, when it gave one */
+  accuracy?: number | null;
+}
+
+/**
+ * Whether a new position should stay off the contacts' map, the path and the
+ * farthest distance: reaching it from the last good one would have taken an
+ * impossible speed, or it is much rougher than the last good one. A tester's
+ * short trip in Calabar shot several kilometres to the airport and back on one
+ * such fix (28 October 2026). What the last position's own margin of error can
+ * explain is not counted as movement, so a good fix after a rough one is taken.
+ */
+export function isWildPosition(last: TrackedPosition, next: TrackedPosition): boolean {
+  const seconds = Math.max((next.at - last.at) / 1000, 1);
+  const metres = Math.max(distanceMeters(last, next) - (last.accuracy ?? 0), 0);
+  if (metres / seconds > MAX_TRAVEL_SPEED_MPS) return true;
+  return next.accuracy != null && last.accuracy != null
+    && next.accuracy >= ROUGH_ACCURACY_M && next.accuracy >= last.accuracy * 3;
+}
+
 /**
  * How far a path went, in metres: the sum of its steps, leaving out a point
  * that could only have been reached faster than MAX_TRAVEL_SPEED_MPS from the

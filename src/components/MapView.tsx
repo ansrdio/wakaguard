@@ -131,7 +131,8 @@ interface MapControllerProps {
   reports: Report[];
   userLocation: { lat: number; lng: number } | null;
   selectedState: NigerianState | null;
-  shouldFollowUser: boolean;
+  /** A "find me" request is running, from whichever button */
+  locating: boolean;
 }
 
 /**
@@ -150,11 +151,13 @@ function moveMap(map: ReturnType<typeof useMap>, center: [number, number], zoom:
   }
 }
 
-function MapController({ selectedReportId, reports, userLocation, selectedState, shouldFollowUser }: MapControllerProps) {
+function MapController({ selectedReportId, reports, userLocation, selectedState, locating }: MapControllerProps) {
   const map = useMap();
   const mapRef = useRef(map);
   const lastNavRef = useRef<'report' | 'user' | 'state' | null>(null);
-  
+  // What the person's position was when a "find me" request began; undefined when none is running
+  const locatingFromRef = useRef<MapControllerProps['userLocation'] | undefined>(undefined);
+
   // Keep mapRef updated
   useEffect(() => {
     mapRef.current = map;
@@ -192,13 +195,22 @@ function MapController({ selectedReportId, reports, userLocation, selectedState,
     }
   }, [selectedReportId, reports, map]);
 
-  // Priority 2: User location (only when shouldFollowUser is true)
+  // Priority 2: User location, when a "find me" request brings one back. A
+  // first fix can take up to 10 seconds, and on a phone the button is in the
+  // top bar, not on this map. Asking is a choice made just now, so it wins
+  // over an open report. A request that fails leaves the map where it is.
   useEffect(() => {
-    if (userLocation && shouldFollowUser && lastNavRef.current !== 'report') {
+    if (locating) {
+      locatingFromRef.current = userLocation;
+      return;
+    }
+    const before = locatingFromRef.current;
+    locatingFromRef.current = undefined;
+    if (before !== undefined && userLocation && userLocation !== before) {
       lastNavRef.current = 'user';
       moveMap(map, [userLocation.lat, userLocation.lng], 15, 1);
     }
-  }, [userLocation, shouldFollowUser, map]);
+  }, [locating, userLocation, map]);
 
   // Priority 3: State change (only if not viewing report or user location)
   useEffect(() => {
@@ -229,17 +241,6 @@ interface MapViewProps {
 
 const MapView = memo(function MapView({ reports, selectedReportId, onMarkerClick, selectedState, userLocation, onLocate, locating }: MapViewProps) {
   const mapRef = useRef<L.Map | null>(null);
-  const [shouldFollowUser, setShouldFollowUser] = useState(false);
-
-  // Handle locate button click
-  const handleLocateClick = () => {
-    if (onLocate) {
-      setShouldFollowUser(true);
-      onLocate();
-      // Reset after navigation completes
-      setTimeout(() => setShouldFollowUser(false), 2000);
-    }
-  };
 
   useEffect(() => {
     delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -305,7 +306,7 @@ const MapView = memo(function MapView({ reports, selectedReportId, onMarkerClick
       {/* Floating Locate Me Button */}
       {onLocate && (
         <button
-          onClick={handleLocateClick}
+          onClick={onLocate}
           disabled={locating}
           className="absolute right-6 z-[1000] p-3 bg-white hover:bg-slate-50 rounded-full shadow-lg border border-slate-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           style={{ bottom: 'calc(1.5rem + var(--map-bottom-clear, 0px))' }}
@@ -333,7 +334,7 @@ const MapView = memo(function MapView({ reports, selectedReportId, onMarkerClick
         reports={reports} 
         userLocation={userLocation || null} 
         selectedState={selectedState || null}
-        shouldFollowUser={shouldFollowUser}
+        locating={!!locating}
       />
       
       {/* Landmark Markers - visible at zoom 11+ */}

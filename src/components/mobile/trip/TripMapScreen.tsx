@@ -5,12 +5,13 @@ import { createPortal } from 'react-dom';
 import dynamic from 'next/dynamic';
 import { ArrowLeft, Check, Clock, Loader2, Users } from 'lucide-react';
 import { Trip, TripStatus } from '@/lib/types';
-import { ALERT_GRACE_MINUTES, TEST_ALERT_GRACE_MINUTES, TEST_TRIP_MINUTES, describeLocationStatus, describeTimeLeft, formatClock, joinNames } from '@/lib/tripPlanning';
+import { ALERT_GRACE_MINUTES, TEST_ALERT_GRACE_MINUTES, TEST_TRIP_MINUTES, describeTimeLeft, formatClock, joinNames } from '@/lib/tripPlanning';
 import { TripLocationLine } from '@/components/mobile/trip/TripLocationLine';
 import { getDeviceId, sendsTripLocation } from '@/lib/deviceId';
 import { readTripPath } from '@/lib/tripPath';
 import { describeTripAlert, watcherCaption } from '@/lib/alertOutcome';
 import { useSharedTrip } from '@/hooks/useSharedTrip';
+import { useTripLocationStatus } from '@/hooks/useTripLocationStatus';
 import { readPoint } from '@/lib/destinationPoint';
 import { DirectionsLine } from '@/components/mobile/trip/DirectionsLine';
 import { decodePolyline6 } from '@/lib/directions';
@@ -36,6 +37,8 @@ interface TripMapScreenProps {
   onExtend: (minutes: number) => void;
   /** Opens the sheet for any amount of extra time ("Add time" under the directions) */
   onMoreTime: () => void;
+  /** Asks whether to cancel the trip */
+  onCancelTrip: () => void;
   /** The route and the next turn, when directions (Beta) are on for this trip */
   directions?: TripDirections;
 }
@@ -52,7 +55,7 @@ const PILLS = {
  * and where it last reported. It is the same picture a contact gets from the
  * trip link, which is the point: the traveller can see what is being shared.
  */
-export function TripMapScreen({ trip, watcherNames, processing, onClose, onArrive, onExtend, onMoreTime, directions }: TripMapScreenProps) {
+export function TripMapScreen({ trip, watcherNames, processing, onClose, onArrive, onExtend, onMoreTime, onCancelTrip, directions }: TripMapScreenProps) {
   const [nowMs, setNowMs] = useState(() => Date.now());
   useEffect(() => {
     const interval = setInterval(() => setNowMs(Date.now()), 5000);
@@ -67,7 +70,7 @@ export function TripMapScreen({ trip, watcherNames, processing, onClose, onArriv
   const isEmergency = trip.status === TripStatus.EMERGENCY;
   const timeLeft = endsAtMs != null ? describeTimeLeft(endsAtMs, nowMs) : null;
   const pill = PILLS[isEmergency ? 'emergency' : timeLeft?.state ?? 'active'];
-  const location = describeLocationStatus(trip.lastUpdate?.toMillis() ?? null, !!trip.lastLocation, nowMs);
+  const location = useTripLocationStatus(trip, nowMs);
   // A quarter of an hour more would end a two-minute test
   const extraMinutes = trip.isTest ? TEST_TRIP_MINUTES : 15;
 
@@ -189,6 +192,16 @@ export function TripMapScreen({ trip, watcherNames, processing, onClose, onArriv
             </button>
           )}
         </div>
+        {!isEmergency && (
+          <button
+            type="button"
+            onClick={onCancelTrip}
+            disabled={processing}
+            className="w-full min-h-12 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:underline disabled:opacity-50"
+          >
+            Cancel trip
+          </button>
+        )}
       </div>
     </div>,
     document.body

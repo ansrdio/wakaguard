@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { MAX_EXTEND_MINUTES } from '../src/tripActionPlan';
+import { MAX_EXTEND_MINUTES, readTripAction } from '../src/tripActionPlan';
 import {
   describeLocationStatus,
   describeTimeLeft,
@@ -12,6 +12,7 @@ import {
   joinNames,
   MAX_EXTRA_MINUTES,
   readExtraMinutes,
+  RETURN_HOLD_MS,
   textContactsByDefault,
   tripExpiryMs,
   validateTripPlan,
@@ -87,6 +88,19 @@ test('location status tells fresh from stale from missing', () => {
   assert.equal(describeLocationStatus(NOW, false, NOW).state, 'none');
 });
 
+test('the warning waits for the app\'s copy of the trip to catch up after coming back', () => {
+  const old = NOW - 12 * MIN;
+  // Just back, and still away: the copy is not to be believed yet
+  assert.equal(describeLocationStatus(old, true, NOW, NOW - 5 * 1000).state, 'fresh');
+  assert.equal(describeLocationStatus(old, true, NOW, Infinity).state, 'fresh');
+  assert.equal(describeLocationStatus(old, true, NOW, NOW + 1000).state, 'fresh');
+  // Long enough for it to catch up: a real silence is reported
+  assert.equal(describeLocationStatus(old, true, NOW, NOW - RETURN_HOLD_MS).state, 'stale');
+  // A fresh position, or none at all, says what it always says
+  assert.equal(describeLocationStatus(NOW - 3 * MIN, true, NOW, NOW).text, 'Sharing your location, updated 3 min ago');
+  assert.equal(describeLocationStatus(null, false, NOW, NOW).state, 'none');
+});
+
 test('quick choices suit city trips and long road journeys, and the default is one of them', () => {
   assert.deepEqual(ARRIVAL_PRESETS.map((p) => p.minutes), [15, 30, 60, 120, 240, 360, 480, 720]);
   assert.ok(ARRIVAL_PRESETS.some((p) => p.minutes === DEFAULT_TRIP_MINUTES));
@@ -116,12 +130,15 @@ test('initialsOf: letters that stand in for a photo', () => {
   assert.equal(initialsOf(''), '');
 });
 
-test('"More time…" takes 5 minutes to 12 hours in 5-minute steps, as much as the server takes', () => {
+test('"More time…" takes any whole minute up to 12 hours, as much as the server takes', () => {
   assert.equal(MAX_EXTRA_MINUTES, MAX_EXTEND_MINUTES);
   assert.equal(readExtraMinutes(0, 20), 20);
-  assert.equal(readExtraMinutes(2, 45), 165);
+  assert.equal(readExtraMinutes(0, 7), 7);
+  assert.equal(readExtraMinutes(0, 1), 1);
+  assert.equal(readExtraMinutes(2, 43), 163);
   assert.equal(readExtraMinutes(12, 0), 720);
   assert.equal(readExtraMinutes(0, 0), null);
-  assert.equal(readExtraMinutes(12, 5), null);
-  assert.equal(readExtraMinutes(0, 7), null);
+  assert.equal(readExtraMinutes(12, 1), null);
+  // Every minute the app offers, the server's backup route takes too
+  assert.deepEqual(readTripAction({ action: 'extend', minutes: 7, requestId: 'press_12345678' }), { action: 'extend', minutes: 7, requestId: 'press_12345678' });
 });

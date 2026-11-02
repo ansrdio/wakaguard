@@ -7,6 +7,7 @@ test('each kind of phone gets its own steps', () => {
   const iphone = keepRunningHelp('ios');
   const browser = keepRunningHelp('web');
   assert.match(android.steps.map((s) => s.title).join(' | '), /Tecno, Infinix and itel/);
+  assert.match(android.steps.map((s) => s.title).join(' | '), /Redmi, Xiaomi and POCO/);
   assert.match(iphone.steps.map((s) => s.body).join(' '), /Low Power Mode/);
   assert.match(browser.steps[0].title, /WakaGuard app/);
   assert.notDeepEqual(android.steps, iphone.steps);
@@ -41,11 +42,11 @@ test('every step is a short title and one or two plain sentences', () => {
 
 const UA = (phone: string) => `Mozilla/5.0 (Linux; Android 11; ${phone} Build/RP1A.200720.011; wv) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36 WakaGuard`;
 
-test('Infinix, Tecno and itel phones are recognised from what the app\'s browser says', () => {
-  for (const phone of ['Infinix X688B', 'TECNO KG5k', 'itel A665L', 'Infinix X6525']) {
+test('Infinix, Tecno, itel and Xiaomi phones are recognised from what the app\'s browser says', () => {
+  for (const phone of ['Infinix X688B', 'TECNO KG5k', 'itel A665L', 'Infinix X6525', 'Redmi Note 12', 'Redmi A3', 'POCO X6', 'Xiaomi 14']) {
     assert.equal(closesBackgroundApps(UA(phone)), true, phone);
   }
-  for (const phone of ['SM-A155F', 'Pixel 8', 'Redmi Note 12', 'K', 'Nokia G21']) {
+  for (const phone of ['SM-A155F', 'Pixel 8', 'K', 'Nokia G21']) {
     assert.equal(closesBackgroundApps(UA(phone)), false, phone);
   }
   // A word that only contains one of the names is not that maker

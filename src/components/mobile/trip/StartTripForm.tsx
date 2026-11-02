@@ -89,8 +89,8 @@ interface StartTripFormProps {
 }
 
 const CUSTOM_HOURS = Array.from({ length: MAX_TRIP_MINUTES / 60 + 1 }, (_, h) => h);
-// Every five minutes, so "2 hours 10 minutes" can be said exactly (a tester asked on 13 October)
-const CUSTOM_MINUTES = Array.from({ length: 12 }, (_, step) => step * 5);
+// Every minute, so a 7-minute trip or "2 hours 10 minutes" can be said exactly (testers asked on 13 and 28 October)
+const CUSTOM_MINUTES = Array.from({ length: 60 }, (_, minute) => minute);
 
 const inputClass =
   'w-full px-4 py-3 border border-slate-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900 ' +

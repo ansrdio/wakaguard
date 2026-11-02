@@ -1,5 +1,5 @@
 /**
- * @fileoverview The backup route for "I've arrived" and extra time
+ * @fileoverview The backup route for "I've arrived", "Cancel trip" and extra time
  *
  * Posts the press to the server's tripAction function by native HTTP, the
  * route the positions take, using the trip's own key. Used when the database
@@ -13,7 +13,7 @@ import { Capacitor, CapacitorHttp } from '@capacitor/core';
 import { EMULATOR_HOST, usingEmulators } from './firebase';
 import { tripActionEndpoint } from './tripLocation';
 
-export type TripActionBody = { action: 'end' } | { action: 'extend'; minutes: number; requestId: string };
+export type TripActionBody = { action: 'end' | 'cancel' } | { action: 'extend'; minutes: number; requestId: string };
 
 /** True once the server has the press (or already had it). Never rejects. */
 export async function sendTripActionBackup(uid: string, tripId: string, key: string | null | undefined, body: TripActionBody): Promise<boolean> {

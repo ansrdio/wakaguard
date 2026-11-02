@@ -8,7 +8,9 @@
  * (12 and 13 October 2026) three testers' long trips went quiet this way.
  *
  * Approved by the owner on 14 October 2026; the Phone Master step is still to
- * be checked on a Tecno, Infinix or itel phone. Settings are named differently
+ * be checked on a Tecno, Infinix or itel phone, and the Redmi step (added 1
+ * November, after a Redmi closed WakaGuard on two trips) on a Redmi: the
+ * cheaper Redmi A phones may have no Autostart. Settings are named differently
  * from phone to phone, so the steps name the usual words and say that they vary.
  *
  * No Firebase access (functions/test/keepRunning.test.ts).
@@ -48,6 +50,11 @@ const ANDROID: KeepRunningStep[] = [
     title: 'On Tecno, Infinix and itel phones',
     body: 'Open Phone Master, find Auto-start and switch it on for WakaGuard. Then open your recent apps and lock '
       + 'WakaGuard with the padlock, so the phone does not clear it.',
+  },
+  {
+    title: 'On Redmi, Xiaomi and POCO phones',
+    body: 'In Settings open Apps, then WakaGuard. Turn Autostart on if you see it, and set Battery saver to No '
+      + 'restrictions. Then lock WakaGuard in your recent apps with the padlock, so the phone does not clear it.',
   },
   {
     title: 'Keep the "Safe Trip active" notification',
@@ -111,8 +118,9 @@ export function keepRunningHelp(kind: string): KeepRunningHelp {
  * Makers whose phones close apps that are not on the screen, readily enough
  * that their owners are shown the steps without having to go looking. The
  * app's own browser names the phone in its user agent ("Infinix X688B").
+ * Many Xiaomi phones give only a model code there, and those are not caught.
  */
-const CLOSES_APPS = /\b(infinix|tecno|itel)\b/i;
+const CLOSES_APPS = /\b(infinix|tecno|itel|xiaomi|redmi|poco)\b/i;
 
 export function closesBackgroundApps(userAgent: string): boolean {
   return CLOSES_APPS.test(userAgent);

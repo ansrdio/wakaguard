@@ -42,15 +42,72 @@ test('valid update is written to the private and public trip documents', async (
   const { uid, tripId } = await makeTrip();
   const before = (await shared(tripId)).lastUpdate.toMillis();
 
-  const res = await post({ uid, tripId, key: KEY, lat: 6.7, lng: 4.9, accuracy: 12 });
+  const res = await post({ uid, tripId, key: KEY, lat: 6.51, lng: 3.31, accuracy: 12 });
 
   assert.deepEqual(res, { status: 200, body: { ok: true, written: true } });
   const pub = await shared(tripId);
-  assert.deepEqual(pub.lastLocation, { lat: 6.7, lng: 4.9, accuracy: 12 });
+  assert.deepEqual(pub.lastLocation, { lat: 6.51, lng: 3.31, accuracy: 12 });
   assert.ok(pub.lastUpdate.toMillis() > before);
   const priv = (await db().doc(`users/${uid}/trips/${tripId}`).get()).data()!;
-  assert.deepEqual(priv.lastLocation, { lat: 6.7, lng: 4.9, accuracy: 12 });
+  assert.deepEqual(priv.lastLocation, { lat: 6.51, lng: 3.31, accuracy: 12 });
   assert.equal(pub.locationKey, undefined, 'key never reaches the public doc');
+  assert.equal(pub.lastKeptAtMs, undefined, 'bookkeeping stays private');
+});
+
+const AWAY = { lat: 6.7, lng: 4.9 };
+
+/** As if the last position came five minutes ago, so the next is not refused as too fast */
+async function waitFiveMinutes(uid: string, tripId: string) {
+  const lastUpdate = admin.firestore.Timestamp.fromMillis(Date.now() - 5 * 60 * 1000);
+  await Promise.all([
+    db().doc(`users/${uid}/trips/${tripId}`).update({ lastUpdate, lastKeptAtMs: lastUpdate.toMillis() }),
+    db().doc(`sharedTrips/${tripId}`).update({ lastUpdate }),
+  ]);
+}
+
+test('a wild position stays off the map, is kept privately, and still counts as the phone being heard', async () => {
+  const { uid, tripId } = await makeTrip();
+  const before = (await shared(tripId)).lastUpdate.toMillis();
+
+  const res = await post({ uid, tripId, key: KEY, ...AWAY, accuracy: 12 });
+
+  assert.deepEqual(res, { status: 200, body: { ok: true, written: false, wild: true } });
+  const pub = await shared(tripId);
+  assert.deepEqual(pub.lastLocation, { lat: 6.5, lng: 3.3 });
+  assert.ok(pub.lastUpdate.toMillis() > before, 'the phone was heard');
+  assert.equal(pub.wildPosition, undefined, 'never on the public page');
+  const priv = (await db().doc(`users/${uid}/trips/${tripId}`).get()).data()!;
+  assert.deepEqual(priv.lastLocation, { lat: 6.5, lng: 3.3 });
+  assert.equal(priv.wildPosition.lat, AWAY.lat);
+  assert.equal(priv.wildPositionCount, 1);
+});
+
+test('a position much rougher than the last one stays off the map', async () => {
+  const { uid, tripId } = await makeTrip({ lastLocation: { lat: 6.5, lng: 3.3, accuracy: 15 } });
+  const res = await post({ uid, tripId, key: KEY, lat: 6.501, lng: 3.301, accuracy: 1800 });
+  assert.equal(res.body.wild, true);
+  assert.equal((await db().doc(`users/${uid}/trips/${tripId}`).get()).data()!.lastLocation.accuracy, 15);
+});
+
+test('a third wild position in a row is taken: the last good one was the wrong one', async () => {
+  const { uid, tripId } = await makeTrip();
+
+  assert.equal((await post({ uid, tripId, key: KEY, ...AWAY })).body.wild, true);
+  await waitFiveMinutes(uid, tripId);
+  assert.equal((await post({ uid, tripId, key: KEY, ...AWAY })).body.wild, true);
+  await waitFiveMinutes(uid, tripId);
+  assert.deepEqual((await post({ uid, tripId, key: KEY, ...AWAY })).body, { ok: true, written: true });
+
+  assert.deepEqual((await shared(tripId)).lastLocation, AWAY);
+  const priv = (await db().doc(`users/${uid}/trips/${tripId}`).get()).data()!;
+  assert.equal(priv.wildInARow, 0);
+  assert.equal(priv.wildPositionCount, 2);
+});
+
+test('during an SOS every position reaches the map', async () => {
+  const { uid, tripId } = await makeTrip({ status: 'emergency' });
+  assert.deepEqual((await post({ uid, tripId, key: KEY, ...AWAY })).body, { ok: true, written: true });
+  assert.deepEqual((await shared(tripId)).lastLocation, AWAY);
 });
 
 test('the first position becomes the start point, and later ones leave it alone', async () => {
@@ -118,10 +175,10 @@ test('a new trip with no position takes its first one at once', async () => {
 
 test('updates arriving too fast are acknowledged but not written', async () => {
   const { uid, tripId } = await makeTrip();
-  await post({ uid, tripId, key: KEY, lat: 6.7, lng: 4.9 });
+  await post({ uid, tripId, key: KEY, lat: 6.51, lng: 3.31 });
 
-  const res = await post({ uid, tripId, key: KEY, lat: 6.8, lng: 5.0 });
+  const res = await post({ uid, tripId, key: KEY, lat: 6.511, lng: 3.311 });
 
   assert.deepEqual(res.body, { ok: true, written: false });
-  assert.equal((await shared(tripId)).lastLocation.lat, 6.7);
+  assert.equal((await shared(tripId)).lastLocation.lat, 6.51);
 });

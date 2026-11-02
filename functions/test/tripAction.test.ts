@@ -6,11 +6,12 @@ import { tripExpiryMs } from '../../src/lib/tripPlanning';
 const MIN = 60 * 1000;
 const NOW = Date.UTC(2026, 9, 18, 12, 0);
 
-test('only "end", and "extend" with whole minutes and a press id, are accepted', () => {
+test('only "end", "cancel", and "extend" with whole minutes and a press id, are accepted', () => {
   assert.deepEqual(readTripAction({ action: 'end' }), { action: 'end' });
+  assert.deepEqual(readTripAction({ action: 'cancel' }), { action: 'cancel' });
   assert.deepEqual(readTripAction({ action: 'extend', minutes: 15, requestId: 'press_abc123' }), { action: 'extend', minutes: 15, requestId: 'press_abc123' });
   for (const bad of [
-    {}, { action: 'cancel' }, { action: 'extend', minutes: 15 }, { action: 'extend', minutes: 0, requestId: 'press_abc123' },
+    {}, { action: 'delete' }, { action: 'extend', minutes: 15 }, { action: 'extend', minutes: 0, requestId: 'press_abc123' },
     { action: 'extend', minutes: 2.5, requestId: 'press_abc123' }, { action: 'extend', minutes: MAX_EXTEND_MINUTES + 1, requestId: 'press_abc123' },
     { action: 'extend', minutes: 15, requestId: 'short' }, { action: 'extend', minutes: 15, requestId: 'has spaces in it' },
   ]) assert.equal(readTripAction(bad), null, JSON.stringify(bad));
@@ -20,6 +21,13 @@ test('a running trip ends; an ended one is left alone', () => {
   assert.deepEqual(planTripAction({ status: 'active' }, { action: 'end' }, NOW), { kind: 'end' });
   assert.deepEqual(planTripAction({ status: 'emergency' }, { action: 'end' }, NOW), { kind: 'end' });
   for (const status of ['completed', 'cancelled']) assert.deepEqual(planTripAction({ status }, { action: 'end' }, NOW), { kind: 'already' });
+});
+
+test('a running trip can be cancelled, but not an SOS or a trip that has ended', () => {
+  assert.deepEqual(planTripAction({ status: 'active' }, { action: 'cancel' }, NOW), { kind: 'cancel' });
+  for (const status of ['emergency', 'completed', 'cancelled']) {
+    assert.deepEqual(planTripAction({ status }, { action: 'cancel' }, NOW), { kind: 'already' }, status);
+  }
 });
 
 test('time is added from the arrival time, or from now once it has passed, as the app does', () => {

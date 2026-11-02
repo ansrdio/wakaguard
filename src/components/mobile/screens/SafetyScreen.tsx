@@ -41,6 +41,7 @@ import { AuthModal } from '@/components/AuthModal';
 import { AppNotices } from '@/components/mobile/AppNotices';
 import { AddTimeSheet } from '@/components/mobile/trip/AddTimeSheet';
 import { ArriveUndoBar } from '@/components/mobile/trip/ArriveUndoBar';
+import { CancelTripSheet } from '@/components/mobile/trip/CancelTripSheet';
 import { VehicleSheet } from '@/components/mobile/trip/VehicleSheet';
 import { storedVehicle, Vehicle } from '@/lib/vehicle';
 import { ARRIVE_UNDO_MS } from '@/lib/arriveUndo';
@@ -62,6 +63,29 @@ import { pickPhoneContact } from '@/lib/contactPicker';
 import { BUTTON_ADDS_MINUTES, forgetPendingPress, noteDeadlineAtPress, TripNotificationAction } from '@/lib/tripNotificationActions';
 
 type ModalType = 'sos' | 'contacts' | 'emergency' | null;
+type UnsentChange = 'end' | 'cancel' | 'extend';
+
+const NO_LONGER_SHARED = 'Your location is no longer shared.';
+/** For messages that say several things, or that someone needs to be sure they saw */
+const LONG_TOAST_MS = 6000;
+
+const UNSENT_WORDS: Record<UnsentChange, { title: string; body: string; received: string }> = {
+  end: {
+    title: 'Your arrival has not reached WakaGuard yet',
+    body: 'Until it does, your contacts could still be alerted.',
+    received: `WakaGuard has your arrival now. Trip ended. ${NO_LONGER_SHARED}`,
+  },
+  cancel: {
+    title: 'Your cancelled trip has not reached WakaGuard yet',
+    body: 'Until it does, your contacts could still be alerted.',
+    received: `WakaGuard has your cancelled trip now. ${NO_LONGER_SHARED}`,
+  },
+  extend: {
+    title: 'Your extra time has not reached WakaGuard yet',
+    body: 'Until it does, your contacts could still be alerted at the old time.',
+    received: 'WakaGuard has your extra time now.',
+  },
+};
 
 const moreRow = 'w-full p-4 flex items-center gap-3 text-left hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors';
 const moreIcon = 'w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0';
@@ -231,29 +255,34 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
     );
   }, [uid]);
 
-  const showToast = (message: string, type: 'success' | 'error') => {
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showToast = (message: string, type: 'success' | 'error', ms = 3000) => {
     setToast({ message, type });
-    setTimeout(() => setToast(null), 3000);
+    if (toastTimer.current !== null) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), ms);
   };
 
-  // "I've arrived" or extra time saved on the phone but not yet received by the
-  // server. Until it is, the server goes by what it last knew and may alert the
-  // contacts, so this stays on screen until it lands, and its arrival is told.
-  const [unsentChange, setUnsentChange] = useState<'end' | 'extend' | null>(null);
+  // "I've arrived", "Cancel trip" or extra time saved on the phone but not yet
+  // received by the server. Until it is, the server goes by what it last knew
+  // and may alert the contacts, so this stays on screen until it lands, and its
+  // arrival is told.
+  const [unsentChange, setUnsentChange] = useState<UnsentChange | null>(null);
   // "More time…": any amount of extra time, from the trip card or a reminder's button
   const [addTimeOpen, setAddTimeOpen] = useState(false);
+  // "Cancel trip", from the trip card or the trip map
+  const [cancelOpen, setCancelOpen] = useState(false);
   // Vehicle details on the running trip
   const [vehicleOpen, setVehicleOpen] = useState(false);
   // "I've arrived" on the card waits a few seconds with an Undo (lib/arriveUndo.ts)
   const [endingSince, setEndingSince] = useState<number | null>(null);
   const endTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const endNowRef = useRef<() => void>(() => {});
-  const waitUntilReceived = (change: 'end' | 'extend') => {
+  const waitUntilReceived = (change: UnsentChange) => {
     setUnsentChange(change);
     waitForPendingWrites(db).then(
       () => {
         setUnsentChange((now) => (now === change ? null : now));
-        showToast(change === 'end' ? 'WakaGuard has your arrival now. Trip ended.' : 'WakaGuard has your extra time now.', 'success');
+        showToast(UNSENT_WORDS[change].received, 'success', LONG_TOAST_MS);
       },
       () => {}
     );
@@ -482,16 +511,17 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
     if (result.success && result.pending) {
       waitUntilReceived('end');
     } else if (result.success) {
-      showToast(
+      // Said every time: a tester who was not told closed the app to be sure
+      const ended = `Trip ended. ${NO_LONGER_SHARED}${
         arrivalTexted
-          ? 'Trip ended. Glad you made it. Your contacts are being told you arrived.'
+          ? ' Your contacts are being told you arrived.'
           : !contactsWereTexted
-          ? 'Trip ended. Glad you made it.'
+          ? ''
           : alertBefore?.kind === 'sos'
-            ? 'Trip ended. Your contacts are being told you ended the SOS.'
-            : 'Trip ended. Your contacts are being told you checked in.',
-        'success'
-      );
+            ? ' Your contacts are being told you ended the SOS.'
+            : ' Your contacts are being told you checked in.'
+      }`;
+      showToast(ended, 'success', LONG_TOAST_MS);
       // Contacts who were alerted get a text from the server. Otherwise offer
       // to let them know through the share sheet.
       if (currentShareUrl && !contactsWereTexted && !arrivalTexted && !result.pending) {
@@ -500,11 +530,38 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
         } catch (e) {
           console.warn('End trip share cancelled:', e);
         }
+        // The sheet covered it, so it is said again now the screen can be seen
+        showToast(ended, 'success', LONG_TOAST_MS);
       }
     } else {
       showToast(result.error || 'Failed to end trip', 'error');
     }
     return result.success;
+  };
+
+  /** "Cancel trip": ends it as cancelled, with no arrival text and no share sheet */
+  const handleCancelTrip = async () => {
+    if (!requireAccount('cancel safe trip')) return;
+    if (!uid || isAnonymous) return;
+    const contactsWereTexted = !!(activeTrip && describeTripAlert(activeTrip)?.texted);
+
+    setProcessing(true);
+    const result = await endSafeTrip('cancelled');
+    setProcessing(false);
+    setCancelOpen(false);
+    closeTripMap();
+
+    if (result.success && result.pending) {
+      waitUntilReceived('cancel');
+    } else if (result.success) {
+      showToast(
+        `Trip cancelled. ${NO_LONGER_SHARED}${contactsWereTexted ? ' Your contacts are being told you checked in.' : ''}`,
+        'success',
+        LONG_TOAST_MS
+      );
+    } else {
+      showToast(result.error || 'Failed to cancel trip', 'error');
+    }
   };
 
   /** "I've arrived" on the card or trip map: ends after the undo wait, or at once if the app is put away */
@@ -899,14 +956,10 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
           className="rounded-3xl border border-amber-300 bg-amber-50 dark:bg-amber-950 dark:border-amber-700 p-5"
         >
           <h2 id="unsent-change-title" className="font-bold text-amber-950 dark:text-amber-50">
-            {unsentChange === 'end'
-              ? 'Your arrival has not reached WakaGuard yet'
-              : 'Your extra time has not reached WakaGuard yet'}
+            {UNSENT_WORDS[unsentChange].title}
           </h2>
           <p className="mt-1 text-sm text-amber-900 dark:text-amber-100">
-            {unsentChange === 'end'
-              ? 'Until it does, your contacts could still be alerted. Keep WakaGuard open: it is sent by itself as soon as the connection works.'
-              : 'Until it does, your contacts could still be alerted at the old time. Keep WakaGuard open: it is sent by itself as soon as the connection works.'}
+            {UNSENT_WORDS[unsentChange].body} Keep WakaGuard open: it is sent by itself as soon as the connection works.
           </p>
           <button
             type="button"
@@ -972,6 +1025,14 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
           }}
         />
       )}
+      {cancelOpen && activeTrip && (
+        <CancelTripSheet
+          contactsWereTexted={!!describeTripAlert(activeTrip)?.texted}
+          processing={processing}
+          onClose={() => setCancelOpen(false)}
+          onCancelTrip={() => void handleCancelTrip()}
+        />
+      )}
 
       {/* ============================================ */}
       {/* 1. THE TRIP: start form, or the trip in progress */}
@@ -993,6 +1054,7 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
           onTextOkay={handleCheckinSms}
           onReportRoad={onReportRoad}
           onSOS={() => setActiveModal('sos')}
+          onCancelTrip={() => setCancelOpen(true)}
           directions={shownDirections}
         />
       ) : savedAlertName === null ? (
@@ -1203,6 +1265,7 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
           }}
           onExtend={handleExtendTrip}
           onMoreTime={() => setAddTimeOpen(true)}
+          onCancelTrip={() => setCancelOpen(true)}
           directions={shownDirections}
         />
       )}

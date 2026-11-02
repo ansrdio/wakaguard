@@ -50,6 +50,17 @@ test('a backup "I\'ve arrived" ends the trip and its public page, once', async (
   assert.deepEqual(await post({ uid, tripId, key: KEY, action: 'end' }), { status: 200, body: { ok: true, done: 'already' } });
 });
 
+test('a backup "Cancel trip" ends the trip as cancelled, not as an arrival, once', async () => {
+  const { uid, tripId } = await makeTrip({ textOnArrival: true });
+  assert.deepEqual(await post({ uid, tripId, key: KEY, action: 'cancel' }), { status: 200, body: { ok: true, done: 'ended' } });
+  const t = await trip(uid, tripId);
+  assert.equal(t.status, 'cancelled');
+  assert.equal(t.cancellationReason, 'traveller');
+  assert.ok(t.endTime);
+  assert.equal((await shared(tripId)).status, 'cancelled');
+  assert.deepEqual(await post({ uid, tripId, key: KEY, action: 'cancel' }), { status: 200, body: { ok: true, done: 'already' } });
+});
+
 test('backup extra time is added once per press, to the private trip and the public page', async () => {
   const { uid, tripId } = await makeTrip();
   const before = (await trip(uid, tripId)).endsAt.toMillis();
@@ -74,7 +85,7 @@ test('a wrong key, a missing trip and a bad request are refused alike', async ()
   const { uid, tripId } = await makeTrip();
   assert.equal((await post({ uid, tripId, key: 'x'.repeat(64), action: 'end' })).status, 403);
   assert.equal((await post({ uid, tripId: 'no_such_trip', key: KEY, action: 'end' })).status, 403);
-  assert.equal((await post({ uid, tripId, key: KEY, action: 'cancel' })).status, 400);
+  assert.equal((await post({ uid, tripId, key: KEY, action: 'delete' })).status, 400);
   assert.equal((await post({ uid, tripId, key: KEY, action: 'end' }, 'GET')).status, 405);
   assert.equal((await trip(uid, tripId)).status, 'active');
 });

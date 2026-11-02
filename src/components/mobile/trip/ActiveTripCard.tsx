@@ -39,6 +39,8 @@ interface ActiveTripCardProps {
   /** Open the road report form. Left out where there is no such form to open. */
   onReportRoad?: () => void;
   onSOS: () => void;
+  /** Asks whether to cancel the trip, for someone who did not set off after all */
+  onCancelTrip: () => void;
   /** The next turn, when directions (Beta) are on for this trip */
   directions?: TripDirections;
 }
@@ -112,6 +114,7 @@ export function ActiveTripCard({
   onTextOkay,
   onReportRoad,
   onSOS,
+  onCancelTrip,
   directions,
 }: ActiveTripCardProps) {
   const [nowMs, setNowMs] = useState(() => Date.now());
@@ -411,6 +414,17 @@ export function ActiveTripCard({
         <Phone className="w-5 h-5" aria-hidden="true" />
         Emergency SOS
       </button>
+
+      {!isEmergency && (
+        <button
+          type="button"
+          onClick={onCancelTrip}
+          disabled={processing}
+          className="w-full min-h-12 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:underline disabled:opacity-50"
+        >
+          Cancel trip
+        </button>
+      )}
     </div>
   );
 }

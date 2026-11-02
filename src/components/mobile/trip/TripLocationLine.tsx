@@ -4,9 +4,9 @@ import { useState } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { MapPin, MapPinOff } from 'lucide-react';
 import { adviseOnLocation, askForLocation, openPhoneSettings } from '@/lib/locationCheck';
-import { describeLocationStatus } from '@/lib/tripPlanning';
 import { useBackToClose } from '@/hooks/useBackToClose';
 import { usePhoneLocation } from '@/hooks/usePhoneLocation';
+import { useTripLocationStatus } from '@/hooks/useTripLocationStatus';
 import { LocationCheck } from '@/components/mobile/LocationCheck';
 import { Trip } from '@/lib/types';
 
@@ -26,7 +26,7 @@ export function TripLocationLine({ trip, nowMs, sendsHere, className = '', iconC
   className?: string;
   iconClassName?: string;
 }) {
-  const status = describeLocationStatus(trip.lastUpdate?.toMillis() ?? null, !!trip.lastLocation, nowMs);
+  const status = useTripLocationStatus(trip, nowMs);
   const { phone, recheck } = usePhoneLocation(sendsHere);
   const advice = adviseOnLocation(status, phone, Capacitor.isNativePlatform());
   const [checking, setChecking] = useState(false);

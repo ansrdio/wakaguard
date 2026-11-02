@@ -34,6 +34,8 @@ interface MobileHomeProps {
   userLocation: { lat: number; lng: number } | null;
   onLocate: () => void;
   locating: boolean;
+  locationError: string | null;
+  onClearLocationError: () => void;
 }
 
 export function MobileHome({
@@ -45,6 +47,8 @@ export function MobileHome({
   userLocation,
   onLocate,
   locating,
+  locationError,
+  onClearLocationError,
 }: MobileHomeProps) {
   // Signed-in users land on the trip screen; guests can only browse, so they
   // start on the map. Auth has already settled by the time this screen mounts.
@@ -438,25 +442,42 @@ export function MobileHome({
             onMarkerClick={handleReportClick}
             selectedState={selectedState}
             userLocation={userLocation}
+            locating={locating}
           />
         </div>
 
-        {/* What this map is, shown until dismissed */}
-        {showWelcomeHint && (
-          <div className="fixed left-4 right-4 z-30" style={{ top: 'calc(env(safe-area-inset-top, 0px) + 126px)' }}>
-            <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-lg p-3 flex items-start gap-3">
-              <Info className="w-5 h-5 text-brand-600 dark:text-brand-300 flex-shrink-0 mt-0.5" aria-hidden="true" />
-              <p className="flex-1 text-sm text-slate-700 dark:text-slate-200">
-                Reports here come from other travellers. No report does not mean a road is safe.
-              </p>
-              <button
-                onClick={dismissWelcomeHint}
-                className="p-3.5 -m-3.5 text-slate-500 hover:text-slate-700 dark:hover:text-slate-200"
-                aria-label="Dismiss"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+        {(locationError || showWelcomeHint) && (
+          <div className="fixed left-4 right-4 z-30 space-y-2" style={{ top: 'calc(env(safe-area-inset-top, 0px) + 126px)' }}>
+            {/* Why the top bar's "find me" button did not move the map */}
+            {locationError && (
+              <div role="alert" className="bg-amber-50 dark:bg-amber-950 border border-amber-300 dark:border-amber-700 rounded-2xl shadow-lg p-3 flex items-start gap-3">
+                <p className="flex-1 text-sm text-amber-900 dark:text-amber-100">{locationError}</p>
+                <button
+                  onClick={onClearLocationError}
+                  className="p-3.5 -m-3.5 text-amber-800 dark:text-amber-200"
+                  aria-label="Dismiss"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
+            {/* What this map is, shown until dismissed */}
+            {showWelcomeHint && (
+              <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-lg p-3 flex items-start gap-3">
+                <Info className="w-5 h-5 text-brand-600 dark:text-brand-300 flex-shrink-0 mt-0.5" aria-hidden="true" />
+                <p className="flex-1 text-sm text-slate-700 dark:text-slate-200">
+                  Reports here come from other travellers. No report does not mean a road is safe.
+                </p>
+                <button
+                  onClick={dismissWelcomeHint}
+                  className="p-3.5 -m-3.5 text-slate-500 hover:text-slate-700 dark:hover:text-slate-200"
+                  aria-label="Dismiss"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
           </div>
         )}
 
