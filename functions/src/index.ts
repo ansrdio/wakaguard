@@ -20,6 +20,7 @@ export { watchTexts } from './serverWatch';
 export { smsReport } from './smsReport';
 export { adminNumbers } from './adminNumbers';
 export { heatSeasonNotice } from './heatSeasonNotice';
+export { referrals } from './referrals';
 export {
   checkOverdueTrips,
   checkQuietTrips,

@@ -1,9 +1,15 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { doc, setDoc, getDoc, serverTimestamp, runTransaction } from 'firebase/firestore';
+import { Capacitor } from '@capacitor/core';
 import { db } from '@/lib/firebase';
-import { Loader2, Check, X, AtSign } from 'lucide-react';
+import { Loader2, Check, X, AtSign, ClipboardPaste } from 'lucide-react';
+import { forgetInviter, pendingInviter, readInviteName, rememberInviter } from '@/lib/referrals';
+import { inviterFromInstall } from '@/lib/installReferrer';
+
+// The invite page copies the inviter's name for iPhones (src/lib/installReferrer.ts)
+const offerPaste = () => Capacitor.getPlatform() === 'ios';
 
 interface UsernameSetupProps {
   uid: string;
@@ -16,10 +22,49 @@ export function UsernameSetup({ uid, onComplete }: UsernameSetupProps) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
+  // "Who invited you?", filled in when they came from an invite link: opened
+  // on the website, or passed on by Google Play with the install
+  const [inviter, setInviter] = useState(() => pendingInviter()?.name ?? '');
+  const [filledFromLink, setFilledFromLink] = useState(() => {
+    const kept = pendingInviter();
+    return kept && kept.via !== 'typed' ? kept.name : null;
+  });
+  const [inviterError, setInviterError] = useState<string | null>(null);
+  const inviterInput = useRef<HTMLInputElement>(null);
+  const inviterTouched = useRef(false);
   // What is in the box now. A check for an earlier, shorter name can finish
   // last, and must not mark the name on screen as available.
   const latestValue = useRef('');
   const checkTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (pendingInviter()) return;
+    let current = true;
+    inviterFromInstall().then((found) => {
+      // Never over what they have started typing
+      if (!current || !found || inviterTouched.current) return;
+      rememberInviter(found.name, found.via);
+      setInviter(found.name);
+      setFilledFromLink(found.name);
+    });
+    return () => { current = false; };
+  }, []);
+
+  const pasteInviter = async () => {
+    inviterTouched.current = true;
+    try {
+      const name = readInviteName(await navigator.clipboard.readText());
+      if (name) {
+        setInviter(name);
+        setInviterError(null);
+        return;
+      }
+      setInviterError('What you copied is not a username. Type it instead.');
+    } catch {
+      // Not allowed, or nothing copied: they can still type or paste it in the box
+    }
+    inviterInput.current?.focus();
+  };
 
   // Validate username format
   const validateUsername = (value: string): string | null => {
@@ -98,6 +143,32 @@ export function UsernameSetup({ uid, onComplete }: UsernameSetupProps) {
 
     setSaving(true);
     setError(null);
+    setInviterError(null);
+
+    // Checked here so a typo is caught now; the server checks again and
+    // records it once the account is set up (usePendingInvite)
+    const typed = inviter.trim();
+    const name = readInviteName(typed);
+    if (typed) {
+      // A failed look-up is let through: the server has the last word
+      const owner = name ? await getDoc(doc(db, 'usernames', name.toLowerCase())).catch(() => null) : null;
+      const problem = !name || (owner && !owner.exists())
+        ? `No one has the username ${typed.replace(/^@/, '')}. Check the spelling, or leave it empty.`
+        : name.toLowerCase() === username.toLowerCase() || owner?.data()?.uid === uid
+          ? 'That is your own username. Leave it empty if nobody invited you.'
+          : null;
+      if (problem) {
+        setInviterError(problem);
+        setSaving(false);
+        return;
+      }
+    }
+    if (name) {
+      const kept = pendingInviter();
+      rememberInviter(name, kept && kept.name.toLowerCase() === name.toLowerCase() ? kept.via : 'typed');
+    } else {
+      forgetInviter();
+    }
 
     try {
       // Use a transaction to ensure atomicity
@@ -193,6 +264,48 @@ export function UsernameSetup({ uid, onComplete }: UsernameSetupProps) {
             
             <p className="mt-2 text-xs text-slate-500">
               3-20 characters. Letters, numbers, and underscores only. Must start with a letter.
+            </p>
+          </div>
+
+          <div className="mb-6">
+            <label htmlFor="invited-by" className="block text-sm font-medium text-slate-700 mb-2">
+              Who invited you? <span className="font-normal text-slate-500">(optional)</span>
+            </label>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">@</span>
+                <input
+                  id="invited-by"
+                  ref={inviterInput}
+                  type="text"
+                  value={inviter}
+                  onChange={(e) => { inviterTouched.current = true; setInviter(e.target.value); setInviterError(null); }}
+                  placeholder="their username"
+                  className="w-full pl-8 pr-3 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  maxLength={21}
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                />
+              </div>
+              {offerPaste() && !inviter.trim() && (
+                <button
+                  type="button"
+                  onClick={pasteInviter}
+                  className="min-h-12 px-4 rounded-xl border border-slate-300 text-slate-700 font-semibold flex items-center gap-1.5"
+                >
+                  <ClipboardPaste className="w-4 h-4" aria-hidden="true" />
+                  Paste
+                </button>
+              )}
+            </div>
+            {inviterError && <p className="mt-2 text-sm text-slate-900">{inviterError}</p>}
+            <p className="mt-2 text-xs text-slate-500">
+              {filledFromLink && readInviteName(inviter)?.toLowerCase() === filledFromLink.toLowerCase()
+                ? 'Filled in from your invite link. Change it if that is wrong.'
+                : offerPaste()
+                  ? 'If a friend sent you, type their WakaGuard username, or tap Paste if you copied it.'
+                  : 'If a friend sent you, type their WakaGuard username.'}
             </p>
           </div>
 

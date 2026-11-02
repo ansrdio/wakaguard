@@ -16,6 +16,7 @@ import { StopTexts } from '@/components/trip/StopTexts';
 import { storedVehicle, vehicleSummary } from '@/lib/vehicle';
 import { readPoint } from '@/lib/destinationPoint';
 import { readRouteOutline } from '@/lib/directions';
+import { inviterFromTrip } from '@/lib/referrals';
 
 // Leaflet needs the browser, so the map is left out of the prerendered page
 const TripMap = dynamic(() => import('@/components/trip/TripMap'), {
@@ -74,6 +75,34 @@ function Notice({ title, children, after }: { title: string; children: React.Rea
 }
 
 /**
+ * After a trip ends with "I've arrived", the contact can get the app and is
+ * counted as invited by the traveller (Invite friends, build 27). An ended
+ * trip cannot be read from here, so the server says whether it ended that
+ * way; it shows nothing while someone is late, after an SOS or for a test.
+ */
+function GetWakaGuard({ token, who }: { token: string; who: string }) {
+  const [arrived, setArrived] = useState(false);
+  useEffect(() => {
+    inviterFromTrip(token).then((name) => setArrived(!!name)).catch(() => setArrived(false));
+  }, [token]);
+  if (!arrived) return null;
+  return (
+    <div className="rounded-2xl bg-brand-50 p-4 mb-4 text-center">
+      <p className="font-semibold text-slate-900">Want the same for your own trips?</p>
+      <p className="text-sm text-slate-700 mt-1">
+        {who || 'They'} used WakaGuard, so the people they chose would be told if they didn&rsquo;t arrive. It&rsquo;s free.
+      </p>
+      <a
+        href={`/join?trip=${encodeURIComponent(token)}`}
+        className="mt-3 inline-flex min-h-12 px-6 rounded-2xl bg-brand-600 hover:bg-brand-700 text-white font-semibold items-center justify-center"
+      >
+        Get WakaGuard
+      </a>
+    </div>
+  );
+}
+
+/**
  * What a contact sees when they open a trip link: where the traveller's phone
  * has been, where it last reported, and whether they are overdue.
  */
@@ -107,7 +136,15 @@ function SharedTripContent() {
   const isOpen = trip && (trip.status === TripStatus.ACTIVE || trip.status === TripStatus.EMERGENCY);
   if (failed || !trip || !isOpen || isTripExpired(trip.expiresAt)) {
     return (
-      <Notice title="This trip is no longer shared" after={<StopTexts token={token} who={trip?.name?.trim() || ''} />}>
+      <Notice
+        title="This trip is no longer shared"
+        after={(
+          <>
+            <GetWakaGuard token={token} who={trip?.name?.trim() || ''} />
+            <StopTexts token={token} who={trip?.name?.trim() || ''} />
+          </>
+        )}
+      >
         The trip has ended or the link has expired. If you were told someone is overdue and have not heard from
         them, try calling them.
       </Notice>

@@ -652,14 +652,55 @@ stay, with the owner's choices of 2 November added:
   you?", and a contact who installs the app from a trip link (agreed 18 October).
 - **When it pays:** rewards from Tue 15 Dec, as agreed on 18 October, so the counting is checked before money
   goes out. Not changed on 2 November.
-- [ ] Each person's invite link and code, with Share; "Who invited you?" at sign-up, filled in from the link
-- [ ] The count on the server, with the rules above, so it cannot be changed from a phone
-- [ ] "Invite friends" in Profile: the link, each friend's progress, the balance, and Cash out (airtime or bank
-      transfer). Bank details are asked for only at cash out
-- [ ] A tool for the owner listing who is owed what, like `scripts/weekly-numbers.mjs`, and a way to mark it paid
-- [ ] **Before building:** check both stores' rules on cash rewards for inviting
-- [ ] **Words to add:** a Privacy line (who invited whom, and bank details given to cash out) and the rules in
-      the Terms, both for the lawyer to see
+- [x] Each person's invite link and code, with Share; "Who invited you?" at sign-up, filled in from the link.
+      Done 2 November: the invite name is the person's username (no second code to remember), the link is
+      `wakaguard.com/join?u=<username>`, and "Who invited you?" sits under the username box on the screen every
+      new account passes through (email, Google and Apple sign-up alike). On the website the link fills it in;
+      in the phone apps the friend types it, as there is no way to carry it through a store install
+- [x] The invite link carried through the install (the owner on 2 November: "Can there be a refer link that can
+      be called back", then "yes build it"). Done 2 November:
+      - **Android:** the invite page's Google Play button carries the name as Play's install "referrer"
+        (`invited_by=<username>&via=link|trip`). On the username screen the app asks Google Play for it
+        (`InstallReferrerPlugin.java`, Google's Install Referrer library 2.2) and fills in "Who invited you?",
+        with "Filled in from your invite link. Change it if that is wrong." No permission, nothing else read
+      - **iPhone:** Apple passes nothing through the App Store, so the invite page's iPhone button also copies the
+        name, and the app shows a Paste button by the empty "Who invited you?" box. The app reads what was copied
+        only when Paste is tapped
+      - Not chosen: paid link services (Branch, AppsFlyer) that match a phone before and after the install. They
+        cost money, Apple's rules are against that kind of matching, and Privacy would need more. Firebase Dynamic
+        Links, the free one, closed in August 2025
+      - **Proven only once build 27 is on Play:** uninstall, open an invite link on the phone, install from Play,
+        sign up; the name should be there. On iPhone, the Paste button is proven only on a real phone too
+- [x] The count on the server, with the rules above, so it cannot be changed from a phone. Done 2 November:
+      `functions/src/referrals.ts` (one callable function, `referrals`) and the rules in `referralPlan.ts`.
+      Trips are written by the phone, so a trip is judged by what the server saw: when the trip was made and when
+      it ended, at least 3 positions received, about 1 km from the start. The database rules refuse every phone
+- [x] "Invite friends" in Profile: the link, each friend's progress, the balance, and Cash out (airtime or bank
+      transfer). Bank details are asked for only at cash out, and only the last 4 digits are kept once paid
+- [x] A tool for the owner listing who is owed what, and a way to mark it paid:
+      `node scripts/referral-payouts.mjs --live` (read-only; the full payment details go to a file in `ranking/`
+      on this computer, never on screen), then `--paid <id>,<id>`
+- [x] "Get WakaGuard" on the contacts' page, only after a trip ended with "I've arrived" (never while someone is
+      late, after an SOS, or for a test); the contact is then counted as invited by the traveller
+- [x] **Before building:** both stores' rules on cash rewards for inviting, read 2 November. Neither forbids it.
+      Apple's guideline 3.2.2(x) allows rewarding people for actions inside the app, and forbids rewards for
+      ratings, reviews or downloading other apps; 5.1.2(i) says no reward may require turning on location or
+      notifications (the person rewarded is the inviter, who turns on nothing). Google forbids incentivised
+      ratings, reviews and installs that manipulate the store; our reward needs 4 real trips, not an install,
+      and never asks for a rating. Worth saying in the App Review notes; ask the lawyer about Nigerian rules
+      on promotions and paying cash
+- [x] **Words added:** the rules as section 12 of the Terms (`/terms#invite-friends`), an "Invite Friends" part
+      in Privacy (what is collected, and what is kept), and a line on the Delete account page, all for the
+      lawyer to see. The Terms and Privacy dates are to change on the day the website goes out
+
+Choices made while building (2 November), for the owner to see:
+- Only accounts made from Wed 11 Nov 2026 count as invited, and a friend has 7 days after signing up to say who
+  invited them. Testers from before cannot name each other
+- "One payout per phone" uses the code each copy of the app already has (the one that stops two phones sending
+  one trip): a friend whose trips came from the inviter's phone, or from a phone that already earned anyone a
+  reward, is refused, and the inviter sees why
+- Cash out takes everything that is ready, one request at a time; Cash out opens Tue 15 Dec
+- Not yet done: the App Review note
 
 ### Build 26: simplify before launch, redesign after (agreed 21 October)
 

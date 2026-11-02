@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 /** Shown on the page and changed whenever the terms change */
 const LAST_UPDATED = '13 October 2026';
 
-const SECTIONS: { title: string; paragraphs: string[]; points?: string[] }[] = [
+const SECTIONS: { id?: string; title: string; paragraphs: string[]; points?: string[] }[] = [
   {
     title: '1. About these terms',
     paragraphs: [
@@ -98,26 +98,43 @@ const SECTIONS: { title: string; paragraphs: string[]; points?: string[] }[] = [
     ],
   },
   {
-    title: '12. Ending your use',
+    id: 'invite-friends',
+    title: '12. Invite friends',
+    paragraphs: [
+      'You can invite friends to WakaGuard with your invite name, which is your username, or your invite link. When a friend you invited signs up, makes 4 real trips on 4 different days within 30 days of signing up, and adds a trusted contact, we give you ₦500. A real trip is one that is not a test, lasts at least 15 minutes, moves about 1 km and is ended with "I\'ve arrived".',
+      'A friend counts as invited by you when they give your username under "Who invited you?" within 7 days of signing up, or sign up from your invite link or from the page of a trip you shared with them. Only accounts created from 11 November 2026 can be invited, and each person can name only one person who invited them.',
+      'A reward can be taken 7 days after your friend completes the last step, so that we can check it. From 15 December 2026 you can ask for your rewards as airtime or by bank transfer once they add up to ₦1,000 or more. We pay requests by hand, usually within a week.',
+    ],
+    points: [
+      'At most 10 friends a month earn you a reward, and we pay up to ₦200,000 in rewards a month across everyone. Past either limit, the reward is paid in a later month.',
+      'A friend whose trips are made on your phone, or on a phone that has already earned anyone a reward, does not count.',
+      'You may not invite yourself, create accounts for other people, or make trips that are not real to earn a reward. If we find this, we may cancel rewards not yet paid and close the accounts involved.',
+      'Rewards are personal and cannot be transferred. Rewards not yet paid end if you delete your account.',
+      'You see how many trips each friend has made, never where or when they travelled.',
+      'We may change or end Invite friends at any time. Rewards already earned before a change will still be paid.',
+    ],
+  },
+  {
+    title: '13. Ending your use',
     paragraphs: [
       'You can stop using WakaGuard and delete your account at any time, from Profile in the app or from the Delete account page on our website. We may suspend or close an account that breaks these terms.',
     ],
   },
   {
-    title: '13. Our responsibility to you',
+    title: '14. Our responsibility to you',
     paragraphs: [
       'We provide WakaGuard with reasonable care, but without any promise that it will always be available or free of faults. As far as the law allows, we are not responsible for loss or harm that results from an alert that fails or is late, from a location that is wrong, from what other people post, or from how your contacts respond.',
       'Nothing in these terms takes away any right you have under Nigerian law that cannot be taken away by agreement.',
     ],
   },
   {
-    title: '14. The law that applies',
+    title: '15. The law that applies',
     paragraphs: [
       'These terms are governed by the laws of the Federal Republic of Nigeria, and the courts of Nigeria will decide any dispute about them.',
     ],
   },
   {
-    title: '15. Changes to these terms',
+    title: '16. Changes to these terms',
     paragraphs: [
       'When we change these terms we will change the date at the top and tell you in the app. If you keep using WakaGuard after a change, you accept the new terms.',
     ],
@@ -145,7 +162,7 @@ export default function TermsPage() {
           <p className="text-gray-600 mb-8">Last updated: {LAST_UPDATED}</p>
 
           {SECTIONS.map((section) => (
-            <section key={section.title} className="mb-8">
+            <section key={section.title} id={section.id} className="mb-8 scroll-mt-4">
               <h2 className="text-2xl font-semibold text-gray-900 mb-4">{section.title}</h2>
               {section.paragraphs.map((paragraph) => (
                 <p key={paragraph} className="text-gray-700 leading-relaxed mb-4">{paragraph}</p>
@@ -159,7 +176,7 @@ export default function TermsPage() {
           ))}
 
           <section>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">16. Contact us</h2>
+            <h2 className="text-2xl font-semibold text-gray-900 mb-4">17. Contact us</h2>
             <p className="text-gray-700 leading-relaxed mb-2">
               {COMPANY_NAME}, {COMPANY_ADDRESS}
             </p>

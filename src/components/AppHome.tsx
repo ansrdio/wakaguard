@@ -17,6 +17,7 @@ import { resetPageWhenKeyboardCloses } from '@/lib/nativeKeyboard';
 import { AppLoader } from '@/components/AppLoader';
 import { AccountDeletionScreen } from '@/components/AccountDeletionScreen';
 import { useAccountDeletion } from '@/lib/accountDeletion';
+import { usePendingInvite } from '@/hooks/usePendingInvite';
 
 /**
  * The app itself: the first-run screens, then the trip, nearby and profile
@@ -25,7 +26,7 @@ import { useAccountDeletion } from '@/lib/accountDeletion';
  */
 export function AppHome() {
   const { selectedState, setSelectedState, isLoaded } = useSelectedState();
-  const { ready: authReady, uid, email, emailVerified, needsUsername } = useAuthedUser();
+  const { ready: authReady, uid, email, emailVerified, username, needsUsername } = useAuthedUser();
   const { checkDailyLogin } = useUserStats(uid);
   const { mounted, isDesktop } = useResponsiveLayout();
 
@@ -42,6 +43,9 @@ export function AppHome() {
   }, [uid, emailVerified, checkDailyLogin]);
   const { showOnboarding, completeOnboarding, checked: onboardingChecked } = useOnboardingStatus();
   const deletion = useAccountDeletion();
+  // "Who invited you?", once the username is saved: not before, as it is
+  // asked on the same screen and can still be changed there
+  usePendingInvite(uid, !!emailVerified && !!username);
   
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locating, setLocating] = useState(false);

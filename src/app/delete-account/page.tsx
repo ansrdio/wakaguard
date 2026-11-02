@@ -94,6 +94,11 @@ export default function DeleteAccountPage() {
               Our SMS provider and the mobile networks keep their own records of the texts they delivered, under
               their own policies.
             </li>
+            <li>
+              Invite friends: a reward you already earned the person who invited you stays theirs, without your
+              trip days. Records of payments already made to you are kept for our accounts, with your account
+              removed from them. Rewards not yet paid to you are deleted.
+            </li>
           </ul>
         </section>
 

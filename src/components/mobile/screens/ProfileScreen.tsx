@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { User, LogOut, Settings, HelpCircle, Shield, FileText, ChevronRight, MapPin, ThumbsUp, MessageCircle, Loader2, ExternalLink, Bell, Moon, X, Sun, LogIn, Trash2, BatteryCharging } from 'lucide-react';
+import { User, LogOut, Settings, HelpCircle, Shield, FileText, ChevronRight, MapPin, ThumbsUp, MessageCircle, Loader2, ExternalLink, Bell, Moon, X, Sun, LogIn, Trash2, BatteryCharging, Gift } from 'lucide-react';
 import { useAuthedUser } from '@/hooks/useAuthedUser';
 import { DeleteOwnPost } from '@/components/mobile/DeleteOwnPost';
 import { KeepRunningHelp } from '@/components/mobile/KeepRunningHelp';
@@ -23,8 +23,9 @@ import { BlockedPeople } from '@/components/mobile/BlockedPeople';
 import { MorningWeatherSwitch } from '@/components/mobile/MorningWeatherSwitch';
 import { Capacitor } from '@capacitor/core';
 import { AppNotices } from '@/components/mobile/AppNotices';
+import { InviteFriends } from '@/components/mobile/InviteFriends';
 
-type ModalType = 'myReports' | 'settings' | 'help' | 'deleteAccount' | 'location' | 'keepRunning' | null;
+type ModalType = 'invite' | 'myReports' | 'settings' | 'help' | 'deleteAccount' | 'location' | 'keepRunning' | null;
 
 export function ProfileScreen() {
   const { uid, isAnonymous, email, displayName, username } = useAuthedUser();
@@ -84,6 +85,24 @@ export function ProfileScreen() {
 
       {/* Menu Items */}
       <div className="space-y-2">
+        {uid && !isAnonymous && (
+          <button
+            onClick={() => setActiveModal('invite')}
+            className="w-full p-4 bg-white border border-slate-200 rounded-xl text-left hover:bg-slate-50 transition-colors flex items-center justify-between"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-brand-50 rounded-xl flex items-center justify-center">
+                <Gift className="w-5 h-5 text-brand-700" />
+              </div>
+              <div>
+                <span className="text-slate-900 font-medium block">Invite friends</span>
+                <span className="text-xs text-slate-500">Earn ₦500 for each friend who uses WakaGuard</span>
+              </div>
+            </div>
+            <ChevronRight className="w-5 h-5 text-slate-400" />
+          </button>
+        )}
+
         {uid && (
           <button
             onClick={() => setActiveModal('myReports')}
@@ -185,6 +204,8 @@ export function ProfileScreen() {
           </span>
         </div>
       </div>
+
+      {activeModal === 'invite' && <InviteFriends onClose={() => setActiveModal(null)} />}
 
       {/* My Reports Modal */}
       {activeModal === 'myReports' && (

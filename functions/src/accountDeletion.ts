@@ -19,6 +19,7 @@
 import * as functions from 'firebase-functions/v1';
 import * as admin from 'firebase-admin';
 import { Timestamp } from 'firebase-admin/firestore';
+import { deleteReferralData } from './referrals';
 
 export const LOG_RETENTION_DAYS = 90;
 
@@ -118,6 +119,8 @@ export async function deleteAccountData(uid: string, nowMs: number = Date.now())
   // How many pins they had named this hour (placeName.ts)
   await db.doc(`placeNameTries/${uid}`).delete();
   await deleteAll(db.collection('usernames').where('uid', '==', uid));
+  // Invite friends: their progress as a friend, their friends' and their unpaid requests
+  await deleteReferralData(uid);
 
   // The profile with everything under it: contacts, trips, alerts, timers,
   // check-ins, points. It goes last so that the app, which reads the profile

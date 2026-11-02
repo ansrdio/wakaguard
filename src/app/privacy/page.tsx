@@ -166,6 +166,27 @@ export default function PrivacyPage() {
               it off with Morning weather in Settings.
             </p>
 
+            <h3 className="text-xl font-semibold text-gray-800 mb-3">Invite Friends</h3>
+            <p className="text-gray-700 leading-relaxed mb-4">
+              If you invite friends, or say who invited you, we record who invited whom. For each invited
+              friend we record on which days a trip of theirs counted towards the reward (not where they went),
+              and the random code of the copy of the app those trips came from, so that nobody can earn a reward
+              by inviting themselves. The person who invited you sees your username and how many of your trips
+              have counted, never where or when you travelled. Your invite link carries your username, so anyone
+              you send it to sees it; so does a contact who taps &quot;Get WakaGuard&quot; on the page of a trip
+              you shared.
+            </p>
+            <p className="text-gray-700 leading-relaxed mb-4">
+              When a friend gets the Android app from an invite link, the link passes the inviter&apos;s username
+              to Google Play, and the app asks Google Play for it when the friend chooses a username, to fill in
+              &quot;Who invited you?&quot;. On iPhone, the invite page copies the username when the friend taps the
+              iPhone button, and the app reads what was copied only if the friend taps Paste.
+            </p>
+            <p className="text-gray-700 leading-relaxed mb-6">
+              To pay you, we ask for a phone number for airtime, or a bank name, account number and account
+              name for a bank transfer, only when you cash out. We use them only to pay you.
+            </p>
+
             <h3 className="text-xl font-semibold text-gray-800 mb-3">When Something Goes Wrong in the App</h3>
             <p className="text-gray-700 leading-relaxed mb-6">
               If a screen in the app crashes, or something fails that the app did not expect, the app sends us a
@@ -374,6 +395,16 @@ export default function PrivacyPage() {
               Comments and votes are retained as long as the associated report exists. Removed comments
               are hidden at once and deleted automatically within {KEPT_DAYS.removedComment} days. Deleting
               your account deletes the comments and votes you posted.
+            </p>
+
+            <h3 className="text-xl font-semibold text-gray-800 mb-3">Invite Friends</h3>
+            <p className="text-gray-700 leading-relaxed mb-6">
+              Once a cash out is paid, we keep its amount, date and the last 4 digits of the number or account
+              it went to, and delete the rest of the details. If you delete your account, your progress as an
+              invited friend is deleted, unless it already earned the person who invited you a reward: then
+              only the reward is kept, without your days or app code. Rewards you had not been paid are
+              deleted, and records of payments already made are kept for our accounts with your account
+              removed from them.
             </p>
 
             <h3 className="text-xl font-semibold text-gray-800 mb-3">User Accounts</h3>

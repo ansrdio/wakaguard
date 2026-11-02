@@ -25,6 +25,7 @@ import { addPathPoint, distanceMeters, nextPositionStats, pathLengthMeters, read
 import { buildTravellerPush, TravellerMessage } from './reminderPush';
 import { plateForText, readTripVehicle, vehicleForContacts } from './vehicle';
 import { readStoredRoute, sameRoute } from './tripRoute';
+import { countReferralTrip } from './referrals';
 import {
   decideOverdueAction,
   decideQuietNudge,
@@ -752,6 +753,8 @@ export const onTripUpdated = functions.firestore
       .catch((err) => console.error(`Could not update the vehicle on trip ${ref.id}'s page`, err));
     await recordRoute(ref, before, after)
       .catch((err) => console.error(`Could not update the route on trip ${ref.id}'s page`, err));
+    await countReferralTrip(ref.parent.parent!.id, before, after, change.after.createTime?.toMillis() ?? null)
+      .catch((err) => console.error(`Could not count trip ${ref.id} for Invite friends`, err));
 
     // Traveller ended the trip themselves (not the hourly auto-expiry)
     const endedByUser = after.status === 'completed'

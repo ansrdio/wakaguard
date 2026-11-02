@@ -23,6 +23,7 @@ import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { isValidE164, OPT_OUTS } from './safetyDelivery';
 import { ID_PATTERN } from './tripLocation';
 import { nextTry, numberOnTrip, OptOutRequest, readOptOutRequest } from './textOptOutPlan';
+import { qualifyIfDone } from './referrals';
 import { answerBrowser } from './webOrigins';
 
 export type OptOutOutcome = 'stopped' | 'resumed' | 'not_matched' | 'too_many';
@@ -119,9 +120,21 @@ export async function markIfStopped(
   }
 }
 
+/**
+ * Keeps a contact's opt-out mark right. A new contact may also be the last
+ * thing an invited friend needed for their inviter's reward (referrals.ts).
+ */
 export const onTrustedContactWrite = functions.firestore
   .document('users/{uid}/trustedContacts/{contactId}')
-  .onWrite((change) => (change.after.exists ? markIfStopped(change.after.ref, change.after.data()) : null));
+  .onWrite(async (change, context) => {
+    if (!change.after.exists) return null;
+    await markIfStopped(change.after.ref, change.after.data());
+    if (!change.before.exists) {
+      await qualifyIfDone(context.params.uid)
+        .catch((err) => console.error('Could not check an invited friend', err));
+    }
+    return null;
+  });
 
 export const stopTexts = functions.https.onRequest(async (req, res) => {
   if (answerBrowser(req, res)) return;

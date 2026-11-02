@@ -418,6 +418,21 @@ service cloud.firestore {
     match /placeNameTries/{uid} {
       allow read, write: if false;
     }
+    // Invite friends (functions/src/referrals.ts): who invited whom, each
+    // friend's progress, rewards and cash outs. Server only, so no phone can
+    // change a count or a balance; the app asks the `referrals` function.
+    match /referrals/{friendUid} {
+      allow read, write: if false;
+    }
+    match /referralMonths/{month} {
+      allow read, write: if false;
+    }
+    match /referralInviters/{uid} {
+      allow read, write: if false;
+    }
+    match /cashOuts/{id} {
+      allow read, write: if false;
+    }
 
     match /users/{userId}/trips/{tripId} {
       allow read: if isOwner(userId);

@@ -21,6 +21,7 @@ public class MainActivity extends BridgeActivity {
         forgetPressedReminderWhenRebuilt(savedInstanceState);
         // The app's own plugins have to be named before the bridge starts
         registerPlugin(ContactPickerPlugin.class);
+        registerPlugin(InstallReferrerPlugin.class);
         registerPlugin(KeepRunningPlugin.class);
         registerPlugin(SpeakPlugin.class);
         super.onCreate(savedInstanceState);
