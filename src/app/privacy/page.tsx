@@ -379,7 +379,7 @@ export default function PrivacyPage() {
             <h3 className="text-xl font-semibold text-gray-800 mb-3">User Accounts</h3>
             <p className="text-gray-700 leading-relaxed mb-6">
               Your account and the data held with it are kept until you delete your account. You can do
-              that yourself at any time: in the app, open Profile and tap Delete account; on the website,
+              that yourself at any time: in the app, open Profile, then Settings, and tap Delete account; on the website,
               open the account menu and choose Delete account. Everything listed above is then deleted
               straight away, except the log of texts sent to your contacts, which is kept for up to{' '}
               {MESSAGE_LOG_DAYS_AFTER_DELETION} days. The steps, and what is deleted and kept, are set out

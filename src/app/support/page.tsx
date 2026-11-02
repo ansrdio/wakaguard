@@ -284,8 +284,8 @@ export default function SupportPage() {
                   Tap &quot;Flag Report&quot; on a report, select the reason and submit. Our moderation team
                   will review it and take appropriate action. To stop seeing one person&apos;s reports and
                   comments, open the report&apos;s own page (the page a shared report link opens), go to
-                  &quot;Report Actions&quot; and tap &quot;Block User&quot;. Blocking cannot be undone through
-                  the app.
+                  &quot;Report Actions&quot; and tap &quot;Block User&quot;. To undo it, open Profile, then
+                  Settings, and tap Unblock.
                 </p>
               </div>
 
@@ -316,7 +316,7 @@ export default function SupportPage() {
                   How do I delete my account?
                 </h4>
                 <p className="text-gray-700">
-                  In the app, open Profile and tap Delete account; on the website, open the account menu
+                  In the app, open Profile, then Settings, and tap Delete account; on the website, open the account menu
                   and choose Delete account. You will be asked for your password. Your profile, contacts,
                   trips and anything you posted are deleted straight away. If a trip is running, end it
                   first. The{' '}

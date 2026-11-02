@@ -61,7 +61,7 @@ export default function DeleteAccountPage() {
           <ol className="list-decimal pl-5 space-y-2 text-slate-700">
             <li>Open WakaGuard on your phone, or sign in at wakaguard.com.</li>
             <li>
-              On a phone, open <strong>Profile</strong> and tap <strong>Delete account</strong>. On the website,
+              On a phone, open <strong>Profile</strong>, then <strong>Settings</strong>, and tap <strong>Delete account</strong>. On the website,
               open the account menu at the top right and choose <strong>Delete account</strong>.
             </li>
             <li>Enter your password and confirm.</li>

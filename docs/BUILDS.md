@@ -691,8 +691,14 @@ What was agreed:
     - **Left for later:** the Privacy page still says "Roadwork", changed at its next release. The server's push
       to people nearby still reads "A high hazard was reported" (`functions/src/index.ts`), which needs a functions
       deploy.
-  - **Profile:** the three number boxes removed; one plain icon style, Sign out no longer red; Delete account moved
-    to the bottom of Settings; "Blocked people" only when someone is blocked, as "People hidden from your reports".
+  - [x] **Profile:** the three number boxes removed; one plain icon style, Sign out no longer red; Delete account
+    moved to the bottom of Settings; "Blocked people" only when someone is blocked, as "People hidden from your
+    reports". Done 1 November:
+    - The delete-account, Support and Privacy pages now say "open Profile, then Settings". Terms still reads true
+      ("from Profile in the app"). These go live with the next website release, which should go with the app.
+    - **At that release:** change "Last Updated" on the Privacy page, as the policy promises.
+    - The Support page said blocking "cannot be undone through the app", which has been wrong since Unblock was
+      added. It now says where to undo it, as the row is hidden until someone is blocked.
   - **Whole app:** green everywhere, red only for SOS and serious road reports.
   - **The test trip stays** (the owner, 1 November: "keep the test trip"), with its note cut to one line. They had
     thought of removing it; "A first trip on day one" is built on it and it is the only way to try alerts safely.

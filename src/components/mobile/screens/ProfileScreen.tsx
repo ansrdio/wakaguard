@@ -55,10 +55,6 @@ export function ProfileScreen() {
     }
   };
 
-  // Calculate stats
-  const activeReports = myReports.filter(r => r.status === ReportStatus.ACTIVE).length;
-  const totalUpvotes = myReports.reduce((sum, r) => sum + (r.upvotes || 0), 0);
-
   return (
     <div className="absolute inset-0 overflow-y-auto px-4 pt-20 pb-28 space-y-5 bg-slate-50 dark:bg-slate-900 touch-pan-y" style={{ marginTop: 'calc(env(safe-area-inset-top, 0px) + 56px)', WebkitOverflowScrolling: 'touch' }}>
       <AppNotices />
@@ -86,24 +82,6 @@ export function ProfileScreen() {
         )}
       </div>
 
-      {/* Stats Cards */}
-      {uid && !isAnonymous && (
-        <div className="grid grid-cols-3 gap-3">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 text-center border border-slate-200 dark:border-slate-700">
-            <p className="text-2xl font-bold text-blue-600">{reportCount}</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Reports</p>
-          </div>
-          <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 text-center border border-slate-200 dark:border-slate-700">
-            <p className="text-2xl font-bold text-emerald-600">{activeReports}</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Active</p>
-          </div>
-          <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 text-center border border-slate-200 dark:border-slate-700">
-            <p className="text-2xl font-bold text-amber-600">{totalUpvotes}</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Upvotes</p>
-          </div>
-        </div>
-      )}
-
       {/* Menu Items */}
       <div className="space-y-2">
         {uid && (
@@ -112,8 +90,8 @@ export function ProfileScreen() {
             className="w-full p-4 bg-white border border-slate-200 rounded-xl text-left hover:bg-slate-50 transition-colors flex items-center justify-between"
           >
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
-                <FileText className="w-5 h-5 text-blue-600" />
+              <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center">
+                <FileText className="w-5 h-5 text-slate-600" />
               </div>
               <div>
                 <span className="text-slate-900 font-medium block">My Reports</span>
@@ -142,8 +120,8 @@ export function ProfileScreen() {
           className="w-full p-4 bg-white border border-slate-200 rounded-xl text-left hover:bg-slate-50 transition-colors flex items-center justify-between"
         >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-brand-100 rounded-xl flex items-center justify-center">
-              <MapPin className="w-5 h-5 text-brand-700" />
+            <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center">
+              <MapPin className="w-5 h-5 text-slate-600" />
             </div>
             <span className="text-slate-900 font-medium">Check my location</span>
           </div>
@@ -155,8 +133,8 @@ export function ProfileScreen() {
           className="w-full p-4 bg-white border border-slate-200 rounded-xl text-left hover:bg-slate-50 transition-colors flex items-center justify-between"
         >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
-              <BatteryCharging className="w-5 h-5 text-blue-700" />
+            <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center">
+              <BatteryCharging className="w-5 h-5 text-slate-600" />
             </div>
             <span className="text-slate-900 font-medium">Keep WakaGuard running</span>
           </div>
@@ -168,8 +146,8 @@ export function ProfileScreen() {
           className="w-full p-4 bg-white border border-slate-200 rounded-xl text-left hover:bg-slate-50 transition-colors flex items-center justify-between"
         >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
-              <HelpCircle className="w-5 h-5 text-amber-600" />
+            <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center">
+              <HelpCircle className="w-5 h-5 text-slate-600" />
             </div>
             <span className="text-slate-900 font-medium">Help & Support</span>
           </div>
@@ -179,24 +157,12 @@ export function ProfileScreen() {
         {uid && (
           <button
             onClick={handleSignOut}
-            className="w-full p-4 bg-white border border-red-200 rounded-xl text-left hover:bg-red-50 transition-colors flex items-center gap-3"
-          >
-            <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center">
-              <LogOut className="w-5 h-5 text-red-600" />
-            </div>
-            <span className="text-red-600 font-medium">Sign Out</span>
-          </button>
-        )}
-
-        {uid && !isAnonymous && (
-          <button
-            onClick={() => setActiveModal('deleteAccount')}
             className="w-full p-4 bg-white border border-slate-200 rounded-xl text-left hover:bg-slate-50 transition-colors flex items-center gap-3"
           >
             <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center">
-              <Trash2 className="w-5 h-5 text-slate-600" />
+              <LogOut className="w-5 h-5 text-slate-600" />
             </div>
-            <span className="text-slate-900 font-medium">Delete account</span>
+            <span className="text-slate-900 font-medium">Sign Out</span>
           </button>
         )}
       </div>
@@ -327,6 +293,17 @@ export function ProfileScreen() {
               {uid && !isAnonymous && <MorningWeatherSwitch uid={uid} />}
 
               {uid && !isAnonymous && <BlockedPeople />}
+
+              {/* The stores require this to stay in the app. The pages that say where it is: /delete-account, /support, /privacy */}
+              {uid && !isAnonymous && (
+                <button
+                  onClick={() => setActiveModal('deleteAccount')}
+                  className="w-full p-4 bg-slate-50 rounded-xl text-left hover:bg-slate-100 transition-colors flex items-center gap-3"
+                >
+                  <Trash2 className="w-5 h-5 text-slate-600" />
+                  <span className="font-medium text-slate-900">Delete account</span>
+                </button>
+              )}
             </div>
           </div>
         </div>
