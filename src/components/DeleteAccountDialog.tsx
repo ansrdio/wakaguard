@@ -116,7 +116,7 @@ export function DeleteAccountDialog({ onClose }: { onClose: () => void }) {
         {confirmBy ? (
           <div>
             <p className="text-sm text-slate-900">To confirm it is you, sign in with {PROVIDER_NAMES[confirmBy]} once more.</p>
-            {socialProblem && <p role="alert" className="mt-2 text-sm text-red-700">{socialProblem}</p>}
+            {socialProblem && <p role="alert" className="mt-2 text-sm text-slate-900">{socialProblem}</p>}
           </div>
         ) : (
         <div>
@@ -131,10 +131,10 @@ export function DeleteAccountDialog({ onClose }: { onClose: () => void }) {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             aria-invalid={problem ? true : undefined}
-            className="w-full px-4 py-3 border border-slate-300 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500"
+            className="w-full px-4 py-3 border border-slate-300 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-500"
           />
           {problem && (
-            <p role="alert" className="mt-2 text-sm text-red-700">{PASSWORD_PROBLEMS[problem]}</p>
+            <p role="alert" className="mt-2 text-sm text-slate-900">{PASSWORD_PROBLEMS[problem]}</p>
           )}
         </div>
         )}
@@ -143,7 +143,7 @@ export function DeleteAccountDialog({ onClose }: { onClose: () => void }) {
           <button
             type="submit"
             disabled={(!confirmBy && !password) || checking}
-            className="w-full py-3 bg-red-600 text-white rounded-xl font-semibold hover:bg-red-700 disabled:opacity-50 flex items-center justify-center gap-2"
+            className="w-full py-3 bg-slate-800 text-white rounded-xl font-semibold hover:bg-slate-900 disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {checking && <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />}
             {confirmBy ? `Confirm with ${PROVIDER_NAMES[confirmBy]} and delete` : 'Delete my account'}

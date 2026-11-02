@@ -66,7 +66,7 @@ export function FlagModal({ isOpen, onClose, onSubmit, targetType }: FlagModalPr
       <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
         <div className="border-b border-gray-200 p-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Flag className="w-5 h-5 text-red-500" />
+            <Flag className="w-5 h-5 text-slate-600" />
             <h2 className="text-xl font-bold text-gray-900">
               Flag {targetType === 'report' ? 'Report' : 'Comment'}
             </h2>
@@ -81,16 +81,16 @@ export function FlagModal({ isOpen, onClose, onSubmit, targetType }: FlagModalPr
         </div>
 
         <form onSubmit={handleSubmit} className="p-6">
-          <div className="flex items-start gap-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg mb-6">
-            <AlertTriangle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-yellow-800">
+          <div className="flex items-start gap-3 p-3 bg-slate-100 border border-slate-300 rounded-lg mb-6">
+            <AlertTriangle className="w-5 h-5 text-slate-700 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-slate-900">
               Flagging helps keep our community safe. Please select a reason for flagging this {targetType}.
             </p>
           </div>
 
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg mb-4">
-              <p className="text-sm text-red-600">{error}</p>
+            <div className="p-3 bg-slate-100 border border-slate-300 rounded-lg mb-4">
+              <p className="text-sm text-slate-900">{error}</p>
             </div>
           )}
 
@@ -146,7 +146,7 @@ export function FlagModal({ isOpen, onClose, onSubmit, targetType }: FlagModalPr
             <button
               type="submit"
               disabled={submitting || !selectedReason}
-              className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+              className="flex-1 px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
             >
               {submitting ? 'Submitting...' : 'Submit Flag'}
             </button>

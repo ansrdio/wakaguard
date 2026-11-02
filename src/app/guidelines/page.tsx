@@ -89,28 +89,28 @@ export default function GuidelinesPage() {
 
           <section className="mb-8">
             <h2 className="text-2xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <AlertTriangle className="w-6 h-6 text-red-600" />
+              <AlertTriangle className="w-6 h-6 text-slate-900" />
               Prohibited Content
             </h2>
             <p className="text-gray-700 leading-relaxed mb-4">
               The following types of content are strictly prohibited:
             </p>
 
-            <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6">
-              <h3 className="text-lg font-semibold text-red-900 mb-2">
+            <div className="bg-slate-100 border-l-4 border-slate-300 p-4 mb-6">
+              <h3 className="text-lg font-semibold text-slate-900 mb-2">
                 🚫 No Personal Accusations or Doxxing
               </h3>
-              <p className="text-red-800 mb-2">
+              <p className="text-slate-900 mb-2">
                 <strong>Never include identifying information about individuals.</strong> This includes:
               </p>
-              <ul className="list-disc list-inside text-red-800 space-y-1">
+              <ul className="list-disc list-inside text-slate-900 space-y-1">
                 <li>Names, addresses, or phone numbers</li>
                 <li>Number plates</li>
                 <li>Photos of people&apos;s faces</li>
                 <li>Accusations against specific individuals or businesses</li>
                 <li>Personally identifiable information (PII)</li>
               </ul>
-              <p className="text-red-800 mt-2">
+              <p className="text-slate-900 mt-2">
                 <strong>Violations will result in content removal and possible account restrictions.</strong>
               </p>
             </div>

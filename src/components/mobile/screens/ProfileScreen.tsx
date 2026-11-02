@@ -49,8 +49,8 @@ export function ProfileScreen() {
     switch (status) {
       case ReportStatus.ACTIVE: return 'bg-emerald-100 text-emerald-700';
       case ReportStatus.RESOLVED: return 'bg-slate-100 text-slate-600';
-      case ReportStatus.EXPIRED: return 'bg-amber-100 text-amber-700';
-      case ReportStatus.FLAGGED: return 'bg-red-100 text-red-700';
+      case ReportStatus.EXPIRED: return 'bg-slate-100 text-slate-700';
+      case ReportStatus.FLAGGED: return 'bg-slate-100 text-slate-900';
       default: return 'bg-slate-100 text-slate-600';
     }
   };
@@ -201,7 +201,7 @@ export function ProfileScreen() {
                 <p
                   role="status"
                   className={`rounded-xl px-3 py-2 text-sm ${
-                    myReportsNote.type === 'error' ? 'bg-red-50 text-red-800' : 'bg-brand-50 text-brand-800'
+                    myReportsNote.type === 'error' ? 'bg-slate-100 text-slate-900' : 'bg-brand-50 text-brand-800'
                   }`}
                 >
                   {myReportsNote.message}
@@ -253,7 +253,7 @@ export function ProfileScreen() {
                       <span className="text-xs text-slate-500">Not supported in this browser</span>
                     )}
                     {pushSupported && permission === 'denied' && (
-                      <span className="text-xs text-red-500">
+                      <span className="text-xs text-slate-600">
                         {Capacitor.isNativePlatform()
                           ? 'Turned off for WakaGuard in your phone’s Settings'
                           : 'Blocked - enable in browser settings'}

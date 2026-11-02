@@ -699,7 +699,17 @@ What was agreed:
     - **At that release:** change "Last Updated" on the Privacy page, as the policy promises.
     - The Support page said blocking "cannot be undone through the app", which has been wrong since Unblock was
       added. It now says where to undo it, as the row is hidden until someone is blocked.
-  - **Whole app:** green everywhere, red only for SOS and serious road reports.
+  - [x] **Whole app:** green everywhere, red only for SOS and serious road reports. Done 2 November:
+    - Amber is pointed at the green in `src/app/globals.css`, as orange and yellow already pointed at amber, so
+      weather, tips, the checkpoint row and the report tiles all went green in one place. Admin pages went with them.
+    - **For the owner to see:** a real problem is dark grey with dark words, not green, as green would read as all
+      well: no location, no connection, a contact who cannot be texted, form and sign-in errors, failed toasts.
+    - **One exception, for the owner to see:** overdue stays red on the trip card, the trip map and the page contacts
+      open, as that is when contacts are being told. So do Emergency numbers and the emergency box on Support.
+    - Delete, Report and Block keep working as they did and are no longer red. Only the colour changed, so the store
+      rules on reporting and blocking are still met.
+    - The line browsers draw around a focused box is green, as it was orange in some.
+    - All 20 simplification changes are done, and none is on a phone yet.
   - **The test trip stays** (the owner, 1 November: "keep the test trip"), with its note cut to one line. They had
     thought of removing it; "A first trip on day one" is built on it and it is the only way to try alerts safely.
 - **Decided 23 October:** the directions beta stays in build 25 and is built last, after every other build 25

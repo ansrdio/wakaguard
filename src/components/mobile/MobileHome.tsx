@@ -348,7 +348,7 @@ export function MobileHome({
                           <ThumbsUp className="w-3 h-3" />
                           {r.upvotes || 0}
                         </span>
-                        <span className="flex items-center gap-1 text-xs text-red-500">
+                        <span className="flex items-center gap-1 text-xs text-slate-600">
                           <ThumbsDown className="w-3 h-3" />
                           {r.downvotes || 0}
                         </span>
@@ -422,11 +422,11 @@ export function MobileHome({
           <div className="fixed left-4 right-4 z-30 space-y-2" style={{ top: 'calc(env(safe-area-inset-top, 0px) + 126px)' }}>
             {/* Why the top bar's "find me" button did not move the map */}
             {locationError && (
-              <div role="alert" className="bg-amber-50 dark:bg-amber-950 border border-amber-300 dark:border-amber-700 rounded-2xl shadow-lg p-3 flex items-start gap-3">
-                <p className="flex-1 text-sm text-amber-900 dark:text-amber-100">{locationError}</p>
+              <div role="alert" className="bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-2xl shadow-lg p-3 flex items-start gap-3">
+                <p className="flex-1 text-sm text-slate-900 dark:text-slate-100">{locationError}</p>
                 <button
                   onClick={onClearLocationError}
-                  className="p-3.5 -m-3.5 text-amber-800 dark:text-amber-200"
+                  className="p-3.5 -m-3.5 text-slate-900 dark:text-slate-100"
                   aria-label="Dismiss"
                 >
                   <X className="w-4 h-4" />
@@ -594,7 +594,7 @@ export function MobileHome({
       {toast && (
         <div className="fixed top-20 left-4 right-4 z-50 animate-in slide-in-from-top duration-300">
           <div className={`p-4 rounded-xl shadow-lg ${
-            toast.type === 'success' ? 'bg-emerald-600' : 'bg-red-600'
+            toast.type === 'success' ? 'bg-emerald-600' : 'bg-slate-800'
           } text-white text-sm font-medium text-center`}>
             {toast.message}
           </div>

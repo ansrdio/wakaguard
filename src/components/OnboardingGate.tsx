@@ -72,11 +72,11 @@ export function OnboardingGate({ onStateSelected }: OnboardingGateProps) {
       <>
         {errorMessage && (
           <div className="fixed top-4 left-4 right-4 z-[60] max-w-md mx-auto">
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+            <div className="bg-slate-100 border border-slate-300 rounded-lg p-4 flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-slate-700 flex-shrink-0 mt-0.5" />
               <div className="flex-1">
-                <p className="text-sm font-medium text-yellow-800">{errorMessage}</p>
-                <p className="text-xs text-yellow-700 mt-1">Please select your state manually</p>
+                <p className="text-sm font-medium text-slate-900">{errorMessage}</p>
+                <p className="text-xs text-slate-700 mt-1">Please select your state manually</p>
               </div>
             </div>
           </div>

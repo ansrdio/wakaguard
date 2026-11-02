@@ -171,7 +171,7 @@ export function EmailLinkPage() {
         <p className="mt-1 text-sm text-slate-600">At least 6 characters.</p>
 
         {passwordError && (
-          <p role="alert" className="mt-3 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
+          <p role="alert" className="mt-3 p-3 bg-slate-100 border border-slate-300 rounded-xl text-sm text-slate-900">
             {passwordError}
           </p>
         )}
@@ -193,7 +193,7 @@ function Problem({ title, text, onRetry }: { title: string; text: string; onRetr
   return (
     <div role="alert" className="min-h-screen flex items-center justify-center bg-slate-50 p-6 text-center">
       <div className="max-w-sm w-full">
-        <span className="w-14 h-14 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center mx-auto">
+        <span className="w-14 h-14 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center mx-auto">
           <TriangleAlert className="w-7 h-7" aria-hidden="true" />
         </span>
         <h1 className="mt-4 text-xl font-bold text-slate-900">{title}</h1>

@@ -232,8 +232,8 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
         <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-3xl shadow-sm p-6">
           {/* Error/Success Messages */}
           {authError && (
-            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg">
-              <p className="text-sm text-red-600 dark:text-red-400">{authError}</p>
+            <div className="mb-4 p-3 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg">
+              <p className="text-sm text-slate-900 dark:text-slate-100">{authError}</p>
             </div>
           )}
           {authSuccess && (

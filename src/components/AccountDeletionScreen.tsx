@@ -54,7 +54,7 @@ export function AccountDeletionScreen({ deletion }: { deletion: Exclude<Deletion
             <button
               type="button"
               onClick={() => void deleteAccount()}
-              className="w-full py-3.5 bg-red-600 text-white rounded-2xl font-bold hover:bg-red-700"
+              className="w-full py-3.5 bg-slate-800 text-white rounded-2xl font-bold hover:bg-slate-900"
             >
               Try again
             </button>

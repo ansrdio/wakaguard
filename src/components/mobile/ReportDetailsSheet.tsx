@@ -151,7 +151,7 @@ export function ReportDetailsSheet({ report, onClose, onShowToast }: ReportDetai
           )}
 
           {report.postedFarAway && (
-            <p className="text-xs font-medium text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+            <p className="text-xs font-medium text-slate-900 bg-slate-100 border border-slate-300 rounded-lg px-3 py-2">
               Posted from far away, not on the spot. The person may have passed here earlier.
             </p>
           )}
@@ -204,7 +204,7 @@ export function ReportDetailsSheet({ report, onClose, onShowToast }: ReportDetai
               <button
                 onClick={() => handleConfirmStatus('still_there')}
                 disabled={resolutionLoading || !uid}
-                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-orange-600 text-white rounded-xl font-medium hover:bg-orange-700 transition-colors disabled:opacity-50"
+                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-800 text-white rounded-xl font-medium hover:bg-slate-900 transition-colors disabled:opacity-50"
               >
                 <XCircle className="w-4 h-4" />
                 Still There

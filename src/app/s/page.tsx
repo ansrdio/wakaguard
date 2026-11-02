@@ -134,19 +134,19 @@ function SharedTripContent() {
   const callFor112 = (isOverdue || isEmergency) && !trip.isTest;
 
   const pill = trip.isTest
-    ? { className: 'bg-amber-200 text-amber-900', label: 'Test' }
+    ? { className: 'bg-slate-200 text-slate-900', label: 'Test' }
     : isEmergency
     ? { className: 'bg-red-600 text-white', label: 'SOS sent' }
     : isOverdue
       ? { className: 'bg-red-100 text-red-800', label: 'Overdue' }
       : isStale
-        ? { className: 'bg-amber-100 text-amber-900', label: 'No recent updates' }
+        ? { className: 'bg-slate-100 text-slate-900', label: 'No recent updates' }
         : { className: 'bg-brand-100 text-brand-800', label: 'On trip' };
 
   return (
     <Shell pill={<span className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${pill.className}`}>{pill.label}</span>}>
       {trip.isTest && (
-        <div role="status" className="bg-amber-300 text-slate-900">
+        <div role="status" className="bg-slate-200 text-slate-900">
           <div className="max-w-5xl mx-auto px-4 py-3 flex items-start gap-2">
             <AlertTriangle className="w-5 h-5 mt-0.5 flex-shrink-0" aria-hidden="true" />
             <span className="font-semibold">
@@ -206,7 +206,7 @@ function SharedTripContent() {
 
           <div className="bg-white rounded-3xl border border-slate-200 shadow-sm divide-y divide-slate-100">
             <div className="p-4 flex items-start gap-3">
-              <MapPin className={`w-5 h-5 mt-0.5 flex-shrink-0 ${isStale ? 'text-amber-600' : 'text-brand-600'}`} aria-hidden="true" />
+              <MapPin className={`w-5 h-5 mt-0.5 flex-shrink-0 ${isStale ? 'text-slate-700' : 'text-brand-600'}`} aria-hidden="true" />
               <div>
                 <p className="text-sm text-slate-500">Last location received</p>
                 <p className="text-lg font-bold text-slate-900">
@@ -214,7 +214,7 @@ function SharedTripContent() {
                   {latest && lastUpdateMs !== null && isStale ? ` (${formatClock(lastUpdateMs, nowMs)})` : ''}
                 </p>
                 {isStale && (
-                  <p className="text-sm text-amber-800 mt-1">
+                  <p className="text-sm text-slate-900 mt-1">
                     Their phone may be off, out of coverage, or the app may be closed. The map shows where they were,
                     not where they are now.
                   </p>

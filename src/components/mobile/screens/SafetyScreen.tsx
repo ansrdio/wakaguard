@@ -888,18 +888,18 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
         <section
           role="status"
           aria-labelledby="unsent-change-title"
-          className="rounded-3xl border border-amber-300 bg-amber-50 dark:bg-amber-950 dark:border-amber-700 p-5"
+          className="rounded-3xl border border-slate-300 bg-slate-100 dark:bg-slate-700 dark:border-slate-600 p-5"
         >
-          <h2 id="unsent-change-title" className="font-bold text-amber-950 dark:text-amber-50">
+          <h2 id="unsent-change-title" className="font-bold text-slate-900 dark:text-slate-100">
             {UNSENT_WORDS[unsentChange].title}
           </h2>
-          <p className="mt-1 text-sm text-amber-900 dark:text-amber-100">
+          <p className="mt-1 text-sm text-slate-900 dark:text-slate-100">
             {UNSENT_WORDS[unsentChange].body} Keep WakaGuard open: it is sent by itself as soon as the connection works.
           </p>
           <button
             type="button"
             onClick={() => void retryStuckSaves()}
-            className="mt-4 w-full py-2.5 rounded-xl bg-amber-900 text-white font-semibold hover:bg-amber-950"
+            className="mt-4 w-full py-2.5 rounded-xl bg-slate-800 text-white font-semibold hover:bg-slate-900"
           >
             Try again now
           </button>
@@ -1048,7 +1048,7 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
               <span className={moreTitle}>Trusted contacts</span>
               <span className={moreSub}>{trustedContacts.length === 0 ? 'None saved yet' : `${trustedContacts.length} saved`}</span>
               {untextableCount > 0 && (
-                <span className="block text-sm font-medium text-amber-700 dark:text-amber-300">
+                <span className="block text-sm font-medium text-slate-700 dark:text-slate-100">
                   {untextableCount === 1 ? '1 cannot be texted' : `${untextableCount} cannot be texted`}
                 </span>
               )}
@@ -1165,7 +1165,7 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
                 </button>
               </div>
               {textableContacts.length === 0 && (
-                <p className="text-xs text-amber-600 mt-2 text-center">
+                <p className="text-xs text-slate-700 mt-2 text-center">
                   {untextableCount > 0
                     ? 'None of your contacts can be texted. Open Trusted contacts to see why.'
                     : 'Add trusted contacts to enable SMS alerts'}
@@ -1284,11 +1284,11 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
                           <p className="font-medium text-slate-900">{contact.name}</p>
                           <p className="text-xs text-slate-500">{contact.phoneE164 || contact.phone}</p>
                           {askedForNoTexts(contact) ? (
-                            <p className="text-xs font-medium text-amber-700 mt-0.5">
+                            <p className="text-xs font-medium text-slate-700 mt-0.5">
                               Asked WakaGuard not to text this number, so will not be told about your trips.
                             </p>
                           ) : !canBeTexted(contact) && (
-                            <p className="text-xs font-medium text-amber-700 mt-0.5">
+                            <p className="text-xs font-medium text-slate-700 mt-0.5">
                               This number cannot be texted. Remove it and add it again with the full number.
                             </p>
                           )}
@@ -1297,7 +1297,7 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
                       <button
                         onClick={() => handleRemoveContact(contact)}
                         disabled={processing}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-full"
+                        className="p-2 text-slate-900 hover:bg-slate-200 rounded-full"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -1314,7 +1314,7 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
       {toast && (
         <div className="fixed top-20 left-4 right-4 z-50 animate-in slide-in-from-top duration-300">
           <div className={`p-4 rounded-xl shadow-lg ${
-            toast.type === 'success' ? 'bg-emerald-600' : 'bg-red-600'
+            toast.type === 'success' ? 'bg-emerald-600' : 'bg-slate-800'
           } text-white text-sm font-medium text-center`}>
             {toast.message}
           </div>

@@ -48,8 +48,8 @@ export function DeleteOwnPost({ kind, targetId, authorUid, onShowToast, onDelete
         onClick={() => setConfirming(true)}
         disabled={deleting}
         className={compact
-          ? 'inline-flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-red-700 disabled:opacity-60'
-          : 'flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-red-700 border border-red-200 rounded-xl hover:bg-red-50 disabled:opacity-60'}
+          ? 'inline-flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-900 disabled:opacity-60'
+          : 'flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-slate-900 border border-slate-300 rounded-xl hover:bg-slate-200 disabled:opacity-60'}
       >
         <Trash2 className={compact ? 'w-3.5 h-3.5' : 'w-4 h-4'} aria-hidden="true" />
         {compact ? 'Delete' : `Delete my ${what}`}
@@ -76,7 +76,7 @@ export function DeleteOwnPost({ kind, targetId, authorUid, onShowToast, onDelete
                 type="button"
                 onClick={() => void remove()}
                 disabled={deleting}
-                className="flex-1 py-3 rounded-2xl bg-red-600 text-white font-bold hover:bg-red-700 disabled:opacity-60"
+                className="flex-1 py-3 rounded-2xl bg-slate-800 text-white font-bold hover:bg-slate-900 disabled:opacity-60"
               >
                 {deleting ? 'Deleting…' : 'Delete'}
               </button>

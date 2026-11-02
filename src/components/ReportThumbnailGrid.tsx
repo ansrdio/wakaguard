@@ -15,10 +15,10 @@ interface ReportThumbnailGridProps {
 const typeColors: Record<ReportType, string> = {
   [ReportType.CHECKPOINT]: 'bg-blue-600',
   [ReportType.POTHOLE]: 'bg-amber-500',
-  [ReportType.ACCIDENT]: 'bg-red-500',
+  [ReportType.ACCIDENT]: 'bg-brand-500',
   [ReportType.TRAFFIC]: 'bg-yellow-500',
   [ReportType.ROADWORK]: 'bg-orange-500',
-  [ReportType.HAZARD]: 'bg-rose-500',
+  [ReportType.HAZARD]: 'bg-brand-500',
   [ReportType.CLOSURE]: 'bg-gray-500',
   [ReportType.OTHER]: 'bg-slate-500',
 };

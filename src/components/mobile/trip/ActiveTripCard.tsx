@@ -202,7 +202,7 @@ export function ActiveTripCard({
               </p>
             </>
           ) : (
-            <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
+            <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
               No one is set to be told about this trip
             </p>
           )}
@@ -263,7 +263,7 @@ export function ActiveTripCard({
 
         {locationFromElsewhere && (
           <div className="px-5 pb-4">
-            <div className="bg-amber-50 border border-amber-300 rounded-xl p-3 text-sm text-amber-900">
+            <div className="bg-slate-100 border border-slate-300 rounded-xl p-3 text-sm text-slate-900">
               This trip was started on another phone, and its location is coming from that phone, not this one.
               <button
                 type="button"
@@ -292,7 +292,7 @@ export function ActiveTripCard({
         {(unsynced || alert || timeLeft?.state === 'overdue') && (
           <div className="px-5 pb-5 space-y-3">
             {unsynced && (
-              <div role="alert" className="bg-amber-100 border border-amber-400 rounded-xl p-3 text-sm text-amber-900">
+              <div role="alert" className="bg-slate-100 border border-slate-300 rounded-xl p-3 text-sm text-slate-900">
                 <span className="font-semibold">Waiting for a connection.</span> Your latest changes have not been sent,
                 so this trip may not be watched and your contacts may not be alerted. Keep the app open until this
                 message goes away.

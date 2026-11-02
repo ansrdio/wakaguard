@@ -109,7 +109,7 @@ export function AppNotices() {
           role="status"
           className={`flex items-start gap-3 rounded-2xl p-3 text-sm ${
             need === 'required'
-              ? 'bg-red-600 text-white'
+              ? 'bg-slate-800 text-white'
               : 'bg-blue-50 text-blue-950 border border-blue-200 dark:bg-blue-950 dark:text-blue-50 dark:border-blue-800'
           }`}
         >
@@ -128,7 +128,7 @@ export function AppNotices() {
                 type="button"
                 onClick={() => window.open(updateUrl, '_blank')}
                 className={`mt-2 px-3 py-1.5 rounded-xl font-semibold ${
-                  need === 'required' ? 'bg-white text-red-700' : 'bg-blue-700 text-white'
+                  need === 'required' ? 'bg-white text-slate-900' : 'bg-blue-700 text-white'
                 }`}
               >
                 Update now
@@ -147,7 +147,7 @@ export function AppNotices() {
           role="status"
           className={`flex items-start gap-3 rounded-2xl p-3 text-sm border ${
             notice.level === 'warning'
-              ? 'bg-amber-50 text-amber-950 border-amber-300 dark:bg-amber-950 dark:text-amber-50 dark:border-amber-700'
+              ? 'bg-slate-100 text-slate-900 border-slate-300 dark:bg-slate-700 dark:text-slate-100 dark:border-slate-600'
               : 'bg-white text-slate-800 border-slate-200 dark:bg-slate-800 dark:text-slate-100 dark:border-slate-700'
           }`}
         >

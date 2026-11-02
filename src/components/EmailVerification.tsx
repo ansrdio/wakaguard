@@ -114,14 +114,14 @@ export function EmailVerification({ email }: EmailVerificationProps) {
         </ol>
 
         {error && (
-          <div role="alert" className="w-full mt-4 p-3 bg-red-50 border border-red-200 rounded-xl">
-            <p className="text-sm text-red-700">{error}</p>
+          <div role="alert" className="w-full mt-4 p-3 bg-slate-100 border border-slate-300 rounded-xl">
+            <p className="text-sm text-slate-900">{error}</p>
           </div>
         )}
 
         {notYet && !error && (
-          <div role="status" className="w-full mt-4 p-3 bg-amber-50 border border-amber-200 rounded-xl">
-            <p className="text-sm text-amber-900">Not verified yet. Tap the link in the email first, then try again.</p>
+          <div role="status" className="w-full mt-4 p-3 bg-slate-100 border border-slate-300 rounded-xl">
+            <p className="text-sm text-slate-900">Not verified yet. Tap the link in the email first, then try again.</p>
           </div>
         )}
 

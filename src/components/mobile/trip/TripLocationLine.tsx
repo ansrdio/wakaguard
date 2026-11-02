@@ -42,7 +42,7 @@ export function TripLocationLine({ trip, nowMs, sendsHere, className = '', iconC
   return (
     <div
       className={`flex items-start gap-3 text-sm ${
-        advice.tone === 'fine' ? 'text-slate-600 dark:text-slate-300' : 'text-amber-800 dark:text-amber-300 font-medium'
+        advice.tone === 'fine' ? 'text-slate-600 dark:text-slate-300' : 'text-slate-900 dark:text-slate-100 font-medium'
       } ${className}`}
     >
       <Icon
@@ -56,7 +56,7 @@ export function TripLocationLine({ trip, nowMs, sendsHere, className = '', iconC
             <button
               type="button"
               onClick={act}
-              className="min-h-12 px-4 py-2 rounded-xl bg-amber-100 text-amber-900 font-semibold hover:bg-amber-200"
+              className="min-h-12 px-4 py-2 rounded-xl bg-slate-100 text-slate-900 font-semibold hover:bg-slate-200"
             >
               {ACTION_WORDS[advice.action]}
             </button>

@@ -96,7 +96,7 @@ const inputClass =
   'w-full px-4 py-3 border border-slate-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900 ' +
   'text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-brand-500 focus:border-brand-500';
 const labelClass = 'block text-sm font-semibold text-slate-800 dark:text-slate-100 mb-2';
-const errorClass = 'text-sm text-red-600 dark:text-red-400 mt-1.5';
+const errorClass = 'text-sm font-medium text-slate-900 dark:text-white mt-1.5';
 
 /**
  * The start of a Safe Trip: where, by when, and who is told if you don't arrive.
@@ -536,11 +536,11 @@ export function StartTripForm({
                 return (
                   <li
                     key={contact.id}
-                    className="flex items-start gap-3 p-3 rounded-2xl border border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700"
+                    className="flex items-start gap-3 p-3 rounded-2xl border border-slate-300 bg-slate-100 dark:bg-slate-700 dark:border-slate-600"
                   >
                     <span
                       aria-hidden="true"
-                      className="w-10 h-10 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-100 flex items-center justify-center flex-shrink-0"
+                      className="w-10 h-10 rounded-full bg-slate-100 text-slate-900 dark:bg-slate-700 dark:text-slate-100 flex items-center justify-center flex-shrink-0"
                     >
                       <AlertTriangle className="w-5 h-5" />
                     </span>
@@ -548,12 +548,12 @@ export function StartTripForm({
                       <span className="block font-medium text-slate-900 dark:text-white truncate">{contact.name}</span>
                       <span className="block text-xs text-slate-500 dark:text-slate-400">{contact.phone || 'No number saved'}</span>
                       {askedForNoTexts(contact) ? (
-                        <span className="block text-sm text-amber-800 dark:text-amber-200 mt-1">
+                        <span className="block text-sm text-slate-900 dark:text-slate-100 mt-1">
                           {contact.name} asked WakaGuard not to text their number, so they will not be told.
                           Only they can turn texts back on, from the link in an earlier WakaGuard text.
                         </span>
                       ) : (
-                        <span className="block text-sm text-amber-800 dark:text-amber-200 mt-1">
+                        <span className="block text-sm text-slate-900 dark:text-slate-100 mt-1">
                           This number cannot be texted, so {contact.name} will not be told.{' '}
                           <button type="button" onClick={onManageContacts} className="font-semibold underline">
                             Fix it
@@ -811,7 +811,7 @@ export function StartTripForm({
       </div>
 
       {firstProblem && (
-        <p className="text-sm font-semibold text-red-700 dark:text-red-300 text-center">
+        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 text-center">
           {firstProblem} to start the trip.
         </p>
       )}

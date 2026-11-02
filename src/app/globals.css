@@ -9,13 +9,16 @@
 
 /*
  * Colours from the outside design PDF "WakaGuard complete design v2" (build 25,
- * the owner, 24 October 2026). One green for actions and selection, amber for
- * warnings, red only for SOS and failures, and green-tinted greys. The screens
- * keep their colour classes: the other families Tailwind offers are pointed at
- * these four below, so a blue button is green and an orange note is amber.
+ * the owner, 24 October 2026), made simpler in build 26 (the owner, 1 November
+ * 2026). One green for everything calm, red only for SOS, overdue trips and
+ * serious road reports, and green-tinted greys. A problem that is not an
+ * emergency is dark grey with its words in bold, as in green it would read as
+ * all well. The screens keep their colour classes: the other families Tailwind
+ * offers are pointed at these three below, so a blue button and an amber note
+ * are both green.
  *
  * Contrast (checked 24 October): white on brand-600 6.5:1, slate-600 on white
- * 6.4:1, slate-500 on white 5.0:1, amber-700 on amber-100 6.2:1, white on
+ * 6.4:1, slate-500 on white 5.0:1, slate-900 on slate-100 14.1:1, white on
  * red-600 6.6:1; dark mode slate-400 on slate-900 5.9:1, brand-400 on
  * slate-900 9.2:1.
  *
@@ -46,19 +49,19 @@
   --color-slate-800: #192D25;
   --color-slate-900: #10231D;
   --color-slate-950: #0A1A15;
-  /* Warnings: amber-700 on amber-100 */
-  --color-amber-50: #FFF8EB;
-  --color-amber-100: #FFF3D8;
-  --color-amber-200: #FCE3B2;
-  --color-amber-300: #F5C988;
-  --color-amber-400: #ECAB55;
-  --color-amber-500: #D98A26;
-  --color-amber-600: #B26A16;
-  --color-amber-700: #8A4B0F;
-  --color-amber-800: #6F3C0E;
-  --color-amber-900: #57360F;
-  --color-amber-950: #3F321C;
-  /* SOS and failures only: red-600 */
+  /* Amber was the warning colour until build 26. It is green now. */
+  --color-amber-50: var(--color-brand-50);
+  --color-amber-100: var(--color-brand-100);
+  --color-amber-200: var(--color-brand-200);
+  --color-amber-300: var(--color-brand-300);
+  --color-amber-400: var(--color-brand-400);
+  --color-amber-500: var(--color-brand-500);
+  --color-amber-600: var(--color-brand-600);
+  --color-amber-700: var(--color-brand-700);
+  --color-amber-800: var(--color-brand-800);
+  --color-amber-900: var(--color-brand-900);
+  --color-amber-950: var(--color-brand-950);
+  /* SOS, overdue trips and serious road reports only: red-600 */
   --color-red-50: #FEF3F2;
   --color-red-100: #FEE4E2;
   --color-red-200: #FECDCA;
@@ -296,4 +299,9 @@ body.dark-mode {
 @supports not (translate: 1px) {
   .translate-x-1 { transform: translateX(0.25rem); }
   .translate-x-6 { transform: translateX(1.5rem); }
+}
+
+/* The browser picks an orange of its own for the line around a focused box */
+:focus-visible {
+  outline-color: var(--color-brand-500);
 }

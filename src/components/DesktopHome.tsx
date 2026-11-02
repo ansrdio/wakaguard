@@ -106,8 +106,8 @@ export function DesktopHome({
     switch (status) {
       case ReportStatus.ACTIVE: return 'bg-emerald-100 text-emerald-700';
       case ReportStatus.RESOLVED: return 'bg-slate-100 text-slate-600';
-      case ReportStatus.EXPIRED: return 'bg-amber-100 text-amber-700';
-      case ReportStatus.FLAGGED: return 'bg-red-100 text-red-700';
+      case ReportStatus.EXPIRED: return 'bg-slate-100 text-slate-700';
+      case ReportStatus.FLAGGED: return 'bg-slate-100 text-slate-900';
       default: return 'bg-slate-100 text-slate-600';
     }
   };
@@ -286,10 +286,10 @@ export function DesktopHome({
                             e.stopPropagation();
                             handleSignOut();
                           }}
-                          className="w-full px-4 py-2.5 text-left hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-3 transition-colors"
+                          className="w-full px-4 py-2.5 text-left hover:bg-slate-200 dark:hover:bg-slate-600 flex items-center gap-3 transition-colors"
                         >
-                          <LogOut className="w-4 h-4 text-red-500" />
-                          <span className="text-sm text-red-600">Sign Out</span>
+                          <LogOut className="w-4 h-4 text-slate-600" />
+                          <span className="text-sm text-slate-900">Sign Out</span>
                         </button>
                         {!isAnonymous && (
                           <button
@@ -324,14 +324,14 @@ export function DesktopHome({
 
         {locationError && (
           <div className="py-2">
-            <div className="flex items-center gap-3 p-3 bg-amber-50 border border-amber-200 rounded-xl">
-              <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0" />
-              <p className="text-sm text-amber-800 flex-1">{locationError}</p>
+            <div className="flex items-center gap-3 p-3 bg-slate-100 border border-slate-300 rounded-xl">
+              <AlertCircle className="w-5 h-5 text-slate-700 flex-shrink-0" />
+              <p className="text-sm text-slate-900 flex-1">{locationError}</p>
               <button
                 onClick={onClearLocationError}
-                className="p-1 hover:bg-amber-100 rounded transition-colors"
+                className="p-1 hover:bg-slate-200 rounded transition-colors"
               >
-                <X className="w-4 h-4 text-amber-600" />
+                <X className="w-4 h-4 text-slate-700" />
               </button>
             </div>
           </div>
@@ -453,8 +453,8 @@ export function DesktopHome({
               </div>
 
               {error && (
-                <div className="mx-4 mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                  <p className="text-sm text-red-600">{error}</p>
+                <div className="mx-4 mt-4 p-3 bg-slate-100 border border-slate-300 rounded-lg">
+                  <p className="text-sm text-slate-900">{error}</p>
                 </div>
               )}
 
@@ -687,7 +687,7 @@ export function DesktopHome({
                       <p className="text-xs text-slate-500">Not supported in this browser</p>
                     )}
                     {pushSupported && permission === 'denied' && (
-                      <p className="text-xs text-red-500">Blocked - enable in browser settings</p>
+                      <p className="text-xs text-slate-600">Blocked - enable in browser settings</p>
                     )}
                     {pushSupported && permission !== 'denied' && (
                       <p className="text-xs text-slate-500 dark:text-slate-400">{isSubscribed ? 'Enabled' : 'Disabled'}</p>

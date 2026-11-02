@@ -166,7 +166,7 @@ export function UsernameSetup({ uid, onComplete }: UsernameSetupProps) {
                 placeholder="your_username"
                 className={`w-full pl-8 pr-10 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-colors ${
                   error 
-                    ? 'border-red-300 focus:ring-red-500' 
+                    ? 'border-slate-300 focus:ring-slate-500' 
                     : isAvailable 
                       ? 'border-green-300 focus:ring-green-500' 
                       : 'border-slate-300 focus:ring-brand-500'
@@ -180,12 +180,12 @@ export function UsernameSetup({ uid, onComplete }: UsernameSetupProps) {
               <div className="absolute right-3 top-1/2 -translate-y-1/2">
                 {checking && <Loader2 className="w-5 h-5 text-slate-400 animate-spin" />}
                 {!checking && isAvailable === true && <Check className="w-5 h-5 text-green-500" />}
-                {!checking && isAvailable === false && <X className="w-5 h-5 text-red-500" />}
+                {!checking && isAvailable === false && <X className="w-5 h-5 text-slate-600" />}
               </div>
             </div>
             
             {error && (
-              <p className="mt-2 text-sm text-red-600">{error}</p>
+              <p className="mt-2 text-sm text-slate-900">{error}</p>
             )}
             {isAvailable && !error && (
               <p className="mt-2 text-sm text-green-600">Username is available!</p>

@@ -82,7 +82,7 @@ function DirectionsFooter({ deadline, route, guidance, onStop }: {
   return (
     <div className="mt-3">
       {words && (
-        <p className={`text-sm ${late ? 'text-amber-800 dark:text-amber-300 font-medium' : 'text-slate-600 dark:text-slate-300'}`}>
+        <p className={`text-sm ${late ? 'text-slate-900 dark:text-slate-100 font-medium' : 'text-slate-600 dark:text-slate-300'}`}>
           {words}
         </p>
       )}
@@ -174,7 +174,7 @@ export function DirectionsLine({ directions, deadline = null, className = '' }: 
         {voice && <VoiceButton voice={voice} />}
       </div>
       {voice && !voice.muted && voice.volumeOff && (
-        <p className="mt-2 text-sm font-medium text-amber-800 dark:text-amber-300" role="status">
+        <p className="mt-2 text-sm font-medium text-slate-900 dark:text-slate-100" role="status">
           Your media volume is off. Turn it up to hear the directions.
         </p>
       )}

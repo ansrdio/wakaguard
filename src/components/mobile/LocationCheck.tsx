@@ -22,7 +22,7 @@ function Row({ label, value, good, waiting = false }: { label: string; value: st
     <div className="flex items-start gap-3 py-3 border-b border-slate-100 last:border-b-0">
       <span
         className={`mt-0.5 w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${
-          good === true ? 'bg-brand-100 text-brand-700' : good === false ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-500'
+          good === true ? 'bg-brand-100 text-brand-700' : good === false ? 'bg-slate-100 text-slate-900' : 'bg-slate-100 text-slate-500'
         }`}
         aria-hidden="true"
       >
@@ -106,7 +106,7 @@ export function LocationCheck({ tripStatus, onClose }: { tripStatus?: string; on
         </div>
 
         {onlyRough && (
-          <p className="mt-3 rounded-xl bg-amber-50 border border-amber-200 p-3 text-sm text-amber-900">
+          <p className="mt-3 rounded-xl bg-slate-100 border border-slate-300 p-3 text-sm text-slate-900">
             Your phone can only tell roughly where it is, so your contacts may not find you. Go outside, away from
             buildings, and check again.
             {Capacitor.getPlatform() === 'android' && (

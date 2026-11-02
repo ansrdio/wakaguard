@@ -647,7 +647,7 @@ export function CreateReportModal({ isOpen, onClose, defaultState, initialLocati
                       type="button"
                       onClick={() => handleRemovePhoto(index)}
                       disabled={submitting}
-                      className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors opacity-0 group-hover:opacity-100"
+                      className="absolute top-1 right-1 p-1 bg-slate-800 text-white rounded-full hover:bg-slate-900 transition-colors opacity-0 group-hover:opacity-100"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -709,7 +709,7 @@ export function CreateReportModal({ isOpen, onClose, defaultState, initialLocati
 
             <div className="text-sm text-gray-600 mb-2">
               {placeNote ? (
-                <p role="status" className="text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">{placeNote}</p>
+                <p role="status" className="text-slate-900 bg-slate-100 border border-slate-300 rounded-lg px-3 py-2">{placeNote}</p>
               ) : useGPS ? (
                 <div className="flex items-center gap-2 text-green-600">
                   <MapPin className="w-4 h-4" />

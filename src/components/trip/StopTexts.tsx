@@ -93,7 +93,7 @@ export function StopTexts({ token, who }: { token: string; who: string }) {
           : 'Enter the number you stopped texts to. WakaGuard texts will reach it again.'}
       </p>
       {stopping && (
-        <p className="mt-2 text-sm font-medium text-amber-800">
+        <p className="mt-2 text-sm font-medium text-slate-900">
           You will not be told if {person}, or anyone else who has you as a contact, is overdue or sends an SOS.
         </p>
       )}
@@ -109,7 +109,7 @@ export function StopTexts({ token, who }: { token: string; who: string }) {
             className="mt-1 w-full px-4 py-3 rounded-2xl border border-slate-300 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
           />
         </label>
-        {problem && <p className="text-sm text-red-700" role="alert">{problem}</p>}
+        {problem && <p className="text-sm text-slate-900" role="alert">{problem}</p>}
         <div className="flex flex-wrap items-center gap-3">
           <button
             type="submit"

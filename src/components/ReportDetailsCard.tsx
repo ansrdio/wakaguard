@@ -198,7 +198,7 @@ export function ReportDetailsCard({ report, onClose }: ReportDetailsCardProps) {
           <div className={`mb-4 p-3 rounded-2xl border ${
             notice.type === 'success' 
               ? 'bg-green-50 border-green-200 text-green-800'
-              : 'bg-red-50 border-red-200 text-red-800'
+              : 'bg-slate-100 border-slate-300 text-slate-900'
           }`}>
             <p className="text-sm font-medium">{notice.message}</p>
           </div>
@@ -348,7 +348,7 @@ export function ReportDetailsCard({ report, onClose }: ReportDetailsCardProps) {
               <span className="font-semibold text-slate-900">{optimisticVotes?.upvotes ?? report.upvotes}</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <ThumbsDown className="w-4 h-4 text-red-600" />
+              <ThumbsDown className="w-4 h-4 text-slate-900" />
               <span className="font-semibold text-slate-900">{optimisticVotes?.downvotes ?? report.downvotes}</span>
             </div>
           </div>
@@ -476,7 +476,7 @@ export function ReportDetailsCard({ report, onClose }: ReportDetailsCardProps) {
           <button 
             onClick={() => handleVote('down')}
             disabled={voteSubmitting || !uid}
-            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-red-600 text-white rounded-2xl hover:bg-red-700 transition-colors text-sm font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-800 text-white rounded-2xl hover:bg-slate-900 transition-colors text-sm font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <ThumbsDown className="w-4 h-4" />
             {voteSubmitting ? 'Voting...' : 'Downvote'}
@@ -513,7 +513,7 @@ export function ReportDetailsCard({ report, onClose }: ReportDetailsCardProps) {
             <button 
               onClick={() => handleConfirmStatus('still_there')}
               disabled={resolutionLoading || !uid}
-              className="flex items-center justify-center gap-2 px-3 py-2 bg-orange-600 text-white rounded-xl hover:bg-orange-700 transition-colors text-sm font-medium disabled:opacity-50"
+              className="flex items-center justify-center gap-2 px-3 py-2 bg-slate-800 text-white rounded-xl hover:bg-slate-900 transition-colors text-sm font-medium disabled:opacity-50"
               aria-label="Confirm still there"
             >
               <XCircle className="w-4 h-4" />

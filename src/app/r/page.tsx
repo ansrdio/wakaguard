@@ -187,7 +187,7 @@ function ReportDetailContent() {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
         <div className="text-center max-w-md">
-          <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <AlertCircle className="w-16 h-16 text-slate-600 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-gray-900 mb-2">No Report ID</h1>
           <p className="text-gray-600 mb-6">Please provide a report ID in the URL.</p>
           <Link 
@@ -217,7 +217,7 @@ function ReportDetailContent() {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
         <div className="text-center max-w-md">
-          <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <AlertCircle className="w-16 h-16 text-slate-600 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Report Not Found</h1>
           <p className="text-gray-600 mb-6">
             {error || 'The report you\'re looking for doesn\'t exist or has been removed.'}
@@ -283,8 +283,8 @@ function ReportDetailContent() {
             </div>
             <div className={`flex items-center gap-2 ${
               report.verification === 'verified' ? 'text-green-600' :
-              report.verification === 'pending' ? 'text-yellow-600' :
-              'text-red-600'
+              report.verification === 'pending' ? 'text-slate-700' :
+              'text-slate-900'
             }`}>
               <span className="w-2 h-2 rounded-full bg-current"></span>
               <span className="capitalize font-medium">{report.verification}</span>
@@ -306,7 +306,7 @@ function ReportDetailContent() {
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
           <div className="flex items-start justify-between mb-3">
             <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-              <MapPin className="w-5 h-5 text-red-500" />
+              <MapPin className="w-5 h-5 text-brand-600" />
               Location
             </h2>
             <button
@@ -335,8 +335,8 @@ function ReportDetailContent() {
               <div className="text-2xl font-bold text-gray-900">{report.upvotes}</div>
               <div className="text-sm text-gray-600">Upvotes</div>
             </div>
-            <div className="text-center p-4 bg-red-50 rounded-lg">
-              <ThumbsDown className="w-6 h-6 text-red-600 mx-auto mb-2" />
+            <div className="text-center p-4 bg-slate-100 rounded-lg">
+              <ThumbsDown className="w-6 h-6 text-slate-900 mx-auto mb-2" />
               <div className="text-2xl font-bold text-gray-900">{report.downvotes}</div>
               <div className="text-sm text-gray-600">Downvotes</div>
             </div>
@@ -351,7 +351,7 @@ function ReportDetailContent() {
             <div className={`p-3 rounded-lg mb-4 flex items-center gap-2 ${
               voteMessage.startsWith('✓') 
                 ? 'bg-green-50 text-green-700 border border-green-200' 
-                : 'bg-yellow-50 text-yellow-700 border border-yellow-200'
+                : 'bg-slate-100 text-slate-700 border border-slate-300'
             }`}>
               {voteMessage.startsWith('✓') && <CheckCircle className="w-5 h-5" />}
               {!voteMessage.startsWith('✓') && <AlertCircle className="w-5 h-5" />}
@@ -392,8 +392,8 @@ function ReportDetailContent() {
                 hasVoted || submitting || voteLoading
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   : existingVote?.value === -1
-                    ? 'bg-red-600 text-white'
-                    : 'bg-red-500 text-white hover:bg-red-600'
+                    ? 'bg-slate-800 text-white'
+                    : 'bg-slate-800 text-white hover:bg-slate-900'
               }`}>
               <ThumbsDown className="w-5 h-5" />
               {existingVote?.value === -1 ? 'Downvoted' : 'Downvote'}
@@ -411,7 +411,7 @@ function ReportDetailContent() {
             <div className={`p-3 rounded-lg mb-4 flex items-center gap-2 ${
               commentMessage.startsWith('✓') 
                 ? 'bg-green-50 text-green-700 border border-green-200' 
-                : 'bg-yellow-50 text-yellow-700 border border-yellow-200'
+                : 'bg-slate-100 text-slate-700 border border-slate-300'
             }`}>
               {commentMessage.startsWith('✓') && <CheckCircle className="w-5 h-5" />}
               {!commentMessage.startsWith('✓') && <AlertCircle className="w-5 h-5" />}
@@ -455,7 +455,7 @@ function ReportDetailContent() {
             <div className={`p-3 rounded-lg mb-4 flex items-center gap-2 ${
               flagMessage.startsWith('✓') 
                 ? 'bg-green-50 text-green-700 border border-green-200' 
-                : 'bg-yellow-50 text-yellow-700 border border-yellow-200'
+                : 'bg-slate-100 text-slate-700 border border-slate-300'
             }`}>
               {flagMessage.startsWith('✓') && <CheckCircle className="w-5 h-5" />}
               {!flagMessage.startsWith('✓') && <AlertCircle className="w-5 h-5" />}
@@ -467,7 +467,7 @@ function ReportDetailContent() {
             <div className={`p-3 rounded-lg mb-4 flex items-center gap-2 ${
               blockMessage.startsWith('✓') 
                 ? 'bg-green-50 text-green-700 border border-green-200' 
-                : 'bg-yellow-50 text-yellow-700 border border-yellow-200'
+                : 'bg-slate-100 text-slate-700 border border-slate-300'
             }`}>
               {blockMessage.startsWith('✓') && <CheckCircle className="w-5 h-5" />}
               {!blockMessage.startsWith('✓') && <AlertCircle className="w-5 h-5" />}
@@ -514,7 +514,7 @@ function ReportDetailContent() {
               <button 
                 onClick={handleBlockUser}
                 disabled={blocking}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-slate-100 text-slate-900 rounded-lg hover:bg-slate-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Ban className="w-5 h-5" />
                 {blocking ? 'Blocking...' : 'Block User'}

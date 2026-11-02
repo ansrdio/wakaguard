@@ -92,7 +92,7 @@ export function ReportList({ reports, selectedReportId, onReportClick, userLocat
                   <span>{report.upvotes}</span>
                 </span>
                 <span className="flex items-center gap-1">
-                  <ThumbsDown className="w-3 h-3 text-red-600" />
+                  <ThumbsDown className="w-3 h-3 text-slate-900" />
                   <span>{report.downvotes}</span>
                 </span>
                 <span className="flex items-center gap-1">
