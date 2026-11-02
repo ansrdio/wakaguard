@@ -26,7 +26,8 @@ before the weekend. Android and iPhone go out on the same day.
 | 24 | Wed 28 Oct | Sign in with Google and Apple; "please update" switch; service notice; "stop texting me"; vehicle details; far-away reports marked; Mapbox maps; destination pin with its place name (in place of search by address); "text them when I arrive"; louder reminders, "More time…", Undo; weather icon and morning weather. Sponsor card moved to a later build (no sponsor yet) | Out on both, ten days early: TestFlight passed Apple's beta review at once on Sun 18 Oct; Google approved the closed test (Alpha) by Mon 19 Oct (the owner) |
 | 24.1 | at once | iPhone only: build 24 closes as soon as it opens on iOS 27. Fix only, nothing else (see "Build 24.1" below) | Out on iPhone: TestFlight Tue 20 Oct, beta review passed at once, both groups testing |
 | 25 | Wed 4 Nov | Fixes after text alerts are switched on; one-tap "keep running" permissions on the first trip; 6, 8 and 12-hour trip choices; four fixes from problem reports (old Android WebView, notifications switch, full-screen pin map, "ending early is fine"); last of all, directions on the trip as a beta (the owner, 23 Oct: "It will be the last thing we add") | Out on both, Sun 25 Oct, ten days early; both stores approved it the same day |
-| 26 | Wed 11 Nov | The launch version, with a simplification pass: one colour plus red for SOS, fewer boxes and icons, a short start form with extras under "More options", plain labels | Started Sun 1 Nov. By Mon 2 Nov, 8 of 15 items in the code: seven small fixes and all 20 simplification changes (Nearby, Start form, trip screen, Profile, colours). Not yet on any phone. Still to do: first trip on day one, checkpoint stops on the contacts' page, lock-screen SOS, App Check, place search, usual-time reminder, points card |
+| 26 | Wed 4 Nov | What is done by then: seven small fixes and the simplification pass (one colour plus red for emergencies, fewer boxes and icons, a short start form with extras under "More options", plain labels). Moved a week early on 2 November (the owner: "Yes, upload Wed 4 Nov"), so testers use the simpler screens for a week before the freeze | All in the code by Mon 2 Nov, not yet on any phone |
+| 27 | Wed 11 Nov | The launch version: the referral programme (see "Build 27" below) and the rest of the build 26 list: first trip on day one, checkpoint stops on the contacts' page, lock-screen SOS, App Check, place search, usual-time reminder, points card | Planned 2 November. If time gets tight, the referral programme and the first trip come first, and the points card and usual-time reminder can move after launch (my suggestion, not yet agreed) |
 
 | After the last build | Date |
 |---|---|
@@ -199,7 +200,8 @@ quick fixes, so its build numbers are three lower than these.
 | 23 | Wed 21 Oct | Testers' corrections; "How are you travelling?" when starting a trip, with matching tips; our own road report pictures; "keep WakaGuard running" help; weather on the Trip screen (the paid map provider moved to build 24: Mapbox) |
 | 24 | Wed 28 Oct | Sign in with Google and Apple (moved from build 23 on 13 October: the stores do not require it, and it is the item most likely to eat a week); sponsor slot, different by state; "please update" switch; service notice; "stop texting me" for contacts; vehicle details on a trip; Mapbox maps; destination search by address |
 | 25 | Wed 4 Nov | Fixes, after text alerts are switched on; directions on the trip, beta, built last |
-| 26 | Wed 11 Nov | The launch version, frozen Friday 13 November |
+| 26 | Wed 4 Nov | The simplification pass, a week early (decided 2 November) |
+| 27 | Wed 11 Nov | The launch version with the referral programme, frozen Friday 13 November |
 
 ### Build 23, in more detail
 
@@ -628,6 +630,36 @@ from the code, by name: five new (`checkQuietTrips`, `onCommentUpdate`,
 whose code was never in this repository (`onCommentCreate`,
 `onCommentDelete`, on Node 20 until now), and the rest brought up to date.
 `createReport` is left alone
+
+### Build 27: the launch version, with the referral programme (decided 2 November)
+
+The owner on 2 November: "we need to add a referral program too where people can earn from getting people on
+and using the app", then, choosing from options: "We will build it in build 27 so it goes out with the freeze".
+I read that as build 27 being the launch version that is frozen on Fri 13 Nov. The rules agreed on 18 October
+stay, with the owner's choices of 2 November added:
+- **The reward:** ₦500 to the person who invited, paid 7 days after the friend makes 4 real trips on 4
+  different days within 30 days and adds a contact. A real trip is not a test, lasts 15 minutes or more, moves
+  about 1 km and ends with "I've arrived". The owner kept this over "after 1 real trip" (2 November).
+- **Limits:** at most 10 paid referrals a month per person; one payout per phone number; the friend on a
+  different phone from the inviter's.
+- **Budget:** ₦200,000 a month in all, which is 400 rewards (the owner, 2 November). Past that, my suggestion is
+  that invites still count and are paid the next month.
+- **Cash or airtime:** earnings build up in the app and can be taken as airtime or cash (the owner: "users can
+  convert to cash"). Cash out from ₦1,000. The owner pays by hand each week, as with the weekly prizes, and a
+  payout service (Paystack or Flutterwave) comes once there are more people (the owner chose "By hand at first").
+- **What the inviter sees:** each friend's progress (for example "2 of 4 trips"), never the friend's trips.
+- **Who counts as invited:** a friend who signs up through the inviter's link or names them in "Who invited
+  you?", and a contact who installs the app from a trip link (agreed 18 October).
+- **When it pays:** rewards from Tue 15 Dec, as agreed on 18 October, so the counting is checked before money
+  goes out. Not changed on 2 November.
+- [ ] Each person's invite link and code, with Share; "Who invited you?" at sign-up, filled in from the link
+- [ ] The count on the server, with the rules above, so it cannot be changed from a phone
+- [ ] "Invite friends" in Profile: the link, each friend's progress, the balance, and Cash out (airtime or bank
+      transfer). Bank details are asked for only at cash out
+- [ ] A tool for the owner listing who is owed what, like `scripts/weekly-numbers.mjs`, and a way to mark it paid
+- [ ] **Before building:** check both stores' rules on cash rewards for inviting
+- [ ] **Words to add:** a Privacy line (who invited whom, and bank details given to cash out) and the rules in
+      the Terms, both for the lawyer to see
 
 ### Build 26: simplify before launch, redesign after (agreed 21 October)
 
