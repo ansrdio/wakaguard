@@ -1838,6 +1838,25 @@ From the roadmap, with its dates. None of these needs an app build.
       longer mentions "unsent report drafts" on the device, and its date
       becomes 23 October. The app part goes out with build 25; the Privacy
       line with the next website release
+- [ ] **Preliminary polling unit page, agreed 1 November** (the owner: "yes start the data check and I mean
+      preliminary version"). A small website page, no app build, so it stays out of build 26's freeze. The
+      election is close: presidential and National Assembly on Sat 16 January 2027, governorship and state
+      assembly on Sat 6 February 2027. The tester poll: 19 of 20 wanted both finding their unit and safety alerts,
+      but only 20 of 83 voted.
+  - **Data check, 1 November:**
+    - INEC's own lookup (`cvr.inecnigeria.org/pu`): state, local government, ward, then the unit, one at a
+      time. No API or download is offered, and it refused a plain automated read (403), which we leave alone.
+    - CredibleVoteNG (free, reported to cover all 176,846 units): no website, API address or public code could be
+      found, so its fields and licence are unknown. Its builders would have to be asked.
+    - `kcemenike/find-my-polling-unit` on GitHub: all 176,846 units with GPS positions, but copied from INEC's portal
+      by a script, with no licence. Not to be used without the lawyer and INEC's position.
+    - `ngpu` on PyPI: names only, with an empty licence file.
+  - **So the preliminary version holds no polling unit data of ours:** it explains the steps, links to INEC's own
+    lookup, then helps the person start a WakaGuard trip there by setting the pin. It says we are not connected to
+    INEC or any party, and to confirm with INEC. No election-day alerts.
+  - **Timing:** build after the 13 November freeze, testers by about 20 November, usage read before the 30 November
+    decision. If people use it, an app version goes in the first update after 14 December. The lawyer sees the
+    wording before it goes live.
 
 Not builds, and tracked in the roadmap document: the D-U-N-S number and store
 accounts in the company's name, the company's purposes at CAC, the data
