@@ -15,6 +15,7 @@ import * as admin from 'firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { timingSafeEqual } from 'crypto';
 import { isWildPosition, MAX_WILD_IN_A_ROW } from './tripPath';
+import { ownPage } from './tripPage';
 
 /** Updates arriving faster than this are acknowledged but not written. */
 const MIN_WRITE_INTERVAL_MS = 10 * 1000;
@@ -90,6 +91,7 @@ export const tripLocation = functions.https.onRequest(async (req, res) => {
     // the farthest distance. lastUpdate still moves: the phone is sending, and
     // its silence is what alerts and "No location received" go by
     const heard = { lastUpdate: FieldValue.serverTimestamp() };
+    const page = await ownPage(uid, tripId);
     await Promise.all([
       tripRef.update({
         ...heard,
@@ -97,7 +99,7 @@ export const tripLocation = functions.https.onRequest(async (req, res) => {
         wildPositionCount: FieldValue.increment(1),
         wildInARow: wildInARow + 1,
       }),
-      db.doc(`sharedTrips/${tripId}`).set(heard, { merge: true }),
+      page?.set(heard, { merge: true }),
     ]);
     res.status(200).json({ ok: true, written: false, wild: true });
     return;
@@ -109,10 +111,12 @@ export const tripLocation = functions.https.onRequest(async (req, res) => {
   };
   const privateUpdate = { ...update, lastKeptAtMs: nowMs, wildInARow: 0 };
 
+  // Only this traveller's own page is written (tripPage.ts)
+  const page = await ownPage(uid, tripId);
   await Promise.all([
     // The first position doubles as the start point if the phone had no fix when the trip began
     tripRef.update(trip.startLocation ? privateUpdate : { ...privateUpdate, startLocation: { lat, lng } }),
-    db.doc(`sharedTrips/${tripId}`).set(update, { merge: true }),
+    page?.set(update, { merge: true }),
   ]);
 
   res.status(200).json({ ok: true, written: true });

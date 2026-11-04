@@ -70,7 +70,7 @@ export async function checkAndIncrementRateLimit(
   messageType: string,
   units: number = 1,
   config: RateLimitConfig = getRateLimitConfig(),
-  counted: 'sms' | 'email' = 'sms'
+  counted: 'sms' | 'email' | 'reportPush' = 'sms'
 ): Promise<RateLimitResult> {
   const db = admin.firestore();
   const ref = db.doc(`users/${uid}/rateLimits/${counted}`);

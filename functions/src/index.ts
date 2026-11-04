@@ -2,6 +2,10 @@ import * as functions from 'firebase-functions/v1';
 import * as admin from 'firebase-admin';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { migrateLegacyData } from './migrateLegacyData';
+import { ownPage } from './tripPage';
+import { knownState, REPORT_PUSH_LIMITS, reportPushText } from './reportPush';
+import { checkAndIncrementRateLimit } from './rateLimit';
+import { getSenderProfile } from './safetyDelivery';
 
 export { sendSafetySms } from './safetySms';
 export { deleteMyAccount } from './accountDeletion';
@@ -68,6 +72,22 @@ export const onReportCreate = functions.firestore
     }
 
     const { location, type, state, severity } = reportData;
+    const authorUid: unknown = reportData.uid;
+    if (!reportPushText(type, severity, null, state)) return null;
+
+    // Only verified people set off notifications, and no more often than the
+    // app allows: the limit used to live only in the app (reportPush.ts)
+    if (typeof authorUid !== 'string') return null;
+    const author = await getSenderProfile(authorUid);
+    if (!author.canSend) {
+      console.log(`No notifications for report ${reportId}: its author is not verified or is blocked`);
+      return null;
+    }
+    const limit = await checkAndIncrementRateLimit(authorUid, 'report', 1, REPORT_PUSH_LIMITS, 'reportPush');
+    if (!limit.allowed) {
+      console.log(`No notifications for report ${reportId}: ${limit.reason === 'limit' ? 'its author is over the report limit' : 'the limit check failed'}`);
+      return null;
+    }
 
     // Default notification radius for GPS mode (km)
     const DEFAULT_RADIUS_KM = 10;
@@ -147,6 +167,8 @@ export const onReportCreate = functions.firestore
         const sub = docSnap.data();
 
         if (!shouldNotify(sub)) continue;
+        // Never the person who posted it
+        if (docSnap.id === authorUid) continue;
 
         // Optional: compute a "closest distance" for the notification body (best effort)
         let distanceKm: number | null = null;
@@ -163,15 +185,12 @@ export const onReportCreate = functions.firestore
           distanceKm = best;
         }
 
-        const distanceText =
-          typeof distanceKm === 'number' ? `${distanceKm.toFixed(1)}km` : `near you`;
+        // Known words only, never text the reporter typed (reportPush.ts)
+        const text = reportPushText(type, severity, distanceKm, state)!;
 
         const message: admin.messaging.Message = {
           token: sub.fcmToken,
-          notification: {
-            title: `New ${type} Report Nearby`,
-            body: `A ${severity} ${type} was reported ${distanceText} in ${state}`,
-          },
+          notification: text,
           webpush: {
             fcmOptions: { link: `https://wakaguard.com/r/${reportId}` },
             notification: {
@@ -184,7 +203,7 @@ export const onReportCreate = functions.firestore
           data: {
             reportId,
             type,
-            state: String(state ?? ''),
+            state: knownState(state) ?? '',
             lat: String(location.lat),
             lng: String(location.lng),
           },
@@ -650,9 +669,14 @@ export const cleanupExpiredTrips = functions.pubsub
       await batch.commit();
 
       const shareBatch = db.batch();
-      expiredTrips.forEach((tripDoc) => {
-        const token = tripDoc.id;
-        shareBatch.set(db.collection('sharedTrips').doc(token), { status: 'cancelled' }, { merge: true });
+      // Only each traveller's own page is written (tripPage.ts). An old
+      // top-level trip from before accounts has no traveller above it
+      const pages = await Promise.all(expiredTrips.docs.map((tripDoc) => {
+        const uid = tripDoc.ref.parent.parent?.id;
+        return uid ? ownPage(uid, tripDoc.id) : null;
+      }));
+      pages.forEach((page) => {
+        if (page) shareBatch.set(page, { status: 'cancelled' }, { merge: true });
       });
 
       await shareBatch.commit();

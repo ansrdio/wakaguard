@@ -24,6 +24,7 @@ import { AllClearReason, buildAllClearMessage, buildOverdueMessage, buildSosMess
 import { addPathPoint, distanceMeters, nextPositionStats, pathLengthMeters, readPath } from './tripPath';
 import { buildTravellerPush, TravellerMessage } from './reminderPush';
 import { isDeadToken, noteIfDead } from './pushTokens';
+import { isOwnPage, ownPage } from './tripPage';
 import { plateForText, readTripVehicle, vehicleForContacts } from './vehicle';
 import { readStoredRoute, sameRoute } from './tripRoute';
 import { countReferralTrip } from './referrals';
@@ -46,6 +47,7 @@ type DocRef = FirebaseFirestore.DocumentReference;
 type DocData = FirebaseFirestore.DocumentData;
 type Kind = 'trip' | 'timer';
 
+/** Documents read per page (readAllPages) */
 const BATCH_LIMIT = 200;
 
 
@@ -105,6 +107,46 @@ function uidFromRef(ref: DocRef): string {
   return ref.parent.parent!.id;
 }
 
+/** Pages read before a check gives up, so a flood of made-up trips cannot hold it forever */
+const MAX_PAGES = 50;
+/** Items handled for one person in one run: a traveller has one trip running at a time */
+const MAX_PER_PERSON = 3;
+
+/**
+ * Everything a query matches, a page at a time. Until 4 November 2026 the
+ * checks read only the first page, oldest first; trips are written by their
+ * owner, so 200 made-up trips could keep every real overdue trip from being
+ * read (security review). Reaching MAX_PAGES emails an alarm (serverWatch).
+ */
+export async function readAllPages(
+  query: FirebaseFirestore.Query,
+  pageSize: number,
+  what: string,
+): Promise<FirebaseFirestore.QueryDocumentSnapshot[]> {
+  const docs: FirebaseFirestore.QueryDocumentSnapshot[] = [];
+  let page = await query.limit(pageSize).get();
+  for (let pages = 1; ; pages += 1) {
+    docs.push(...page.docs);
+    if (page.size < pageSize) return docs;
+    if (pages >= MAX_PAGES) {
+      console.error(`ALARM: ${what} read ${docs.length} documents, its limit: some were not looked at`);
+      return docs;
+    }
+    page = await query.startAfter(page.docs[page.docs.length - 1]).limit(pageSize).get();
+  }
+}
+
+/** Keeps at most MAX_PER_PERSON per person, so one person's many trips cannot crowd out the rest */
+function fairShare(): (ref: DocRef) => boolean {
+  const seen = new Map<string, number>();
+  return (ref) => {
+    const uid = uidFromRef(ref);
+    const count = (seen.get(uid) ?? 0) + 1;
+    seen.set(uid, count);
+    return count <= MAX_PER_PERSON;
+  };
+}
+
 // -----------------------------------------------------------------------------
 // Scheduled monitor
 // -----------------------------------------------------------------------------
@@ -119,25 +161,23 @@ export const checkOverdueTrips = functions.pubsub
 
     const [trips, timers] = await Promise.all([
       // Trips are picked up a little before their time, for the heads-up
-      db.collectionGroup('trips')
+      readAllPages(db.collectionGroup('trips')
         .where('status', '==', 'active')
         .where('endsAt', '<=', Timestamp.fromMillis(nowMs + HEADS_UP_BEFORE_MS))
-        .where('endsAt', '>=', oldest)
-        .limit(BATCH_LIMIT)
-        .get(),
-      db.collectionGroup('safetyTimers')
+        .where('endsAt', '>=', oldest), BATCH_LIMIT, 'checkOverdueTrips (trips)'),
+      readAllPages(db.collectionGroup('safetyTimers')
         .where('acknowledged', '==', false)
         .where('expiresAt', '<=', now)
-        .where('expiresAt', '>=', oldest)
-        .limit(BATCH_LIMIT)
-        .get(),
+        .where('expiresAt', '>=', oldest), BATCH_LIMIT, 'checkOverdueTrips (timers)'),
     ]);
 
     const work: Array<Promise<void>> = [];
-    const queue = (kind: Kind, snap: FirebaseFirestore.QuerySnapshot) => {
-      snap.forEach((doc) => {
+    const queue = (kind: Kind, docs: FirebaseFirestore.QueryDocumentSnapshot[]) => {
+      const fair = fairShare();
+      docs.forEach((doc) => {
         const data = doc.data();
         if (!isStillActive(kind, data)) return;
+        if (!fair(doc.ref)) return;
 
         const action = decideOverdueAction(toSubject(kind, data), nowMs);
         if (action === 'warn') work.push(safely(() => warnTraveller(doc.ref, kind)));
@@ -275,10 +315,10 @@ async function remindTraveller(ref: DocRef): Promise<void> {
  * contacts, and nothing added for a reminder should be able to slow it or
  * stop it.
  *
- * Reads every running trip that is not close to its time, with the index the
- * overdue check already uses. That is a handful of trips today. If there are
- * ever more than QUIET_BATCH_LIMIT running at once, ask instead for trips by
- * how long ago they were heard from, which needs an index of its own.
+ * Reads every running trip that is not close to its time, a page at a time,
+ * with the index the overdue check already uses. That is a handful of trips
+ * today. If there are ever many thousands running at once, ask instead for
+ * trips by how long ago they were heard from, which needs an index of its own.
  */
 const QUIET_BATCH_LIMIT = 500;
 
@@ -288,22 +328,19 @@ export const checkQuietTrips = functions.pubsub
     const db = admin.firestore();
     const nowMs = Date.now();
 
-    const trips = await db.collectionGroup('trips')
+    const trips = await readAllPages(db.collectionGroup('trips')
       .where('status', '==', 'active')
-      .where('endsAt', '>', Timestamp.fromMillis(nowMs + HEADS_UP_BEFORE_MS))
-      .limit(QUIET_BATCH_LIMIT)
-      .get();
+      .where('endsAt', '>', Timestamp.fromMillis(nowMs + HEADS_UP_BEFORE_MS)), QUIET_BATCH_LIMIT, 'checkQuietTrips');
 
     const work: Array<Promise<void>> = [];
+    const fair = fairShare();
     trips.forEach((doc) => {
       const data = doc.data();
       if (!isStillActive('trip', data)) return;
+      if (!fair(doc.ref)) return;
       if (decideQuietNudge(toQuietSubject(data), nowMs)) work.push(safely(() => nudgeQuietTraveller(doc.ref)));
     });
     await Promise.all(work);
-    if (trips.size === QUIET_BATCH_LIMIT) {
-      console.warn(`checkQuietTrips read ${QUIET_BATCH_LIMIT} trips, its limit: some running trips were not looked at`);
-    }
     return null;
   });
 
@@ -390,9 +427,10 @@ async function alertContacts(ref: DocRef, kind: Kind): Promise<void> {
   // Show the overdue state on the public page straight away, and keep the link
   // alive: contacts need it most after the trip would normally have expired.
   if (kind === 'trip') {
+    const page = await ownPage(uid, ref.id);
     await Promise.all([
       ref.update({ expiresAt: keepUntil }),
-      db.doc(`sharedTrips/${ref.id}`).set(
+      page?.set(
         { overdueAt: FieldValue.serverTimestamp(), expiresAt: keepUntil, ...travelModeForContacts(claimed), ...vehicleForContacts(claimed) },
         { merge: true }
       ),
@@ -631,12 +669,13 @@ async function recordPositions(tripRef: DocRef, before: DocData, after: DocData)
 async function recordPath(tripRef: DocRef, before: DocData, after: DocData): Promise<void> {
   const db = admin.firestore();
   const sharedRef = db.doc(`sharedTrips/${tripRef.id}`);
+  const uid = uidFromRef(tripRef);
 
   if (!isOpenStatus(after.status)) {
     if (isOpenStatus(before.status)) {
       await db.runTransaction(async (tx) => {
         const snap = await tx.get(sharedRef);
-        if (!snap.exists || snap.data()!.path === undefined) return;
+        if (!isOwnPage(snap, uid) || snap.data()!.path === undefined) return;
         // How far the trip went is kept on the private trip, for the owner's
         // Numbers page, before the path is dropped. The last leg runs to where
         // it ended
@@ -657,8 +696,9 @@ async function recordPath(tripRef: DocRef, before: DocData, after: DocData): Pro
 
   await db.runTransaction(async (tx) => {
     const snap = await tx.get(sharedRef);
-    // The app creates the share document; never create it here, or the app's own write would be refused
-    if (!snap.exists) return;
+    // The app creates the share document; never create it here, or the app's
+    // own write would be refused. Only this traveller's own page is written (tripPage.ts)
+    if (!isOwnPage(snap, uid)) return;
     const shared = snap.data()!;
     const update: DocData = {};
 
@@ -696,8 +736,9 @@ async function recordVehicle(tripRef: DocRef, before: DocData, after: DocData): 
   const now = readTripVehicle(after);
   if (JSON.stringify(readTripVehicle(before)) === JSON.stringify(now)) return;
   const sharedRef = admin.firestore().doc(`sharedTrips/${tripRef.id}`);
-  // Never create the share document here, or the app's own write would be refused
-  if (!(await sharedRef.get()).exists) return;
+  // Never create the share document here, or the app's own write would be refused;
+  // and only this traveller's own page is written (tripPage.ts)
+  if (!isOwnPage(await sharedRef.get(), uidFromRef(tripRef))) return;
   await sharedRef.update({ vehicle: now ?? FieldValue.delete() });
 }
 
@@ -714,7 +755,7 @@ async function recordRoute(tripRef: DocRef, before: DocData, after: DocData): Pr
     if (!isOpenStatus(before.status) && after.route === undefined) return;
     const shared = await sharedRef.get();
     await Promise.all([
-      shared.exists && shared.data()!.route !== undefined ? sharedRef.update({ route: FieldValue.delete() }) : null,
+      isOwnPage(shared, uidFromRef(tripRef)) && shared.data()!.route !== undefined ? sharedRef.update({ route: FieldValue.delete() }) : null,
       after.route !== undefined ? tripRef.update({ route: FieldValue.delete() }) : null,
     ]);
     return;
@@ -722,8 +763,9 @@ async function recordRoute(tripRef: DocRef, before: DocData, after: DocData): Pr
 
   const now = readStoredRoute(after.route);
   if (sameRoute(readStoredRoute(before.route), now)) return;
-  // Never create the share document here, or the app's own write would be refused
-  if (!(await sharedRef.get()).exists) return;
+  // Never create the share document here, or the app's own write would be refused;
+  // and only this traveller's own page is written (tripPage.ts)
+  if (!isOwnPage(await sharedRef.get(), uidFromRef(tripRef))) return;
   await sharedRef.update({ route: now ?? FieldValue.delete() });
 }
 
@@ -741,7 +783,6 @@ export const onTripUpdated = functions.firestore
     const before = change.before.data();
     const after = change.after.data();
     const ref = change.after.ref;
-    const db = admin.firestore();
 
     const contactIds: string[] | null = after.trustedContactIds ?? null;
 
@@ -780,9 +821,10 @@ export const onTripUpdated = functions.firestore
     const extended = after.status === 'active'
       && beforeEnds != null && afterEnds != null && afterEnds > beforeEnds;
     if (extended && wasFlagged) {
+      const page = await ownPage(uidFromRef(ref), ref.id);
       await Promise.all([
         ref.update(OVERDUE_RESET()),
-        db.doc(`sharedTrips/${ref.id}`).set(
+        page?.set(
           { overdueAt: FieldValue.delete() },
           { merge: true }
         ),
@@ -908,9 +950,11 @@ export const onSOSAlert = functions
         const keepUntil = Timestamp.fromMillis(Date.now() + OVERDUE_LINK_MS);
         const stillOpen = trip.status === 'active' || trip.status === 'emergency';
         const update = { expiresAt: keepUntil, ...(stillOpen ? { status: 'emergency' } : {}) };
+        // Only this traveller's own page is written (tripPage.ts)
+        const page = await ownPage(uid, tripId);
         await Promise.all([
           tripRef.update({ ...update, sosAlertState: 'sending' }),
-          db.doc(`sharedTrips/${tripId}`).set({ ...update, ...travelModeForContacts(trip), ...vehicleForContacts(trip) }, { merge: true }),
+          page?.set({ ...update, ...travelModeForContacts(trip), ...vehicleForContacts(trip) }, { merge: true }),
         ]);
       }
     }

@@ -4,9 +4,12 @@
  * Texts come from a sender name, so a contact cannot reply STOP. Instead the
  * trip page that every text with a link opens has a form: the contact enters
  * the number the text came to and, if it is one of that trip's contacts,
- * WakaGuard never texts that number again, for anyone's trips. Holding the
- * link is the proof, as only someone who was texted has it. (A code sent by
- * text was considered and dropped: our sender is approved for alerts only.)
+ * WakaGuard never texts that number again, for anyone's trips. The proof is
+ * that WakaGuard really texted that link to that number (the text log). Until
+ * 4 November 2026 holding the link was the proof, but anyone can make a link
+ * of their own and save any number as their contact, then silence someone
+ * else's phone (security review). (A code sent by text was considered and
+ * dropped: our sender is approved for alerts only.)
  *
  * smsOptOuts/{number} is what the server checks before every text
  * (getTrustedContacts in safetyDelivery.ts). Every traveller's copy of that
@@ -22,7 +25,7 @@ import * as admin from 'firebase-admin';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { isValidE164, OPT_OUTS } from './safetyDelivery';
 import { ID_PATTERN } from './tripLocation';
-import { nextTry, numberOnTrip, OptOutRequest, readOptOutRequest } from './textOptOutPlan';
+import { linkWasTextedTo, nextTry, numberOnTrip, OptOutRequest, readOptOutRequest } from './textOptOutPlan';
 import { qualifyIfDone } from './referrals';
 import { answerBrowser } from './webOrigins';
 
@@ -87,6 +90,10 @@ export async function applyOptOut(request: OptOutRequest, nowMs = Date.now()): P
   const contacts = await db.collection(`users/${uid}/trustedContacts`).get();
   const listed = contacts.docs.map((d) => ({ id: d.id, phoneE164: d.get('phoneE164') }));
   if (!numberOnTrip(phoneE164, listed, trip?.trustedContactIds)) return 'not_matched';
+  // Their texts, kept for 90 days (safetyMessageLogs)
+  const texts = await db.collection('safetyMessageLogs').where('uid', '==', uid)
+    .select('messageBody', 'providerResult').get();
+  if (!linkWasTextedTo(texts.docs.map((d) => d.data()), token, phoneE164)) return 'not_matched';
 
   const stopped = action === 'stop';
   await db.doc(`${OPT_OUTS}/${phoneE164}`).set({

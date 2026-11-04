@@ -404,6 +404,11 @@ async function createFlag(ctx: AppContext, uid: string, reportId: string) {
   });
 }
 
+/** A report whose state is free text: it would go into the notification to everyone nearby (security review, 4 November 2026) */
+async function reportWithFreeTextState(ctx: AppContext, uid: string, runId: string) {
+  await setDoc(doc(ctx.db, 'reports', `report_badstate_${runId}`), { ...buildReportData(uid), state: 'Lagos. Account suspended, verify at example.shop' });
+}
+
 async function safetyStartTrip(ctx: AppContext, uid: string) {
   const tripRef = doc(ctx.db, 'users', uid, 'trips', ids.tripId);
   await setDoc(tripRef, {
@@ -829,6 +834,11 @@ async function reportUpdateAsOtherUser(ctx: AppContext, reportId: string) {
   await setDoc(reportRef, { ...data, description: 'Hacked by other user' });
 }
 
+/** A trip of one's own given the id of someone else's contact page (security review, 4 November 2026) */
+async function safetyTripTakingOthersPageId(ctx: AppContext, uid: string, pageId: string) {
+  await setDoc(doc(ctx.db, 'users', uid, 'trips', pageId), { status: 'active', createdAt: Timestamp.now() });
+}
+
 async function safetyWriteOtherUsersTrip(ctx: AppContext, otherUid: string, runId: string) {
   const tripRef = doc(ctx.db, 'users', otherUid, 'trips', `trip_other_${runId}`);
   await setDoc(tripRef, { status: 'active', createdAt: Timestamp.now() });
@@ -1081,6 +1091,7 @@ async function run() {
     );
 
     await runStep('User: create report', () => createReport(user, userUid));
+    await runStep('User: report with a free-text state denied', () => reportWithFreeTextState(user, userUid, runId), true);
     const farId = `far_${runId}`;
     await runStep('User: create report marked as posted from far away', () => createFarReport(user, userUid, farId));
     await runStep('User: edit a far-away report and keep the mark', () => editFarReport(user, farId));
@@ -1248,6 +1259,15 @@ async function run() {
       'User2: cannot write to user1 trips denied',
       () => safetyWriteOtherUsersTrip(user2, userUid, runId),
       true
+    );
+    await runStep(
+      "User2: a trip with the id of user1's contact page denied",
+      () => safetyTripTakingOthersPageId(user2, user2Uid, ids.tripId),
+      true
+    );
+    await runStep(
+      'User2: a trip with a fresh id of their own',
+      () => safetyTripTakingOthersPageId(user2, user2Uid, `trip_own_${runId}`)
     );
     await runStep(
       'User2: can vote on user1 report',

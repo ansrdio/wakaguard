@@ -14,7 +14,22 @@ let seq = 0;
 // Made-up numbers in a range no network gives out
 const number = () => `+2340000${String(1000000 + seq++).slice(1)}`;
 
-async function makeTrip(contacts: Array<{ id: string; phoneE164: string }>, tripContactIds?: string[]) {
+/** A text logged the way safetyDelivery.ts logs one */
+async function logText(uid: string, body: string, results: Array<{ phoneE164: string; sid?: string | null; error?: string | null }>) {
+  await db().collection('safetyMessageLogs').add({
+    uid,
+    type: 'overdue',
+    messageBody: body,
+    providerResult: results.map((r) => ({ phoneE164: r.phoneE164, sid: r.sid === undefined ? `MOCK_${seq++}` : r.sid, error: r.error ?? null })),
+    createdAt: admin.firestore.Timestamp.now(),
+  });
+}
+
+/**
+ * A trip, and (unless told otherwise) the text with its link that went to
+ * each of its contacts
+ */
+async function makeTrip(contacts: Array<{ id: string; phoneE164: string }>, tripContactIds?: string[], opts: { texted?: boolean } = {}) {
   const uid = `optout_user_${Date.now()}_${seq++}`;
   const tripId = `optout_trip_${Date.now()}_${seq++}`;
   for (const c of contacts) {
@@ -22,6 +37,10 @@ async function makeTrip(contacts: Array<{ id: string; phoneE164: string }>, trip
   }
   await db().doc(`users/${uid}/trips/${tripId}`).set({ uid, status: 'completed', ...(tripContactIds ? { trustedContactIds: tripContactIds } : {}) });
   await db().doc(`sharedTrips/${tripId}`).set({ uid, tripId, status: 'completed' });
+  if (opts.texted !== false) {
+    const onTrip = contacts.filter((c) => !tripContactIds || tripContactIds.includes(c.id));
+    await logText(uid, `Hi, Ada has not checked in. Track: https://wakaguard.com/s?t=${tripId} Powered by WakaGuard`, onTrip);
+  }
   return { uid, tripId };
 }
 
@@ -78,6 +97,24 @@ test('a number the trip did not text, or a link that is no trip, is refused and 
   assert.equal((await db().doc('textOptOutTries/no_such_trip').get()).exists, false, 'nothing written for a code that is no trip');
   assert.equal((await call({ token: tripId, phoneE164: '0800' })).status, 400);
   assert.equal((await call({ token: tripId, phoneE164: phone }, 'GET')).status, 405);
+});
+
+test("a link of one's own cannot silence someone else's phone", async () => {
+  // Security review, 4 November 2026: anyone can make a link and save any
+  // number as their contact, but only a number WakaGuard texted that link to
+  // may use it
+  const victim = number();
+  const { tripId } = await makeTrip([{ id: 'c1', phoneE164: victim }], undefined, { texted: false });
+  assert.equal((await call({ token: tripId, phoneE164: victim })).status, 403, 'never texted');
+  assert.equal((await call({ token: tripId, phoneE164: victim, action: 'resume' })).status, 403);
+  assert.equal((await db().doc(`smsOptOuts/${victim}`).get()).exists, false);
+
+  // A text to that number that carried another link, or that the provider refused, is no proof either
+  const other = await makeTrip([{ id: 'c1', phoneE164: victim }], undefined, { texted: false });
+  await logText(other.uid, 'Hi, Ada needs help. Track: https://wakaguard.com/s?t=some_other_link', [{ phoneE164: victim }]);
+  await logText(other.uid, `Hi, Ada has not checked in. Track: https://wakaguard.com/s?t=${other.tripId}`, [{ phoneE164: victim, sid: null, error: 'rejected' }]);
+  assert.equal((await call({ token: other.tripId, phoneE164: victim })).status, 403);
+  assert.equal((await db().doc(`smsOptOuts/${victim}`).get()).exists, false);
 });
 
 test('numbers cannot be guessed one after another from a link', async () => {

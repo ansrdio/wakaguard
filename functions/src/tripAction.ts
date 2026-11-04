@@ -20,6 +20,7 @@ import * as admin from 'firebase-admin';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { ID_PATTERN, keysMatch } from './tripLocation';
 import { planTripAction, readTripAction } from './tripActionPlan';
+import { isOwnPage } from './tripPage';
 import { answerBrowser } from './webOrigins';
 
 const ms = (v: unknown): number | null => {
@@ -52,6 +53,9 @@ export const tripAction = functions.https.onRequest(async (req, res) => {
     const trip = (await tx.get(tripRef)).data();
     // Same answer for a missing trip and a wrong key, so ids cannot be probed
     if (!trip || !keysMatch(trip.locationKey, key)) return 'forbidden' as const;
+    // Only this traveller's own page is written (tripPage.ts)
+    const ownPage = isOwnPage(await tx.get(sharedRef), uid);
+    const setPage = (data: Record<string, unknown>) => { if (ownPage) tx.set(sharedRef, data, { merge: true }); };
 
     const plan = planTripAction({
       status: trip.status,
@@ -63,12 +67,12 @@ export const tripAction = functions.https.onRequest(async (req, res) => {
 
     if (plan.kind === 'end') {
       tx.update(tripRef, { status: 'completed', endTime: FieldValue.serverTimestamp(), endedVia: 'backup' });
-      tx.set(sharedRef, { status: 'completed' }, { merge: true });
+      setPage({ status: 'completed' });
       return 'did_end' as const;
     }
     if (plan.kind === 'cancel') {
       tx.update(tripRef, { status: 'cancelled', cancellationReason: 'traveller', endTime: FieldValue.serverTimestamp(), endedVia: 'backup' });
-      tx.set(sharedRef, { status: 'cancelled' }, { merge: true });
+      setPage({ status: 'cancelled' });
       return 'did_end' as const;
     }
     if (plan.kind === 'extend') {
@@ -80,7 +84,7 @@ export const tripAction = functions.https.onRequest(async (req, res) => {
         extendedAt: FieldValue.serverTimestamp(),
         lastExtendRequestId: plan.requestId,
       });
-      tx.set(sharedRef, times, { merge: true });
+      setPage(times);
       return 'did_extend' as const;
     }
     // 'already': nothing to do; 'ended': too late to add time

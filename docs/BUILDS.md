@@ -739,6 +739,20 @@ The owner then said "yes delete the heat notice and add the fixes":
   The trip reminder side (`checkOverdueTrips`, `checkQuietTrips`) and `deleteMyAccount` go with build 27's
   functions, as `main` holds the referral work for them.
 
+**Security fixes, server and rules (4 November).** The owner asked for "a full security review as we wait", then
+"start the fixes now". The findings are kept privately, outside this public repository. Fixed here, with tests:
+- [x] the overdue and quiet-trip checks read every due trip, a page at a time, and handle each person fairly;
+- [x] "stop texting me" needs a text WakaGuard really sent to that number with that link;
+- [x] the server writes a trip's contact page only for the traveller who owns it, and a trip may not take the id
+      of someone else's page;
+- [x] a road report's state must be a real state; the nearby notification uses known words only, comes only from
+      verified accounts, never goes to the reporter, and is limited on the server as in the app;
+- [x] `.gitignore` covers payout files and more kinds of key files.
+- Tests: 406 unit, 134 emulator, 137 rules checks. **To deploy on the owner's word, before pushing:** the rules,
+  then `checkOverdueTrips`, `checkQuietTrips`, `onSOSAlert`, `tripLocation`, `tripAction`, `stopTexts`,
+  `onReportCreate`, `cleanupExpiredTrips`, `deleteMyAccount`. `onTripUpdated` (page checks only, as the rules
+  already stop the cause) goes with build 27, as it holds the referral counting.
+
 ### Build 26: simplify before launch, redesign after (agreed 21 October)
 
 The owner agreed on 21 October ("Yes I agree") after two testers' feedback.

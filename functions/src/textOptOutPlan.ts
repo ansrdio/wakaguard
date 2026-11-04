@@ -43,6 +43,33 @@ export function numberOnTrip(
   return contacts.some((c) => c.phoneE164 === phoneE164 && (!ids || ids.has(c.id)));
 }
 
+/** A text as safetyDelivery.ts logs it (safetyMessageLogs) */
+export interface LoggedText {
+  messageBody?: unknown;
+  providerResult?: unknown;
+}
+
+/**
+ * Whether one of these texts carried this link to this number and the
+ * provider took it. Holding a link is not proof on its own: anyone can make a
+ * link of their own and save any number as their contact, then stop, or
+ * start again, texts to someone else's phone (security review, 4 November
+ * 2026). Only someone WakaGuard really texted that link to may use it.
+ */
+export function linkWasTextedTo(texts: LoggedText[], token: string, phoneE164: string): boolean {
+  const forms = [token, encodeURIComponent(token)];
+  return texts.some((text) =>
+    typeof text.messageBody === 'string'
+    && forms.some((form) => (text.messageBody as string).includes(form))
+    && Array.isArray(text.providerResult)
+    && text.providerResult.some((r) =>
+      r !== null && typeof r === 'object'
+      && (r as { phoneE164?: unknown }).phoneE164 === phoneE164
+      && !(r as { error?: unknown }).error
+      && typeof (r as { sid?: unknown }).sid === 'string'
+      && ((r as { sid: string }).sid).length > 0));
+}
+
 /** The count of tries from one link after this one, and whether this one may go ahead */
 export function nextTry(
   previous: { startMs: number; count: number } | null,

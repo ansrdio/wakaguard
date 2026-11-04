@@ -130,6 +130,39 @@ test('trip just past its deadline: traveller is warned, contacts are not alerted
   assert.equal((await logs(uid, 'overdue')).length, 0);
 });
 
+test('a flood of made-up trips from one account cannot hide a real overdue trip', async () => {
+  // Security review, 4 November 2026: the check read only the first 200 due
+  // trips, oldest first, and trip documents are written by their owner
+  const flooder = await makeUser({ contacts: 0 });
+  const old = Date.now() - 11 * 60 * MIN - 50 * MIN;
+  const noise: FirebaseFirestore.DocumentReference[] = [];
+  let batch = db().batch();
+  for (let i = 0; i < 205; i++) {
+    const ref = db().doc(`users/${flooder.uid}/trips/noise_${seq}_${i}_padding_padding`);
+    batch.set(ref, { uid: flooder.uid, status: 'active', endsAt: ts(old + i), shouldNotifyContacts: false, trustedContactIds: [] });
+    noise.push(ref);
+    if (i % 100 === 99) { await batch.commit(); batch = db().batch(); }
+  }
+  await batch.commit();
+
+  const { uid, contactIds } = await makeUser();
+  const id = await makeTrip(uid, contactIds, { endsAt: ts(Date.now() - 1 * MIN) });
+  try {
+    await runMonitor();
+    assert.ok((await trip(uid, id)).overdueWarnedAt, 'the real trip was still reached');
+    const warned = (await Promise.all(noise.map((r) => r.get()))).filter((d) => d.get('overdueWarnedAt')).length;
+    assert.ok(warned <= 3, `one account's trips are handled at most three a run (was ${warned})`);
+  } finally {
+    // Out of the way of the other tests
+    batch = db().batch();
+    noise.slice(0, 100).forEach((r) => batch.update(r, { status: 'completed' }));
+    await batch.commit();
+    batch = db().batch();
+    noise.slice(100).forEach((r) => batch.update(r, { status: 'completed' }));
+    await batch.commit();
+  }
+});
+
 test('trip past the grace period: contacts are alerted exactly once and the link is kept alive', async () => {
   const { uid, contactIds } = await makeUser({ contacts: 2 });
   const id = await makeTrip(uid, contactIds, { endsAt: ts(Date.now() - PAST_GRACE) });

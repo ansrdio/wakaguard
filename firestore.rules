@@ -102,6 +102,16 @@ service cloud.firestore {
         && zones.size() <= 5;
     }
 
+    // The 36 states and the FCT, as the app names them (src/lib/nigerianStates.ts).
+    // A report's state goes into the notification sent to everyone nearby, so
+    // it may not be free text (security review, 4 November 2026)
+    function isNigerianState(s) {
+      return s in ['Abia','Adamawa','Akwa Ibom','Anambra','Bauchi','Bayelsa','Benue','Borno','Cross River','Delta',
+        'Ebonyi','Edo','Ekiti','Enugu','FCT','Gombe','Imo','Jigawa','Kaduna','Kano','Katsina','Kebbi','Kogi',
+        'Kwara','Lagos','Nasarawa','Niger','Ogun','Ondo','Osun','Oyo','Plateau','Rivers','Sokoto','Taraba',
+        'Yobe','Zamfara'];
+    }
+
     function isValidStates(states) {
       return states is list
         && states.size() >= 0
@@ -120,11 +130,12 @@ service cloud.firestore {
         && isValidReportType(request.resource.data.type)
         && isValidSeverity(request.resource.data.severity)
         && request.resource.data.status == 'active'
-        && request.resource.data.state is string
+        && isNigerianState(request.resource.data.state)
         && request.resource.data.verification == 'pending'
         && isValidLocation(request.resource.data.location)
         && request.resource.data.description is string
         && request.resource.data.description.size() > 0
+        && request.resource.data.description.size() <= 500
         && request.resource.data.expiresAt is timestamp
         && request.resource.data.upvotes == 0
         && request.resource.data.downvotes == 0
@@ -168,6 +179,7 @@ service cloud.firestore {
         // allowed edits
         && request.resource.data.description is string
         && request.resource.data.description.size() > 0
+        && request.resource.data.description.size() <= 500
         && request.resource.data.photoUrls is list
         && request.resource.data.photoUrls.size() <= 5
         && isValidLocation(request.resource.data.location)
@@ -436,7 +448,14 @@ service cloud.firestore {
 
     match /users/{userId}/trips/{tripId} {
       allow read: if isOwner(userId);
-      allow write: if isOwner(userId) && isAuthenticated();
+      // A trip's id is its contact page's id, the token in the texts' link. A
+      // trip may not take the id of someone else's page, or the server would
+      // write to their page for it (security review, 4 November 2026; the
+      // server checks the owner too, functions/src/tripPage.ts)
+      allow create: if isOwner(userId) && isAuthenticated()
+        && (!exists(/databases/$(database)/documents/sharedTrips/$(tripId))
+          || get(/databases/$(database)/documents/sharedTrips/$(tripId)).data.uid == request.auth.uid);
+      allow update, delete: if isOwner(userId) && isAuthenticated();
     }
 
     // -------------------------------------------------------------------------

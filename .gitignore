@@ -73,3 +73,22 @@ tests/artifacts/
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Kept out of this public repository (security review, 4 November 2026).
+# Weekly ranking and payout files: payout CSVs hold testers' bank details
+ranking/
+# Local assistant settings
+.claude/
+# Apple keys and profiles, service accounts, keystores and Firebase config files anywhere
+*.p8
+*.p12
+*.mobileprovision
+*-firebase-adminsdk-*.json
+*service-account*.json
+*.keystore
+*.jks
+google-services.json
+GoogleService-Info.plist
+functions/.secret.local
+# Emulator logs
+*-debug.log
