@@ -702,6 +702,13 @@ Choices made while building (2 November), for the owner to see:
 - Cash out takes everything that is ready, one request at a time; Cash out opens Tue 15 Dec
 - Not yet done: the App Review note
 
+**Also for build 27 (the owner, 3 November, testing build 26 on the iPhone):** asked "where the modes of transport
+go again" and whether they are visible enough, then "yes add it to build 27".
+- [ ] **Say what is under "More options".** The row reads like "Bus, keke, okada · plate number" instead of only
+      "More options", still showing the remembered choice and any vehicle beside it. Wording only: the start form
+      stays short. Why: the plate is what the research found most useful on city trips (the vehicle record against
+      one-chance), and it goes into the alert text, but today it is out of sight until the trip card's "Add".
+
 ### Build 26: simplify before launch, redesign after (agreed 21 October)
 
 The owner agreed on 21 October ("Yes I agree") after two testers' feedback.
