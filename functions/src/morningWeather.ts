@@ -20,6 +20,7 @@ import * as admin from 'firebase-admin';
 import type { TokenMessage } from 'firebase-admin/messaging';
 import { DayOutlook, FEELS_DANGEROUS_FROM, forecastFor, readDay, WEATHER_AREAS } from './weather';
 import { believedBuild, PushSubscription, TravellerMessage } from './reminderPush';
+import { isDeadToken, noteIfDead } from './pushTokens';
 
 /** The first build with the Settings switch: no one is sent what they cannot turn off */
 export const WEATHER_FROM_BUILD = 24;
@@ -137,12 +138,23 @@ export async function runMorningWeather(nowMs: number, send: Send = (m) => admin
       const subscription = (await db.doc(`pushSubscriptions/${uid}`).get()).data() as PushSubscription | undefined;
       const build = subscription ? believedBuild(subscription) : null;
       if (!subscription?.fcmToken || build === null || build < WEATHER_FROM_BUILD) continue;
+      if (await isDeadToken(uid, subscription.fcmToken)) continue;
+      // The scheduler can start two runs at once (31 October 2026: 18 and 13
+      // sent at the same second). Claiming the day in a transaction first
+      // means only one of them sends to each person.
+      const claimed = await db.runTransaction(async (tx) => {
+        const fresh = await tx.get(person.ref);
+        if (!fresh.exists || fresh.get('lastSentDay') === today) return false;
+        tx.update(person.ref, { lastSentDay: today });
+        return true;
+      });
+      if (!claimed) continue;
       try {
         await send(buildWeatherPush(subscription, message));
-        await person.ref.update({ lastSentDay: today });
         sent += 1;
       } catch (error) {
-        functions.logger.warn('Morning weather not delivered', { uid, error: String(error) });
+        const dead = await noteIfDead(uid, subscription.fcmToken, error);
+        functions.logger.warn(dead ? 'Morning weather: link dead, not tried again' : 'Morning weather not delivered', { uid, error: String(error) });
       }
     }
   }

@@ -23,6 +23,7 @@ import { deliverSafetySms, DeliveryResult, getSenderProfile, getTrustedContacts,
 import { AllClearReason, buildAllClearMessage, buildOverdueMessage, buildSosMessage, markAsTest } from './templates';
 import { addPathPoint, distanceMeters, nextPositionStats, pathLengthMeters, readPath } from './tripPath';
 import { buildTravellerPush, TravellerMessage } from './reminderPush';
+import { isDeadToken, noteIfDead } from './pushTokens';
 import { plateForText, readTripVehicle, vehicleForContacts } from './vehicle';
 import { readStoredRoute, sameRoute } from './tripRoute';
 import { countReferralTrip } from './referrals';
@@ -343,6 +344,7 @@ async function pushToTraveller(uid: string, message: TravellerMessage): Promise<
   const subscription = (await admin.firestore().doc(`pushSubscriptions/${uid}`).get()).data();
   const fcmToken = subscription?.fcmToken;
   if (typeof fcmToken !== 'string' || !fcmToken) return;
+  if (await isDeadToken(uid, fcmToken)) return;
 
   try {
     // Reminders about the trip's time carry "I've arrived" and "+15 min" (reminderPush.ts)
@@ -351,7 +353,8 @@ async function pushToTraveller(uid: string, message: TravellerMessage): Promise<
       message,
     ));
   } catch (err) {
-    console.warn(`Reminder push failed for ${uid}:`, err);
+    const dead = await noteIfDead(uid, fcmToken, err);
+    console.warn(`Reminder push failed for ${uid}${dead ? ' (link dead, not tried again)' : ''}:`, err);
   }
 }
 

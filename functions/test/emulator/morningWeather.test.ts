@@ -67,6 +67,57 @@ test('a rainy day is told once to those who want it, on builds that can switch i
   assert.ok(!again.some((m) => m.token === yes.token), 'never twice in a day');
 });
 
+test('two runs started at once still tell each person only once', async () => {
+  const wet = `7.${seq}_5.${seq}`; seq++;
+  await area(wet, 'heavyrain');
+  const a = await person(wet);
+  const b = await person(wet);
+
+  const sent: any[] = [];
+  const send = async (m: any) => { sent.push(m); };
+  await Promise.all([runMorningWeather(MORNING, send), runMorningWeather(MORNING, send)]);
+  assert.equal(sent.filter((m) => m.token === a.token).length, 1);
+  assert.equal(sent.filter((m) => m.token === b.token).length, 1);
+});
+
+test('a dead link is noted, not tried again, and a new link starts sending again', async () => {
+  const wet = `6.${seq}_4.${seq}`; seq++;
+  await area(wet, 'heavyrain');
+  const gone = await person(wet);
+
+  const tried: string[] = [];
+  const dead = Object.assign(new Error('Requested entity was not found.'), { code: 'messaging/registration-token-not-registered' });
+  await runMorningWeather(MORNING, async (m: any) => { tried.push(m.token); throw dead; });
+  assert.deepEqual(tried.filter((t) => t === gone.token), [gone.token]);
+  const note = (await db().doc(`deadPushTokens/${gone.uid}`).get()).data();
+  assert.equal(note?.token, gone.token);
+
+  // Another morning (the day's mark cleared, so the kept forecast still
+  // serves and nothing is asked of MET Norway): skipped without trying
+  const anotherMorning = () => db().doc(`weatherAreas/${gone.uid}`).update({ lastSentDay: admin.firestore.FieldValue.delete() });
+  await anotherMorning();
+  const next: string[] = [];
+  await runMorningWeather(MORNING + 10 * 60 * 1000, async (m: any) => { next.push(m.token); });
+  assert.ok(!next.includes(gone.token));
+
+  // The app saves a new link: it no longer matches the note
+  const fresh = `token-new-${gone.uid}`;
+  await db().doc(`pushSubscriptions/${gone.uid}`).update({ fcmToken: fresh, appBuildToken: fresh });
+  await anotherMorning();
+  const later: string[] = [];
+  await runMorningWeather(MORNING + 20 * 60 * 1000, async (m: any) => { later.push(m.token); });
+  assert.ok(later.includes(fresh));
+});
+
+test('a passing failure is not taken for a dead link', async () => {
+  const wet = `5.${seq}_3.${seq}`; seq++;
+  await area(wet, 'heavyrain');
+  const flaky = await person(wet);
+  const busy = Object.assign(new Error('Service unavailable'), { code: 'messaging/server-unavailable' });
+  await runMorningWeather(MORNING, async (m: any) => { if (m.token === flaky.token) throw busy; });
+  assert.equal((await db().doc(`deadPushTokens/${flaky.uid}`).get()).exists, false);
+});
+
 test('a look at the weather keeps only the rough area, and none once switched off', async () => {
   const uid = `mw_keep_${Date.now()}`;
   await db().doc(`users/${uid}`).set({});

@@ -717,6 +717,28 @@ go again" and whether they are visible enough, then "yes add it to build 27".
       straight line (more than about 3 times, plus a margin for short trips), or when a usual trip's own time is far
       shorter. Never fill in a trip length from such a route. This also covers a bad GPS fix on a real trip in Nigeria.
 
+**Server fixes from the weather and notification check (3 November).** The owner asked "how has the weather and
+notifications been going". The live logs (read only) showed:
+- the morning weather reaching 22 phones a day;
+- one phone failing every morning with "NotRegistered";
+- Fri 31 Oct sent twice, because two runs started at the same second (18 and 13 sent);
+- 12 weather look-ups refused out of 205. I first said the app was asking without a position. Wrong: the app never
+  does, and these were the server's "Weather is only given for Nigeria", from phones in Arizona;
+- no failed trip reminder pushes.
+
+The owner then said "yes delete the heat notice and add the fixes":
+- [x] **The one-off heat notice is gone.** `heatSeasonNotice` was deleted from the live project on 3 November, its
+      job done on 2 November (2 sent; 22 already had the morning weather). It was also removed from the code.
+- [x] **The morning weather goes to each person at most once a day,** even when two runs start together: each
+      person's day is claimed in a transaction before sending (`morningWeather.ts`).
+- [x] **Dead notification links are not tried again.** A send that fails because the phone's link is dead notes it
+      in `deadPushTokens/{uid}` (server only, `pushTokens.ts`), and the morning weather and the trip reminders
+      skip that link from then on. A new link saved by the app starts sending again by itself. The note is
+      deleted with the account.
+- Tests: 402 unit and 132 emulator, with 5 new. **Not deployed:** `morningWeather` alone can go live at once.
+  The trip reminder side (`checkOverdueTrips`, `checkQuietTrips`) and `deleteMyAccount` go with build 27's
+  functions, as `main` holds the referral work for them.
+
 ### Build 26: simplify before launch, redesign after (agreed 21 October)
 
 The owner agreed on 21 October ("Yes I agree") after two testers' feedback.

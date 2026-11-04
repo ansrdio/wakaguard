@@ -114,6 +114,8 @@ export async function deleteAccountData(uid: string, nowMs: number = Date.now())
 
   const tripLinks = await deleteAll(db.collection('sharedTrips').where('uid', '==', uid));
   await db.doc(`pushSubscriptions/${uid}`).delete();
+  // A dead notification link noted against them (pushTokens.ts)
+  await db.doc(`deadPushTokens/${uid}`).delete();
   // Where they last looked at the weather, kept for the morning notification
   await db.doc(`weatherAreas/${uid}`).delete();
   // How many pins they had named this hour (placeName.ts)
