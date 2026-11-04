@@ -708,6 +708,14 @@ go again" and whether they are visible enough, then "yes add it to build 27".
       "More options", still showing the remembered choice and any vehicle beside it. Wording only: the start form
       stays short. Why: the plate is what the research found most useful on city trips (the vehicle record against
       one-chance), and it goes into the alert text, but today it is out of sight until the trip card's "Add".
+- [ ] **A sanity check on the route (directions Beta).** The owner's iPhone on build 26 showed "By road: about 22 h,
+      2358 km" and offered "Use 28 h 45 min" for a usual trip of 15 minutes in Mesa. Moving the pin then gave the right
+      route (8 min, 3.7 km), so the most likely cause is a bad starting point, such as an old location reading. Read
+      through `useRoutePreview` and `whereThePhoneIs`: the route is asked again whenever the pin or the way of
+      travelling changes, and an older answer is never shown for a new pin. The owner said "add the route check to
+      build 27" (3 November). Hide the "By road" line and its "Use …" button when the route is far longer than the
+      straight line (more than about 3 times, plus a margin for short trips), or when a usual trip's own time is far
+      shorter. Never fill in a trip length from such a route. This also covers a bad GPS fix on a real trip in Nigeria.
 
 ### Build 26: simplify before launch, redesign after (agreed 21 October)
 
