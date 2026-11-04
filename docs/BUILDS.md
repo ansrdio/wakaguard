@@ -26,7 +26,7 @@ before the weekend. Android and iPhone go out on the same day.
 | 24 | Wed 28 Oct | Sign in with Google and Apple; "please update" switch; service notice; "stop texting me"; vehicle details; far-away reports marked; Mapbox maps; destination pin with its place name (in place of search by address); "text them when I arrive"; louder reminders, "More time…", Undo; weather icon and morning weather. Sponsor card moved to a later build (no sponsor yet) | Out on both, ten days early: TestFlight passed Apple's beta review at once on Sun 18 Oct; Google approved the closed test (Alpha) by Mon 19 Oct (the owner) |
 | 24.1 | at once | iPhone only: build 24 closes as soon as it opens on iOS 27. Fix only, nothing else (see "Build 24.1" below) | Out on iPhone: TestFlight Tue 20 Oct, beta review passed at once, both groups testing |
 | 25 | Wed 4 Nov | Fixes after text alerts are switched on; one-tap "keep running" permissions on the first trip; 6, 8 and 12-hour trip choices; four fixes from problem reports (old Android WebView, notifications switch, full-screen pin map, "ending early is fine"); last of all, directions on the trip as a beta (the owner, 23 Oct: "It will be the last thing we add") | Out on both, Sun 25 Oct, ten days early; both stores approved it the same day |
-| 26 | Wed 4 Nov | What is done by then: seven small fixes and the simplification pass (one colour plus red for emergencies, fewer boxes and icons, a short start form with extras under "More options", plain labels). Moved a week early on 2 November (the owner: "Yes, upload Wed 4 Nov"), so testers use the simpler screens for a week before the freeze | All in the code by Mon 2 Nov, not yet on any phone |
+| 26 | Wed 4 Nov | What is done by then: seven small fixes and the simplification pass (one colour plus red for emergencies, fewer boxes and icons, a short start form with extras under "More options", plain labels). Moved a week early on 2 November (the owner: "Yes, upload Wed 4 Nov"), so testers use the simpler screens for a week before the freeze | Built Tue 3 Nov from branch `build-26` (from `44746cf`, so no build 27 work): build number 26, and the Privacy page's date and report names. Tested on the owner's Galaxy. Android saved in Play's Publishing overview for the closed test; iPhone waits on Apple's updated licence agreement |
 | 27 | Wed 11 Nov | The launch version: the referral programme (see "Build 27" below) and the rest of the build 26 list: first trip on day one, checkpoint stops on the contacts' page, lock-screen SOS, App Check, place search, usual-time reminder, points card | Planned 2 November. If time gets tight, the referral programme and the first trip come first, and the points card and usual-time reminder can move after launch (my suggestion, not yet agreed) |
 
 | After the last build | Date |
@@ -720,7 +720,8 @@ What was agreed:
     - `src/lib/landmarks.ts` is removed; it is in git for when places come back after launch.
     - **A fault found on the way:** on phones the tab bar covered Apply Filters, so filters could not be applied.
       The sheet now sits above the bar.
-    - **Left for later:** the Privacy page still says "Roadwork", changed at its next release. The server's push
+    - **Left for later:** the Privacy page still says "Roadwork", changed at its next release (done 3 November: it
+      now uses the app's names, Heavy traffic, Roadblock and Construction). The server's push
       to people nearby still reads "A high hazard was reported" (`functions/src/index.ts`), which needs a functions
       deploy.
   - [x] **Profile:** the three number boxes removed; one plain icon style, Sign out no longer red; Delete account
@@ -728,7 +729,8 @@ What was agreed:
     reports". Done 1 November:
     - The delete-account, Support and Privacy pages now say "open Profile, then Settings". Terms still reads true
       ("from Profile in the app"). These go live with the next website release, which should go with the app.
-    - **At that release:** change "Last Updated" on the Privacy page, as the policy promises.
+    - **At that release:** change "Last Updated" on the Privacy page, as the policy promises (done 3 November:
+      November 4, 2026, the day build 26 and the website go out).
     - The Support page said blocking "cannot be undone through the app", which has been wrong since Unblock was
       added. It now says where to undo it, as the row is hidden until someone is blocked.
   - [x] **Whole app:** green everywhere, red only for SOS and serious road reports. Done 2 November:

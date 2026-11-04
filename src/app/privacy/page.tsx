@@ -24,7 +24,7 @@ export default function PrivacyPage() {
           </div>
 
           <p className="text-gray-600 mb-8">
-            Last Updated: October 28, 2026
+            Last Updated: November 4, 2026
           </p>
 
           <section className="mb-8">
@@ -347,14 +347,14 @@ export default function PrivacyPage() {
               Reports are automatically expired based on their type:
             </p>
             <ul className="list-disc list-inside text-gray-700 mb-4 space-y-2">
-              <li><strong>Traffic:</strong> 2 hours</li>
+              <li><strong>Heavy traffic:</strong> 2 hours</li>
               <li><strong>Accident:</strong> 4 hours</li>
               <li><strong>Checkpoint:</strong> 4 hours</li>
               <li><strong>Hazard:</strong> 24 hours</li>
               <li><strong>Other:</strong> 3 days</li>
               <li><strong>Pothole:</strong> 7 days</li>
-              <li><strong>Closure:</strong> 14 days</li>
-              <li><strong>Roadwork:</strong> 30 days</li>
+              <li><strong>Roadblock:</strong> 14 days</li>
+              <li><strong>Construction:</strong> 30 days</li>
             </ul>
             <p className="text-gray-700 leading-relaxed mb-6">
               Expired and resolved reports are hidden from the map, then deleted automatically{' '}
