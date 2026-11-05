@@ -14,6 +14,7 @@ import androidx.core.app.NotificationManagerCompat;
 import androidx.core.content.ContextCompat;
 import com.capacitorjs.plugins.pushnotifications.MessagingService;
 import com.google.firebase.messaging.RemoteMessage;
+import java.security.SecureRandom;
 import java.util.Map;
 
 /**
@@ -46,6 +47,14 @@ public class TripReminderMessagingService extends MessagingService {
     /** One reminder per trip on screen: a newer one replaces the older */
     static final int NOTIFICATION_ID = 7100;
     static final String TAG_EXTRA = "wg_notification_tag";
+    /**
+     * Only WakaGuard's own notifications press its buttons (build 27). Their
+     * presses carry a secret made on this phone; anything else that opens the
+     * app just opens it (dropUnsignedPress).
+     */
+    static final String SECRET_EXTRA = "wg_press_secret";
+    private static final String PREFS = "wakaguard_private";
+    private static final String SECRET_KEY = "press_secret";
 
     @Override
     public void onMessageReceived(@NonNull RemoteMessage message) {
@@ -96,6 +105,7 @@ public class TripReminderMessagingService extends MessagingService {
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         for (Map.Entry<String, String> entry : data.entrySet()) intent.putExtra(entry.getKey(), entry.getValue());
         intent.putExtra("wg_action", action);
+        intent.putExtra(SECRET_EXTRA, pressSecret(this));
         intent.putExtra(TAG_EXTRA, tag);
         intent.putExtra("google.message_id", "wg-" + action + "-" + System.currentTimeMillis());
         // One code per notification and button (the tap and three buttons)
@@ -141,6 +151,33 @@ public class TripReminderMessagingService extends MessagingService {
         if (intent == null) return;
         String tag = intent.getStringExtra(TAG_EXTRA);
         if (tag != null) NotificationManagerCompat.from(context).cancel(tag, NOTIFICATION_ID);
+    }
+
+    /** Made once on this phone and kept in the app's private storage, which is never backed up */
+    static synchronized String pressSecret(Context context) {
+        android.content.SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        String secret = prefs.getString(SECRET_KEY, null);
+        if (secret != null && secret.length() == 32) return secret;
+        byte[] bytes = new byte[16];
+        new SecureRandom().nextBytes(bytes);
+        StringBuilder hex = new StringBuilder();
+        for (byte b : bytes) hex.append(String.format("%02x", b));
+        secret = hex.toString();
+        prefs.edit().putString(SECRET_KEY, secret).apply();
+        return secret;
+    }
+
+    /**
+     * Leaves a button press in the intent only when it came from one of the
+     * app's own notifications. Without it the app just opens, as for a tap.
+     * The secret is taken out either way, so it never reaches the web app.
+     */
+    static void dropUnsignedPress(Context context, Intent intent) {
+        if (intent == null) return;
+        String given = intent.getStringExtra(SECRET_EXTRA);
+        boolean signed = given != null && given.equals(pressSecret(context));
+        intent.removeExtra(SECRET_EXTRA);
+        if (!signed && intent.hasExtra("wg_action")) intent.removeExtra("wg_action");
     }
 
     private static String valueOr(String value, String fallback) {

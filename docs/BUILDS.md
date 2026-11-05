@@ -663,7 +663,9 @@ was first agreed.
        - Tests: 410 unit, 138 emulator, 148 rules checks. Seen on the page with test data in the emulator.
 6. [ ] **SOS from the lock screen:** an SOS button on the "Safe Trip active" notification that asks once more
        before sending (build 26 section, 29 October).
-7. [ ] **Two Android hardening changes** from the security review (kept privately).
+7. [x] **Two Android hardening changes** from the security review (kept privately). Done 5 November: only the
+       app's own trip notifications can press their buttons, and nothing of the app's goes into phone backups or
+       onto a new phone (people sign in again there). Compiles; to be checked on the Galaxy with the build.
 8. [ ] **A first trip on day one:** after sign-up, add one contact, then a 2-minute test trip, every step skippable
        (build 26 section, 28 October).
 9. [ ] **App Check** on Android, iPhone and the website, watched before anything is enforced (build 26 section,

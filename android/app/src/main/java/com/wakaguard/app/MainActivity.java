@@ -18,6 +18,7 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        TripReminderMessagingService.dropUnsignedPress(this, getIntent());
         forgetPressedReminderWhenRebuilt(savedInstanceState);
         // The app's own plugins have to be named before the bridge starts
         registerPlugin(ContactPickerPlugin.class);
@@ -53,6 +54,8 @@ public class MainActivity extends BridgeActivity {
      */
     @Override
     protected void onNewIntent(Intent intent) {
+        // Before Capacitor hands the intent to the web app
+        TripReminderMessagingService.dropUnsignedPress(this, intent);
         super.onNewIntent(intent);
         TripReminderMessagingService.dismissPressedReminder(this, intent);
     }
