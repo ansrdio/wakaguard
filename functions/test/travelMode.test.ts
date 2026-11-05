@@ -1,7 +1,7 @@
 import { test, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  TRAVEL_MODES, isTravelMode, lastTravelMode, rememberTravelMode,
+  TRAVEL_MODES, isTravelMode, lastTravelMode, moreOptionsLabel, rememberTravelMode,
   tipBeforeSettingOff, tipOnTheWay, tipsFor, travelModeLabel,
 } from '../../src/lib/travelMode';
 import { TRAVEL_MODE_IDS, travelModeForContacts } from '../src/tripMonitor';
@@ -85,4 +85,13 @@ test('only one of the app\'s own choices is ever put on the page contacts open',
   for (const not of [undefined, {}, { travelMode: '' }, { travelMode: 'canoe' }, { travelMode: 7 }, { travelMode: '<b>bus</b>' }]) {
     assert.deepEqual(travelModeForContacts(not as never), {});
   }
+});
+
+test('the folded row on the start form says what is under it', () => {
+  assert.equal(moreOptionsLabel(null, null, false), 'Bus, keke, okada · plate number');
+  assert.equal(moreOptionsLabel('keke', null, false), 'Keke · add plate number');
+  assert.equal(moreOptionsLabel('bus', 'KJA 123 AB', true), 'Bus · Plate KJA 123 AB');
+  assert.equal(moreOptionsLabel('taxi', null, true), 'Taxi · Vehicle added');
+  assert.equal(moreOptionsLabel('foot', null, false), 'On foot');
+  assert.equal(moreOptionsLabel(null, 'KJA 123 AB', true), "How you're travelling · Plate KJA 123 AB");
 });

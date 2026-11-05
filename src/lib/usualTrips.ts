@@ -116,3 +116,33 @@ export function usualTrips(trips: PastTrip[], nowMs: number, limit = 3): UsualTr
     .sort((a, b) => b.count - a.count || b.lastMs - a.lastMs)
     .slice(0, limit);
 }
+
+/**
+ * A route to the pin that cannot be right (build 27). On 3 November the
+ * owner's iPhone offered "By road: about 22 h, 2,358 km" and "Use 28 h 45 min"
+ * for a usual trip of 15 minutes; moving the pin gave the right one (8 min,
+ * 3.7 km). Most likely the route began from a wrong or old position. Such a
+ * route is not shown, never fills in the trip length, and is not followed:
+ * - by road it is far longer than the straight line from where the phone was;
+ * - it would make a trip longer than the longest allowed;
+ * - a usual trip to this same place takes far less time.
+ * A bad GPS fix on a real trip in Nigeria is caught the same way.
+ */
+export function routeCannotBeRight(
+  route: { distanceM: number; durationS: number },
+  from: { lat: number; lng: number } | null,
+  to: { lat: number; lng: number } | null,
+  usualTrips: readonly UsualTrip[] = [],
+): boolean {
+  if (from && to && route.distanceM > distanceM(from, to) * ROAD_TO_STRAIGHT_MAX + ROAD_MARGIN_M) return true;
+  const minutes = route.durationS / 60;
+  if (minutes * 1.3 > MAX_TRIP_MINUTES) return true;
+  const usual = to ? usualTrips.find((t) => t.point && distanceM(t.point, to) <= SAME_PLACE_M) : undefined;
+  return !!usual && minutes > Math.max(usual.minutes * 3, usual.minutes + 60);
+}
+
+/** Roads in Lagos can run twice the straight line round a lagoon; three times and more is not a road */
+const ROAD_TO_STRAIGHT_MAX = 3;
+/** Short trips wind more than long ones */
+const ROAD_MARGIN_M = 2000;
+

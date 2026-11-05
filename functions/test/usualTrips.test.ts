@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { PastTrip, usualMinutes, usualTrips } from '../../src/lib/usualTrips';
+import { PastTrip, routeCannotBeRight, usualMinutes, usualTrips } from '../../src/lib/usualTrips';
 
 const NOW = Date.UTC(2026, 9, 25, 12, 0);
 const MIN = 60000;
@@ -77,4 +77,22 @@ test('the most frequent come first, then the most recent, at most three', () => 
   ], NOW);
   assert.deepEqual(list.map((t) => t.destination), ['B', 'A', 'C']);
   assert.equal(list[0].travelMode, 'okada');
+});
+
+test('a route that cannot be right is not offered (build 27)', () => {
+  const mesa = { lat: 33.4152, lng: -111.8315 };
+  const nearby = { lat: 33.44, lng: -111.80 }; // about 4 km away
+  // The owner's iPhone, 3 November: 2,358 km and 22 hours for a short trip
+  assert.equal(routeCannotBeRight({ distanceM: 2_358_000, durationS: 22 * 3600 }, mesa, nearby), true);
+  assert.equal(routeCannotBeRight({ distanceM: 3_700, durationS: 8 * 60 }, mesa, nearby), false);
+  // Round a lagoon a road can run twice the straight line; short trips wind more
+  assert.equal(routeCannotBeRight({ distanceM: 9_000, durationS: 20 * 60 }, mesa, nearby), false);
+  assert.equal(routeCannotBeRight({ distanceM: 16_000, durationS: 30 * 60 }, mesa, nearby), true);
+  // Longer than the longest trip allowed, wherever it starts
+  assert.equal(routeCannotBeRight({ distanceM: 1_200_000, durationS: 18 * 3600 }, null, nearby), true);
+  // A usual trip to the same place takes far less time
+  const usual = [{ key: 'k', destination: 'Work', point: nearby, minutes: 15, travelMode: null, count: 3, lastMs: 0 }];
+  assert.equal(routeCannotBeRight({ distanceM: 30_000, durationS: 2 * 3600 }, null, nearby, usual), true);
+  assert.equal(routeCannotBeRight({ distanceM: 6_000, durationS: 25 * 60 }, null, nearby, usual), false);
+  assert.equal(routeCannotBeRight({ distanceM: 30_000, durationS: 2 * 3600 }, null, mesa, usual), false, 'a usual trip somewhere else says nothing');
 });

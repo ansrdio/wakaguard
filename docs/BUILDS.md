@@ -647,8 +647,8 @@ was first agreed.
          build 27's functions (item 13).
        - Not planned before launch: checking each invited friend's phone number by text. The confirmed account, App
          Check (item 9) and the owner's check before each weekly payout cover it until there is abuse to answer.
-3. [ ] **Say what is under "More options"** (below).
-4. [ ] **A sanity check on the route** (below).
+3. [x] **Say what is under "More options"** (below). Done 5 November.
+4. [x] **A sanity check on the route** (below). Done 5 November.
 5. [ ] **"Stopped at a checkpoint?" shown on the contacts' trip page,** with the time and a map pin (build 26
        section, 28 October).
 6. [ ] **SOS from the lock screen:** an SOS button on the "Safe Trip active" notification that asks once more
@@ -741,10 +741,13 @@ Choices made while building (2 November), for the owner to see:
 
 **Also for build 27 (the owner, 3 November, testing build 26 on the iPhone):** asked "where the modes of transport
 go again" and whether they are visible enough, then "yes add it to build 27".
-- [ ] **Say what is under "More options".** The row reads like "Bus, keke, okada · plate number" instead of only
+- [x] **Say what is under "More options".** The row reads like "Bus, keke, okada · plate number" instead of only
       "More options", still showing the remembered choice and any vehicle beside it. Wording only: the start form
       stays short. Why: the plate is what the research found most useful on city trips (the vehicle record against
       one-chance), and it goes into the alert text, but today it is out of sight until the trip card's "Add".
+      - Done 5 November (`moreOptionsLabel` in `travelMode.ts`). Nothing chosen: "Bus, keke, okada · plate number".
+        Chosen: "Keke · add plate number", then "Keke · Plate KJA 123 AB" once a plate is in. On foot: "On foot".
+        Screen readers still hear that these are more options.
 - [ ] **A sanity check on the route (directions Beta).** The owner's iPhone on build 26 showed "By road: about 22 h,
       2358 km" and offered "Use 28 h 45 min" for a usual trip of 15 minutes in Mesa. Moving the pin then gave the right
       route (8 min, 3.7 km), so the most likely cause is a bad starting point, such as an old location reading. Read
@@ -753,6 +756,12 @@ go again" and whether they are visible enough, then "yes add it to build 27".
       build 27" (3 November). Hide the "By road" line and its "Use …" button when the route is far longer than the
       straight line (more than about 3 times, plus a margin for short trips), or when a usual trip's own time is far
       shorter. Never fill in a trip length from such a route. This also covers a bad GPS fix on a real trip in Nigeria.
+      - Done 5 November (`routeCannotBeRight` in `usualTrips.ts`). A route is not shown, does not offer "Use …" and is
+        not followed when it is more than 3 times the straight line from where the phone was plus 2 km, when it
+        would make a trip longer than the 20 hours allowed, or when a usual trip to the same place (within 300 m)
+        takes far less (a third of the time, or an hour less). The same check applies to the route found once the
+        trip has started and to a new route when the traveller leaves it. Nothing else changes: a start form with
+        no route looks as it does with directions off.
 
 **Server fixes from the weather and notification check (3 November).** The owner asked "how has the weather and
 notifications been going". The live logs (read only) showed:

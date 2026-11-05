@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { guide, Guidance, LatLng, OFF_ROUTE_FIXES, Route, routeProfile } from '@/lib/directions';
 import { fetchRoute, forgetTripRoute, keepTripRoute, keptTripRoute } from '@/lib/directionsFetch';
 import { whereThePhoneIs } from '@/lib/reportDistance';
+import { routeCannotBeRight } from '@/lib/usualTrips';
 import type { DirectionsVoice } from '@/hooks/useDirectionsVoice';
 
 export type TripDirections =
@@ -85,7 +86,9 @@ export function useTripDirections({ tripId, destination, travelMode, enabled }: 
     setFinding('finding');
     void (async () => {
       const from = await whereThePhoneIs();
-      const found = from ? await fetchRoute(from, destination, routeProfile(travelMode)) : null;
+      const answer = from ? await fetchRoute(from, destination, routeProfile(travelMode)) : null;
+      // Not a route from a wrong position (build 27)
+      const found = answer && !routeCannotBeRight(answer, from, destination) ? answer : null;
       if (!live) return;
       if (found) {
         keepTripRoute(tripId, found);
@@ -118,7 +121,7 @@ export function useTripDirections({ tripId, destination, travelMode, enabled }: 
         setRerouting(true);
         void fetchRoute(here, destination, current.profile).then((fresh) => {
           setRerouting(false);
-          if (!fresh) return;
+          if (!fresh || routeCannotBeRight(fresh, here, destination)) return;
           keepTripRoute(tripId, fresh);
           setRoute({ tripId, route: fresh });
         });

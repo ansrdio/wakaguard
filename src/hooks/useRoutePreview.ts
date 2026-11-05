@@ -5,6 +5,7 @@ import { Route, routeProfile } from '@/lib/directions';
 import { directionsAvailable, fetchRoute } from '@/lib/directionsFetch';
 import { whereThePhoneIs } from '@/lib/reportDistance';
 import { Point } from '@/lib/destinationPoint';
+import { routeCannotBeRight } from '@/lib/usualTrips';
 
 export type RoutePreview =
   | { state: 'off' }
@@ -29,7 +30,9 @@ export function useRoutePreview(enabled: boolean, point: Point | null, travelMod
     setPreview({ key, value: { state: 'finding' } });
     void (async () => {
       const from = await whereThePhoneIs();
-      const route = from ? await fetchRoute(from, point, profile) : null;
+      const found = from ? await fetchRoute(from, point, profile) : null;
+      // Far longer than the straight line: most likely from a wrong position (build 27)
+      const route = found && !routeCannotBeRight(found, from, point) ? found : null;
       if (live) setPreview({ key, value: route ? { state: 'found', route } : { state: 'none' } });
     })();
     return () => { live = false; };

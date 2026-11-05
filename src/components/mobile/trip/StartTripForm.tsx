@@ -20,8 +20,8 @@ import {
   validateTripPlan,
 } from '@/lib/tripPlanning';
 import { askedForNoTexts, canBeTexted } from '@/lib/contactPhone';
-import { TRAVEL_MODES, TravelMode, isTravelMode, lastTravelMode, rememberTravelMode, tipBeforeSettingOff } from '@/lib/travelMode';
-import type { UsualTrip } from '@/lib/usualTrips';
+import { TRAVEL_MODES, TravelMode, isTravelMode, lastTravelMode, moreOptionsLabel, rememberTravelMode, tipBeforeSettingOff } from '@/lib/travelMode';
+import { routeCannotBeRight, type UsualTrip } from '@/lib/usualTrips';
 import { TravelPicture } from '@/components/pictures/Pictures';
 import { VehicleFields } from '@/components/mobile/trip/VehicleFields';
 import { readVehicle, Vehicle } from '@/lib/vehicle';
@@ -144,7 +144,7 @@ export function StartTripForm({
   // Starts on last time's answer, so most trips need no tap here at all
   const [travelMode, setTravelMode] = useState<TravelMode | null>(() => lastTravelMode());
   // How they are travelling and the vehicle: optional, so kept out of the way.
-  // The last answer is still used, and shown beside "More options"
+  // The last answer is still used, and shown on the folded row
   const [moreOpen, setMoreOpen] = useState(false);
   // Optional and folded away: most people only see the plate once they board
   const [vehicleOpen, setVehicleOpen] = useState(false);
@@ -156,7 +156,10 @@ export function StartTripForm({
   // Directions (Beta, build 25): the route to the pin, and a trip length from it
   const directionsOn = useAppConfig()?.directions === true;
   const routePreview = useRoutePreview(directionsOn, destinationPoint, travelMode);
-  const route = routePreview.state === 'found' ? routePreview.route : null;
+  // Not when a usual trip to the same place takes far less time (build 27)
+  const route = routePreview.state === 'found' && !routeCannotBeRight(routePreview.route, null, destinationPoint, usualTrips)
+    ? routePreview.route
+    : null;
   // Contacts are selected unless switched off, so one added a moment ago is included
   const [deselectedIds, setDeselectedIds] = useState<string[]>([]);
   const [name, setName] = useState(alertName);
@@ -195,9 +198,7 @@ export function StartTripForm({
 
   const arriveByMs = nowMs + durationMinutes * 60 * 1000;
   const textContacts = textContactsChoice ?? textContactsByDefault(durationMinutes);
-  const moreSummary = [TRAVEL_MODES.find((m) => m.id === travelMode)?.short, vehicle ? 'vehicle added' : null]
-    .filter(Boolean)
-    .join(', ');
+  const moreLabel = moreOptionsLabel(travelMode, vehicle?.plate || null, !!vehicle);
 
   const plan = {
     destination: destination.trim(),
@@ -706,8 +707,8 @@ export function StartTripForm({
           className="w-full min-h-12 flex items-center justify-between gap-2 text-left text-sm font-semibold text-slate-800 dark:text-slate-100"
         >
           <span>
-            More options
-            {moreSummary && <span className="font-normal text-slate-500 dark:text-slate-400"> · {moreSummary}</span>}
+            {moreLabel}
+            <span className="sr-only"> (more options: how you are travelling, and the vehicle)</span>
           </span>
           <ChevronDown className={`w-5 h-5 text-slate-500 transition-transform ${moreOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
         </button>

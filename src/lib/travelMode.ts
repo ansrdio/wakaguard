@@ -25,6 +25,19 @@ export const TRAVEL_MODES = [
 
 export type TravelMode = typeof TRAVEL_MODES[number]['id'];
 
+/**
+ * The folded row on the start form says what is under it (build 27; the
+ * owner, 3 November, could not find the ways of travelling under "More
+ * options"). Once answered it shows the answer, as the row did before.
+ */
+export function moreOptionsLabel(mode: TravelMode | null, plate: string | null, hasVehicle: boolean): string {
+  const vehicleWords = plate ? `Plate ${plate}` : hasVehicle ? 'Vehicle added' : null;
+  if (!mode) return vehicleWords ? `How you're travelling · ${vehicleWords}` : 'Bus, keke, okada · plate number';
+  const word = TRAVEL_MODES.find((m) => m.id === mode)?.short ?? 'Other';
+  if (mode === 'foot') return word;
+  return `${word} · ${vehicleWords ?? 'add plate number'}`;
+}
+
 /** Tips for each way of travelling, the most useful first. "Other" has none. */
 const TIPS: Record<TravelMode, readonly string[]> = {
   bus: [
