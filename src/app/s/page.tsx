@@ -4,7 +4,7 @@ import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
-import { AlertTriangle, Clock, Loader2, MapPin, Navigation, Phone } from 'lucide-react';
+import { AlertTriangle, Clock, Loader2, MapPin, Navigation, Phone, ShieldCheck } from 'lucide-react';
 import { TripStatus } from '@/lib/types';
 import { isTripExpired } from '@/lib/safety';
 import { formatClock } from '@/lib/tripPlanning';
@@ -166,6 +166,12 @@ function SharedTripContent() {
   const path = readTripPath(trip.path);
   // The route the app planned, when the traveller has directions (Beta) on
   const route = readRouteOutline(trip.route);
+  // Checkpoint stops (build 27), added by the server when the traveller logs one
+  const stops = (trip.checkpoints ?? [])
+    .filter((stop) => typeof stop?.atMs === 'number')
+    .map((stop) => ({ ...stop, label: `Stopped at a checkpoint, ${formatClock(stop.atMs, nowMs)}` }));
+  const stopPins = stops.flatMap((stop) =>
+    typeof stop.lat === 'number' && typeof stop.lng === 'number' ? [{ lat: stop.lat, lng: stop.lng, label: stop.label }] : []);
   const mapsUrl = latest ? `https://maps.google.com/?q=${latest.lat},${latest.lng}` : null;
   // Nobody should be sent to the emergency line by a test
   const callFor112 = (isOverdue || isEmergency) && !trip.isTest;
@@ -226,7 +232,7 @@ function SharedTripContent() {
           className="h-[46vh] min-h-[280px] lg:h-[calc(100vh-7rem)] lg:col-span-3 lg:rounded-3xl lg:border lg:border-slate-200 overflow-hidden bg-slate-100"
         >
           {latest ? (
-            <TripMap path={path} latest={latest} stale={isStale} destination={readPoint(trip.destinationPoint)} route={route} />
+            <TripMap path={path} latest={latest} stale={isStale} destination={readPoint(trip.destinationPoint)} route={route} stops={stopPins} />
           ) : (
             <div className="h-full flex flex-col items-center justify-center text-center p-6">
               <MapPin className="w-10 h-10 text-slate-400 mb-3" aria-hidden="true" />
@@ -298,6 +304,18 @@ function SharedTripContent() {
               <div className="p-4">
                 <p className="text-sm text-slate-500">Vehicle</p>
                 <p className="text-lg font-bold text-slate-900 break-words">{vehicleSummary(vehicle)}</p>
+              </div>
+            )}
+            {stops.length > 0 && (
+              <div className="p-4 flex items-start gap-3">
+                <ShieldCheck className="w-5 h-5 mt-0.5 flex-shrink-0 text-slate-500" aria-hidden="true" />
+                <div>
+                  <p className="text-sm text-slate-500">Checkpoints</p>
+                  <ul className="text-base font-semibold text-slate-900 space-y-0.5">
+                    {stops.map((stop) => <li key={stop.atMs}>{stop.label}</li>)}
+                  </ul>
+                  {stopPins.length > 0 && <p className="text-sm text-slate-500 mt-1">The dark dots on the map.</p>}
+                </div>
               </div>
             )}
           </div>

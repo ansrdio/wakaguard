@@ -668,6 +668,27 @@ async function adminAddPathAndName(token: string) {
   }
 }
 
+/** A checkpoint stop, as functions/src/checkpointStops.ts adds it (build 27) */
+async function adminAddCheckpointStop(token: string) {
+  const url = `http://127.0.0.1:8080/v1/projects/${getProjectId()}/databases/(default)/documents/sharedTrips/${token}`
+    + '?updateMask.fieldPaths=checkpoints';
+  const stop = {
+    mapValue: { fields: { atMs: { integerValue: String(Date.now()) }, lat: { doubleValue: 6.52 }, lng: { doubleValue: 3.42 } } }
+  };
+  const response = await fetch(url, {
+    method: 'PATCH',
+    headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fields: { checkpoints: { arrayValue: { values: [stop] } } } })
+  });
+  if (!response.ok) {
+    throw new Error(`Admin write failed: ${response.status} ${await response.text()}`);
+  }
+}
+
+async function sharedTripChangeCheckpoints(ctx: AppContext, token: string) {
+  await updateDoc(doc(ctx.db, 'sharedTrips', token), { checkpoints: [] });
+}
+
 // Once the server has added them, the app's own updates must still pass rules
 async function sharedTripUpdateAfterServerFields(ctx: AppContext, token: string) {
   const sharedRef = doc(ctx.db, 'sharedTrips', token);
@@ -1256,6 +1277,12 @@ async function run() {
     await runStep('User: update shared trip after the server added how they are travelling', () =>
       sharedTripUpdateAfterServerFields(user, ids.tripId)
     );
+    await runStep('Server: add a checkpoint stop to shared trip', () => adminAddCheckpointStop(ids.tripId));
+    await runStep('User: update shared trip after the server added a checkpoint stop', () =>
+      sharedTripUpdateAfterServerFields(user, ids.tripId)
+    );
+    await runStep('User: change the checkpoint stops on shared trip denied', () =>
+      sharedTripChangeCheckpoints(user, ids.tripId), true);
     await runStep('Server: add the vehicle to shared trip', () => adminAddVehicle(ids.tripId));
     await runStep('User: update shared trip after the server added the vehicle', () =>
       sharedTripUpdateAfterServerFields(user, ids.tripId)

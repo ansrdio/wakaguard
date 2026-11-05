@@ -24,6 +24,8 @@ export interface TripMapProps {
   destination?: { lat: number; lng: number } | null;
   /** The planned route, when directions (Beta) are on: drawn in grey under the path travelled */
   route?: { lat: number; lng: number }[] | null;
+  /** Checkpoint stops (build 27), each with the words for its label */
+  stops?: { lat: number; lng: number; label: string }[];
 }
 
 const BRAND = '#176B4F';
@@ -89,7 +91,7 @@ function ShowAllButton({ line, topInset }: { line: [number, number][]; topInset:
  * It draws what the phone has reported and, with directions (Beta) on, the
  * planned route in grey underneath.
  */
-export default function TripMap({ path, latest, stale = false, topInset = 0, destination = null, route = null }: TripMapProps) {
+export default function TripMap({ path, latest, stale = false, topInset = 0, destination = null, route = null, stops = [] }: TripMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<LeafletMap | null>(null);
   useLeafletResizeObserver(containerRef, mapRef);
@@ -149,6 +151,17 @@ export default function TripMap({ path, latest, stale = false, topInset = 0, des
             />
           </>
         )}
+
+        {stops.map((stop) => (
+          <CircleMarker
+            key={`${stop.lat},${stop.lng},${stop.label}`}
+            center={[stop.lat, stop.lng]}
+            radius={7}
+            pathOptions={{ color: '#ffffff', weight: 3, fillColor: '#334155', fillOpacity: 1 }}
+          >
+            <Tooltip direction="top" offset={[0, -6]}>{stop.label}</Tooltip>
+          </CircleMarker>
+        ))}
 
         {destination && (
           <CircleMarker

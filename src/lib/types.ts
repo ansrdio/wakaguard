@@ -247,6 +247,8 @@ export interface SharedTrip {
   destinationPoint?: { lat: number; lng: number };
   /** The planned route (directions Beta). Copied by the server from the trip and removed when the trip ends */
   route?: { overview: string; distanceM: number; durationS: number; profile: string };
+  /** Checkpoint stops while the trip runs (build 27), added by the server (functions/src/checkpointStops.ts) */
+  checkpoints?: { atMs: number; lat?: number; lng?: number }[];
 }
 
 export interface TripPathPoint {

@@ -41,6 +41,7 @@ import { AppNotices } from '@/components/mobile/AppNotices';
 import { AddTimeSheet } from '@/components/mobile/trip/AddTimeSheet';
 import { ArriveUndoBar } from '@/components/mobile/trip/ArriveUndoBar';
 import { CancelTripSheet } from '@/components/mobile/trip/CancelTripSheet';
+import { CheckpointStopSheet } from '@/components/mobile/trip/CheckpointStopSheet';
 import { VehicleSheet } from '@/components/mobile/trip/VehicleSheet';
 import { storedVehicle, Vehicle } from '@/lib/vehicle';
 import { ARRIVE_UNDO_MS } from '@/lib/arriveUndo';
@@ -246,6 +247,7 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
   const [addTimeOpen, setAddTimeOpen] = useState(false);
   // "Cancel trip", from the trip card or the trip map
   const [cancelOpen, setCancelOpen] = useState(false);
+  const [checkpointOpen, setCheckpointOpen] = useState(false);
   // Vehicle details on the running trip
   const [vehicleOpen, setVehicleOpen] = useState(false);
   // "I've arrived" on the card waits a few seconds with an Undo (lib/arriveUndo.ts)
@@ -675,14 +677,16 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
     }
   };
 
+  // Asks once first (CheckpointStopSheet), as the stop now shows on the contacts' page (build 27)
   const handleCheckpointStop = async () => {
     if (!requireAccount('checkpoint stop')) return;
     if (!uid || isAnonymous) return;
     setProcessing(true);
     const result = await logCheckpointStop();
     setProcessing(false);
+    setCheckpointOpen(false);
     if (result.success) {
-      showToast('Checkpoint stop logged.', 'success');
+      showToast(activeTrip ? 'Logged. Your contacts can see it on your trip page.' : 'Checkpoint stop logged.', 'success');
     } else {
       showToast(result.error || 'Failed to log checkpoint', 'error');
     }
@@ -960,6 +964,14 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
           }}
         />
       )}
+      {checkpointOpen && (
+        <CheckpointStopSheet
+          onTrip={!!activeTrip}
+          processing={processing}
+          onClose={() => setCheckpointOpen(false)}
+          onLog={() => void handleCheckpointStop()}
+        />
+      )}
       {cancelOpen && activeTrip && (
         <CancelTripSheet
           contactsWereTexted={!!describeTripAlert(activeTrip)?.texted}
@@ -1068,13 +1080,13 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
           <ChevronRight className="w-5 h-5 text-slate-400" aria-hidden="true" />
         </button>
 
-        <button onClick={handleCheckpointStop} disabled={processing} className={`${moreRow} disabled:opacity-50`}>
+        <button onClick={() => { if (requireAccount('checkpoint stop')) setCheckpointOpen(true); }} disabled={processing} className={`${moreRow} disabled:opacity-50`}>
           <span className={`${moreIcon} bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-200`}>
             <ShieldCheck className="w-5 h-5" aria-hidden="true" />
           </span>
           <span className="flex-1 min-w-0">
             <span className={moreTitle}>Stopped at a checkpoint?</span>
-            <span className={moreSub}>Log it with your location</span>
+            <span className={moreSub}>{activeTrip ? 'Your contacts see it on your trip page' : 'Log it with your location'}</span>
           </span>
           {processing
             ? <Loader2 className="w-5 h-5 text-slate-400 animate-spin" aria-hidden="true" />

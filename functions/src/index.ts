@@ -24,6 +24,7 @@ export { watchTexts } from './serverWatch';
 export { smsReport } from './smsReport';
 export { adminNumbers } from './adminNumbers';
 export { referrals } from './referrals';
+export { onCheckpointStop } from './checkpointStops';
 export {
   checkOverdueTrips,
   checkQuietTrips,

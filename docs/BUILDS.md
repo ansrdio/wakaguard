@@ -649,8 +649,18 @@ was first agreed.
          Check (item 9) and the owner's check before each weekly payout cover it until there is abuse to answer.
 3. [x] **Say what is under "More options"** (below). Done 5 November.
 4. [x] **A sanity check on the route** (below). Done 5 November.
-5. [ ] **"Stopped at a checkpoint?" shown on the contacts' trip page,** with the time and a map pin (build 26
-       section, 28 October).
+5. [x] **"Stopped at a checkpoint?" shown on the contacts' trip page,** with the time and a map pin (build 26
+       section, 28 October). Done 5 November:
+       - the button asks once ("Stopped at a checkpoint?", "Your contacts will see the time and where you are on your
+         trip page. Nobody is texted.", "Yes, log it" or "Not now"), then says "Logged. Your contacts can see it on
+         your trip page." Without a trip it is logged as before;
+       - a new server function, `onCheckpointStop`, adds each stop on a running trip to its page: the time, and the
+         phone's position or else the trip's latest. Two presses within 2 minutes are one stop, at most 20 a page,
+         and only the traveller's own page;
+       - the page lists "Stopped at a checkpoint, 2:14 pm" under Checkpoints, with a dark dot on the map for each;
+       - the rules let the page hold the list and keep it server-only. **The rules must go live before
+         `onCheckpointStop`,** or the app's own changes to a page with stops would be refused.
+       - Tests: 410 unit, 138 emulator, 148 rules checks. Seen on the page with test data in the emulator.
 6. [ ] **SOS from the lock screen:** an SOS button on the "Safe Trip active" notification that asks once more
        before sending (build 26 section, 29 October).
 7. [ ] **Two Android hardening changes** from the security review (kept privately).
