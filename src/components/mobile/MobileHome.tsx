@@ -70,6 +70,8 @@ export function MobileHome({
   const [showCreateModal, setShowCreateModal] = useState(false);
   // A button pressed on a trip reminder ("I've arrived", "+15 min"), for the Trip screen to carry out
   const [tripAction, setTripAction] = useState<TripNotificationAction | null>(pressAtStart);
+  // "Heading out?" at a usual travel time (build 27), for the start form to fill in
+  const [usualPick, setUsualPick] = useState<{ destination: string; minutes: number | null } | null>(null);
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
@@ -79,6 +81,18 @@ export function MobileHome({
       if ((performed.notification?.data as { kind?: unknown } | undefined)?.kind === 'weather') {
         setShowCreateModal(false);
         setActiveTab('safety');
+        return;
+      }
+      // "Heading out?" opens the start form with the usual trip filled in
+      const data = (performed.notification?.data ?? {}) as Record<string, unknown>;
+      if (data.kind === 'usual_trip') {
+        setShowCreateModal(false);
+        setActiveTab('safety');
+        const minutes = Number(data.minutes);
+        setUsualPick({
+          destination: typeof data.destination === 'string' ? data.destination : '',
+          minutes: Number.isInteger(minutes) && minutes > 0 ? minutes : null,
+        });
         return;
       }
       const action = readTripNotificationAction(performed);
@@ -372,6 +386,8 @@ export function MobileHome({
           onReportRoad={() => setShowCreateModal(true)}
           notificationAction={tripAction}
           onNotificationActionDone={() => setTripAction(null)}
+          usualPick={usualPick}
+          onUsualPickDone={() => setUsualPick(null)}
         />
       );
     }

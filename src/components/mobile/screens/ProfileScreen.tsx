@@ -21,6 +21,7 @@ import { versionLabel } from '@/lib/appVersion';
 import { LocationCheck } from '@/components/mobile/LocationCheck';
 import { BlockedPeople } from '@/components/mobile/BlockedPeople';
 import { MorningWeatherSwitch } from '@/components/mobile/MorningWeatherSwitch';
+import { UsualTimeSwitch } from '@/components/mobile/UsualTimeSwitch';
 import { Capacitor } from '@capacitor/core';
 import { AppNotices } from '@/components/mobile/AppNotices';
 import { InviteFriends } from '@/components/mobile/InviteFriends';
@@ -316,6 +317,7 @@ export function ProfileScreen() {
               </div>
 
               {uid && !isAnonymous && <MorningWeatherSwitch uid={uid} />}
+              {uid && !isAnonymous && <UsualTimeSwitch uid={uid} />}
 
               {uid && !isAnonymous && <BlockedPeople />}
 

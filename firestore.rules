@@ -302,7 +302,8 @@ service cloud.firestore {
         return [
           'createdAt','blockedUids','username','usernameUpdatedAt','safetyChecklist','alertName',
           'points','level','badges','totalReports','totalUpvotes','totalComments',
-          'tripsCompleted','loginStreak','lastLoginDate','lastReportDate','morningWeather'
+          'tripsCompleted','loginStreak','lastLoginDate','lastReportDate','morningWeather',
+          'usualTimeReminder'
         ];
       }
 
@@ -323,7 +324,9 @@ service cloud.firestore {
           && (!('lastLoginDate' in d) || (d.lastLoginDate is string && d.lastLoginDate.size() <= 10))
           && (!('lastReportDate' in d) || (d.lastReportDate is string && d.lastReportDate.size() <= 10))
           // The morning weather notification, switched off in Settings (functions/src/morningWeather.ts)
-          && (!('morningWeather' in d) || d.morningWeather is bool);
+          && (!('morningWeather' in d) || d.morningWeather is bool)
+          // The reminder at usual travel times, switched off in Settings (functions/src/usualTimes.ts, build 27)
+          && (!('usualTimeReminder' in d) || d.usualTimeReminder is bool);
       }
 
       // A username must be reserved in /usernames by the same user, in the same

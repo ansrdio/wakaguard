@@ -26,6 +26,7 @@ export { adminNumbers } from './adminNumbers';
 export { referrals } from './referrals';
 export { onCheckpointStop } from './checkpointStops';
 export { myWeek } from './myWeek';
+export { planUsualTimes, usualTimeReminders } from './usualTimes';
 export {
   checkOverdueTrips,
   checkQuietTrips,

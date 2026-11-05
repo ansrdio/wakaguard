@@ -86,6 +86,9 @@ interface StartTripFormProps {
   onManageContacts: () => void;
   /** Places they went before, to fill the form in one tap (lib/usualTrips.ts) */
   usualTrips?: UsualTrip[];
+  /** "Heading out?" was tapped (build 27): the usual trip it named, to fill in once */
+  usualPick?: { destination: string; minutes: number | null } | null;
+  onUsualPickDone?: () => void;
 }
 
 const CUSTOM_HOURS = Array.from({ length: MAX_TRIP_MINUTES / 60 + 1 }, (_, h) => h);
@@ -115,6 +118,8 @@ export function StartTripForm({
   onPickFromPhone,
   onManageContacts,
   usualTrips = [],
+  usualPick = null,
+  onUsualPickDone,
 }: StartTripFormProps) {
   const [destination, setDestination] = useState('');
   // "Set it on the map": optional, alongside the typed destination
@@ -242,6 +247,30 @@ export function StartTripForm({
     setChosenUsual(trip.key);
     setTimeout(() => startRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 50);
   };
+
+  // "Heading out?" tapped: the usual trip it named, chosen as if tapped here
+  useEffect(() => {
+    if (!usualPick) return;
+    const wanted = usualPick.destination.trim().toLowerCase();
+    const match = wanted ? usualTrips.find((t) => t.destination.trim().toLowerCase() === wanted) : undefined;
+    const fillIn = () => {
+      if (match) chooseUsualTrip(match);
+      else {
+        if (wanted) setDestination(usualPick.destination);
+        if (usualPick.minutes) setDurationMinutes(usualPick.minutes);
+      }
+      onUsualPickDone?.();
+    };
+    if (match || usualTrips.length > 0 || !wanted) {
+      fillIn();
+      return;
+    }
+    // The usual trips may still be loading on a cold start: wait for them a moment, then fill in the words
+    const wait = setTimeout(fillIn, 3000);
+    return () => clearTimeout(wait);
+    // Once per pick; chooseUsualTrip is redefined each render
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [usualPick, usualTrips]);
 
   const handleSubmit = () => {
     setSubmitted(true);

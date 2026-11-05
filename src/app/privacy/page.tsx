@@ -163,7 +163,11 @@ export default function PrivacyPage() {
               reminder when a trip passes its arrival time and, if you switch on push notifications in Profile,
               notices about new road reports nearby. On days with rain, storms, fog or great heat expected in
               your rough area, we also send a morning weather notification at about 6:30 am Nigeria time; switch
-              it off with Morning weather in Settings.
+              it off with Morning weather in Settings. When you have started trips at about the same time of
+              day on at least 3 of the last 14 days, we send &quot;Heading out?&quot; shortly before that time, at
+              most once a day and never while a trip is running. To do this we use the start times, and the
+              destination you typed, of your past trips, worked out again each night; switch it off with
+              Reminder at my usual times in Settings.
             </p>
 
             <h3 className="text-xl font-semibold text-gray-800 mb-3">Invite Friends</h3>

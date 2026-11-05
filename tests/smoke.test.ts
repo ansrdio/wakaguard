@@ -1074,6 +1074,10 @@ async function run() {
     await runStep('User: set the morning weather to a word denied', () =>
       userDocUpdate(user, userUid, { morningWeather: 'no' }), true
     );
+    await runStep('User: switch the usual time reminder off', () => userDocUpdate(user, userUid, { usualTimeReminder: false }));
+    await runStep('User: usual time reminder that is not on or off denied', () =>
+      userDocUpdate(user, userUid, { usualTimeReminder: 'no' }), true
+    );
     await runStep('User: read the kept weather areas denied', async () => {
       await getDoc(doc(user.db, 'weatherAreas', userUid));
     }, true);

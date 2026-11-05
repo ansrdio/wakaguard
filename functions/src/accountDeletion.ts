@@ -118,6 +118,8 @@ export async function deleteAccountData(uid: string, nowMs: number = Date.now())
   await db.doc(`deadPushTokens/${uid}`).delete();
   // Where they last looked at the weather, kept for the morning notification
   await db.doc(`weatherAreas/${uid}`).delete();
+  // The usual-time reminder's day (usualTimes.ts); the slots are rebuilt each night without the account
+  await db.doc(`usualReminders/${uid}`).delete();
   // How many pins they had named this hour (placeName.ts)
   await db.doc(`placeNameTries/${uid}`).delete();
   await deleteAll(db.collection('usernames').where('uid', '==', uid));

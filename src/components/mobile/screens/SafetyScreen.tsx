@@ -102,12 +102,15 @@ const EMERGENCY_CONTACTS = [
   { name: 'NEMA', number: '0800CALLNEMA', icon: AlertCircle, color: 'amber', description: 'Emergency Management Agency' },
 ];
 
-export function SafetyScreen({ onReportRoad, notificationAction = null, onNotificationActionDone }: {
+export function SafetyScreen({ onReportRoad, notificationAction = null, onNotificationActionDone, usualPick = null, onUsualPickDone }: {
   /** Open the road report form */
   onReportRoad?: () => void;
   /** A button pressed on a trip reminder, to carry out once the trip has loaded */
   notificationAction?: TripNotificationAction | null;
   onNotificationActionDone?: () => void;
+  /** "Heading out?" tapped (build 27): the usual trip to fill in on the start form */
+  usualPick?: { destination: string; minutes: number | null } | null;
+  onUsualPickDone?: () => void;
 } = {}) {
   const { uid, ready: authReady, isAnonymous, displayName } = useAuthedUser();
   const { requireAccount, showAuthModal, openAuthModal, closeAuthModal } = useRequireAccount({ uid, isAnonymous });
@@ -1097,6 +1100,8 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
           onPickFromPhone={handlePickFromPhone}
           onManageContacts={() => setActiveModal('contacts')}
           usualTrips={usualTrips}
+          usualPick={usualPick}
+          onUsualPickDone={onUsualPickDone}
         />
       )}
 

@@ -714,8 +714,20 @@ was first agreed.
          Problem reports you send are added then, and the full list goes in the group.";
        - it can be hidden without a build (`weeklyPoints: false` in the app config), for when the ranking ends.
        - Tests: 418 unit, 140 emulator.
-12. [ ] **A reminder at each person's usual travel time,** with its own Settings switch and a Privacy line (build 26
-       section, 28 October).
+12. [x] **A reminder at each person's usual travel time,** with its own Settings switch and a Privacy line (build 26
+       section, 28 October). Done 5 November (`functions/src/usualTimes.ts`):
+       - each night at 2:30 am Nigeria time, `planUsualTimes` finds each person's usual start times: real trips
+         ended with "I've arrived", started within 30 minutes of each other on at least 3 of the last 14 days. It
+         keeps the middle time, the usual destination and length, filed under the quarter hour the reminder is due
+         (10 to 25 minutes before);
+       - every quarter hour, `usualTimeReminders` sends "Heading out?" / "You usually set off around 7:30 am for
+         Work. Start your trip so your people know you got there." At most once a day, never while a trip is
+         running, only to phones on build 27 or later, and not when switched off;
+       - tapping it opens the start form with that usual trip filled in, as if its button had been tapped;
+       - Profile, next to Morning weather: "Reminder at my usual times", on unless switched off
+         (`usualTimeReminder` on the user, allowed by the rules);
+       - a Privacy line under Notifications. Deleting an account deletes its reminder record.
+       - Tests: unit and emulator. Watch afterwards on the Numbers page whether more trips start near those times.
 13. [ ] **The server functions for this build,** on the owner's word: `referrals`, `onTripUpdated` and
        `onTrustedContactWrite`, plus whatever items 2 to 12 add.
 14. [ ] **Terms and Privacy dates** changed on the day the website goes out.
