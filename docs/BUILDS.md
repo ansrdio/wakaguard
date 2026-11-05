@@ -632,7 +632,8 @@ whose code was never in this repository (`onCommentCreate`,
 **The whole list, written Thu 5 November before starting** (the owner: "let us start build 27"). Due Wed 11 Nov,
 frozen Fri 13 Nov. In the order I plan to work; each item's details are below, or in the build 26 section where it
 was first agreed.
-1. [x] **The referral programme** (done 2 November, below). Still to write: the App Review note.
+1. [x] **The referral programme** (done 2 November, below). The App Review note was drafted on 5 November (kept with
+       the store wording outside this repository), for the owner to read before upload.
 2. [x] **Server checks on trips and on the referral counting,** from the security review of 4 November. Must be done
        before build 27's server functions go live. The details are kept privately, as this repository is public.
        Done 5 November:
