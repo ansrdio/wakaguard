@@ -41,6 +41,7 @@ import { getStorage, FirebaseStorage, connectStorageEmulator } from 'firebase/st
 import { RESTART_GAP_MS, errorText, isLocalStoreFailure, restartPage } from './localStore';
 import { setConnectionRestart } from './firestoreWrites';
 import { settleWithin } from './timeLimit';
+import { startNativeAppCheck } from './nativeAppCheck';
 
 /**
  * Firebase configuration object.
@@ -90,7 +91,14 @@ if (typeof window !== 'undefined') {
   // off until a reCAPTCHA v3 site key is configured, and must be set up before
   // the other services are used. See docs/SAFETY-ALERTS-SETUP.md.
   const appCheckSiteKey = process.env.NEXT_PUBLIC_FIREBASE_APPCHECK_SITE_KEY;
-  if (isFirstInit && appCheckSiteKey) {
+  if (isFirstInit && Capacitor.isNativePlatform() && !usingEmulators()) {
+    // The phones answer with their own attestation instead (lib/nativeAppCheck.ts, build 27)
+    try {
+      startNativeAppCheck(app);
+    } catch (err) {
+      console.warn('App Check could not be initialised:', err);
+    }
+  } else if (isFirstInit && appCheckSiteKey) {
     const debugToken = process.env.NEXT_PUBLIC_FIREBASE_APPCHECK_DEBUG_TOKEN;
     if (debugToken) {
       // For local development only: 'true' prints a token to register in the console

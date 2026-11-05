@@ -1,6 +1,7 @@
 import UIKit
 import Capacitor
 import FirebaseCore
+import FirebaseAppCheck
 import FirebaseMessaging
 import UserNotifications
 
@@ -14,6 +15,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // Firebase is only used natively for push. Without its settings file the app
         // still runs; it just cannot register for notifications.
         if Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist") != nil {
+            // App Check (build 27, src/lib/nativeAppCheck.ts): the provider has to be
+            // named before Firebase starts, or the first part to ask for a token
+            // finds none
+            AppCheck.setAppCheckProviderFactory(WakaGuardAppCheckProviderFactory())
             FirebaseApp.configure()
         }
         declareTripReminderButtons()
@@ -108,3 +113,14 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         return config
     }
 }
+
+/// App Attest on iOS 14 and later, DeviceCheck before (the same choice as the App Check plugin's)
+class WakaGuardAppCheckProviderFactory: NSObject, AppCheckProviderFactory {
+    func createProvider(with app: FirebaseApp) -> AppCheckProvider? {
+        if #available(iOS 14.0, *) {
+            return AppAttestProvider(app: app)
+        }
+        return DeviceCheckProvider(app: app)
+    }
+}
+
