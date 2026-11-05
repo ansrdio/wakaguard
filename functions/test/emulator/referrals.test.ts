@@ -32,10 +32,11 @@ afterEach(() => { Date.now = realNow; });
 const call = (uid: string, data: Record<string, unknown>) =>
   (referrals as any).run(data, { auth: { uid, token: { firebase: { sign_in_provider: 'password' } } } });
 
-async function person(prefix: string) {
+/** A confirmed account unless said otherwise: one made with Google, as most are */
+async function person(prefix: string, confirmed = true) {
   const uid = `ref_${prefix}_${realNow()}_${seq++}`;
   const username = `${prefix}${seq}x${realNow() % 100000}`;
-  await admin.auth().createUser({ uid });
+  await admin.auth().createUser({ uid, email: `${uid}@example.test`, emailVerified: confirmed });
   await db().doc(`users/${uid}`).set({ username });
   await db().doc(`usernames/${username.toLowerCase()}`).set({ uid, usernameLower: username.toLowerCase() });
   return { uid, username };
@@ -121,6 +122,22 @@ test('4 real trips on 4 days and a contact earn the inviter ₦500, held 7 days'
   assert.deepEqual([summary.balance.waiting, summary.balance.ready], [0, 500]);
 });
 
+test('a friend whose email is not confirmed earns nothing until it is', async () => {
+  // Security review, 4 November 2026: unconfirmed accounts cost nothing to make by the hundred
+  const inviter = await person('kemi');
+  const friend = await person('sola', false);
+  await call(friend.uid, { action: 'join', inviter: inviter.username });
+  for (const day of [0, 1, 2, 3]) await arrive(friend.uid, day, 'sola-phone');
+  await addContact(friend.uid);
+  assert.equal((await referral(friend.uid))!.state, 'counting');
+  let summary = await call(inviter.uid, { action: 'summary' });
+  assert.deepEqual([summary.friends[0].trips, summary.friends[0].state], [4, 'needs_confirmed']);
+
+  await admin.auth().updateUser(friend.uid, { emailVerified: true });
+  summary = await call(inviter.uid, { action: 'summary' });
+  assert.equal(summary.friends[0].state, 'qualified', 'picked up the next time the inviter looks');
+});
+
 test('trips from the inviter\'s own phone earn nothing', async () => {
   const inviter = await person('bola');
   const friend = await person('chidi');
@@ -166,13 +183,17 @@ test('cash out from 15 December: everything ready, once, then marked paid with t
 
 test('a contact opening "Get WakaGuard" after an arrival learns only the traveller\'s username', async () => {
   const traveller = await person('yemi');
-  await db().doc('sharedTrips/share_for_join').set({ uid: traveller.uid, status: 'completed' });
+  await db().doc('sharedTrips/share_for_join').set({ uid: traveller.uid, status: 'completed', lastUpdate: ts(Date.now()) });
   assert.deepEqual(await (referrals as any).run({ action: 'fromTrip', trip: 'share_for_join' }, {}), { ok: true, name: traveller.username });
   assert.deepEqual(await (referrals as any).run({ action: 'fromTrip', trip: 'no_such_trip' }, {}), { ok: false, problem: 'not_found' });
   // Only after "I've arrived": never while the trip runs or is late, nor for a test
   await db().doc('sharedTrips/share_running').set({ uid: traveller.uid, status: 'active' });
   await db().doc('sharedTrips/share_test').set({ uid: traveller.uid, status: 'completed', isTest: true });
-  for (const trip of ['share_running', 'share_test']) {
+  // Nor a week after the trip
+  await db().doc('sharedTrips/share_old').set({
+    uid: traveller.uid, status: 'completed', lastUpdate: ts(Date.now() - 8 * DAY),
+  });
+  for (const trip of ['share_running', 'share_test', 'share_old']) {
     assert.deepEqual(await (referrals as any).run({ action: 'fromTrip', trip }, {}), { ok: false, problem: 'not_found' }, trip);
   }
   await assert.rejects((referrals as any).run({ action: 'summary' }, {}), /Must be authenticated/);

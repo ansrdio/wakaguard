@@ -4,6 +4,7 @@ import { getSetting } from './config';
 import { getProviders, sendSmsBatch, SendSmsResult } from './sms';
 import { sanitizeName } from './smsText';
 import { addressTo } from './templates';
+import { isConfirmedAccount } from './confirmedAccount';
 
 export type DeliveryStatus = 'sent' | 'partial' | 'failed' | 'blocked';
 
@@ -122,9 +123,7 @@ export async function getSenderProfile(uid: string): Promise<SenderProfile> {
   try {
     const user = await admin.auth().getUser(uid);
     authName = user.displayName || '';
-    const verified = user.emailVerified
-      || !!user.phoneNumber
-      || user.providerData.some((p) => p.providerId !== 'password');
+    const verified = isConfirmedAccount(user);
     if (user.disabled) {
       canSend = false;
       blockReason = 'account_disabled';

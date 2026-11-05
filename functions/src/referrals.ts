@@ -22,6 +22,7 @@ import * as admin from 'firebase-admin';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { getNumberSetting } from './config';
 import { ID_PATTERN } from './tripLocation';
+import { isConfirmedAccount } from './confirmedAccount';
 import {
   ACCOUNTS_FROM_MS, addTrip, balanceOf, CASH_OUT_OPENS_MS, cashOutProblem, deadlineOf, HOLD_DAYS, joinProblem, lagosMonth,
   MIN_CASH_OUT_NAIRA, MONTHLY_REWARDS, paidDetails, PER_PERSON_MONTHLY, placeReward, readPayTo, readUsername,
@@ -33,6 +34,8 @@ type DocData = FirebaseFirestore.DocumentData;
 const DAY_MS = 24 * 60 * 60 * 1000;
 /** Months read ahead when placing a reward; a budget full for half a year is far past anything planned */
 const MONTHS_AHEAD = 6;
+/** "Get WakaGuard" on a contact's page names the traveller for this long after the trip */
+const FROM_TRIP_DAYS = 7;
 /** The Invite friends screen lists this many friends, newest first */
 const FRIENDS_SHOWN = 100;
 
@@ -111,6 +114,8 @@ export async function qualifyIfDone(friendUid: string): Promise<void> {
 
   const contacts = await db().collection(`users/${friendUid}/trustedContacts`).limit(1).get();
   if (contacts.empty) return;
+  // Waits, as for the contact: the inviter's screen checks again each time it opens
+  if (!(await friendConfirmed(friendUid))) return;
 
   const inviterUid: string = referral.inviterUid;
   const devices = strings(referral.devices);
@@ -179,6 +184,15 @@ async function usernameOf(uid: string): Promise<string | null> {
   return typeof name === 'string' && name ? name : null;
 }
 
+/** False also for an account that is gone, which earns nothing */
+async function friendConfirmed(uid: string): Promise<boolean> {
+  try {
+    return isConfirmedAccount(await admin.auth().getUser(uid));
+  } catch {
+    return false;
+  }
+}
+
 async function accountCreatedMs(uid: string): Promise<number> {
   const user = await admin.auth().getUser(uid);
   return Date.parse(user.metadata.creationTime);
@@ -222,11 +236,11 @@ async function join(uid: string, data: Record<string, unknown>): Promise<Result>
 }
 
 /** How a friend shows on the inviter's screen. Never their trips: only how many days are done */
-function friendStatus(referral: DocData, hasContact: boolean | null, nowMs: number) {
+function friendStatus(referral: DocData, hasContact: boolean | null, confirmed: boolean | null, nowMs: number) {
   const trips = Math.min(strings(referral.days).length, TRIPS_NEEDED);
   const deadlineMs = ms(referral.deadline);
   let state: string = referral.state;
-  if (state === 'counting' && trips >= TRIPS_NEEDED) state = 'needs_contact';
+  if (state === 'counting' && trips >= TRIPS_NEEDED) state = hasContact && confirmed === false ? 'needs_confirmed' : 'needs_contact';
   else if (state === 'counting' && deadlineMs != null && nowMs >= deadlineMs) state = 'expired';
   return {
     trips,
@@ -275,11 +289,12 @@ async function buildSummary(
   const friends = await Promise.all(newest.map(async (doc) => {
     const referral = doc.data();
     const needsContactCheck = referral.state === 'counting' && tripsDone({ days: strings(referral.days) });
-    const [name, contacts] = await Promise.all([
+    const [name, contacts, confirmed] = await Promise.all([
       referral.friendDeleted ? null : usernameOf(doc.id),
       needsContactCheck ? db().collection(`users/${doc.id}/trustedContacts`).limit(1).get() : null,
+      needsContactCheck ? friendConfirmed(doc.id) : null,
     ]);
-    return { name, ...friendStatus(referral, contacts ? !contacts.empty : null, nowMs) };
+    return { name, ...friendStatus(referral, contacts ? !contacts.empty : null, confirmed, nowMs) };
   }));
 
   const rewards = invitedDocs
@@ -369,6 +384,9 @@ async function fromTrip(data: Record<string, unknown>): Promise<Result> {
   if (!shared || shared.status !== 'completed' || shared.isTest === true || typeof shared.uid !== 'string') {
     return { ok: false, problem: 'not_found' };
   }
+  // Only for a while after the trip, as with the page itself (security review, 4 November 2026)
+  const lastMs = ms(shared.lastUpdate) ?? ms(shared.createdAt);
+  if (lastMs == null || Date.now() - lastMs > FROM_TRIP_DAYS * DAY_MS) return { ok: false, problem: 'not_found' };
   const name = await usernameOf(shared.uid);
   return name ? { ok: true, name } : { ok: false, problem: 'not_found' };
 }

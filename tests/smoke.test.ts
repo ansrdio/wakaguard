@@ -22,7 +22,8 @@ import {
   updateDoc,
   deleteDoc,
   deleteField,
-  serverTimestamp
+  serverTimestamp,
+  increment
 } from 'firebase/firestore';
 import {
   getStorage,
@@ -409,21 +410,100 @@ async function reportWithFreeTextState(ctx: AppContext, uid: string, runId: stri
   await setDoc(doc(ctx.db, 'reports', `report_badstate_${runId}`), { ...buildReportData(uid), state: 'Lagos. Account suspended, verify at example.shop' });
 }
 
-async function safetyStartTrip(ctx: AppContext, uid: string) {
-  const tripRef = doc(ctx.db, 'users', uid, 'trips', ids.tripId);
-  await setDoc(tripRef, {
+/** A new trip as the app writes it (useSafety.ts startSafeTrip) */
+function newTripData(uid: string, tripId: string, extra: Record<string, unknown> = {}) {
+  const start = { lat: 6.5, lng: 3.4 };
+  return {
+    uid,
+    shareToken: tripId,
     status: 'active',
-    createdAt: Timestamp.now()
+    startTime: serverTimestamp(),
+    expiresAt: Timestamp.fromMillis(Date.now() + DAY_MS),
+    destination: 'Home',
+    lastLocation: { ...start, accuracy: 12, updatedAt: Timestamp.now() },
+    lastUpdate: serverTimestamp(),
+    notifiedContacts: [],
+    createdAt: serverTimestamp(),
+    expectedDurationMinutes: 30,
+    endsAt: Timestamp.fromMillis(Date.now() + 30 * 60 * 1000),
+    trustedContactIds: [],
+    shouldNotifyContacts: true,
+    locationKey: 'k'.repeat(32),
+    trackingDeviceId: 'device-smoke',
+    travelMode: 'bus',
+    startLocation: start,
+    extensionCount: 0,
+    extendedMinutes: 0,
+    ...extra,
+  };
+}
+
+async function safetyStartTrip(ctx: AppContext, uid: string) {
+  await setDoc(doc(ctx.db, 'users', uid, 'trips', ids.tripId), newTripData(uid, ids.tripId));
+}
+
+/** A position written by the website (useTripLocationSync.ts writeViaFirestore) */
+async function safetyUpdateTripLocation(ctx: AppContext, uid: string, tripId: string) {
+  await updateDoc(doc(ctx.db, 'users', uid, 'trips', tripId), {
+    lastLocation: { lat: 6.51, lng: 3.41, accuracy: 10 },
+    lastUpdate: serverTimestamp(),
   });
 }
 
-async function safetyUpdateTripLocation(ctx: AppContext, uid: string, tripId: string) {
+/** Everything else the app changes on a running trip, as builds 22 to 27 write it */
+async function safetyTripChangesFromApp(ctx: AppContext, uid: string, tripId: string) {
   const tripRef = doc(ctx.db, 'users', uid, 'trips', tripId);
-  await setDoc(tripRef, {
-    status: 'active',
-    lastLocation: { lat: 6.5, lng: 3.4 },
-    updatedAt: Timestamp.now()
+  await updateDoc(tripRef, {
+    endsAt: Timestamp.fromMillis(Date.now() + 45 * 60 * 1000),
+    expiresAt: Timestamp.fromMillis(Date.now() + 2 * DAY_MS),
+    extensionCount: increment(1),
+    extendedMinutes: increment(15),
+    extendedAt: serverTimestamp(),
+    lastExtendRequestId: 'press-1',
   });
+  await updateDoc(tripRef, { trackingDeviceId: 'device-smoke-2' });
+  await updateDoc(tripRef, { vehicle: { plate: 'ABC123XY' } });
+  await updateDoc(tripRef, { vehicle: deleteField() });
+  await updateDoc(tripRef, { route: { overview: 'abc', distanceM: 1000, durationS: 300, profile: 'driving' } });
+  await updateDoc(tripRef, { status: 'emergency' });
+}
+
+/** "I've arrived", as the app writes it (useSafety.ts endSafeTrip) */
+async function safetyEndTrip(ctx: AppContext, uid: string, tripId: string) {
+  await updateDoc(doc(ctx.db, 'users', uid, 'trips', tripId), {
+    status: 'completed',
+    endTime: serverTimestamp(),
+    endLocation: { lat: 6.51, lng: 3.41 },
+  });
+}
+
+/** What the server sees of a trip, which the ranking and Invite friends count (security review, 4 November 2026) */
+async function safetyForgeTripCounts(ctx: AppContext, uid: string, tripId: string) {
+  await updateDoc(doc(ctx.db, 'users', uid, 'trips', tripId), { positionCount: 40, farthestFromStartM: 5000 });
+}
+
+async function safetyBackdatedTrip(ctx: AppContext, uid: string, tripId: string) {
+  await setDoc(doc(ctx.db, 'users', uid, 'trips', tripId),
+    newTripData(uid, tripId, { startTime: Timestamp.fromMillis(Date.now() - 60 * 60 * 1000) }));
+}
+
+async function safetyTripBornCounted(ctx: AppContext, uid: string, tripId: string) {
+  await setDoc(doc(ctx.db, 'users', uid, 'trips', tripId), newTripData(uid, tripId, { positionCount: 40 }));
+}
+
+async function safetyBackdatedEnd(ctx: AppContext, uid: string, tripId: string) {
+  await updateDoc(doc(ctx.db, 'users', uid, 'trips', tripId), {
+    status: 'completed',
+    endTime: Timestamp.fromMillis(Date.now() + 60 * 60 * 1000),
+  });
+}
+
+async function safetyTestTripMadeReal(ctx: AppContext, uid: string, tripId: string) {
+  await updateDoc(doc(ctx.db, 'users', uid, 'trips', tripId), { isTest: false });
+}
+
+async function safetyReopenEndedTrip(ctx: AppContext, uid: string, tripId: string) {
+  await updateDoc(doc(ctx.db, 'users', uid, 'trips', tripId), { status: 'active' });
 }
 
 async function safetyTriggerSOS(ctx: AppContext, uid: string) {
@@ -836,12 +916,12 @@ async function reportUpdateAsOtherUser(ctx: AppContext, reportId: string) {
 
 /** A trip of one's own given the id of someone else's contact page (security review, 4 November 2026) */
 async function safetyTripTakingOthersPageId(ctx: AppContext, uid: string, pageId: string) {
-  await setDoc(doc(ctx.db, 'users', uid, 'trips', pageId), { status: 'active', createdAt: Timestamp.now() });
+  await setDoc(doc(ctx.db, 'users', uid, 'trips', pageId), newTripData(uid, pageId));
 }
 
 async function safetyWriteOtherUsersTrip(ctx: AppContext, otherUid: string, runId: string) {
   const tripRef = doc(ctx.db, 'users', otherUid, 'trips', `trip_other_${runId}`);
-  await setDoc(tripRef, { status: 'active', createdAt: Timestamp.now() });
+  await setDoc(tripRef, newTripData(otherUid, `trip_other_${runId}`));
 }
 
 async function storageUploadAsOtherUserPath(ctx: AppContext, otherUid: string, reportId: string, runId: string) {
@@ -1144,6 +1224,25 @@ async function run() {
     await runStep('User: update trip location', () =>
       safetyUpdateTripLocation(user, userUid, ids.tripId)
     );
+    await runStep('User: forge the counts the server keeps on a trip denied', () =>
+      safetyForgeTripCounts(user, userUid, ids.tripId), true);
+    await runStep('User: a trip started an hour ago denied', () =>
+      safetyBackdatedTrip(user, userUid, `trip_backdated_${runId}`), true);
+    await runStep('User: a trip born with counts denied', () =>
+      safetyTripBornCounted(user, userUid, `trip_counted_${runId}`), true);
+    await runStep('User: end a trip at a time of their choosing denied', () =>
+      safetyBackdatedEnd(user, userUid, ids.tripId), true);
+    await runStep('User: turn a test trip into a real one denied', () =>
+      safetyTestTripMadeReal(user, userUid, ids.tripId), true);
+    await runStep('User: add time, switch phone, vehicle, route and SOS on a trip', () =>
+      safetyTripChangesFromApp(user, userUid, ids.tripId));
+    await runStep(`User: a second trip, ended with "I've arrived"`, async () => {
+      const tripId = `trip_ended_${runId}`;
+      await setDoc(doc(user.db, 'users', userUid, 'trips', tripId), newTripData(userUid, tripId));
+      await safetyEndTrip(user, userUid, tripId);
+    });
+    await runStep('User: reopen an ended trip denied', () =>
+      safetyReopenEndedTrip(user, userUid, `trip_ended_${runId}`), true);
     await runStep('User: create shared trip', () => sharedTripCreate(user, userUid, ids.tripId));
     await runStep('User: update shared trip', () => sharedTripUpdate(user, userUid, ids.tripId));
     await runStep('User: update shared trip with endsAt/overdueAt', () =>

@@ -25,6 +25,7 @@ test('each friend\'s line says how far they are, never where they went', () => {
   assert.equal(friendLine(friend({}), RULES, NOW), '2 of 4 trips · 12 days left');
   assert.equal(friendLine(friend({ deadlineMs: NOW + DAY }), RULES, NOW), '2 of 4 trips · 1 day left');
   assert.equal(friendLine(friend({ trips: 4, state: 'needs_contact' }), RULES, NOW), '4 trips done. Waiting for them to add a contact');
+  assert.equal(friendLine(friend({ trips: 4, state: 'needs_confirmed' }), RULES, NOW), '4 trips done. Waiting for them to confirm their email');
   assert.equal(friendLine(friend({ trips: 4, state: 'qualified', availableMs: NOW + 3 * DAY }), RULES, NOW), 'You earned ₦500. Ready on Fri 4 Dec');
   assert.equal(friendLine(friend({ trips: 4, state: 'qualified', availableMs: NOW - DAY }), RULES, NOW), 'You earned ₦500');
   assert.equal(friendLine(friend({ state: 'expired' }), RULES, NOW), 'Ended: 30 days passed with 2 of 4 trips');

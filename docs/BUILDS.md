@@ -633,8 +633,20 @@ whose code was never in this repository (`onCommentCreate`,
 frozen Fri 13 Nov. In the order I plan to work; each item's details are below, or in the build 26 section where it
 was first agreed.
 1. [x] **The referral programme** (done 2 November, below). Still to write: the App Review note.
-2. [ ] **Server checks on trips and on the referral counting,** from the security review of 4 November. Must be done
+2. [x] **Server checks on trips and on the referral counting,** from the security review of 4 November. Must be done
        before build 27's server functions go live. The details are kept privately, as this repository is public.
+       Done 5 November:
+       - the database rules take from the app only the trip details it writes, stamped with the server's clock
+         (checked against what builds 22 to 27 write, so no phone needs updating);
+       - a friend earns their inviter a reward only from a confirmed account: an email address they confirmed, or
+         sign-in with Google or Apple, as for sending texts. The inviter sees "4 trips done. Waiting for them to
+         confirm their email". Added to Terms section 12;
+       - "Get WakaGuard" on a contact's page names the traveller only for 7 days after the trip.
+       - Tests: 406 unit, 135 emulator, 145 rules checks.
+       - **Live:** the rules can go now, for phones on any build, on the owner's word. The referral part goes with
+         build 27's functions (item 13).
+       - Not planned before launch: checking each invited friend's phone number by text. The confirmed account, App
+         Check (item 9) and the owner's check before each weekly payout cover it until there is abuse to answer.
 3. [ ] **Say what is under "More options"** (below).
 4. [ ] **A sanity check on the route** (below).
 5. [ ] **"Stopped at a checkpoint?" shown on the contacts' trip page,** with the time and a map pin (build 26

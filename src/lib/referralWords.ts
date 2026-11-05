@@ -7,7 +7,7 @@
 
 import { APP_URL } from './appUrl';
 
-export type FriendState = 'counting' | 'needs_contact' | 'qualified' | 'expired' | 'refused';
+export type FriendState = 'counting' | 'needs_contact' | 'needs_confirmed' | 'qualified' | 'expired' | 'refused';
 
 export interface FriendProgress {
   /** Their username; null once they deleted their account */
@@ -82,6 +82,8 @@ export function friendLine(friend: FriendProgress, rules: ReferralSummary['rules
     }
     case 'needs_contact':
       return `${rules.tripsNeeded} trips done. Waiting for them to add a contact`;
+    case 'needs_confirmed':
+      return `${rules.tripsNeeded} trips done. Waiting for them to confirm their email`;
     case 'qualified':
       return friend.availableMs && friend.availableMs > nowMs
         ? `You earned ${naira(rules.reward)}. Ready on ${shortDay(friend.availableMs)}`

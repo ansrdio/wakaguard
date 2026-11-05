@@ -454,8 +454,61 @@ service cloud.firestore {
       // server checks the owner too, functions/src/tripPage.ts)
       allow create: if isOwner(userId) && isAuthenticated()
         && (!exists(/databases/$(database)/documents/sharedTrips/$(tripId))
-          || get(/databases/$(database)/documents/sharedTrips/$(tripId)).data.uid == request.auth.uid);
-      allow update, delete: if isOwner(userId) && isAuthenticated();
+          || get(/databases/$(database)/documents/sharedTrips/$(tripId)).data.uid == request.auth.uid)
+        && isNewTrip(request.resource.data);
+      allow update: if isOwner(userId) && isAuthenticated()
+        && isTripChangeFromApp(resource.data, request.resource.data);
+      allow delete: if isOwner(userId) && isAuthenticated();
+
+      // What the server sees of a trip (its start and end, how many positions
+      // came and when, how far it went, the alerts) is what the weekly ranking
+      // and Invite friends count, so the app may not write it. Times the app
+      // writes are the server's clock. Every app build since 22 writes only
+      // these (checked 5 November 2026 against builds 22 to 27)
+      function isNewTrip(d) {
+        return d.uid == request.auth.uid
+          && d.status == 'active'
+          && d.startTime == request.time
+          && d.get('createdAt', request.time) == request.time
+          && d.get('lastUpdate', request.time) == request.time
+          && d.get('extensionCount', 0) == 0
+          && d.get('extendedMinutes', 0) == 0
+          && !d.keys().hasAny([
+            'endTime', 'endLocation', 'cancellationReason', 'endedVia', 'extendedAt',
+            'positionCount', 'firstPositionAtMs', 'lastPositionAtMs', 'longestPositionGapMs',
+            'farthestFromStartM', 'distanceM', 'lastKeptAtMs', 'wildPosition', 'wildPositionCount', 'wildInARow',
+            'overdueAt', 'overdueWarnedAt', 'overdueLastWarnedAt', 'overdueAlertState', 'overdueAlertSent',
+            'overdueAlertTotal', 'overdueAlertAttempts', 'overdueAlertClaimedAt', 'allClearSentAt',
+            'sosAlertState', 'sosAlertSent', 'sosAlertTotal', 'quietNudges', 'arrivalReminders'
+          ]);
+      }
+
+      function isTripChangeFromApp(before, after) {
+        let changed = after.diff(before).affectedKeys();
+        return changed.hasOnly([
+            'lastLocation', 'lastUpdate', 'startLocation', 'status', 'cancellationReason', 'endTime',
+            'endLocation', 'endsAt', 'expiresAt', 'extensionCount', 'extendedMinutes', 'extendedAt',
+            'lastExtendRequestId', 'trackingDeviceId', 'vehicle', 'route'
+          ])
+          && (!changed.hasAny(['lastUpdate']) || after.lastUpdate == request.time)
+          && (!changed.hasAny(['extendedAt']) || after.extendedAt == request.time)
+          && (!changed.hasAny(['cancellationReason']) || after.cancellationReason == 'traveller')
+          && (!changed.hasAny(['status']) || isTripStatusStep(before.status, after.status))
+          // The end is stamped once, when the traveller ends the trip
+          && (!changed.hasAny(['endTime']) || (
+            after.endTime == request.time
+            && before.get('endTime', null) == null
+            && after.status in ['completed', 'cancelled']
+          ))
+          && (!changed.hasAny(['extensionCount']) || after.extensionCount == before.get('extensionCount', 0) + 1)
+          && (!changed.hasAny(['extendedMinutes']) || after.extendedMinutes > before.get('extendedMinutes', 0));
+      }
+
+      // A trip goes forward only: running, maybe an SOS, then ended
+      function isTripStatusStep(from, to) {
+        return (from == 'active' && to in ['emergency', 'completed', 'cancelled'])
+          || (from == 'emergency' && to in ['completed', 'cancelled']);
+      }
     }
 
     // -------------------------------------------------------------------------
