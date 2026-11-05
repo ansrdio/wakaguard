@@ -666,8 +666,18 @@ was first agreed.
 7. [x] **Two Android hardening changes** from the security review (kept privately). Done 5 November: only the
        app's own trip notifications can press their buttons, and nothing of the app's goes into phone backups or
        onto a new phone (people sign in again there). Compiles; to be checked on the Galaxy with the build.
-8. [ ] **A first trip on day one:** after sign-up, add one contact, then a 2-minute test trip, every step skippable
-       (build 26 section, 28 October).
+8. [x] **A first trip on day one:** after sign-up, add one contact, then a 2-minute test trip, every step skippable
+       (build 26 section, 28 October). Done 5 November (`FirstTripGuide.tsx`, `lib/firstTrip.ts`):
+       - offered once per account on each phone, on the Trip screen, to an account that has never started a trip
+         (so also to testers who never did);
+       - "Step 1 of 2: Who should know you got there safe?", with "Pick from my contacts" or name and number, "Add
+         and continue" and "Skip for now". Left out when there is a contact already;
+       - "Try it: a 2-minute test trip. Nothing real happens. In 2 minutes WakaGuard asks if you're okay. Tap "I've
+         arrived" to end it. If you don't, Mum gets a text marked TEST, so they know what one looks like." with
+         "Start the test trip" and "Not now";
+       - the trip screen then shows "That's how it works": every trip runs like this one, WakaGuard asks if you're
+         okay when time is up and texts your contacts only if you don't answer, with "Got it".
+       - Gone through in the emulator on a phone-sized screen, from sign-in to the running test trip.
 9. [ ] **App Check** on Android, iPhone and the website, watched before anything is enforced (build 26 section,
        28 October). Needs the owner for a few clicks in the Firebase, Play and Apple consoles.
 10. [ ] **Search for where you are going** (Google place search), with a Privacy line (build 26 section,

@@ -12,7 +12,7 @@ import { useKeyboardSafeOverlay } from '@/hooks/useKeyboardSafeOverlay';
 import { hasSeenLocationExplanation, rememberLocationExplanation } from '@/lib/locationConsent';
 import { LocationExplanation } from '@/components/mobile/trip/LocationExplanation';
 import { askToShowNotifications } from '@/lib/nativeNotifications';
-import { MAX_TRUSTED_CONTACTS, formatDuration, joinNames } from '@/lib/tripPlanning';
+import { MAX_TRUSTED_CONTACTS, TEST_TRIP_MINUTES, formatDuration, joinNames } from '@/lib/tripPlanning';
 import { reachedServer, retryStuckSaves } from '@/lib/firestoreWrites';
 import { StartTripForm, StartTripRequest } from '@/components/mobile/trip/StartTripForm';
 import { ActiveTripCard } from '@/components/mobile/trip/ActiveTripCard';
@@ -31,7 +31,7 @@ import {
 import { useAuthedUser } from '@/hooks/useAuthedUser';
 import { useRecentPosition } from '@/hooks/useRecentPosition';
 import { useRequireAccount } from '@/hooks/useRequireAccount';
-import { collection, deleteDoc, doc, getDoc, onSnapshot, serverTimestamp, setDoc, updateDoc, waitForPendingWrites } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDoc, getDocs, limit, onSnapshot, query, serverTimestamp, setDoc, updateDoc, waitForPendingWrites } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { TripStatus } from '@/lib/types';
 import { Capacitor } from '@capacitor/core';
@@ -42,6 +42,8 @@ import { AddTimeSheet } from '@/components/mobile/trip/AddTimeSheet';
 import { ArriveUndoBar } from '@/components/mobile/trip/ArriveUndoBar';
 import { CancelTripSheet } from '@/components/mobile/trip/CancelTripSheet';
 import { CheckpointStopSheet } from '@/components/mobile/trip/CheckpointStopSheet';
+import { FirstTripGuide, FirstTripNote } from '@/components/mobile/trip/FirstTripGuide';
+import { firstTripGuideSeen, firstTripStep, markFirstTripGuideSeen } from '@/lib/firstTrip';
 import { VehicleSheet } from '@/components/mobile/trip/VehicleSheet';
 import { storedVehicle, Vehicle } from '@/lib/vehicle';
 import { ARRIVE_UNDO_MS } from '@/lib/arriveUndo';
@@ -231,6 +233,28 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
     );
   }, [uid]);
 
+  // The guide to a first trip: only for an account that has never started one
+  useEffect(() => {
+    if (!uid || isAnonymous || activeTrip || firstTripGuideSeen(uid)) return;
+    let live = true;
+    Promise.all([
+      getDocs(query(collection(db, 'users', uid, 'trips'), limit(1))),
+      getDocs(query(collection(db, 'users', uid, 'trustedContacts'), limit(1))),
+    ]).then(([trips, contacts]) => {
+      if (!live) return;
+      if (!trips.empty) {
+        markFirstTripGuideSeen(uid, 'done');
+        return;
+      }
+      setGuide({ hadContact: !contacts.empty, contactSkipped: false });
+    }).catch(() => {
+      // Offline or refused: offered next time instead
+    });
+    return () => { live = false; };
+    // Checked once per account on this screen; a trip started meanwhile closes it below
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [uid, isAnonymous]);
+
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const showToast = (message: string, type: 'success' | 'error', ms = 3000) => {
     setToast({ message, type });
@@ -248,6 +272,9 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
   // "Cancel trip", from the trip card or the trip map
   const [cancelOpen, setCancelOpen] = useState(false);
   const [checkpointOpen, setCheckpointOpen] = useState(false);
+  // A first trip on day one (build 27): offered once to an account with no trip yet
+  const [guide, setGuide] = useState<{ hadContact: boolean; contactSkipped: boolean } | null>(null);
+  const [guideTripRunning, setGuideTripRunning] = useState(false);
   // Vehicle details on the running trip
   const [vehicleOpen, setVehicleOpen] = useState(false);
   // "I've arrived" on the card waits a few seconds with an Undo (lib/arriveUndo.ts)
@@ -461,6 +488,32 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
     } finally {
       setProcessing(false);
     }
+  };
+
+  // The guide's own steps (FirstTripGuide)
+  const guideStep = guide
+    ? firstTripStep(Math.max(trustedContacts.length, guide.hadContact ? 1 : 0), guide.contactSkipped)
+    : null;
+  const closeGuide = (how: 'done' | 'skipped') => {
+    if (uid) markFirstTripGuideSeen(uid, how);
+    setGuide(null);
+  };
+  const startGuideTrip = async () => {
+    closeGuide('done');
+    setGuideTripRunning(true);
+    await handleStartTrip({
+      destination: '',
+      durationMinutes: TEST_TRIP_MINUTES,
+      contactIds: textableContacts.map((c) => c.id),
+      alertName: savedAlertName ?? '',
+      textContacts: false,
+      textOnArrival: false,
+      isTest: true,
+      travelMode: null,
+      vehicle: null,
+      destinationPoint: null,
+      route: null,
+    });
   };
 
   /** Ends the trip; true once it has been ended (or saved on the phone to be sent) */
@@ -964,6 +1017,24 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
           }}
         />
       )}
+      {guideStep && !activeTrip && (
+        <FirstTripGuide
+          step={guideStep}
+          numbered={!guide?.hadContact}
+          processing={processing}
+          contactName={newContactName}
+          contactPhone={newContactPhone}
+          onContactName={setNewContactName}
+          onContactPhone={setNewContactPhone}
+          onPickFromPhone={() => void handlePickFromPhone()}
+          onAddContact={() => void handleAddContact()}
+          onSkipContact={() => setGuide((g) => (g ? { ...g, contactSkipped: true } : g))}
+          contactNames={textableContacts.map((c) => c.name)}
+          canStart={savedAlertName !== null}
+          onStartTest={() => void startGuideTrip()}
+          onSkipTest={() => closeGuide('skipped')}
+        />
+      )}
       {checkpointOpen && (
         <CheckpointStopSheet
           onTrip={!!activeTrip}
@@ -984,6 +1055,9 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
       {/* ============================================ */}
       {/* 1. THE TRIP: start form, or the trip in progress */}
       {/* ============================================ */}
+      {activeTrip?.isTest && guideTripRunning && (
+        <FirstTripNote onDone={() => setGuideTripRunning(false)} />
+      )}
       {activeTrip ? (
         <ActiveTripCard
           trip={activeTrip}
