@@ -42,6 +42,8 @@ export interface AppConfig {
    * without its navigation kit (asked on 14 October 2026)
    */
   directionsVoice: boolean;
+  /** "Your points this week" on Profile (build 27). On unless set false, for when the beta ranking ends */
+  weeklyPoints: boolean;
 }
 
 export const DEFAULT_UPDATE_URL_ANDROID = 'https://play.google.com/store/apps/details?id=com.wakaguard.app';
@@ -86,6 +88,7 @@ export function readAppConfig(data: unknown): AppConfig {
     },
     directions: d.directions === true,
     directionsVoice: d.directions === true && d.directionsVoice === true,
+    weeklyPoints: d.weeklyPoints !== false,
   };
 }
 

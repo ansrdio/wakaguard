@@ -25,6 +25,7 @@ export { smsReport } from './smsReport';
 export { adminNumbers } from './adminNumbers';
 export { referrals } from './referrals';
 export { onCheckpointStop } from './checkpointStops';
+export { myWeek } from './myWeek';
 export {
   checkOverdueTrips,
   checkQuietTrips,

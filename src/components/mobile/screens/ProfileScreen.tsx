@@ -24,11 +24,14 @@ import { MorningWeatherSwitch } from '@/components/mobile/MorningWeatherSwitch';
 import { Capacitor } from '@capacitor/core';
 import { AppNotices } from '@/components/mobile/AppNotices';
 import { InviteFriends } from '@/components/mobile/InviteFriends';
+import { WeeklyPointsCard } from '@/components/mobile/WeeklyPointsCard';
+import { useAppConfig } from '@/hooks/useAppConfig';
 
 type ModalType = 'invite' | 'myReports' | 'settings' | 'help' | 'deleteAccount' | 'location' | 'keepRunning' | null;
 
 export function ProfileScreen() {
   const { uid, isAnonymous, email, displayName, username } = useAuthedUser();
+  const appConfig = useAppConfig();
   const { requireAccount, showAuthModal, openAuthModal, closeAuthModal } = useRequireAccount({ uid, isAnonymous });
   // How the last delete in My Reports went
   const [myReportsNote, setMyReportsNote] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -85,6 +88,7 @@ export function ProfileScreen() {
 
       {/* Menu Items */}
       <div className="space-y-2">
+        {uid && !isAnonymous && appConfig?.weeklyPoints !== false && <WeeklyPointsCard />}
         {uid && !isAnonymous && (
           <button
             onClick={() => setActiveModal('invite')}

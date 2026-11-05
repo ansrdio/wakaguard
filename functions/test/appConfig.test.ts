@@ -20,6 +20,7 @@ test('an empty or missing document means no switches and the default store links
       signInWith: { google: false, apple: false },
       directions: false,
       directionsVoice: false,
+      weeklyPoints: true,
     });
   }
 });
@@ -81,3 +82,10 @@ test('a dismissed notice stays hidden until a new one replaces it', () => {
   assert.equal(noticeToShow(readAppConfig({ notice: { id: 'n2', text: 'Again' } }), 'n1')?.id, 'n2');
   assert.equal(noticeToShow(null, null), null);
 });
+
+test('the points card shows unless switched off on purpose (build 27)', () => {
+  assert.equal(readAppConfig({}).weeklyPoints, true);
+  assert.equal(readAppConfig({ weeklyPoints: false }).weeklyPoints, false);
+  assert.equal(readAppConfig({ weeklyPoints: 'false' }).weeklyPoints, true);
+});
+

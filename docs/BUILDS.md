@@ -699,7 +699,21 @@ was first agreed.
        28 October). Needs the owner for a few clicks in the Firebase, Play and Apple consoles.
 10. [ ] **Search for where you are going** (Google place search), with a Privacy line (build 26 section,
        28 October). Needs the owner to make a key in Google Cloud.
-11. [ ] **"Your points this week"** on Profile (build 26 section, 28 October).
+11. [x] **"Your points this week"** on Profile (build 26 section, 28 October). Done 5 November:
+       - the ranking's rules moved out of `scripts/weekly-numbers.mjs` into `functions/src/weeklyRules.ts`, unchanged,
+         and both the Sunday script and the card use them, so they cannot count differently. The script now runs
+         with `npx tsx scripts/weekly-numbers.mjs …` (or `npm run numbers:weekly -- …`);
+       - while there, two fields the script read but never asked the database for: when a trip's first and last
+         positions came (used for "the phone went quiet") and whether a report was posted far away (so far-away
+         reports were never left out). Both are read now;
+       - a new server function, `myWeek`, scores only the signed-in person's own week;
+       - the card, at the top of Profile: "Your points this week", the number, "3 trips counted · 1 road report",
+         the everyday bonus and first test trip when earned, and for the last trip that earned nothing, why and what
+         to do, such as "Your trip on Tue didn't count. It ran past its time, so your contacts would have been
+         texted. Next time, tap "More time…" before your time is up." Then "The week ends Sunday 6 pm, Nigeria time.
+         Problem reports you send are added then, and the full list goes in the group.";
+       - it can be hidden without a build (`weeklyPoints: false` in the app config), for when the ranking ends.
+       - Tests: 418 unit, 140 emulator.
 12. [ ] **A reminder at each person's usual travel time,** with its own Settings switch and a Privacy line (build 26
        section, 28 October).
 13. [ ] **The server functions for this build,** on the owner's word: `referrals`, `onTripUpdated` and
