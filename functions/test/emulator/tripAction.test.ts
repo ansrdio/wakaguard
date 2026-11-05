@@ -94,3 +94,24 @@ test('an ended trip gets no extra time', async () => {
   const { uid, tripId } = await makeTrip({ status: 'completed' });
   assert.deepEqual(await post({ uid, tripId, key: KEY, action: 'extend', minutes: 15, requestId: 'press_late01' }), { status: 410, body: { error: 'trip_ended' } });
 });
+
+test('an SOS from the lock screen saves the same SOS alert the app does, once per press', async () => {
+  // Build 27: the "SOS" button on the "Safe Trip active" notification
+  const { uid, tripId } = await makeTrip();
+  const press = { uid, tripId, key: KEY, action: 'sos', requestId: 'lockpress_0001', lat: 6.52, lng: 3.37 };
+  assert.deepEqual(await post(press), { status: 200, body: { ok: true, done: 'sos' } });
+  const alert = (await db().doc(`users/${uid}/alerts/sos_${uid}_lock_lockpress_0001`).get()).data()!;
+  assert.equal(alert.type, 'sos');
+  assert.equal(alert.tripId, tripId);
+  assert.equal(alert.via, 'lock_screen');
+  assert.deepEqual(alert.location, { lat: 6.52, lng: 3.37 });
+  assert.deepEqual(await post(press), { status: 200, body: { ok: true, done: 'already' } }, 'the same press posted again');
+
+  // Without a position the server uses the trip's latest, as for the app's SOS
+  assert.deepEqual(await post({ uid, tripId, key: KEY, action: 'sos', requestId: 'lockpress_0002' }), { status: 200, body: { ok: true, done: 'sos' } });
+  assert.equal((await db().doc(`users/${uid}/alerts/sos_${uid}_lock_lockpress_0002`).get()).data()!.location, undefined);
+
+  assert.equal((await post({ uid, tripId, key: 'wrong-key-wrong-key-wrong-key-00', action: 'sos', requestId: 'lockpress_0003' })).status, 403);
+  const ended = await makeTrip({ status: 'completed' });
+  assert.equal((await post({ uid: ended.uid, tripId: ended.tripId, key: KEY, action: 'sos', requestId: 'lockpress_0004' })).status, 410);
+});

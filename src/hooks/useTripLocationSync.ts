@@ -27,10 +27,14 @@ import {
 } from '@/lib/tripLocation';
 import { getDeviceId, sendsTripLocation } from '@/lib/deviceId';
 import { Trip } from '@/lib/types';
+import { armLockScreenSos, disarmLockScreenSos } from '@/lib/tripSos';
 
 const BackgroundGeolocation = registerPlugin<BackgroundGeolocationPlugin>('BackgroundGeolocation');
 
 export type TripLocationProblem = 'permission_denied' | 'unavailable';
+
+const TRIP_NOTIFICATION_TITLE = 'Safe Trip active';
+const TRIP_NOTIFICATION_MESSAGE = 'Sharing your location with your trusted contacts.';
 
 const distance = (a: LocationFix, b: LocationFix) => calculateDistance(a.lat, a.lng, b.lat, b.lng);
 
@@ -73,6 +77,7 @@ export function useTripLocationSync(
   const { uid } = useAuthedUser();
   const tripId = activeTrip?.id ?? null;
   const locationKey = activeTrip?.locationKey ?? null;
+  const isTest = activeTrip?.isTest === true;
   // Signed in on two phones, only the one the trip belongs to sends its positions
   const sendsHere = !!activeTrip && sendsTripLocation(activeTrip.trackingDeviceId, getDeviceId());
   const onProblemRef = useRef(onProblem);
@@ -139,8 +144,8 @@ export function useTripLocationSync(
 
       BackgroundGeolocation.addWatcher(
         {
-          backgroundTitle: 'Safe Trip active',
-          backgroundMessage: 'Sharing your location with your trusted contacts.',
+          backgroundTitle: TRIP_NOTIFICATION_TITLE,
+          backgroundMessage: TRIP_NOTIFICATION_MESSAGE,
           requestPermissions: true,
           stale: false,
           // No distance filter: fixes while stationary provide the heartbeat
@@ -159,7 +164,14 @@ export function useTripLocationSync(
         .then((id) => {
           watcherId = id;
           // The trip ended while the watcher was still being created
-          if (stopped) BackgroundGeolocation.removeWatcher({ id });
+          if (stopped) {
+            BackgroundGeolocation.removeWatcher({ id });
+            return;
+          }
+          // Its notification is up now: give it the SOS button (Android, build 27)
+          if (locationKey) {
+            void armLockScreenSos({ uid, tripId, key: locationKey, isTest }, TRIP_NOTIFICATION_TITLE, TRIP_NOTIFICATION_MESSAGE);
+          }
         })
         .catch((error) => {
           console.error('Could not start background location:', error);
@@ -170,6 +182,7 @@ export function useTripLocationSync(
         stopped = true;
         clearInterval(roughFallback);
         if (watcherId) BackgroundGeolocation.removeWatcher({ id: watcherId });
+        void disarmLockScreenSos();
       };
     }
 
@@ -203,5 +216,5 @@ export function useTripLocationSync(
       navigator.geolocation.clearWatch(watchId);
       clearInterval(heartbeat);
     };
-  }, [uid, tripId, locationKey, sendsHere]);
+  }, [uid, tripId, locationKey, sendsHere, isTest]);
 }

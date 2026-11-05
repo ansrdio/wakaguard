@@ -13,6 +13,12 @@
  * trip and adding time to it; the server's onTripUpdated then does what it
  * does for any ended or extended trip (the all-clear text, the reset of the
  * overdue state).
+ *
+ * From build 27 it also takes an SOS from the lock screen: Android's "SOS"
+ * button on the "Safe Trip active" notification, confirmed once
+ * (SosConfirmActivity.java), works without unlocking or opening the app. It
+ * saves the same SOS alert the app's button saves, and onSOSAlert texts the
+ * contacts. The press's id stops a second post of the same press sending twice.
  */
 
 import * as functions from 'firebase-functions/v1';
@@ -55,6 +61,9 @@ export const tripAction = functions.https.onRequest(async (req, res) => {
     if (!trip || !keysMatch(trip.locationKey, key)) return 'forbidden' as const;
     // Only this traveller's own page is written (tripPage.ts)
     const ownPage = isOwnPage(await tx.get(sharedRef), uid);
+    // Read before any write, as a transaction needs
+    const sosRef = request.action === 'sos' ? db.doc(`users/${uid}/alerts/sos_${uid}_lock_${request.requestId}`) : null;
+    const sosSent = sosRef ? (await tx.get(sosRef)).exists : false;
     const setPage = (data: Record<string, unknown>) => { if (ownPage) tx.set(sharedRef, data, { merge: true }); };
 
     const plan = planTripAction({
@@ -75,6 +84,19 @@ export const tripAction = functions.https.onRequest(async (req, res) => {
       setPage({ status: 'cancelled' });
       return 'did_end' as const;
     }
+    if (plan.kind === 'sos' && sosRef) {
+      if (sosSent) return 'already' as const;
+      tx.set(sosRef, {
+        type: 'sos',
+        tripId,
+        acknowledged: false,
+        notifiedContacts: [],
+        createdAt: FieldValue.serverTimestamp(),
+        via: 'lock_screen',
+        ...(plan.location ? { location: plan.location } : {}),
+      });
+      return 'did_sos' as const;
+    }
     if (plan.kind === 'extend') {
       const times = { endsAt: Timestamp.fromMillis(plan.endsAtMs), expiresAt: Timestamp.fromMillis(plan.expiresAtMs) };
       tx.update(tripRef, {
@@ -94,6 +116,7 @@ export const tripAction = functions.https.onRequest(async (req, res) => {
   if (outcome === 'forbidden') res.status(403).json({ error: 'forbidden' });
   else if (outcome === 'did_end') res.status(200).json({ ok: true, done: 'ended' });
   else if (outcome === 'did_extend') res.status(200).json({ ok: true, done: 'extended' });
+  else if (outcome === 'did_sos') res.status(200).json({ ok: true, done: 'sos' });
   else if (outcome === 'already') res.status(200).json({ ok: true, done: 'already' });
   else res.status(410).json({ error: 'trip_ended' });
 });

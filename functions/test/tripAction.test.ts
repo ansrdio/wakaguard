@@ -54,3 +54,16 @@ test('the link stays readable by the same rule as the app', () => {
   const plan = planTripAction({ status: 'active', startMs: NOW, endsAtMs: NOW + 30 * MIN, expiresAtMs: NOW + 48 * 60 * MIN }, { action: 'extend', minutes: 15, requestId: 'press_abc123' }, NOW);
   if (plan.kind === 'extend') assert.equal(plan.expiresAtMs, NOW + 48 * 60 * MIN, 'never brought forward');
 });
+
+test('an SOS needs a press id; a position is used only when it is a real one', () => {
+  assert.deepEqual(readTripAction({ action: 'sos', requestId: 'lockpress_0001', lat: 6.5, lng: 3.4 }),
+    { action: 'sos', requestId: 'lockpress_0001', location: { lat: 6.5, lng: 3.4 } });
+  assert.deepEqual(readTripAction({ action: 'sos', requestId: 'lockpress_0001', lat: 95, lng: 3.4 }),
+    { action: 'sos', requestId: 'lockpress_0001', location: null });
+  assert.equal(readTripAction({ action: 'sos' }), null);
+  const sos = { action: 'sos' as const, requestId: 'lockpress_0001', location: null };
+  assert.deepEqual(planTripAction({ status: 'active' }, sos, NOW), { kind: 'sos', requestId: 'lockpress_0001', location: null });
+  assert.deepEqual(planTripAction({ status: 'emergency' }, sos, NOW), { kind: 'sos', requestId: 'lockpress_0001', location: null });
+  assert.deepEqual(planTripAction({ status: 'completed' }, sos, NOW), { kind: 'ended' });
+});
+

@@ -12,6 +12,18 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
 
+        <!-- SOS from the lock screen (build 27): opened only by the trip notification's SOS button -->
+        <activity
+            android:name=".SosConfirmActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:launchMode="singleTop"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:theme="@style/AppTheme.NoActionBar"
+            tools:targetApi="27" />
+
         <activity
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
             android:name=".MainActivity"

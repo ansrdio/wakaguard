@@ -18,7 +18,9 @@ const HOUR_MS = 60 * 60 * 1000;
 export type TripActionRequest =
   | { action: 'end' }
   | { action: 'cancel' }
-  | { action: 'extend'; minutes: number; requestId: string };
+  | { action: 'extend'; minutes: number; requestId: string }
+  /** From the lock screen (build 27): the "SOS" button on the "Safe Trip active" notification, confirmed once */
+  | { action: 'sos'; requestId: string; location: { lat: number; lng: number } | null };
 
 export interface TripState {
   status?: unknown;
@@ -32,6 +34,7 @@ export type TripActionPlan =
   | { kind: 'end' }
   | { kind: 'cancel' }
   | { kind: 'extend'; endsAtMs: number; expiresAtMs: number; minutes: number; requestId: string }
+  | { kind: 'sos'; requestId: string; location: { lat: number; lng: number } | null }
   | { kind: 'already' }
   | { kind: 'ended' };
 
@@ -39,6 +42,13 @@ export type TripActionPlan =
 export function readTripAction(body: Record<string, unknown>): TripActionRequest | null {
   if (body.action === 'end') return { action: 'end' };
   if (body.action === 'cancel') return { action: 'cancel' };
+  if (body.action === 'sos') {
+    if (typeof body.requestId !== 'string' || !REQUEST_ID.test(body.requestId)) return null;
+    const { lat, lng } = body;
+    const located = typeof lat === 'number' && typeof lng === 'number'
+      && Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
+    return { action: 'sos', requestId: body.requestId, location: located ? { lat: lat as number, lng: lng as number } : null };
+  }
   if (body.action !== 'extend') return null;
   const { minutes, requestId } = body;
   if (typeof minutes !== 'number' || !Number.isInteger(minutes) || minutes < 1 || minutes > MAX_EXTEND_MINUTES) return null;
@@ -57,6 +67,8 @@ export function planTripAction(trip: TripState, request: TripActionRequest, nowM
   // Not during an SOS, which the app does not offer to cancel: that is ended
   // with "I'm safe now", so contacts hear that the SOS was closed
   if (request.action === 'cancel') return trip.status === 'active' ? { kind: 'cancel' } : { kind: 'already' };
+  // An SOS on a running trip, even one already in an SOS: each press is a new alert, as from the app
+  if (request.action === 'sos') return running ? { kind: 'sos', requestId: request.requestId, location: request.location } : { kind: 'ended' };
 
   if (trip.lastExtendRequestId === request.requestId) return { kind: 'already' };
   if (!running) return { kind: 'ended' };

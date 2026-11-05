@@ -661,8 +661,25 @@ was first agreed.
        - the rules let the page hold the list and keep it server-only. **The rules must go live before
          `onCheckpointStop`,** or the app's own changes to a page with stops would be refused.
        - Tests: 410 unit, 138 emulator, 148 rules checks. Seen on the page with test data in the emulator.
-6. [ ] **SOS from the lock screen:** an SOS button on the "Safe Trip active" notification that asks once more
-       before sending (build 26 section, 29 October).
+6. [x] **SOS from the lock screen:** an SOS button on the "Safe Trip active" notification that asks once more
+       before sending (build 26 section, 29 October). Done 5 November, **Android only**:
+       - once a trip's location sharing starts, the "Safe Trip active" notification gets an "SOS" button, shown in
+         full on the lock screen (`TripSosPlugin.java`, `lib/tripSos.ts`);
+       - "SOS" opens a screen over the lock screen without unlocking: "Send SOS to your contacts?", "They get a text
+         with where you are now and a link to follow you.", a red "Send SOS" and "Cancel"
+         (`SosConfirmActivity.java`). A test trip says the text says TEST;
+       - "Send SOS" posts to the server with the trip's own key, tried 3 times, with the phone's position from the
+         last 5 minutes if it has one. The server (`tripAction`, action `sos`) saves the same SOS alert the app's
+         button saves, so the contacts get the same text; one alert per press. Then "SOS sent. Your contacts are
+         being texted with where you are." If it could not be sent, it says so and offers "Call 112" (which only
+         opens the dialer);
+       - unlike the app's SOS button, it does not call 112 by itself: the point is a quiet alert when the phone
+         cannot be taken out and used.
+       - **iPhone: not in build 27.** iPhones show no trip notification to put a button on; a notification action
+         would open the app behind Face ID, and a Live Activity is a bigger piece of work. The phone's own Emergency
+         SOS stays the route there. My suggestion: a Live Activity after launch.
+       - Tests: unit and emulator for the server part. Compiles; to be tried on the Galaxy with the build, with a
+         test trip, so only a TEST text goes out.
 7. [x] **Two Android hardening changes** from the security review (kept privately). Done 5 November: only the
        app's own trip notifications can press their buttons, and nothing of the app's goes into phone backups or
        onto a new phone (people sign in again there). Compiles; to be checked on the Galaxy with the build.

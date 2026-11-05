@@ -25,6 +25,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(InstallReferrerPlugin.class);
         registerPlugin(KeepRunningPlugin.class);
         registerPlugin(SpeakPlugin.class);
+        registerPlugin(TripSosPlugin.class);
         super.onCreate(savedInstanceState);
         // The trip alerts channel exists from the first launch, so it is in the
         // phone's settings and ready before any reminder arrives
