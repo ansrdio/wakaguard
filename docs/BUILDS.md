@@ -27,7 +27,7 @@ before the weekend. Android and iPhone go out on the same day.
 | 24.1 | at once | iPhone only: build 24 closes as soon as it opens on iOS 27. Fix only, nothing else (see "Build 24.1" below) | Out on iPhone: TestFlight Tue 20 Oct, beta review passed at once, both groups testing |
 | 25 | Wed 4 Nov | Fixes after text alerts are switched on; one-tap "keep running" permissions on the first trip; 6, 8 and 12-hour trip choices; four fixes from problem reports (old Android WebView, notifications switch, full-screen pin map, "ending early is fine"); last of all, directions on the trip as a beta (the owner, 23 Oct: "It will be the last thing we add") | Out on both, Sun 25 Oct, ten days early; both stores approved it the same day |
 | 26 | Wed 4 Nov | What is done by then: seven small fixes and the simplification pass (one colour plus red for emergencies, fewer boxes and icons, a short start form with extras under "More options", plain labels). Moved a week early on 2 November (the owner: "Yes, upload Wed 4 Nov"), so testers use the simpler screens for a week before the freeze | Out on both, Tue 3 Nov evening (Arizona), a day early. Built from branch `build-26` (`131b988`, from `44746cf`, so no build 27 work), tested on the owner's Galaxy and iPhone. Android published to the closed test; iPhone in TestFlight for both groups (beta review passed at once); website released from the same commit; testers told in the group at 21:30 |
-| 27 | Wed 11 Nov | The launch version: the referral programme (see "Build 27" below) and the rest of the build 26 list: first trip on day one, checkpoint stops on the contacts' page, lock-screen SOS, App Check, place search, usual-time reminder, points card | Planned 2 November. If time gets tight, the referral programme and the first trip come first, and the points card and usual-time reminder can move after launch (my suggestion, not yet agreed) |
+| 27 | Wed 11 Nov | The launch version: the referral programme (see "Build 27" below) and the rest of the build 26 list: first trip on day one, checkpoint stops on the contacts' page, lock-screen SOS, App Check, place search, usual-time reminder, points card | Planned 2 November; started Thu 5 Nov (the owner: "let us start build 27"). The whole list is at the top of "Build 27" below. If time gets tight, the points card and usual-time reminder can move after launch (my suggestion, not yet agreed) |
 
 | After the last build | Date |
 |---|---|
@@ -63,18 +63,14 @@ Mon 12 Oct and end about Mon 26 Oct; text alerts are to be on by Mon 2 Nov.
   Nigerian places. If either fails, the launch gets the route and its time,
   and directions still open Google Maps
 
-## Live now (Tuesday 13 October 2026)
+## Live now (Thursday 5 November 2026)
 
 | | Build | Where |
 |---|---|---|
-| Android | 22 | Google Play closed test. The owner sent it for review on 12 October and Google published it the same day |
-| iPhone | 22 | TestFlight, outside testers, since 12 October: the owner sent it for review and Apple passed it at once. Build 20 is still there beside it (builds 15 and 17 were retired on 12 October) |
-
-The two builds 22 hold the same features, with one difference: the iPhone
-one was built a little later and also has the iPhone keyboard fix, which
-Android does not need. Testers still have to update; on the morning of 13
-October a tester's trip showed it came from an older build (the time it was
-given extra minutes was not recorded, which build 22 does).
+| Android | 26 | Google Play closed test (Alpha), published Tue 3 Nov. Play can take a day or two to offer it on each phone; clearing the Play Store's cache helps |
+| iPhone | 26 | TestFlight, both groups, since Tue 3 Nov (beta review passed at once) |
+| Website | 26 | wakaguard.com, released from the same code on Tue 3 Nov |
+| Server | `main` | Live up to the security fixes of Wed 4 Nov, except build 27's referral functions (see "Website and server releases") |
 
 ## Next build: 22
 
@@ -633,6 +629,35 @@ whose code was never in this repository (`onCommentCreate`,
 
 ### Build 27: the launch version, with the referral programme (decided 2 November)
 
+**The whole list, written Thu 5 November before starting** (the owner: "let us start build 27"). Due Wed 11 Nov,
+frozen Fri 13 Nov. In the order I plan to work; each item's details are below, or in the build 26 section where it
+was first agreed.
+1. [x] **The referral programme** (done 2 November, below). Still to write: the App Review note.
+2. [ ] **Server checks on trips and on the referral counting,** from the security review of 4 November. Must be done
+       before build 27's server functions go live. The details are kept privately, as this repository is public.
+3. [ ] **Say what is under "More options"** (below).
+4. [ ] **A sanity check on the route** (below).
+5. [ ] **"Stopped at a checkpoint?" shown on the contacts' trip page,** with the time and a map pin (build 26
+       section, 28 October).
+6. [ ] **SOS from the lock screen:** an SOS button on the "Safe Trip active" notification that asks once more
+       before sending (build 26 section, 29 October).
+7. [ ] **Two Android hardening changes** from the security review (kept privately).
+8. [ ] **A first trip on day one:** after sign-up, add one contact, then a 2-minute test trip, every step skippable
+       (build 26 section, 28 October).
+9. [ ] **App Check** on Android, iPhone and the website, watched before anything is enforced (build 26 section,
+       28 October). Needs the owner for a few clicks in the Firebase, Play and Apple consoles.
+10. [ ] **Search for where you are going** (Google place search), with a Privacy line (build 26 section,
+       28 October). Needs the owner to make a key in Google Cloud.
+11. [ ] **"Your points this week"** on Profile (build 26 section, 28 October).
+12. [ ] **A reminder at each person's usual travel time,** with its own Settings switch and a Privacy line (build 26
+       section, 28 October).
+13. [ ] **The server functions for this build,** on the owner's word: `referrals`, `onTripUpdated` and
+       `onTrustedContactWrite`, plus whatever items 2 to 12 add.
+14. [ ] **Terms and Privacy dates** changed on the day the website goes out.
+- Optional, if there is time: an 8-character minimum password.
+- Testing: on the owner's Galaxy and iPhone before upload, as with build 26.
+
+
 The owner on 2 November: "we need to add a referral program too where people can earn from getting people on
 and using the app", then, choosing from options: "We will build it in build 27 so it goes out with the freeze".
 I read that as build 27 being the launch version that is frozen on Fri 13 Nov. The rules agreed on 18 October
@@ -735,9 +760,8 @@ The owner then said "yes delete the heat notice and add the fixes":
       in `deadPushTokens/{uid}` (server only, `pushTokens.ts`), and the morning weather and the trip reminders
       skip that link from then on. A new link saved by the app starts sending again by itself. The note is
       deleted with the account.
-- Tests: 402 unit and 132 emulator, with 5 new. **Not deployed:** `morningWeather` alone can go live at once.
-  The trip reminder side (`checkOverdueTrips`, `checkQuietTrips`) and `deleteMyAccount` go with build 27's
-  functions, as `main` holds the referral work for them.
+- Tests: 402 unit and 132 emulator, with 5 new. **Live:** `morningWeather` on Tue 3 November; the trip reminder
+  side (`checkOverdueTrips`, `checkQuietTrips`) and `deleteMyAccount` on Wed 4 November, with the security fixes.
 
 **Security fixes, server and rules (4 November).** The owner asked for "a full security review as we wait", then
 "start the fixes now". The findings are kept privately, outside this public repository. Fixed here, with tests:
@@ -748,8 +772,8 @@ The owner then said "yes delete the heat notice and add the fixes":
 - [x] a road report's state must be a real state; the nearby notification uses known words only, comes only from
       verified accounts, never goes to the reporter, and is limited on the server as in the app;
 - [x] `.gitignore` covers payout files and more kinds of key files.
-- Tests: 406 unit, 134 emulator, 137 rules checks. **To deploy on the owner's word, before pushing:** the rules,
-  then `checkOverdueTrips`, `checkQuietTrips`, `onSOSAlert`, `tripLocation`, `tripAction`, `stopTexts`,
+- Tests: 406 unit, 134 emulator, 137 rules checks. **Live Wed 4 November** (the owner: "deploy the security
+  fixes, then commit and push"), before the push: the rules, then `checkOverdueTrips`, `checkQuietTrips`, `onSOSAlert`, `tripLocation`, `tripAction`, `stopTexts`,
   `onReportCreate`, `cleanupExpiredTrips`, `deleteMyAccount`. `onTripUpdated` (page checks only, as the rules
   already stop the cause) goes with build 27, as it holds the referral counting.
 
@@ -2164,6 +2188,19 @@ From the roadmap:
 
 ## Released builds
 
+### Build 26, Tuesday 3 November 2026 (Android and iPhone)
+
+Made from branch `build-26` (`131b988`, from `44746cf`, so none of build 27's work), a day before it was due, so
+testers use the simpler screens for a week before the freeze. Details of what went in: "Build 26" above.
+- **Tested first** on the owner's Galaxy (the release build installed by cable) and iPhone, on the owner's word.
+- **Android:** `WakaGuard-1.2.0-26.aab`, version code 26, published to Closed testing - Alpha the same evening.
+- **iPhone:** 1.2.0 (26), uploaded on the owner's "ok upload the iphone" once the owner accepted Apple's updated
+  agreement, then sent to both TestFlight groups on "yes, submit Apple". Beta review passed at once.
+- **Website:** released from the same commit (see below). Testers told in the group at 21:30 with both store links
+  and the issues form. On 5 November a tester could not see 26 on Play yet; the group was told how to refresh.
+- **Found while testing, moved to build 27:** what is under "More options", and a route of 2,358 km offered for a
+  15-minute trip.
+
 ### Build 25, Sunday 25 October 2026 (Android and iPhone)
 
 Made from `13dfd40` on the owner's word ("build 25"), nine days before it was due, so testers have it for week 3
@@ -2308,6 +2345,9 @@ Changes that went live without an app build.
 
 | Date | What |
 |---|---|
+| Wed 4 Nov (afternoon in Arizona) | **Security fixes**, on the owner's word ("deploy the security fixes, then commit and push"), deployed before `95c1fa5` was pushed, since this repository is public: the Firestore rules, then `checkOverdueTrips`, `checkQuietTrips`, `onSOSAlert`, `tripLocation`, `tripAction`, `stopTexts`, `onReportCreate`, `cleanupExpiredTrips` and `deleteMyAccount`, each by name, all "Successful update". What changed is in build 27's section ("Security fixes, server and rules"). The next runs of the overdue and quiet-trip checks were read in the logs and were fine. Not deployed: `onTripUpdated` and the other referral functions, which wait for build 27 |
+| Tue 3 Nov (late evening in Arizona) | **Morning weather fixes**, on the owner's word ("commit, push and deploy morningWeather"), from `acf4b95`: `morningWeather` by name. Each person's day is claimed before sending, so two runs at once send once, and a dead notification link is noted and skipped. Earlier the same day `heatSeasonNotice` was deleted from the live project ("yes delete the heat notice") |
+| Tue 3 Nov (evening in Arizona) | **Website from build 26**, on the owner's word ("deploy the website from build 26"), from `131b988` on branch `build-26`: the simpler screens, Privacy "Last Updated: November 4, 2026". Checked live on wakaguard.com |
 | Sun 1 Nov (evening in Arizona) | **Wild positions and the Cancel trip backup route**, on the owner's word ("commit and push, then deploy both"), from `27bc66c`: `tripLocation` and `tripAction` deployed by name. `tripLocation` now leaves wild positions off the contacts' map, the path and the farthest distance, for phones on any build. `tripAction` takes `cancel`, ready for build 26's Cancel trip button; nothing sends it yet. The website and the apps do not have the rest of `27bc66c` yet. Checked live with made-up ids, so no trip was touched: a cancel request is refused at the trip check (403), an unknown action as a bad request (400), and `tripLocation` answers 403, 400 and 405 as before. No server errors in the last 60 log lines of either function |
 | Wed 28 Oct (just before midnight in Arizona) | **Website caching**, on the owner's word ("make the change and release the website"), from `45dc7f7`: pages are now `no-cache` (browsers check for a newer one each time, and reuse their copy when nothing changed), the build's code files under `/_next/static/` are kept a year (`immutable`), and `sw.js` stays never-stored. Before, Firebase Hosting let browsers keep a page an hour, so the owner did not see the Numbers page's new section after its release. Checked on the hosting emulator first, then live: each of the three answers as meant, Privacy still dated October 24, 2026, home 200 |
 | Wed 28 Oct (near midnight in Arizona) | **Numbers page: travel and reports**, on the owner's word ("release the numbers"), from `bc3d894`. (1) `adminNumbers` and `onTripUpdated` deployed by name; `onTripUpdated` now keeps each trip's distance (`distanceM`) along its path when it ends, before dropping the path, leaving out fixes faster than about 200 km/h. (2) The website, with the Privacy page held at its 24 October version again. Checked live: the new section's code is served and Privacy still has no "Africa"; the function's sums, run once read-only against live data, gave 187 real trips since the beta began, at least 940 km and 137 hours, about 2 hours a week per traveller over the last 14 days, a typical trip of 30 minutes, 130 of 140 recent trips ended before contacts were alerted, 11 road reports, 20 checkpoint stops and 32 people with a contact. Distance is measured from trips ended after this release; older trips count as at least their straight line or farthest point |
