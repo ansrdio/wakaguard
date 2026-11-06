@@ -155,25 +155,57 @@ test('from week three, a trip that did not move counts when the phone went quiet
       trip('uid-ada', monday, { ...still, positions: 30, longestGapMs: 3 * MIN }),
       // Silent for 35 minutes between two positions
       trip('uid-ada', monday + DAY, { ...still, positions: 2, longestGapMs: 35 * MIN }),
-      // Sent positions for 5 minutes, then nothing until "I've arrived"
-      trip('uid-ada', monday + 2 * DAY, {
-        ...still, positions: 5, longestGapMs: MIN, firstPositionMs: monday + 2 * DAY + MIN,
-        lastPositionMs: monday + 2 * DAY + 5 * MIN,
-      }),
       // Quiet, but ran past its time
       trip('uid-ada', monday + 3 * DAY, { ...still, positions: 2, longestGapMs: 35 * MIN, overdueMs: monday + 3 * DAY + HOUR }),
     ],
   }, { fromMs: from, toMs: from + WEEK_MS });
 
-  assert.equal(rowFor(result, 'ada')?.realTrips, 2);
+  assert.equal(rowFor(result, 'ada')?.realTrips, 1);
   assert.deepEqual(checkFor(result, 'ada')?.trips.rejected, { 'did not move': 1, 'ended after contacts would have been texted': 1 });
   const check = checkFor(result, 'ada') as Check & { still: { quiet: boolean; counted: boolean; stillness: string }[] };
-  assert.deepEqual(check.still.map((t) => [t.quiet, t.counted]), [[false, false], [true, true], [true, true]]);
-  assert.match(check.still[2].stillness, /went quiet for 35 min/);
+  assert.deepEqual(check.still.map((t) => [t.quiet, t.counted]), [[false, false], [true, true]]);
+  assert.match(check.still[1].stillness, /went quiet for 35 min/);
   assert.match(
     formatReport(result, { fromMs: from, toMs: from + WEEK_MS, nowMs: from + WEEK_MS, source: 'test' }),
     /Did not move: .*went quiet for 35 min \(counted, as the phone went quiet\)/,
   );
+});
+
+test('from week five, a phone quiet before its first position or after its last counts as quiet', () => {
+  const still = { endLocation: NEAR_IKEJA };
+  const weekOf = (from: number) => {
+    const monday = from + 15 * HOUR;
+    return score({
+      users: users('ada'),
+      trips: [
+        // Sent positions for 5 minutes, then nothing until "I've arrived"
+        trip('uid-ada', monday, {
+          ...still, positions: 5, longestGapMs: MIN, firstPositionMs: monday + MIN, lastPositionMs: monday + 5 * MIN,
+        }),
+        // Nothing for the first 20 minutes, then positions every minute
+        trip('uid-ada', monday + DAY, {
+          ...still, positions: 20, longestGapMs: MIN, firstPositionMs: monday + DAY + 20 * MIN,
+          lastPositionMs: monday + DAY + 39 * MIN,
+        }),
+      ],
+    }, { fromMs: from, toMs: from + WEEK_MS });
+  };
+
+  // Week four, Sunday 1 November 18:00 in Nigeria: scored as it ran, on the gaps between positions only
+  const four = weekOf(Date.UTC(2026, 10, 1, 17));
+  // No points, so not on the ranking at all; both trips stayed put
+  assert.equal(rowFor(four, 'ada'), undefined);
+  assert.equal(four.health.realStill, 2);
+  assert.equal(four.health.realStillQuiet, 0);
+
+  // Week five, Sunday 8 November 18:00 in Nigeria
+  const five = weekOf(Date.UTC(2026, 10, 8, 17));
+  assert.equal(rowFor(five, 'ada')?.realTrips, 2);
+  assert.equal(five.health.realStillQuiet, 2);
+  const check = checkFor(five, 'ada') as Check & { still: { quiet: boolean; counted: boolean; stillness: string }[] };
+  assert.deepEqual(check.still.map((t) => [t.quiet, t.counted]), [[true, true], [true, true]]);
+  assert.match(check.still[0].stillness, /went quiet for 35 min/);
+  assert.match(check.still[1].stillness, /went quiet for 20 min/);
 });
 
 test('trips that break a rule earn nothing and say why', () => {
@@ -282,16 +314,26 @@ test('a road report counts once another tester votes it up', () => {
   assert.deepEqual(check?.confirmed, [{ id: confirmed.id.slice(0, 6), upvoters: ['tunde', 'bisi'] }]);
 });
 
-test('a road report posted from far away stays up but earns nothing, even voted up', () => {
-  const far = report('uid-ada', MONDAY, { postedFarAway: true });
-  const near = report('uid-ada', MONDAY + HOUR);
-  const result = score({
-    users: users('ada', 'tunde'),
-    reports: [far, near],
-    votes: [upvote('uid-tunde', far.id), upvote('uid-tunde', near.id)],
-  });
-  assert.equal(rowFor(result, 'ada')?.roadReports, 1);
-  assert.deepEqual(checkFor(result, 'ada')?.reports.rejected, { 'posted from far away': 1 });
+test('from week five, a road report posted from far away stays up but earns nothing, even voted up', () => {
+  const weekOf = (from: number) => {
+    const monday = from + 15 * HOUR;
+    const far = report('uid-ada', monday, { postedFarAway: true });
+    const near = report('uid-ada', monday + HOUR);
+    return score({
+      users: users('ada', 'tunde'),
+      reports: [far, near],
+      votes: [upvote('uid-tunde', far.id), upvote('uid-tunde', near.id)],
+    }, { fromMs: from, toMs: from + WEEK_MS });
+  };
+
+  // Week four: scored as it ran, when the far-away mark was not read
+  const four = weekOf(Date.UTC(2026, 10, 1, 17));
+  assert.equal(rowFor(four, 'ada')?.roadReports, 2);
+  assert.deepEqual(checkFor(four, 'ada')?.reports.rejected, {});
+
+  const five = weekOf(Date.UTC(2026, 10, 8, 17));
+  assert.equal(rowFor(five, 'ada')?.roadReports, 1);
+  assert.deepEqual(checkFor(five, 'ada')?.reports.rejected, { 'posted from far away': 1 });
 });
 
 test('at most three road reports count on one day', () => {

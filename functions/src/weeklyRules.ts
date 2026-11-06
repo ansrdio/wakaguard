@@ -62,6 +62,16 @@ export const EVERYDAY_DAYS = 5;
 export const PRIZE_PLACES = 3;
 export const DRAW_MIN_TRIPS = 3;
 export const EVERYDAY_BONUS_FROM_MS = Date.UTC(2026, 9, 25, 17, 0);
+/**
+ * Two rules the Sunday script missed until 5 November 2026, because it did not
+ * read the fields they need: a road report posted from far away earns nothing,
+ * and a phone that went quiet after the start or before the end counts as
+ * quiet. From week five, which starts Sunday 8 November 2026 at 18:00 in
+ * Nigeria (the owner, 5 November: "apply the ranking fixes from week 5"), so
+ * weeks one to four stay as they were scored.
+ */
+export const FAR_AWAY_RULE_FROM_MS = Date.UTC(2026, 10, 8, 17, 0);
+export const START_END_SILENCE_FROM_MS = Date.UTC(2026, 10, 8, 17, 0);
 
 export const REASONS = {
   notEnded: 'not ended by the traveller',
@@ -131,16 +141,18 @@ export function tripProblem(trip) {
 export const distanceOf = (trip) => Math.max(metresBetween(trip.startLocation, trip.endLocation), trip.farthestM ?? 0);
 
 /**
- * The longest the phone sent no position during a trip: before the first,
- * between two, or after the last until the trip ended. Null for trips from
- * before positions were counted.
+ * The longest the phone sent no position during a trip: between two, or, from
+ * week five (START_END_SILENCE_FROM_MS), before the first or after the last
+ * until the trip ended. Null for trips from before positions were counted.
  */
 export function longestSilenceMs(trip) {
   if (typeof trip.positions !== 'number') return null;
   const silences = [trip.longestGapMs ?? 0];
   if (trip.positions === 0) silences.push(trip.endMs - trip.startMs);
-  if (trip.firstPositionMs != null) silences.push(trip.firstPositionMs - trip.startMs);
-  if (trip.lastPositionMs != null) silences.push(trip.endMs - trip.lastPositionMs);
+  if (trip.startMs >= START_END_SILENCE_FROM_MS) {
+    if (trip.firstPositionMs != null) silences.push(trip.firstPositionMs - trip.startMs);
+    if (trip.lastPositionMs != null) silences.push(trip.endMs - trip.lastPositionMs);
+  }
   return Math.max(...silences.filter(Number.isFinite));
 }
 
@@ -206,8 +218,8 @@ export function judgeReports(reports, upvotersOf) {
   for (const report of [...reports].sort((a, b) => a.createdMs - b.createdMs)) {
     const upvoters = upvotersOf(report);
     if (Number(report.flagCount || 0) !== 0) { rejected.add(REASONS.flagged); continue; }
-    // Not seen on the spot (src/lib/reportDistance.ts): it stays up, but earns nothing
-    if (report.postedFarAway === true) { rejected.add(REASONS.farAway); continue; }
+    // Not seen on the spot (src/lib/reportDistance.ts): it stays up, but earns nothing, from week five
+    if (report.postedFarAway === true && report.createdMs >= FAR_AWAY_RULE_FROM_MS) { rejected.add(REASONS.farAway); continue; }
     if (upvoters.length === 0) { rejected.add(REASONS.noUpvote); continue; }
     const day = lagosDay(report.createdMs);
     perDay[day] = (perDay[day] || 0) + 1;

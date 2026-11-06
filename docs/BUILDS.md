@@ -715,7 +715,10 @@ was first agreed.
          with `npx tsx scripts/weekly-numbers.mjs …` (or `npm run numbers:weekly -- …`);
        - while there, two fields the script read but never asked the database for: when a trip's first and last
          positions came (used for "the phone went quiet") and whether a report was posted far away (so far-away
-         reports were never left out). Both are read now;
+         reports were never left out). Both are read now, and both rules apply **from week five** (Sunday
+         8 November, 18:00 in Nigeria; the owner, 5 November: "apply the ranking fixes from week 5"), so weeks one
+         to four stay as they were scored. From then, a far-away report earns nothing, and a trip that did not move
+         counts when its phone went quiet after the start or before the end, as well as between two positions;
        - a new server function, `myWeek`, scores only the signed-in person's own week;
        - the card, at the top of Profile: "Your points this week", the number, "3 trips counted · 1 road report",
          the everyday bonus and first test trip when earned, and for the last trip that earned nothing, why and what
