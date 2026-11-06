@@ -70,7 +70,7 @@ Mon 12 Oct and end about Mon 26 Oct; text alerts are to be on by Mon 2 Nov.
 | Android | 26 | Google Play closed test (Alpha), published Tue 3 Nov. Play can take a day or two to offer it on each phone; clearing the Play Store's cache helps |
 | iPhone | 26 | TestFlight, both groups, since Tue 3 Nov (beta review passed at once) |
 | Website | 26 | wakaguard.com, released from the same code on Tue 3 Nov |
-| Server | `main` | Live up to the security fixes of Wed 4 Nov, plus build 27's trip rules (Thu 5 Nov). Build 27's functions are not live yet (see "Website and server releases") |
+| Server | `main` | Live up to build 27's functions (Fri 6 Nov, from `e887365`) and its trip rules (Thu 5 Nov). The website is not updated yet (see "Website and server releases") |
 
 ## Next build: 22
 
@@ -832,8 +832,8 @@ was first agreed.
          (`usualTimeReminder` on the user, allowed by the rules);
        - a Privacy line under Notifications. Deleting an account deletes its reminder record.
        - Tests: unit and emulator. Watch afterwards on the Numbers page whether more trips start near those times.
-13. [ ] **The server functions for this build,** on the owner's word: `referrals`, `onTripUpdated` and
-       `onTrustedContactWrite`, plus whatever items 2 to 12 add.
+13. [x] **The server functions for this build,** on the owner's word: `referrals`, `onTripUpdated` and
+       `onTrustedContactWrite`, plus whatever items 2 to 12 add. Live Fri 6 Nov: see "Website and server releases".
 14. [ ] **Terms and Privacy dates** changed on the day the website goes out.
 - Optional, if there is time: an 8-character minimum password.
 - Testing: on the owner's Galaxy and iPhone before upload, as with build 26.
@@ -2535,6 +2535,7 @@ Changes that went live without an app build.
 
 | Date | What |
 |---|---|
+| Fri 6 Nov (morning in Arizona) | **Build 27's functions**, on the owner's word ("deploy the build 27 functions"), from `e887365`, each by name. New: `placeSearch` (with the `PLACES_API_KEY` secret; Google granted the server's account access to it), `referrals`, `myWeek`, `onCheckpointStop`, `planUsualTimes`, `usualTimeReminders`. Updated: `tripAction`, `onTripUpdated`, `onTrustedContactWrite`, `deleteMyAccount`, `deleteOldRecords` (now also clears destination spots 30 days after a trip's link expired). Not redeployed: the text-sending functions, whose only change was the same account check moved into `confirmedAccount.ts`. All finished; `usualTimeReminders` ran at 17:00 UTC with status ok and no errors were logged. The CLI could not clean up the build images ("a small monthly bill if not corrected"). Phones on build 26 see no change: the reminder goes only to build 27 and later, and the search, points card and invite screen are in build 27 |
 | Thu 5 Nov (evening in Arizona) | **Build 27's trip rules**, on the owner's word ("deploy the trip rules, then commit and push"): the Firestore rules only, no functions, "released rules firestore.rules". Deployed before build 27's commits (`79196a6` to `b49c330`) were pushed, since this repository is public. The app may now write only the trip details it needs, with the server's clock; trip pages accept checkpoint stops from the server only; the "Reminder at my usual times" switch is allowed on a person's own profile. Checked beforehand against what builds 22 to 27 write, so no phone needs updating. Not deployed: build 27's functions (item 13) |
 | Wed 4 Nov (afternoon in Arizona) | **Security fixes**, on the owner's word ("deploy the security fixes, then commit and push"), deployed before `95c1fa5` was pushed, since this repository is public: the Firestore rules, then `checkOverdueTrips`, `checkQuietTrips`, `onSOSAlert`, `tripLocation`, `tripAction`, `stopTexts`, `onReportCreate`, `cleanupExpiredTrips` and `deleteMyAccount`, each by name, all "Successful update". What changed is in build 27's section ("Security fixes, server and rules"). The next runs of the overdue and quiet-trip checks were read in the logs and were fine. Not deployed: `onTripUpdated` and the other referral functions, which wait for build 27 |
 | Tue 3 Nov (late evening in Arizona) | **Morning weather fixes**, on the owner's word ("commit, push and deploy morningWeather"), from `acf4b95`: `morningWeather` by name. Each person's day is claimed before sending, so two runs at once send once, and a dead notification link is noted and skipped. Earlier the same day `heatSeasonNotice` was deleted from the live project ("yes delete the heat notice") |
