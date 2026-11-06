@@ -63,14 +63,14 @@ Mon 12 Oct and end about Mon 26 Oct; text alerts are to be on by Mon 2 Nov.
   Nigerian places. If either fails, the launch gets the route and its time,
   and directions still open Google Maps
 
-## Live now (Thursday 5 November 2026)
+## Live now (Friday 6 November 2026)
 
 | | Build | Where |
 |---|---|---|
 | Android | 26 | Google Play closed test (Alpha), published Tue 3 Nov. Play can take a day or two to offer it on each phone; clearing the Play Store's cache helps |
 | iPhone | 26 | TestFlight, both groups, since Tue 3 Nov (beta review passed at once) |
-| Website | 26 | wakaguard.com, released from the same code on Tue 3 Nov |
-| Server | `main` | Live up to build 27's functions (Fri 6 Nov, from `e887365`) and its trip rules (Thu 5 Nov). The website is not updated yet (see "Website and server releases") |
+| Website | 27 | wakaguard.com, released Fri 6 Nov from `ac38076`: Google's maps everywhere, the place search, and build 27's changes so far. The apps are still build 26 until the store uploads |
+| Server | `main` | Live up to build 27's functions (Fri 6 Nov, from `e887365`), `placeName` on Google (Fri 6 Nov) and the trip rules (Thu 5 Nov) |
 
 ## Next build: 22
 
@@ -2625,6 +2625,7 @@ Changes that went live without an app build.
 
 | Date | What |
 |---|---|
+| Fri 6 Nov (afternoon in Arizona) | **The website at build 27**, on the owner's word ("go", after signing the Firebase tool back in), from `ac38076`: Hosting only, 207 files, with the live settings (the web config, `NEXT_PUBLIC_APP_URL`, the Mapbox token for directions only, the Google map key). Every map on wakaguard.com is now Google's (the owner had seen Mapbox and OpenStreetMap still there), with the place search, the start form kept across tabs, "Looking for places…" and the most used states first. Checked after: the live home page is the same file as the build, and its code has Google's map loader and the new wording. A browser that had the old site may need one more reload before its saved copy is replaced |
 | Fri 6 Nov (late morning in Arizona) | **`placeName` on Google**, on the owner's word ("approved, go"), by name: names a pin and finds the state with Google's reverse geocoding (Geocoding API, turned on and capped at 1,000 a day that morning) instead of OpenStreetMap's Nominatim. Phones on build 26 keep working: they read only the name, which now comes from Google, still with their old "© OpenStreetMap contributors" line under it until they update. The CLI again could not clean up the build images; the 1-day clean-up rule covers them |
 | Fri 6 Nov (morning in Arizona) | **Build 27's functions**, on the owner's word ("deploy the build 27 functions"), from `e887365`, each by name. New: `placeSearch` (with the `PLACES_API_KEY` secret; Google granted the server's account access to it), `referrals`, `myWeek`, `onCheckpointStop`, `planUsualTimes`, `usualTimeReminders`. Updated: `tripAction`, `onTripUpdated`, `onTrustedContactWrite`, `deleteMyAccount`, `deleteOldRecords` (now also clears destination spots 30 days after a trip's link expired). Not redeployed: the text-sending functions, whose only change was the same account check moved into `confirmedAccount.ts`. All finished; `usualTimeReminders` ran at 17:00 UTC with status ok and no errors were logged. The CLI could not clean up the build images ("a small monthly bill if not corrected"). Phones on build 26 see no change: the reminder goes only to build 27 and later, and the search, points card and invite screen are in build 27 |
 | Thu 5 Nov (evening in Arizona) | **Build 27's trip rules**, on the owner's word ("deploy the trip rules, then commit and push"): the Firestore rules only, no functions, "released rules firestore.rules". Deployed before build 27's commits (`79196a6` to `b49c330`) were pushed, since this repository is public. The app may now write only the trip details it needs, with the server's clock; trip pages accept checkpoint stops from the server only; the "Reminder at my usual times" switch is allowed on a person's own profile. Checked beforehand against what builds 22 to 27 write, so no phone needs updating. Not deployed: build 27's functions (item 13) |
