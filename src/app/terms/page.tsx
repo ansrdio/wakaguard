@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 };
 
 /** Shown on the page and changed whenever the terms change */
-const LAST_UPDATED = '13 October 2026';
+const LAST_UPDATED = '6 November 2026';
 
 const SECTIONS: { id?: string; title: string; paragraphs: string[]; points?: string[] }[] = [
   {

@@ -857,7 +857,9 @@ was first agreed.
        - Tests: unit and emulator. Watch afterwards on the Numbers page whether more trips start near those times.
 13. [x] **The server functions for this build,** on the owner's word: `referrals`, `onTripUpdated` and
        `onTrustedContactWrite`, plus whatever items 2 to 12 add. Live Fri 6 Nov: see "Website and server releases".
-14. [ ] **Terms and Privacy dates** changed on the day the website goes out.
+14. [x] **Terms and Privacy dates** changed on the day the website goes out. Done 6 November (owner: "ok do all"):
+       both pages say "Last updated: 6 November 2026", the day the Google wording went live on wakaguard.com (the
+       Terms had said 13 October, the Privacy page October 28).
 16. [x] **Safety fixes** (the owner, 6 November, from my review of what is missing: "Safety fixes"). Done 6 November;
        numbers confirmed by the owner ("keep 199"):
        - The list is now: Emergency (police, fire, ambulance) 112; Police 199; FRSC (road crashes) 122; NEMA (floods
@@ -927,6 +929,10 @@ was first agreed.
     most used states first), on the owner's word ("go"); the third set is kept as `…-27-superseded3…`. Checked
     inside each: the three changes, build 27, the live project, no test settings. Installed by cable on the Galaxy
     and the Moto (sign-ins kept) and the iPhone, at 16:38 (Arizona).
+  - **Made a fifth time the same day** with the Terms and Privacy date (item 14), on the owner's "ok do all"; the
+    fourth set is kept as `…-27-superseded4…`. Checked inside each: the date, build 27, the live project, no test
+    settings. Installed on the Moto and the iPhone at 16:59; the Galaxy had been unplugged, so its copy waits.
+    These are the files for the stores.
 
 
 The owner on 2 November: "we need to add a referral program too where people can earn from getting people on

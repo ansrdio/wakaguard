@@ -24,7 +24,7 @@ export default function PrivacyPage() {
           </div>
 
           <p className="text-gray-600 mb-8">
-            Last Updated: October 28, 2026
+            Last Updated: 6 November 2026
           </p>
 
           <section className="mb-8">
