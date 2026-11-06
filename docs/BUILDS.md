@@ -901,7 +901,9 @@ was first agreed.
     has the current key for; TestFlight's build 27 replaces it once uploaded.
   - **Made a third time the same day** with the safety fixes (item 16), from this commit's code; the second set is
     kept as `…-27-superseded2…`. Checked inside each: NEMA dialled as digits, no example number, build 27, no test
-    settings. Installed on the owner's iPhone by cable; the Galaxy was unplugged, so its copy waits.
+    settings. Installed on the owner's iPhone by cable; the Galaxy was unplugged, so its copy waits. Also installed,
+    fresh, on the owner's Moto g 5G (2024), Android 15 (owner: "I plugged in a Moto phone"): a second Android that is
+    not a Samsung.
 
 
 The owner on 2 November: "we need to add a referral program too where people can earn from getting people on
