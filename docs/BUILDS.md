@@ -633,7 +633,8 @@ whose code was never in this repository (`onCommentCreate`,
 frozen Fri 13 Nov. In the order I plan to work; each item's details are below, or in the build 26 section where it
 was first agreed.
 1. [x] **The referral programme** (done 2 November, below). The App Review note was drafted on 5 November (kept with
-       the store wording outside this repository), for the owner to read before upload.
+       the store wording outside this repository) and approved by the owner the same day ("the App Review note is
+       approved"). It goes in at upload.
 2. [x] **Server checks on trips and on the referral counting,** from the security review of 4 November. Must be done
        before build 27's server functions go live. The details are kept privately, as this repository is public.
        Done 5 November:
@@ -823,7 +824,7 @@ Choices made while building (2 November), for the owner to see:
   one trip): a friend whose trips came from the inviter's phone, or from a phone that already earned anyone a
   reward, is refused, and the inviter sees why
 - Cash out takes everything that is ready, one request at a time; Cash out opens Tue 15 Dec
-- Not yet done: the App Review note
+- The App Review note: approved by the owner on 5 November; it goes in at upload
 
 **Also for build 27 (the owner, 3 November, testing build 26 on the iPhone):** asked "where the modes of transport
 go again" and whether they are visible enough, then "yes add it to build 27".
