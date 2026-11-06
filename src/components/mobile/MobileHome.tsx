@@ -13,7 +13,7 @@ import { FilterSheet } from './FilterSheet';
 import { ReportDetailsSheet } from './ReportDetailsSheet';
 import { SafetyScreen } from './screens/SafetyScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
-import MapView from '@/components/MapView';
+import MapView from '@/components/ReportsMap';
 import { BOTTOM_NAV_HEIGHT, MAP_BOTTOM_CLEAR, SHEET_CORNER, SHEET_PEEK_HEIGHT } from '@/lib/mobileLayout';
 import { CreateReportModal } from '@/components/CreateReportModal';
 import NigerianStateSelector from '@/components/NigerianStateSelector';

@@ -153,7 +153,7 @@ function MapController({ selectedReportId, reports, userLocation, selectedState,
   return null;
 }
 
-interface MapViewProps {
+export interface MapViewProps {
   reports: Report[];
   selectedReportId: string | null;
   onMarkerClick: (reportId: string) => void;

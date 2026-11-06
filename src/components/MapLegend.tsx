@@ -5,8 +5,11 @@ import { useState } from 'react';
 import { Info, X } from 'lucide-react';
 import { ReportPicture } from '@/components/pictures/Pictures';
 
-// A little above the map's bottom edge, and clear of anything lying over it (see lib/mobileLayout.ts)
-const ABOVE_MAP_EDGE = { bottom: 'calc(1rem + var(--map-bottom-clear, 0px))' };
+// A little above the map's bottom edge, and clear of anything lying over it (see lib/mobileLayout.ts).
+// Higher on Google's map, whose logo sits in the bottom-left corner and must stay in view.
+const aboveMapEdge = (clearOfLogo: boolean) => ({
+  bottom: `calc(${clearOfLogo ? '2.25rem' : '1rem'} + var(--map-bottom-clear, 0px))`,
+});
 
 /**
  * MapLegend Component
@@ -14,7 +17,7 @@ const ABOVE_MAP_EDGE = { bottom: 'calc(1rem + var(--map-bottom-clear, 0px))' };
  * Displays a collapsible legend showing what the red ring and the
  * pictures on the map's pins mean.
  */
-export function MapLegend() {
+export function MapLegend({ clearOfLogo = false }: { clearOfLogo?: boolean }) {
   const [isOpen, setIsOpen] = useState(false);
 
   const kinds = ['checkpoint', 'pothole', 'accident', 'traffic', 'roadwork', 'closure', 'hazard', 'other'];
@@ -24,7 +27,7 @@ export function MapLegend() {
       <button
         onClick={() => setIsOpen(true)}
         className="absolute left-4 z-[400] bg-white dark:bg-slate-800 rounded-lg shadow-md px-3 min-h-12 flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors border border-slate-200 dark:border-slate-700"
-        style={ABOVE_MAP_EDGE}
+        style={aboveMapEdge(clearOfLogo)}
         aria-label="Show map legend"
       >
         <Info className="w-4 h-4 text-slate-500 dark:text-slate-400" />
@@ -36,7 +39,7 @@ export function MapLegend() {
   return (
     <div
       className="absolute left-4 z-[400] bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-3 min-w-[160px]"
-      style={ABOVE_MAP_EDGE}
+      style={aboveMapEdge(clearOfLogo)}
     >
       <div className="flex items-center justify-between mb-2">
         <h4 className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">On the map</h4>

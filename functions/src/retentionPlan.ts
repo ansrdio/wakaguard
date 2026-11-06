@@ -22,8 +22,14 @@ export const KEEP_DAYS = {
   oldReport: 90,
   /** A comment removed by its author or by moderation, after it was posted */
   removedComment: 30,
-  /** Counters and caches: tries per trip link, place-name look-ups, weather forecasts */
+  /** Counters and caches: tries per trip link, place-name look-ups and searches, weather forecasts */
   workingRecord: 2,
+  /**
+   * A trip's destination spot (its pin), taken off the trip after its link expired; the rest of the trip stays
+   * its 90 days. Google allows a spot from its place search to be kept 30 days at most (Service Specific Terms
+   * 14.3, build 27), and every spot goes, pinned or searched, so no record of which is needed.
+   */
+  destinationSpot: 30,
 } as const;
 
 /** Records deleted at once, and the most one run deletes of each kind */

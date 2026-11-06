@@ -18,7 +18,7 @@ import { DesktopSafeTrip } from '@/components/DesktopSafeTrip';
 import { Toast } from '@/components/ui/Toast';
 import { AppShell } from '@/components/layout/AppShell';
 import { NigerianState } from '@/lib/nigerianStates';
-import MapView from '@/components/MapView';
+import MapView from '@/components/ReportsMap';
 import { useAuthedUser } from '@/hooks/useAuthedUser';
 import { useSafety } from '@/hooks/useSafety';
 import { useTripLocationSync } from '@/hooks/useTripLocationSync';

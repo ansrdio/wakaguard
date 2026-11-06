@@ -53,10 +53,12 @@ export function checkAppBuildEnv(env) {
     errors.push(`NEXT_PUBLIC_APP_URL is "${appUrl}". Links texted to contacts are built from it, so it must be the public https address.`);
   }
 
-  if (!env.NEXT_PUBLIC_MAP_TILE_URL && !env.NEXT_PUBLIC_MAPBOX_TOKEN) {
-    warnings.push(
-      'Neither NEXT_PUBLIC_MAPBOX_TOKEN nor NEXT_PUBLIC_MAP_TILE_URL is set, so the map uses OpenStreetMap\'s own servers. ' +
-      'They only allow light traffic and may block apps; set the Mapbox token before release.'
+  // Every map is Google's from build 27 (src/lib/googleMaps.ts). Without the key the app would fall back to
+  // OpenStreetMap's maps, which only allow light traffic and which Google's place search may not be shown on.
+  if (!env.NEXT_PUBLIC_GOOGLE_MAPS_KEY) {
+    errors.push(
+      'Missing NEXT_PUBLIC_GOOGLE_MAPS_KEY, so the maps would not be Google\'s. ' +
+      'Copy the line from .env.googlemaps.local into .env.local.'
     );
   }
 
@@ -79,7 +81,8 @@ export function readEnvFile(filePath) {
 
 // Run as a script
 if (import.meta.url === pathToFileURL(process.argv[1] || '').href) {
-  const env = { ...readEnvFile(path.resolve('.env.local')), ...process.env };
+  // As Next.js reads them for a release build: .env.production.local over .env.local
+  const env = { ...readEnvFile(path.resolve('.env.local')), ...readEnvFile(path.resolve('.env.production.local')), ...process.env };
   const { errors, warnings } = checkAppBuildEnv(env);
 
   for (const warning of warnings) console.warn(`Warning: ${warning}`);

@@ -3,6 +3,8 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
+import type { TripMapProps } from '@/components/trip/TripMap';
+import { USES_GOOGLE_MAPS } from '@/lib/googleMaps';
 import Image from 'next/image';
 import { AlertTriangle, Clock, Loader2, MapPin, Navigation, Phone, ShieldCheck } from 'lucide-react';
 import { TripStatus } from '@/lib/types';
@@ -19,7 +21,8 @@ import { readRouteOutline } from '@/lib/directions';
 import { inviterFromTrip } from '@/lib/referrals';
 
 // Leaflet needs the browser, so the map is left out of the prerendered page
-const TripMap = dynamic(() => import('@/components/trip/TripMap'), {
+// Google's map when the key is set (build 27), else the old one for tests against the emulators
+const TripMap = dynamic<TripMapProps>(() => (USES_GOOGLE_MAPS ? import('@/components/trip/GoogleTripMap') : import('@/components/trip/TripMap')), {
   ssr: false,
   loading: () => (
     <div className="h-full w-full flex items-center justify-center bg-slate-100">

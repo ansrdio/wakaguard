@@ -22,8 +22,11 @@ import { findPosition } from '@/lib/locationCheck';
 import { isPostedFarAway, whereThePhoneIs } from '@/lib/reportDistance';
 import { Toast, ToastType } from '@/components/ui/Toast';
 import dynamic from 'next/dynamic';
+import type { LocationPickerProps } from '@/components/LocationPicker';
+import { USES_GOOGLE_MAPS } from '@/lib/googleMaps';
 
-const LocationPicker = dynamic(() => import('@/components/LocationPicker'), {
+// Google's map when the key is set (build 27), else the old one for tests against the emulators
+const LocationPicker = dynamic<LocationPickerProps>(() => (USES_GOOGLE_MAPS ? import('@/components/GoogleLocationPicker') : import('@/components/LocationPicker')), {
   ssr: false,
   loading: () => (
     <div className="h-64 bg-gray-100 rounded-lg flex items-center justify-center">

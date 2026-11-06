@@ -10,7 +10,7 @@ const good = {
   NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: 'routepulse-5701f.firebasestorage.app',
   NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: '123',
   NEXT_PUBLIC_FIREBASE_APP_ID: '1:123:web:abc',
-  NEXT_PUBLIC_MAP_TILE_URL: 'https://tiles.example/{z}/{x}/{y}.png?key=k',
+  NEXT_PUBLIC_GOOGLE_MAPS_KEY: 'maps-key',
 };
 
 test('a complete production configuration passes with no warnings', () => {
@@ -44,8 +44,8 @@ test('a non-https public address stops the build', () => {
   assert.deepEqual(checkAppBuildEnv({ ...good, NEXT_PUBLIC_APP_URL: 'https://wakaguard.com' }).errors, []);
 });
 
-test('the default map source is allowed but flagged', () => {
-  const { errors, warnings } = checkAppBuildEnv({ ...good, NEXT_PUBLIC_MAP_TILE_URL: undefined });
-  assert.deepEqual(errors, []);
-  assert.match(warnings[0], /OpenStreetMap/);
+test("a build without Google's map key stops, as its maps would not be Google's (build 27)", () => {
+  const { errors } = checkAppBuildEnv({ ...good, NEXT_PUBLIC_GOOGLE_MAPS_KEY: undefined });
+  assert.equal(errors.length, 1);
+  assert.match(errors[0], /NEXT_PUBLIC_GOOGLE_MAPS_KEY/);
 });

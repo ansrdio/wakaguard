@@ -12,6 +12,8 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import dynamic from 'next/dynamic';
+import type { LocationPickerProps } from '@/components/LocationPicker';
+import { USES_GOOGLE_MAPS } from '@/lib/googleMaps';
 import { ArrowLeft } from 'lucide-react';
 import { useBackToClose } from '@/hooks/useBackToClose';
 import { useSelectedState } from '@/hooks/useSelectedState';
@@ -19,7 +21,8 @@ import { NigerianState, STATE_CENTERS } from '@/lib/nigerianStates';
 import { Point, readPoint } from '@/lib/destinationPoint';
 import { whereThePhoneIs } from '@/lib/reportDistance';
 
-const LocationPicker = dynamic(() => import('@/components/LocationPicker'), {
+// Google's map when the key is set (build 27), else the old one for tests against the emulators
+const LocationPicker = dynamic<LocationPickerProps>(() => (USES_GOOGLE_MAPS ? import('@/components/GoogleLocationPicker') : import('@/components/LocationPicker')), {
   ssr: false,
   loading: () => <div className="h-full bg-slate-100 dark:bg-slate-800" />,
 });

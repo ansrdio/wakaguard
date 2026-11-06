@@ -2,9 +2,11 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { backupIsRecent, cutoffMs, DAY_MS, isInAccount, KEEP_DAYS, MAX_TEXTS_PER_HOUR, textAlarms, WALLET_LOW_NGN } from '../src/retentionPlan';
 
-test('the agreed times: trips, SOS and texts 90 days, the trip page 7, removed comments 30', () => {
+test('the agreed times: trips, SOS and texts 90 days, the trip page 7, removed comments and destination spots 30', () => {
   assert.deepEqual(KEEP_DAYS, {
     endedTrip: 90, tripPage: 7, sosAndCheckIns: 90, textLog: 90, oldReport: 90, removedComment: 30, workingRecord: 2,
+    // Google allows a spot from its place search to be kept 30 days at most (build 27)
+    destinationSpot: 30,
   });
   assert.equal(cutoffMs(100 * DAY_MS, 90), 10 * DAY_MS);
 });

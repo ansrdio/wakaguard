@@ -28,6 +28,11 @@ import { readVehicle, Vehicle } from '@/lib/vehicle';
 import { DestinationPinSheet } from '@/components/mobile/trip/DestinationPinSheet';
 import { mayFillDestination, PLACE_NAME_CREDIT, Point } from '@/lib/destinationPoint';
 import { askPlaceName } from '@/lib/placeName';
+import { PlaceSuggestions } from '@/components/mobile/trip/PlaceSuggestions';
+import { PLACE_SEARCH_CREDIT } from '@/lib/placeSearch';
+import { USES_GOOGLE_MAPS } from '@/lib/googleMaps';
+import { useSelectedState } from '@/hooks/useSelectedState';
+import { NigerianState, STATE_CENTERS } from '@/lib/nigerianStates';
 import { WeatherLine } from '@/components/mobile/trip/WeatherLine';
 import { useWeatherAhead } from '@/hooks/useWeatherAhead';
 import { hoursToLookAhead } from '@/lib/weatherWords';
@@ -130,6 +135,13 @@ export function StartTripForm({
   const [namingPin, setNamingPin] = useState(false);
   // Only the latest pin's answer counts
   const namingFor = useRef<Point | null>(null);
+  // Google's place search (build 27, lib/placeSearch.ts): only with Google's maps, and only while the
+  // traveller is typing. searchName is the name a chosen place put in the box.
+  const [searching, setSearching] = useState(false);
+  const [searchName, setSearchName] = useState<string | null>(null);
+  const { selectedState } = useSelectedState();
+  const stateCentre = selectedState ? STATE_CENTERS[selectedState as NigerianState] : null;
+  const searchNear = stateCentre ? { lat: stateCentre.lat, lng: stateCentre.lng } : null;
 
   // A new pin fills the box with the spot's street and area, unless the
   // traveller has typed something there themselves
@@ -239,6 +251,8 @@ export function StartTripForm({
     namingFor.current = null;
     setNamingPin(false);
     setPinName(null);
+    setSearching(false);
+    setSearchName(null);
     setDestination(usualText(trip));
     setDestinationPoint(trip.point);
     setDurationMinutes(trip.minutes);
@@ -355,7 +369,10 @@ export function StartTripForm({
           type="text"
           value={destination}
           maxLength={MAX_TYPED_DESTINATION_LENGTH}
-          onChange={(e) => setDestination(e.target.value)}
+          onChange={(e) => {
+            setDestination(e.target.value);
+            setSearching(true);
+          }}
           placeholder="Address or name of a place"
           autoComplete="off"
           aria-invalid={!!errors.destination}
@@ -364,6 +381,24 @@ export function StartTripForm({
         {errors.destination && <p role="alert" className={errorClass}>{errors.destination}</p>}
         {pinName !== null && destination.trim() === pinName && (
           <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Name from the pin. {PLACE_NAME_CREDIT}</p>
+        )}
+        {searchName !== null && destination.trim() === searchName && (
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Name from {PLACE_SEARCH_CREDIT}</p>
+        )}
+        {USES_GOOGLE_MAPS && (
+          <PlaceSuggestions
+            text={searching && destination.trim() !== searchName && destination.trim() !== pinName ? destination : null}
+            near={searchNear}
+            onChoose={(place) => {
+              namingFor.current = null;
+              setNamingPin(false);
+              setPinName(null);
+              setSearching(false);
+              setSearchName(place.name);
+              setDestination(place.name);
+              setDestinationPoint({ lat: place.lat, lng: place.lng });
+            }}
+          />
         )}
         {destinationPoint ? (
           <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-slate-700 dark:text-slate-200">

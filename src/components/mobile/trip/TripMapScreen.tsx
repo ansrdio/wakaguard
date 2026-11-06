@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import dynamic from 'next/dynamic';
+import type { TripMapProps } from '@/components/trip/TripMap';
+import { USES_GOOGLE_MAPS } from '@/lib/googleMaps';
 import { ArrowLeft, Check, Clock, Loader2, Users } from 'lucide-react';
 import { Trip, TripStatus } from '@/lib/types';
 import { ALERT_GRACE_MINUTES, TEST_ALERT_GRACE_MINUTES, TEST_TRIP_MINUTES, describeTimeLeft, formatClock, joinNames } from '@/lib/tripPlanning';
@@ -18,7 +20,8 @@ import { decodePolyline6 } from '@/lib/directions';
 import type { TripDirections } from '@/hooks/useTripDirections';
 
 // Leaflet needs the browser, so the map is left out of the prerendered page
-const TripMap = dynamic(() => import('@/components/trip/TripMap'), {
+// Google's map when the key is set (build 27), else the old one for tests against the emulators
+const TripMap = dynamic<TripMapProps>(() => (USES_GOOGLE_MAPS ? import('@/components/trip/GoogleTripMap') : import('@/components/trip/TripMap')), {
   ssr: false,
   loading: () => (
     <div className="h-full w-full flex items-center justify-center bg-slate-100 dark:bg-slate-800">

@@ -717,7 +717,89 @@ was first agreed.
          until phones on build 26 and older are gone. The website is not registered; it keeps reCAPTCHA v3, which
          needs its own key (optional before launch).
 10. [ ] **Search for where you are going** (Google place search), with a Privacy line (build 26 section,
-       28 October). Needs the owner to make a key in Google Cloud.
+       28 October). Done in Google Cloud on 5 November in the owner's Chrome:
+       - **The key:** "WakaGuard place search (server)". It works only for Places API (New), which was already on, and
+         has no app restriction because only our server uses it. It is kept in Secret Manager as `PLACES_API_KEY`;
+         the owner pasted it into a hidden prompt.
+       - **Daily limits:** 1,000 suggestions and 300 place look-ups.
+       - **The catch:** Google's terms do not allow place results, or their spots, on a map that is not Google's
+         (Maps Platform Terms 3.2.3(e); Service Specific Terms 14.2). A spot may be kept for 30 days at most (14.3),
+         while trips are kept for 90.
+       - **So:** the search comes after item 15 and uses only Google maps. The spot of a trip's destination found by
+         search is deleted 30 days after the trip.
+       - **How it works:** suggestions appear under "Where are you going?" as the traveller types, sent through our
+         server. Choosing one fills in the name and moves the pin there. "Google Maps" is shown under the suggestions,
+         as Google's terms ask.
+       - **Built 6 November (not committed; the function is not live):**
+         - `functions/src/placeSearch.ts` (callable `placeSearch`) and `placeSearchPlan.ts`.
+           - It uses Autocomplete (New), then Place Details asking only for id, address and spot (Google's cheapest
+             tier), both in one session so Google charges them as one search.
+           - The key is read from Secret Manager (`runWith({ secrets: ['PLACES_API_KEY'] })`).
+           - Only for signed-up people, with hourly limits of 60 suggestions and 20 look-ups each
+             (`placeSearchTries`, server only and deleted after 2 days).
+           - Google is sent what was typed, a made-up session id, and the chosen state's middle rounded to about
+             1 km. It is never told who is asking, and nothing from Google is logged.
+         - In the app: `lib/placeSearch.ts`, `lib/placeSearchRules.ts` and `PlaceSuggestions.tsx` under "Where are
+           you going?". They show only with Google's maps, after a 0.4 s pause in typing, at most 5 suggestions,
+           with "Google Maps" underneath and "Name from Google Maps" once one is chosen.
+         - Every trip's destination spot, pinned or searched, is taken off the trip 30 days after its link expired
+           (`CLEARINGS` in `recordRetention.ts`, `KEEP_DAYS.destinationSpot`). The rest of the trip keeps its 90
+           days.
+         - Tried 6 November against the emulators, with the real key in an untracked `functions/.secret.local`,
+           removed afterwards. "Ojota bus" gave Ojota Bus Stop, Ojota Bus Park and three more; choosing the Park
+           filled in the name and put the pin on it in Ojota. Mapbox had found none of these in October.
+         - Privacy page: a "Place search" line, and the 30-day spot in the trip record line. Wording approved by
+           the owner on 6 November ("wording approved, commit and push").
+         - Tests: 437 unit (9 new), 142 emulator (1 new).
+         - Open for the lawyer review: a "usual trip" button copies a past trip's spot into a new trip, so a searched
+           spot can live on past 30 days through daily repeats.
+15. [ ] **Google Maps everywhere in place of OpenStreetMap and Mapbox** (the owner, 5 November: "switching to
+       google maps will tremendously elevate the app let us build it"). The three maps are the trip map, also used by
+       the pin picker and the contacts' page; the road-reports map; and the report pin picker.
+       - **The test, 5 November:** a page served as the iPhone app serves it (`capacitor://localhost`, through
+         WebKit's custom-scheme handler, run on the Mac) loaded Google's map with the key, with no refusal in 40 s.
+         The same page from an address the key does not allow was refused at once (`RefererNotAllowedMapError`),
+         so the key's limit is real. So the maps can stay in the web code (Maps JavaScript API), shared by the
+         website, the apps and the contacts' page. Android's `https://localhost` is to be checked on the Galaxy with
+         the real build.
+       - **The key:** "WakaGuard maps (website and apps)", made 5 November in the owner's Chrome. It works only for
+         Maps JavaScript API, which was turned on that day, and only from wakaguard.com, www.wakaguard.com, the two
+         Firebase addresses, `https://localhost/*` (Android app), `capacitor://localhost/*` (iPhone app) and
+         `http://localhost:3000/*` (testing). Daily limits: 1,000 map openings, 3D maps 0. The owner pasted it into
+         a hidden prompt, which saved it to the untracked `.env.googlemaps.local` as `NEXT_PUBLIC_GOOGLE_MAPS_KEY`.
+         It ships inside the app and the website, as a map key must.
+       - **Cost:** Google allows 10,000 map openings a month free, then about $7 per 1,000.
+       - **Written 5 November (not yet seen in a browser or on a phone; not committed):**
+         - `src/lib/googleMaps.ts` loads Google's script once, in English as seen from Nigeria (`region=NG`). It
+           says when the script cannot load or Google refuses the key, and the map then shows a notice instead of a
+           grey box, with "Try again" when it may help.
+         - Google versions of the three maps: `GoogleTripMap`, `GoogleLocationPicker` and `GoogleMapView`. Each is
+           chosen only when `NEXT_PUBLIC_GOOGLE_MAPS_KEY` is set; the old maps stay for tests against the emulators.
+         - Pins are plain HTML on Google's OverlayView (`components/google/htmlMarker.ts`), so they look as before
+           and need no map ID. Nearby reports are grouped by `lib/mapGroups.ts`, as the Leaflet add-on did.
+         - Google's logo must stay in view. The reports map stops above the sheet's rounded corners instead of
+           running under them, and the legend and buttons sit above the logo and Google's terms line.
+         - A release build stops without the key (`scripts/app-env.mjs`).
+         - Terms of Use section 2 and the Privacy page's "Maps" line now name Google Maps, as Google's terms ask
+           (Maps Platform Terms 3.2.2(a)(i)). Wording approved by the owner on 6 November ("the wording is approved").
+         - Tests: 428 unit (5 new).
+       - **Checked 5 November, Mapbox's Product Terms (20 October 2026):** directions (Beta) may stay on Mapbox and be
+           drawn on Google's map. Section 2.10.1 only says navigation results must not be exported, cached or stored.
+           That last point touches the planned route kept for the contacts' page (`readRouteOutline`). This predates
+           build 27 and is for the lawyer review.
+       - **Seen 6 November:**
+         - In a phone-sized browser against the emulators: the pin picker, the road-reports map (grouping, a tapped
+           group zooms in, a tapped report opens), the trip map (route, start, latest position, destination,
+           "Show the whole trip") and the contacts' page.
+         - In Chrome on the owner's Galaxy: the road-reports map, moving with one finger.
+         - Google's logo and terms line show on every map. No console errors.
+         - Screenshots are in `screenshots/build27/google-maps/` in the session folder.
+       - **Phones:** the owner chose, 6 November, to check inside the apps with build 27 itself (Play internal
+         testing and TestFlight), not with test copies. The Galaxy's build 26 is signed by Play, so a test copy
+         would have meant uninstalling it.
+       - **Still to do:** release settings with the map key (from `.env.googlemaps.local`), and without Mapbox's
+         map pictures (the token stays for directions). The website's build needs the key too, for the contacts'
+         page.
 11. [x] **"Your points this week"** on Profile (build 26 section, 28 October). Done 5 November:
        - the ranking's rules moved out of `scripts/weekly-numbers.mjs` into `functions/src/weeklyRules.ts`, unchanged,
          and both the Sunday script and the card use them, so they cannot count differently. The script now runs

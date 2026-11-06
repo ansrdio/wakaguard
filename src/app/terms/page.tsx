@@ -24,6 +24,8 @@ const SECTIONS: { id?: string; title: string; paragraphs: string[]; points?: str
     title: '2. What WakaGuard does',
     paragraphs: [
       'Before you travel, you start a trip and say when you expect to arrive. If you have not ended the trip by then, WakaGuard sends a text message to the trusted contacts you chose, with your name and your last known location. WakaGuard also shows road reports made by other travellers.',
+      // Required by Google Maps Platform Terms 3.2.2(a)(i), from build 27 (all maps are Google's)
+      "WakaGuard's maps are Google Maps features and content. Your use of them is subject to the Google Maps End User Additional Terms of Service (maps.google.com/help/terms_maps) and the Google Privacy Policy (policies.google.com/privacy).",
     ],
   },
   {

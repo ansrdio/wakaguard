@@ -19,11 +19,22 @@
 
 import * as functions from 'firebase-functions/v1';
 import * as admin from 'firebase-admin';
-import { Timestamp } from 'firebase-admin/firestore';
+import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { BACKUP_MAX_AGE_DAYS, backupIsRecent, cutoffMs, DELETE_BATCH, isInAccount, KEEP_DAYS, MAX_DELETED_PER_KIND } from './retentionPlan';
 
 type Query = FirebaseFirestore.Query;
 type Doc = FirebaseFirestore.QueryDocumentSnapshot;
+
+/** Days past a field's time in which it is still looked for, so a missed night is caught up */
+export const CLEAR_WINDOW_DAYS = 7;
+
+/** A field taken off records that are otherwise kept longer */
+interface Clearing {
+  name: string;
+  field: string;
+  query: (db: FirebaseFirestore.Firestore, nowMs: number) => Query;
+  only?: (doc: Doc) => boolean;
+}
 
 interface Kind {
   name: string;
@@ -82,6 +93,10 @@ export const KINDS: Kind[] = [
     query: (db, nowMs) => db.collection('textOptOutTries').where('startMs', '<', cutoffMs(nowMs, KEEP_DAYS.workingRecord)),
   },
   {
+    name: 'placeSearchTries',
+    query: (db, nowMs) => db.collection('placeSearchTries').where('startMs', '<', cutoffMs(nowMs, KEEP_DAYS.workingRecord)),
+  },
+  {
     name: 'placeNameTries',
     query: (db, nowMs) => db.collection('placeNameTries').where('startMs', '<', cutoffMs(nowMs, KEEP_DAYS.workingRecord)),
   },
@@ -92,6 +107,40 @@ export const KINDS: Kind[] = [
 ];
 
 /** Deletes what one kind's query finds, page by page, up to the most one run deletes */
+export const CLEARINGS: Clearing[] = [
+  {
+    // Every ended trip's destination spot, 30 days after its link expired (KEEP_DAYS.destinationSpot)
+    name: 'destinationSpots',
+    field: 'destinationPoint',
+    query: (db, nowMs) => db.collectionGroup('trips')
+      .where('status', 'in', ['completed', 'cancelled'])
+      .where('expiresAt', '<', before(nowMs, KEEP_DAYS.destinationSpot))
+      .where('expiresAt', '>=', before(nowMs, KEEP_DAYS.destinationSpot + CLEAR_WINDOW_DAYS)),
+    only: (doc) => isInAccount(doc.ref.path, 'trips') && doc.get('destinationPoint') != null,
+  },
+];
+
+async function clearField(db: FirebaseFirestore.Firestore, clearing: Clearing, nowMs: number): Promise<number> {
+  let cleared = 0;
+  let last: Doc | undefined;
+  while (cleared < MAX_DELETED_PER_KIND) {
+    let page = clearing.query(db, nowMs).limit(DELETE_BATCH);
+    if (last) page = page.startAfter(last);
+    const found = await page.get();
+    if (found.empty) break;
+    last = found.docs[found.docs.length - 1];
+    const due = clearing.only ? found.docs.filter(clearing.only) : found.docs;
+    if (due.length > 0) {
+      const batch = db.batch();
+      due.forEach((doc) => batch.update(doc.ref, { [clearing.field]: FieldValue.delete() }));
+      await batch.commit();
+      cleared += due.length;
+    }
+    if (found.size < DELETE_BATCH) break;
+  }
+  return cleared;
+}
+
 async function deleteKind(db: FirebaseFirestore.Firestore, kind: Kind, nowMs: number): Promise<number> {
   let deleted = 0;
   let last: Doc | undefined;
@@ -159,6 +208,14 @@ export async function runRecordDeletion(
     } catch (error) {
       counts[kind.name] = -1;
       console.error(`ALARM: the nightly deletion could not delete old ${kind.name}: ${String(error)}`);
+    }
+  }
+  for (const clearing of CLEARINGS) {
+    try {
+      counts[clearing.name] = await clearField(db, clearing, nowMs);
+    } catch (error) {
+      counts[clearing.name] = -1;
+      console.error(`ALARM: the nightly deletion could not clear old ${clearing.name}: ${String(error)}`);
     }
   }
   console.log(`Record deletion: ${Object.entries(counts).map(([name, n]) => `${name}=${n}`).join(', ')}`);

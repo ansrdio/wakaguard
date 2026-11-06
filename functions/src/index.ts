@@ -19,6 +19,7 @@ export { onFlagCreated } from './autoHide';
 export { onCommentCreate, onCommentDelete, onCommentUpdate } from './commentCount';
 export { weatherAhead } from './weather';
 export { placeName } from './placeName';
+export { placeSearch } from './placeSearch';
 export { deleteOldRecords } from './recordRetention';
 export { watchTexts } from './serverWatch';
 export { smsReport } from './smsReport';

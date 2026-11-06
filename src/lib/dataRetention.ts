@@ -24,6 +24,8 @@ export const KEPT_DAYS = {
   oldReport: 90,
   /** A removed comment, after it was posted */
   removedComment: 30,
+  /** A trip's destination spot (pin or place search), after the trip's link stopped working */
+  destinationSpot: 30,
 } as const;
 
 /** How long each daily backup of the database is kept (ops/setup-safety.mjs BACKUP_KEEP_DAYS) */

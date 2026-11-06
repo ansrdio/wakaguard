@@ -20,6 +20,30 @@ const exists = async (path: string) => (await db().doc(path).get()).exists;
 /** A backup made yesterday, as the daily schedule makes */
 const backedUp = async () => NOW - DAY_MS;
 
+test("a trip's destination spot goes 30 days after its link expired, and the trip stays (build 27)", async () => {
+  const uid = `${tag}_spots`;
+  const spot = { lat: 6.6135, lng: 3.3584 };
+  const made: Record<string, Record<string, unknown>> = {
+    [`users/${uid}/trips/pastSpot`]: { status: 'completed', expiresAt: at(31), destination: 'Ikeja City Mall', destinationPoint: spot },
+    [`users/${uid}/trips/cancelledPast`]: { status: 'cancelled', expiresAt: at(35), destinationPoint: spot },
+    [`users/${uid}/trips/insideSpot`]: { status: 'completed', expiresAt: at(29), destinationPoint: spot },
+    [`users/${uid}/trips/running`]: { status: 'active', expiresAt: at(31), destinationPoint: spot },
+    [`trips/${tag}_legacySpot`]: { status: 'completed', expiresAt: at(31), destinationPoint: spot },
+  };
+  await Promise.all(Object.entries(made).map(([path, data]) => db().doc(path).set(data)));
+
+  const counts = await runRecordDeletion(NOW, backedUp);
+  assert.ok(counts.destinationSpots >= 2);
+
+  const spotOf = async (path: string) => (await db().doc(path).get()).get('destinationPoint');
+  assert.equal(await spotOf(`users/${uid}/trips/pastSpot`), undefined);
+  assert.equal(await spotOf(`users/${uid}/trips/cancelledPast`), undefined);
+  assert.equal((await db().doc(`users/${uid}/trips/pastSpot`).get()).get('destination'), 'Ikeja City Mall');
+  assert.deepEqual(await spotOf(`users/${uid}/trips/insideSpot`), spot);
+  assert.deepEqual(await spotOf(`users/${uid}/trips/running`), spot);
+  assert.deepEqual(await spotOf(`trips/${tag}_legacySpot`), spot);
+});
+
 test('records past their time are deleted, and nothing else', async () => {
   const uid = `${tag}_u`;
   const made: Record<string, Record<string, unknown>> = {
@@ -57,6 +81,8 @@ test('records past their time are deleted, and nothing else', async () => {
     [`textOptOutTries/${tag}_old`]: { startMs: NOW - 3 * DAY_MS, count: 1 },
     [`textOptOutTries/${tag}_new`]: { startMs: NOW - DAY_MS, count: 1 },
     [`placeNameTries/${tag}_old`]: { startMs: NOW - 3 * DAY_MS, count: 1 },
+    [`placeSearchTries/${tag}_old`]: { startMs: NOW - 3 * DAY_MS, suggestCount: 1 },
+    [`placeSearchTries/${tag}_new`]: { startMs: NOW - DAY_MS, suggestCount: 1 },
     [`placeNameTries/${tag}_new`]: { startMs: NOW - DAY_MS, count: 1 },
     [`weatherForecasts/${tag}_old`]: { fetchedMs: NOW - 3 * DAY_MS, expiresMs: NOW - 3 * DAY_MS, timeseries: [] },
     [`weatherForecasts/${tag}_new`]: { fetchedMs: NOW - DAY_MS, expiresMs: NOW, timeseries: [] },
@@ -70,7 +96,7 @@ test('records past their time are deleted, and nothing else', async () => {
     `users/${uid}/trips/old`, `users/${uid}/trips/cancelledOld`, `sharedTrips/${tag}_old`,
     `users/${uid}/alerts/old`, `users/${uid}/checkIns/old`, `users/${uid}/safetyTimers/old`,
     `safetyMessageLogs/${tag}_old`, `reports/${tag}_expired`, `reports/${tag}_resolved`,
-    `comments/${tag}_removedOld`, `textOptOutTries/${tag}_old`, `placeNameTries/${tag}_old`,
+    `comments/${tag}_removedOld`, `textOptOutTries/${tag}_old`, `placeNameTries/${tag}_old`, `placeSearchTries/${tag}_old`,
     `weatherForecasts/${tag}_old`,
   ];
   const kept = Object.keys(made).filter((path) => !gone.includes(path));

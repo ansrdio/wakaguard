@@ -10,7 +10,7 @@ interface Place {
   lng: number;
 }
 
-interface LocationPickerProps {
+export interface LocationPickerProps {
   location: Place & { address?: string };
   onLocationSelect: (lat: number, lng: number) => void;
   /**
