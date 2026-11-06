@@ -875,6 +875,25 @@ was first agreed.
          number (a copied example got a real person a test text on 15 October). Words instead.
        - Not chosen for build 27 (6 November): "Navigate with Google Maps", battery level on the contacts' page,
          and the launch tasks (Africa's Talking switch, store updates and Data safety answers, go/no-go checklist).
+17. [x] **Fixes from the Moto g 5G test** (the owner, 6 November: "Yes fix 1 and 2", then "go" for the state list).
+       Done 6 November and in the fourth set of release files:
+       - **The start form kept across tabs.** Going to Nearby or Profile and back emptied "Where are you going?", the
+         pin and its name, as the Trip screen was rebuilt each time. It now stays in place, hidden while another tab
+         shows (`MobileHome.tsx`), so everything typed or chosen is still there. Checked in the browser at the Moto's
+         size against the emulators: the destination and "1 hr" survived Nearby and Profile.
+       - **"Looking for places…"** under the box while a place search waits (`PlaceSuggestions.tsx`). The first
+         search after a quiet spell took 6 to 10 seconds on the Moto with nothing on screen, while the server
+         function woke up. Keeping one copy of the function always awake (a few dollars a month) would remove the
+         wait; not chosen.
+       - **The state was "Adamawa" after the owner signed in on the Moto**, which the owner did not choose. Looked
+         into the same day: the phone's own log shows no location request until the Trip screen opened, so "Use
+         my location" did not set it, and nothing in the app picks a state by itself (the phone is in Arizona, and
+         Google's answer there gives no Nigerian state). It was set by a touch in the "Choose your state" list,
+         where Adamawa is the top right tile. Which touch could not be found from the log.
+       - **The state lists start with the most used states**: Lagos, Abuja (FCT), Rivers, Oyo and Kano under "Most
+         used", then "All states" A to Z, in the first question, the Nearby state sheet and the computer's state menu
+         (`MOST_USED_STATES` in `nigerianStates.ts`). Most people now find their state without scrolling, the likeliest
+         moment for a stray touch. FCT shows as "Abuja (FCT)", so searching "Abuja" finds it.
 - Optional, if there is time: an 8-character minimum password.
 - Testing: on the owner's Galaxy and iPhone before upload, as with build 26.
 - **Release files made Fri 6 Nov** on the owner's word ("build the website and both apps for build 27"), from
@@ -904,6 +923,10 @@ was first agreed.
     settings. Installed on the owner's iPhone by cable; the Galaxy was unplugged, so its copy waits. Also installed,
     fresh, on the owner's Moto g 5G (2024), Android 15 (owner: "I plugged in a Moto phone"): a second Android that is
     not a Samsung.
+  - **Made a fourth time the same day** with item 17 (the start form kept across tabs, "Looking for places…", the
+    most used states first), on the owner's word ("go"); the third set is kept as `…-27-superseded3…`. Checked
+    inside each: the three changes, build 27, the live project, no test settings. Installed by cable on the Galaxy
+    and the Moto (sign-ins kept) and the iPhone, at 16:38 (Arizona).
 
 
 The owner on 2 November: "we need to add a referral program too where people can earn from getting people on

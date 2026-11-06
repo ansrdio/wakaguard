@@ -5,7 +5,7 @@ import { useState, useMemo, useCallback } from 'react';
 import { Plus, Search, ThumbsUp, ThumbsDown, Clock, MapPin, ChevronRight, AlertTriangle, X, List, Map as MapIcon, Info } from 'lucide-react';
 import { Report } from '@/lib/types';
 import { ReportFilters } from '@/lib/filters';
-import { NigerianState, PILOT_STATES } from '@/lib/nigerianStates';
+import { MOST_USED_STATES, NigerianState, OTHER_STATES, stateLabel } from '@/lib/nigerianStates';
 import { MobileTopBar } from './MobileTopBar';
 import { MobileBottomNav, MobileTab } from './MobileBottomNav';
 import { ReportsBottomSheet, SheetState } from './ReportsBottomSheet';
@@ -59,6 +59,12 @@ export function MobileHome({
   // A reminder's button pressed just before the app reloaded itself is carried out now
   const [pressAtStart] = useState<TripNotificationAction | null>(() => pendingPress());
   const [activeTab, setActiveTab] = useState<MobileTab>(pressAtStart ? 'safety' : homeTab);
+  // Once opened, the Trip screen stays in place, hidden while another tab
+  // shows, so a half-filled start form keeps its destination, pin, name and
+  // contacts (the owner's Moto test, 6 November 2026: going to Nearby and
+  // back emptied it)
+  const [tripOpened, setTripOpened] = useState(activeTab === 'safety');
+  if (activeTab === 'safety' && !tripOpened) setTripOpened(true);
   const [filters, setFilters] = useState<ReportFilters>({});
   const [sortBy, setSortBy] = useState<'recent' | 'upvoted' | 'nearest'>('recent');
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
@@ -379,18 +385,9 @@ export function MobileHome({
   }
 
   // Render tab content
+  // The tabs other than Trip, which is kept in place below
   const renderContent = () => {
-    if (activeTab === 'safety') {
-      return (
-        <SafetyScreen
-          onReportRoad={() => setShowCreateModal(true)}
-          notificationAction={tripAction}
-          onNotificationActionDone={() => setTripAction(null)}
-          usualPick={usualPick}
-          onUsualPickDone={() => setUsualPick(null)}
-        />
-      );
-    }
+    if (activeTab === 'safety') return null;
 
     if (activeTab === 'profile') {
       return <ProfileScreen />;
@@ -534,6 +531,17 @@ export function MobileHome({
 
       {/* Main Content Area */}
       <div className="flex-1 relative">
+        {tripOpened && (
+          <div className={activeTab === 'safety' ? 'contents' : 'hidden'}>
+            <SafetyScreen
+              onReportRoad={() => setShowCreateModal(true)}
+              notificationAction={tripAction}
+              onNotificationActionDone={() => setTripAction(null)}
+              usualPick={usualPick}
+              onUsualPickDone={() => setUsualPick(null)}
+            />
+          </div>
+        )}
         {renderContent()}
       </div>
 
@@ -583,24 +591,29 @@ export function MobileHome({
               </button>
             </div>
             <div className="flex-1 overflow-y-auto p-4 pb-20 touch-pan-y" style={{ WebkitOverflowScrolling: 'touch' }}>
-              <div className="grid grid-cols-2 gap-2 pb-4">
-                {PILOT_STATES.map((state) => (
-                  <button
-                    key={state}
-                    onClick={() => {
-                      onStateChange(state);
-                      setShowStateSelector(false);
-                    }}
-                    className={`p-3 rounded-xl text-left text-sm font-medium transition-colors ${
-                      selectedState === state
-                        ? 'bg-brand-600 text-white'
-                        : 'bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white hover:bg-slate-200 dark:hover:bg-slate-600'
-                    }`}
-                  >
-                    {state}
-                  </button>
-                ))}
-              </div>
+              {([['Most used', MOST_USED_STATES], ['All states', OTHER_STATES]] as const).map(([heading, states]) => (
+                <section key={heading} className="pb-4">
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-2">{heading}</h3>
+                  <div className="grid grid-cols-2 gap-2">
+                    {states.map((state) => (
+                      <button
+                        key={state}
+                        onClick={() => {
+                          onStateChange(state);
+                          setShowStateSelector(false);
+                        }}
+                        className={`p-3 rounded-xl text-left text-sm font-medium transition-colors ${
+                          selectedState === state
+                            ? 'bg-brand-600 text-white'
+                            : 'bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white hover:bg-slate-200 dark:hover:bg-slate-600'
+                        }`}
+                      >
+                        {stateLabel(state)}
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              ))}
             </div>
           </div>
         </>

@@ -21,3 +21,14 @@ test('normalizeStateName: places outside the list', () => {
   assert.equal(normalizeStateName('State'), null);
   assert.equal(normalizeStateName(''), null);
 });
+
+test('state lists: the most used first, then every other state once, A to Z', async () => {
+  const { MOST_USED_STATES, OTHER_STATES, PILOT_STATES, stateLabel } = await import('../../src/lib/nigerianStates');
+  assert.deepEqual(MOST_USED_STATES, ['Lagos', 'FCT', 'Rivers', 'Oyo', 'Kano']);
+  const all = [...MOST_USED_STATES, ...OTHER_STATES];
+  assert.equal(all.length, PILOT_STATES.length);
+  assert.equal(new Set(all).size, PILOT_STATES.length);
+  assert.deepEqual([...OTHER_STATES].sort(), OTHER_STATES);
+  assert.equal(stateLabel('FCT'), 'Abuja (FCT)');
+  assert.equal(stateLabel('Lagos'), 'Lagos');
+});

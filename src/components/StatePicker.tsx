@@ -1,6 +1,6 @@
 'use client';
 
-import { PILOT_STATES } from '@/lib/nigerianStates';
+import { MOST_USED_STATES, NigerianState, OTHER_STATES, PILOT_STATES, stateLabel } from '@/lib/nigerianStates';
 import { MapPin, Search, X } from 'lucide-react';
 import { useState } from 'react';
 
@@ -12,8 +12,25 @@ interface StatePickerProps {
 export function StatePicker({ onStateSelect, onCancel }: StatePickerProps) {
   const [searchQuery, setSearchQuery] = useState('');
 
+  const query = searchQuery.trim().toLowerCase();
   const filteredStates = PILOT_STATES.filter(state =>
-    state.toLowerCase().includes(searchQuery.toLowerCase())
+    stateLabel(state).toLowerCase().includes(query)
+  );
+
+  const tiles = (states: NigerianState[]) => (
+    <div className="grid grid-cols-2 gap-2">
+      {states.map((state) => (
+        <button
+          key={state}
+          onClick={() => onStateSelect(state)}
+          className="px-4 py-3 text-left border border-gray-200 rounded-xl hover:bg-brand-50 hover:border-brand-300 transition-colors group"
+        >
+          <span className="font-medium text-gray-900 group-hover:text-brand-700">
+            {stateLabel(state)}
+          </span>
+        </button>
+      ))}
+    </div>
   );
 
   return (
@@ -51,20 +68,15 @@ export function StatePicker({ onStateSelect, onCancel }: StatePickerProps) {
 
         {/* State List */}
         <div className="flex-1 overflow-y-auto p-4 touch-pan-y" style={{ WebkitOverflowScrolling: 'touch' }}>
-          {filteredStates.length > 0 ? (
-            <div className="grid grid-cols-2 gap-2">
-              {filteredStates.map((state) => (
-                <button
-                  key={state}
-                  onClick={() => onStateSelect(state)}
-                  className="px-4 py-3 text-left border border-gray-200 rounded-xl hover:bg-brand-50 hover:border-brand-300 transition-colors group"
-                >
-                  <span className="font-medium text-gray-900 group-hover:text-brand-700">
-                    {state}
-                  </span>
-                </button>
-              ))}
-            </div>
+          {!query ? (
+            <>
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">Most used</h3>
+              {tiles(MOST_USED_STATES)}
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500 mt-5 mb-2">All states</h3>
+              {tiles(OTHER_STATES)}
+            </>
+          ) : filteredStates.length > 0 ? (
+            tiles(filteredStates)
           ) : (
             <div className="text-center py-8">
               <p className="text-gray-500 mb-2">

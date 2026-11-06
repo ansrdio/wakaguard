@@ -88,6 +88,22 @@ export const PILOT_STATES: NigerianState[] = [
 ];
 
 /**
+ * First in every list of states, as most travellers are in them, so most
+ * people find theirs without scrolling (the owner, 6 November 2026: a state
+ * was set by a stray touch in the list on the Moto, most likely while
+ * scrolling down to Lagos)
+ */
+export const MOST_USED_STATES: NigerianState[] = ['Lagos', 'FCT', 'Rivers', 'Oyo', 'Kano'];
+
+/** Every other state, A to Z, under the most used ones */
+export const OTHER_STATES: NigerianState[] = PILOT_STATES.filter((s) => !MOST_USED_STATES.includes(s));
+
+/** A state as the lists show it: FCT as "Abuja (FCT)", so that searching "Abuja" finds it */
+export function stateLabel(state: NigerianState): string {
+  return state === 'FCT' ? 'Abuja (FCT)' : state;
+}
+
+/**
  * State name variations and normalization map
  * Maps various forms of state names to our standard format
  */

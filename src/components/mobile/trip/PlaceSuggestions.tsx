@@ -24,6 +24,10 @@ export function PlaceSuggestions({ text, near, onChoose }: {
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
   const [looking, setLooking] = useState<string | null>(null);
   const [failedFor, setFailedFor] = useState<string | null>(null);
+  // The words being asked about, while no answer has come back: the first
+  // search after a quiet spell can take several seconds while our server
+  // wakes up (the owner's Moto test, 6 November 2026), so it says so
+  const [pendingFor, setPendingFor] = useState<string | null>(null);
   // One Google session from the first letter to the place chosen
   const session = useRef<string>(newSearchSession());
   // Only the latest answer counts
@@ -32,10 +36,16 @@ export function PlaceSuggestions({ text, near, onChoose }: {
   const wanted = text !== null && searchable(text) ? text.trim() : '';
   useEffect(() => {
     askedFor.current = wanted;
-    if (!wanted) return;
+    if (!wanted) {
+      setPendingFor(null);
+      return;
+    }
     const timer = window.setTimeout(() => {
+      setPendingFor(wanted);
       void suggestPlaces(wanted, session.current, near).then((found) => {
-        if (askedFor.current === wanted) setSuggestions(found);
+        if (askedFor.current !== wanted) return;
+        setSuggestions(found);
+        setPendingFor(null);
       });
     }, SEARCH_PAUSE_MS);
     return () => window.clearTimeout(timer);
@@ -57,7 +67,17 @@ export function PlaceSuggestions({ text, near, onChoose }: {
     onChoose(place);
   };
 
-  if (!wanted || suggestions.length === 0) return null;
+  if (!wanted) return null;
+  // Still waiting, with nothing yet from earlier letters to show
+  if (suggestions.length === 0) {
+    if (pendingFor !== wanted) return null;
+    return (
+      <p role="status" className="mt-2 flex items-center gap-2 px-1 text-sm text-slate-600 dark:text-slate-300">
+        <Loader2 className="w-4 h-4 flex-shrink-0 text-brand-700 dark:text-brand-300 animate-spin" aria-hidden="true" />
+        Looking for places…
+      </p>
+    );
+  }
   return (
     <div className="mt-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm overflow-hidden">
       <ul aria-label="Places that match">
