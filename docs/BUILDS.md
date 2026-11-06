@@ -837,6 +837,21 @@ was first agreed.
 14. [ ] **Terms and Privacy dates** changed on the day the website goes out.
 - Optional, if there is time: an 8-character minimum password.
 - Testing: on the owner's Galaxy and iPhone before upload, as with build 26.
+- **Release files made Fri 6 Nov** on the owner's word ("build the website and both apps for build 27"), from
+  `fc098bf` plus the version numbers (Android `versionCode` 27, iPhone `CURRENT_PROJECT_VERSION` 27, both 1.2.0),
+  with the live settings: the web config as for build 26, `NEXT_PUBLIC_APP_URL`, the Mapbox token (directions
+  only) and the Google map key. All in the session folder's `builds/`:
+  - `WakaGuard-1.2.0-27.aab` for Play, and `WakaGuard-1.2.0-27-cable-install.apk`, both version code 27 and signed
+    with the upload key (SHA-256 67:D3:78:CE…), the same key as the build 26 on the owner's Galaxy, so it installs
+    over it by cable;
+  - `WakaGuard-1.2.0-27.xcarchive`: `com.ansrdlabs.wakaguard` 1.2.0 (27), App Attest production;
+  - the website in `out/`: the live project, no test settings, Google's maps with the key, the place search, invite
+    friends, and the approved Terms and Privacy wording. The pages still say "Last updated: October 28, 2026"
+    (item 14).
+  - Nothing uploaded or released yet. `.env.local` stays until the website is released, because Hosting's predeploy
+    (`build-sw.mjs`) needs it.
+  - The cable copy was installed over build 26 on the owner's Galaxy the same day, on the owner's word ("install it
+    on the Galaxy and commit and push, I will like to test"); the sign-in was kept. The owner is testing it.
 
 
 The owner on 2 November: "we need to add a referral program too where people can earn from getting people on
