@@ -697,16 +697,24 @@ was first agreed.
        - the trip screen then shows "That's how it works": every trip runs like this one, WakaGuard asks if you're
          okay when time is up and texts your contacts only if you don't answer, with "Got it".
        - Gone through in the emulator on a phone-sized screen, from sign-in to the running test trip.
-9. [ ] **App Check** on Android, iPhone and the website, watched before anything is enforced (build 26 section,
+9. [x] **App Check** on Android, iPhone and the website, watched before anything is enforced (build 26 section,
        28 October). Needs the owner for a few clicks in the Firebase, Play and Apple consoles.
        - Code done 5 November: the native App Check plugin (`@capacitor-firebase/app-check` 8.5.2, the same family as
          the sign-in plugin) gives Play Integrity tokens on Android and App Attest tokens on iPhone to the web Firebase
          SDK (`lib/nativeAppCheck.ts`). A token slower than 3 seconds is skipped, so a trip or SOS is never held up.
          iPhone: the provider is named before Firebase starts (`AppDelegate.swift`), and the App Attest entitlement is
          set to production. Both apps compile.
-       - Still to do: the owner's console steps; then watch the App Check numbers in Firebase for a week. Enforcing
-         waits until phones on build 26 and older are gone. The website keeps reCAPTCHA v3, which needs its own key
-         (optional before launch).
+       - Console steps done Thu 5 November, evening in Arizona, in the owner's Chrome (the owner: "click through the
+         App Check steps in my Chrome", and yes to agreeing to the Google APIs and Play Integrity API terms):
+         - Play Console, Protected with Play, Play Integrity API: the WakaGuard Cloud project linked (daily limit
+           10,000 checks). The app signing key's SHA-256 was already on the Firebase Android app.
+         - Firebase App Check: WakaGuard Android registered with Play Integrity (token life 1 hour). WakaGuard iPhone
+           was already registered with App Attest.
+         - Nothing enforced: Firestore, Storage, Authentication and Google Identity for iOS all show "Unenforced",
+           and no function enforces it in code.
+       - Still to do: once build 27 is on phones, watch the App Check numbers in Firebase for a week. Enforcing waits
+         until phones on build 26 and older are gone. The website is not registered; it keeps reCAPTCHA v3, which
+         needs its own key (optional before launch).
 10. [ ] **Search for where you are going** (Google place search), with a Privacy line (build 26 section,
        28 October). Needs the owner to make a key in Google Cloud.
 11. [x] **"Your points this week"** on Profile (build 26 section, 28 October). Done 5 November:
