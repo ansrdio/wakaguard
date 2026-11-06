@@ -7,8 +7,8 @@
  * 2026, and the owner chose the pin). It is kept with the trip, drawn on the
  * trip map and on the page contacts open, and gives build 25's directions an
  * exact point. Setting it fills an empty box with the spot's street and
- * area from OpenStreetMap, through our server (lib/placeName.ts), until
- * NIPOST's new digital postcodes can name it.
+ * area from Google's address look-up, through our server (lib/placeName.ts;
+ * OpenStreetMap until build 27), until NIPOST's new digital postcodes can name it.
  *
  * @module destinationPoint
  */
@@ -34,8 +34,8 @@ export function readPoint(value: unknown): Point | null {
   return { lat: round(lat), lng: round(lng) };
 }
 
-/** Shown under the box while it holds a name from the pin, as OpenStreetMap's licence asks */
-export const PLACE_NAME_CREDIT = '© OpenStreetMap contributors';
+/** Shown under the box while it holds a name from the pin, as Google's attribution rules ask (build 27) */
+export const PLACE_NAME_CREDIT = 'Google Maps';
 
 /** The name in our server's answer (functions/src/placeName.ts), or null */
 export function readPlaceName(answer: unknown): string | null {

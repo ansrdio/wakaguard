@@ -1,6 +1,6 @@
 'use client';
 
-import { isSerious, reportTypeWord } from '@/lib/reportWords';
+import { isSerious, reportPlace, reportTypeWord } from '@/lib/reportWords';
 import { Report } from '@/lib/types';
 import { Clock, MapPin, ThumbsUp, ThumbsDown, MessageCircle, Navigation2 } from 'lucide-react';
 import { calculateDistance, formatDistance } from '@/lib/geo';
@@ -66,8 +66,7 @@ export function ReportList({ reports, selectedReportId, onReportClick, userLocat
               <p className="text-xs text-slate-400 flex items-center gap-1 truncate flex-1 min-w-0">
                 <MapPin className="w-3 h-3 flex-shrink-0" />
                 <span className="truncate">
-                  {report.location.address || 
-                    `${report.location.lat.toFixed(4)}, ${report.location.lng.toFixed(4)}`}
+                  {reportPlace(report)}
                 </span>
               </p>
               {userLocation && (

@@ -1,6 +1,6 @@
 'use client';
 
-import { isSerious, reportTypeWord } from '@/lib/reportWords';
+import { isSerious, reportPlace, reportTypeWord } from '@/lib/reportWords';
 import { useState } from 'react';
 import { useKeyboardSafeOverlay } from '@/hooks/useKeyboardSafeOverlay';
 import { ReportPicture } from '@/components/pictures/Pictures';
@@ -163,12 +163,10 @@ export function ReportDetailsSheet({ report, onClose, onShowToast }: ReportDetai
           </div>
 
           {/* Location */}
-          {report.location.address && (
-            <div>
-              <h3 className="text-sm font-medium text-slate-700 mb-1">Location</h3>
-              <p className="text-sm text-slate-900">{report.location.address}</p>
-            </div>
-          )}
+          <div>
+            <h3 className="text-sm font-medium text-slate-700 mb-1">Location</h3>
+            <p className="text-sm text-slate-900">{reportPlace(report)}</p>
+          </div>
 
           {/* Stats */}
           <div className="grid grid-cols-2 gap-3">

@@ -800,6 +800,29 @@ was first agreed.
        - **Still to do:** release settings with the map key (from `.env.googlemaps.local`), and without Mapbox's
          map pictures (the token stays for directions). The website's build needs the key too, for the contacts'
          page.
+       - **Everything Google, 6 November** (the owner: "switch all of them to Google, everything should be google"):
+         - In the owner's Chrome: the Geocoding API was turned on, added to the server key "WakaGuard place search
+           (server)" (now Places API (New) and Geocoding API), and capped at 1,000 look-ups a day ("v3 requests per
+           day").
+         - `placeName` now asks Google's reverse geocoding instead of OpenStreetMap's Nominatim, with the secret
+           `PLACES_API_KEY`. It returns the name, the state and the country, keeps nothing in memory (Google's
+           Service Specific Terms 6.3.2 allow keeping an answer only for the person who asked), and allows 60
+           look-ups an hour per person. The Nominatim turn-taking is gone.
+         - Pin names say "Name from Google Maps". "Use my location" for the state asks `placeName`; the phone no
+           longer calls Nominatim.
+         - **Road reports, by the owner's choice** ("Reporter's own words"): while placing the pin, the reporter
+           sees Google's address for it, only to check the spot, and never saved. A new optional "Where is it?"
+           box takes their own words, which are saved as `location.address` and shown with the report. A report
+           left blank shows its state (`reportPlace` in `lib/reportWords.ts`). Older reports keep their
+           OpenStreetMap address until they are deleted.
+         - **Directions stay on Mapbox.** Google's terms forbid building real-time navigation on its Directions
+           and Routes services and turning its directions into speech (Maps Platform Terms 3.2.3(c)(vi) and
+           (d)(iv)); only Google's separate Navigation SDK allows it, which needs a contract and a native rebuild.
+         - The old OpenStreetMap maps stay in the code only for keyless local tests. To remove after launch.
+         - Privacy page: the "Use my location" line, the road report line and "Place names" now say Google.
+           Wording approved by the owner on 6 November ("approved, go").
+         - Also found by the tests: `src/lib/appVersion.ts` still said build 25, so the first build 27 files told
+           the server they were build 25, which keeps the "Heading out?" reminder away. Now 27.
 11. [x] **"Your points this week"** on Profile (build 26 section, 28 October). Done 5 November:
        - the ranking's rules moved out of `scripts/weekly-numbers.mjs` into `functions/src/weeklyRules.ts`, unchanged,
          and both the Sunday script and the card use them, so they cannot count differently. The script now runs
@@ -852,6 +875,10 @@ was first agreed.
     (`build-sw.mjs`) needs it.
   - The cable copy was installed over build 26 on the owner's Galaxy the same day, on the owner's word ("install it
     on the Galaxy and commit and push, I will like to test"); the sign-in was kept. The owner is testing it.
+  - **Made again the same day** after the switch to Google's address look-up and the build number fix (item 15,
+    "Everything Google"), from this commit's code. The first set is kept as `…-27-superseded…`. Checked inside each:
+    "(build 27)", the "Where is it?" box, no Nominatim, the live project, no test settings. Android version code 27
+    with the upload key; iPhone 1.2.0 (27). The new cable copy was installed on the Galaxy at 11:22 (Arizona).
 
 
 The owner on 2 November: "we need to add a referral program too where people can earn from getting people on
@@ -2550,6 +2577,7 @@ Changes that went live without an app build.
 
 | Date | What |
 |---|---|
+| Fri 6 Nov (late morning in Arizona) | **`placeName` on Google**, on the owner's word ("approved, go"), by name: names a pin and finds the state with Google's reverse geocoding (Geocoding API, turned on and capped at 1,000 a day that morning) instead of OpenStreetMap's Nominatim. Phones on build 26 keep working: they read only the name, which now comes from Google, still with their old "© OpenStreetMap contributors" line under it until they update. The CLI again could not clean up the build images; the 1-day clean-up rule covers them |
 | Fri 6 Nov (morning in Arizona) | **Build 27's functions**, on the owner's word ("deploy the build 27 functions"), from `e887365`, each by name. New: `placeSearch` (with the `PLACES_API_KEY` secret; Google granted the server's account access to it), `referrals`, `myWeek`, `onCheckpointStop`, `planUsualTimes`, `usualTimeReminders`. Updated: `tripAction`, `onTripUpdated`, `onTrustedContactWrite`, `deleteMyAccount`, `deleteOldRecords` (now also clears destination spots 30 days after a trip's link expired). Not redeployed: the text-sending functions, whose only change was the same account check moved into `confirmedAccount.ts`. All finished; `usualTimeReminders` ran at 17:00 UTC with status ok and no errors were logged. The CLI could not clean up the build images ("a small monthly bill if not corrected"). Phones on build 26 see no change: the reminder goes only to build 27 and later, and the search, points card and invite screen are in build 27 |
 | Thu 5 Nov (evening in Arizona) | **Build 27's trip rules**, on the owner's word ("deploy the trip rules, then commit and push"): the Firestore rules only, no functions, "released rules firestore.rules". Deployed before build 27's commits (`79196a6` to `b49c330`) were pushed, since this repository is public. The app may now write only the trip details it needs, with the server's clock; trip pages accept checkpoint stops from the server only; the "Reminder at my usual times" switch is allowed on a person's own profile. Checked beforehand against what builds 22 to 27 write, so no phone needs updating. Not deployed: build 27's functions (item 13) |
 | Wed 4 Nov (afternoon in Arizona) | **Security fixes**, on the owner's word ("deploy the security fixes, then commit and push"), deployed before `95c1fa5` was pushed, since this repository is public: the Firestore rules, then `checkOverdueTrips`, `checkQuietTrips`, `onSOSAlert`, `tripLocation`, `tripAction`, `stopTexts`, `onReportCreate`, `cleanupExpiredTrips` and `deleteMyAccount`, each by name, all "Successful update". What changed is in build 27's section ("Security fixes, server and rules"). The next runs of the overdue and quiet-trip checks were read in the logs and were fine. Not deployed: `onTripUpdated` and the other referral functions, which wait for build 27 |

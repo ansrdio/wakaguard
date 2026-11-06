@@ -33,3 +33,17 @@ export function reportTypeWord(type: string): string {
 export function isSerious(severity: string): boolean {
   return severity === 'high' || severity === 'critical';
 }
+
+/** The longest "Where is it?" a report carries, in the reporter's own words (build 27) */
+export const MAX_REPORT_PLACE_LENGTH = 80;
+
+/**
+ * Where a report is, for lists and details: the reporter's own words, or the
+ * report's state when they left it blank. Reports from before build 27 carry
+ * an address OpenStreetMap gave, which still shows until they are deleted.
+ */
+export function reportPlace(report: { location?: { address?: string } | null; state?: string | null }): string {
+  const words = report.location?.address?.trim();
+  if (words) return words;
+  return report.state ? `${report.state} State`.replace(/^FCT State$/, 'Abuja (FCT)') : 'Place not given';
+}

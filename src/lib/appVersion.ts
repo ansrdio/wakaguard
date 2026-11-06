@@ -9,7 +9,7 @@
  */
 
 export const APP_VERSION = '1.2.0';
-export const APP_BUILD = 25;
+export const APP_BUILD = 27;
 
 /**
  * "Version 1.2.0 (build 21)" in the phone apps, where a tester may be asked

@@ -1,5 +1,6 @@
 'use client';
 
+import { reportPlace } from '@/lib/reportWords';
 import { useState } from 'react';
 import { User, LogOut, Settings, HelpCircle, Shield, FileText, ChevronRight, MapPin, ThumbsUp, MessageCircle, Loader2, ExternalLink, Bell, Moon, X, Sun, LogIn, Trash2, BatteryCharging, Gift } from 'lucide-react';
 import { useAuthedUser } from '@/hooks/useAuthedUser';
@@ -408,7 +409,7 @@ function ReportCard({ report, getStatusColor, onShowNote }: {
       <div className="flex items-center gap-4 text-xs text-slate-500">
         <span className="flex items-center gap-1">
           <MapPin className="w-3 h-3" />
-          {report.location.address?.substring(0, 25) || 'Unknown location'}...
+          {reportPlace(report).substring(0, 25)}
         </span>
         <span className="flex items-center gap-1">
           <ThumbsUp className="w-3 h-3" />

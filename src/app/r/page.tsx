@@ -1,6 +1,6 @@
 'use client';
 
-import { isSerious, reportTypeWord } from '@/lib/reportWords';
+import { isSerious, reportPlace, reportTypeWord } from '@/lib/reportWords';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useState, Suspense } from 'react';
 import { useReport } from '@/hooks/useReport';
@@ -317,13 +317,7 @@ function ReportDetailContent() {
               Show in Maps
             </button>
           </div>
-          {report.location.address ? (
-            <p className="text-gray-700">{report.location.address}</p>
-          ) : (
-            <p className="text-gray-600 font-mono text-sm">
-              {report.location.lat.toFixed(6)}, {report.location.lng.toFixed(6)}
-            </p>
-          )}
+          <p className="text-gray-700">{reportPlace(report)}</p>
         </div>
 
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">

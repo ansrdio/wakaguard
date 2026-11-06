@@ -1,6 +1,6 @@
 'use client';
 
-import { reportTypeWord } from '@/lib/reportWords';
+import { reportPlace, reportTypeWord } from '@/lib/reportWords';
 import { MapPin, ThumbsUp, MessageCircle, Clock, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { Report, ReportStatus, ReportType } from '@/lib/types';
 import Image from 'next/image';
@@ -92,7 +92,7 @@ export function ReportThumbnailGrid({ reports, onSelectReport, selectedReportId 
             <div className="flex items-start gap-1 mb-1.5">
               <MapPin className="w-3 h-3 text-slate-400 mt-0.5 flex-shrink-0" />
               <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-2 leading-tight">
-                {report.location.address || 'Unknown location'}
+                {reportPlace(report)}
               </p>
             </div>
 

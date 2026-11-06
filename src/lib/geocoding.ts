@@ -1,49 +1,7 @@
 'use client';
 
-// Reverse geocoding using Nominatim (OpenStreetMap)
-export async function reverseGeocode(
-  lat: number,
-  lng: number
-): Promise<string | null> {
-  try {
-    const response = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
-      {
-        headers: {
-          'User-Agent': 'WakaGuard/1.0',
-        },
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error('Geocoding failed');
-    }
-
-    const data = await response.json();
-
-    if (data.error) {
-      return null;
-    }
-
-    // Build a readable address from components
-    const address = data.address;
-    const parts = [];
-
-    if (address.road) parts.push(address.road);
-    if (address.suburb || address.neighbourhood) {
-      parts.push(address.suburb || address.neighbourhood);
-    }
-    if (address.city || address.town || address.village) {
-      parts.push(address.city || address.town || address.village);
-    }
-    if (address.state) parts.push(address.state);
-
-    return parts.length > 0 ? parts.join(', ') : data.display_name;
-  } catch (error) {
-    console.error('Reverse geocoding error:', error);
-    return null;
-  }
-}
+// Addresses come from Google's address look-up through our server (lib/placeName.ts) since build 27;
+// the OpenStreetMap look-up that was here is gone.
 
 // Calculate distance between two points (Haversine formula)
 export function calculateDistance(

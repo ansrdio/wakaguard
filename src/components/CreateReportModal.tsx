@@ -1,7 +1,7 @@
 'use client';
 
 import { isSerious, reportTypeWord } from '@/lib/reportWords';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useKeyboardSafeOverlay } from '@/hooks/useKeyboardSafeOverlay';
 import { X, MapPin, Navigation, Loader2, Upload, Image as ImageIcon } from 'lucide-react';
 import { collection, addDoc, serverTimestamp, Timestamp, doc, updateDoc } from 'firebase/firestore';
@@ -17,7 +17,9 @@ import { computeExpiry } from '@/lib/rules';
 import { compressImage, validateImageFile } from '@/lib/imageCompression';
 import { ReportPicture } from '@/components/pictures/Pictures';
 import { checkForDuplicates, checkRateLimit } from '@/lib/actions';
-import { reverseGeocode } from '@/lib/geocoding';
+import { askPlaceName } from '@/lib/placeName';
+import { PLACE_NAME_CREDIT } from '@/lib/destinationPoint';
+import { MAX_REPORT_PLACE_LENGTH } from '@/lib/reportWords';
 import { findPosition } from '@/lib/locationCheck';
 import { isPostedFarAway, whereThePhoneIs } from '@/lib/reportDistance';
 import { Toast, ToastType } from '@/components/ui/Toast';
@@ -60,6 +62,11 @@ export function CreateReportModal({ isOpen, onClose, defaultState, initialLocati
   const [uploadProgress, setUploadProgress] = useState<string>('');
   const [showLocationConfirm, setShowLocationConfirm] = useState(false);
   const [geocoding, setGeocoding] = useState(false);
+  // Google's address for the pin, shown only to the person reporting so they can check the spot. Google's
+  // terms do not allow showing it to everyone (Service Specific Terms 6.3.2), so it is never saved; the report
+  // carries the reporter's own words instead (build 27; the owner chose this on 6 November 2026).
+  const [googleHint, setGoogleHint] = useState<string | null>(null);
+  const [placeWords, setPlaceWords] = useState('');
   const [toast, setToast] = useState<{message: string, type: ToastType} | null>(null);
 
   // Get default location from user location or selected Nigerian state
@@ -143,16 +150,24 @@ export function CreateReportModal({ isOpen, onClose, defaultState, initialLocati
     setPlaceNote(found.rough ? 'This is only a rough position. Move the map until the pin is on the spot.' : null);
     setShowLocationConfirm(true);
 
-    setGeocoding(true);
-    const address = await reverseGeocode(found.lat, found.lng);
-    setGeocoding(false);
-    setFormData((now) => (now.location.lat === found.lat && now.location.lng === found.lng
-      ? { ...now, location: { ...now.location, address: address || '' } }
-      : now));
+    void showGoogleHint(found.lat, found.lng);
   };
 
-  // The pin's place is taken at once. Its address is filled in when it has been
-  // looked up, unless the pin has been moved again by then.
+  // Only the latest pin's address counts
+  const hintFor = useRef<string>('');
+  const showGoogleHint = async (lat: number, lng: number) => {
+    const key = `${lat},${lng}`;
+    hintFor.current = key;
+    setGoogleHint(null);
+    setGeocoding(true);
+    const name = await askPlaceName({ lat, lng });
+    if (hintFor.current !== key) return;
+    setGeocoding(false);
+    setGoogleHint(name);
+  };
+
+  // The pin's place is taken at once. Google's address for it is shown to the
+  // reporter when it has been looked up, unless the pin has been moved again by then.
   const handleLocationSelect = async (lat: number, lng: number) => {
     setFormData((now) => ({ ...now, location: { lat, lng, address: '' } }));
     setUseGPS(false);
@@ -160,12 +175,7 @@ export function CreateReportModal({ isOpen, onClose, defaultState, initialLocati
     setPlaceNote(null);
     setShowLocationConfirm(true);
 
-    setGeocoding(true);
-    const address = await reverseGeocode(lat, lng);
-    setGeocoding(false);
-    setFormData((now) => (now.location.lat === lat && now.location.lng === lng
-      ? { ...now, location: { ...now.location, address: address || '' } }
-      : now));
+    void showGoogleHint(lat, lng);
   };
 
   const handleConfirmLocation = () => {
@@ -279,7 +289,12 @@ export function CreateReportModal({ isOpen, onClose, defaultState, initialLocati
         status: ReportStatus.ACTIVE,
         state: defaultState,
         verification: VerificationStatus.PENDING,
-        location: formData.location,
+        // The pin, and where it is in the reporter's own words (empty when they left it blank)
+        location: {
+          lat: formData.location.lat,
+          lng: formData.location.lng,
+          address: placeWords.replace(/\s+/g, ' ').trim().slice(0, MAX_REPORT_PLACE_LENGTH),
+        },
         description: formData.description.trim(),
         createdAt: serverTimestamp(),
         expiresAt: Timestamp.fromMillis(expiresAt),
@@ -734,23 +749,39 @@ export function CreateReportModal({ isOpen, onClose, defaultState, initialLocati
               startsFarOut={!initialLocation}
             />
 
-            {formData.location.address && (
+            {googleHint && (
               <div className="mt-2 p-3 bg-slate-50 rounded-2xl">
                 <div className="flex items-start gap-2">
                   <MapPin className="w-4 h-4 text-slate-600 mt-0.5 flex-shrink-0" />
                   <div className="flex-1">
-                    <p className="text-sm text-slate-700">{formData.location.address}</p>
+                    <p className="text-sm text-slate-700">{googleHint}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">The pin&apos;s address from {PLACE_NAME_CREDIT}, only for you to check the spot</p>
                   </div>
                 </div>
               </div>
             )}
-            
+
             {geocoding && (
               <p className="text-xs text-blue-600 mt-2 flex items-center gap-2">
                 <Loader2 className="w-3 h-3 animate-spin" />
                 Getting address...
               </p>
             )}
+
+            <label htmlFor="report-place" className="block text-sm font-medium text-gray-700 mt-4 mb-1">
+              Where is it? (optional)
+            </label>
+            <input
+              id="report-place"
+              type="text"
+              value={placeWords}
+              maxLength={MAX_REPORT_PLACE_LENGTH}
+              onChange={(e) => setPlaceWords(e.target.value)}
+              placeholder="For example: Ojota bridge, towards Ketu"
+              autoComplete="off"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+            <p className="text-xs text-gray-500 mt-1">In your own words. Shown with your report so others can find the spot.</p>
           </div>
 
           {/* Upload Progress */}

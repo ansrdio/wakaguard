@@ -1,6 +1,6 @@
 'use client';
 
-import { isSerious, reportTypeWord } from '@/lib/reportWords';
+import { isSerious, reportPlace, reportTypeWord } from '@/lib/reportWords';
 import { useState } from 'react';
 import { Report, FlagReason } from '@/lib/types';
 import { X, MapPin, Calendar, ThumbsUp, ThumbsDown, MessageCircle, Flag, AlertCircle, Share2, CheckCircle, XCircle, Send, Users } from 'lucide-react';
@@ -319,11 +319,7 @@ export function ReportDetailsCard({ report, onClose }: ReportDetailsCardProps) {
           <div className="flex items-start gap-2 text-sm text-slate-600">
             <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
             <div>
-              {report.location.address ? (
-                <p>{report.location.address}</p>
-              ) : (
-                <p>{report.location.lat.toFixed(6)}, {report.location.lng.toFixed(6)}</p>
-              )}
+              <p>{reportPlace(report)}</p>
             </div>
           </div>
         </div>

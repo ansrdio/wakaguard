@@ -1,6 +1,6 @@
 'use client';
 
-import { reportTypeWord } from '@/lib/reportWords';
+import { reportPlace, reportTypeWord } from '@/lib/reportWords';
 import { useState, useMemo } from 'react';
 import { Plus, MapPin, List, Crosshair, ArrowUpDown, AlertCircle, X, Shield, User, Settings, FileText, HelpCircle, LogOut, ChevronDown, Bell, Moon, Sun, Grid, LayoutList, Trash2 } from 'lucide-react';
 import { ReportListSkeleton, MapSkeleton } from '@/components/LoadingSkeletons';
@@ -611,7 +611,7 @@ export function DesktopHome({
                           <div className="flex items-center gap-4 mt-2 text-xs text-slate-500">
                             <span className="flex items-center gap-1">
                               <MapPin className="w-3 h-3" />
-                              {report.location.address?.substring(0, 30) || 'Unknown'}...
+                              {reportPlace(report).substring(0, 30)}
                             </span>
                             <span>👍 {report.upvotes || 0}</span>
                             <span>💬 {report.commentCount || 0}</span>

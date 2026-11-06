@@ -380,7 +380,7 @@ export function StartTripForm({
         />
         {errors.destination && <p role="alert" className={errorClass}>{errors.destination}</p>}
         {pinName !== null && destination.trim() === pinName && (
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Name from the pin. {PLACE_NAME_CREDIT}</p>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Name from {PLACE_NAME_CREDIT}</p>
         )}
         {searchName !== null && destination.trim() === searchName && (
           <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Name from {PLACE_SEARCH_CREDIT}</p>

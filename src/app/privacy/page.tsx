@@ -102,8 +102,8 @@ export default function PrivacyPage() {
               <li><strong>Press SOS:</strong> your position is saved with the alert and sent to your trusted contacts</li>
               <li><strong>Send an &quot;I&apos;m okay&quot; text:</strong> a recent position, if your phone has one, is included in the text</li>
               <li><strong>Log a checkpoint stop:</strong> your position is saved to your account. It is not sent to anyone</li>
-              <li><strong>Create a road report:</strong> the location you set for the report is shown publicly on the map</li>
-              <li><strong>Tap &quot;Use my location&quot; when choosing your state, or set a report&apos;s location:</strong> the coordinates are sent to OpenStreetMap&apos;s look-up service to turn them into a state or an address</li>
+              <li><strong>Create a road report:</strong> the location you set for the report is shown publicly on the map, with what you type in &quot;Where is it?&quot;, if anything</li>
+              <li><strong>Tap &quot;Use my location&quot; when choosing your state, or set a report&apos;s location:</strong> the coordinates are sent through our server to Google&apos;s address look-up, to find your state or to show you the address of the report&apos;s pin. Google is not told who you are, and that address is not saved with your report</li>
               <li><strong>Switch on push notifications in Profile:</strong> your position at that moment is saved, so that we can notify you about new road reports within about 10 km of it</li>
               <li><strong>While the app is open on your screen:</strong> if you have already allowed WakaGuard to use your location, your rough area, rounded to about 10 km, is sent to our server to look up the weather there. Unless you switch off Morning weather in Settings, we keep that rough area (never your exact position) for the morning weather notification: each look-up replaces it, and it is deleted after 30 days without one, when you switch Morning weather off, or when you delete your account. The app never asks for your location just for the weather</li>
             </ul>
@@ -441,7 +441,7 @@ export default function PrivacyPage() {
               <li><strong>Place search:</strong> When you type where you are going, what you type is sent through our server to Google&apos;s place search, with the area of the state you chose, to suggest places. Google is not told who you are. If you choose a place, its name and spot are kept with your trip, and the spot is removed {KEPT_DAYS.destinationSpot} days after the trip&apos;s link stopped working</li>
               <li><strong>Directions (Beta):</strong> When directions are on, your device asks Mapbox for a route from where you are to the pin you set, and again if you leave the route. Mapbox sees those two points and your IP address, not who you are</li>
               <li><strong>Weather:</strong> Our server asks MET Norway (the Norwegian Meteorological Institute) for the forecast for your rough area, about 10 km across. MET Norway is not told who asked or where exactly you are. The forecasts shown in the app are data from MET Norway</li>
-              <li><strong>Place names:</strong> When you set your destination on the map, our server looks up the name of that spot using OpenStreetMap&apos;s Nominatim service, so it can fill in &quot;Where are you going?&quot;. Only the spot is sent, never who you are</li>
+              <li><strong>Place names:</strong> When you set your destination on the map, our server asks Google&apos;s address look-up for the name of that spot, so it can fill in &quot;Where are you going?&quot;. Only the spot is sent, never who you are</li>
               <li><strong>Legal Requirements:</strong> We may disclose data if required by law or to protect rights and safety</li>
               <li><strong>Moderation:</strong> Flagged content is reviewed by administrators</li>
             </ul>
