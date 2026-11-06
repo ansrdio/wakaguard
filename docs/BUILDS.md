@@ -70,7 +70,7 @@ Mon 12 Oct and end about Mon 26 Oct; text alerts are to be on by Mon 2 Nov.
 | Android | 26 | Google Play closed test (Alpha), published Tue 3 Nov. Play can take a day or two to offer it on each phone; clearing the Play Store's cache helps |
 | iPhone | 26 | TestFlight, both groups, since Tue 3 Nov (beta review passed at once) |
 | Website | 26 | wakaguard.com, released from the same code on Tue 3 Nov |
-| Server | `main` | Live up to the security fixes of Wed 4 Nov, except build 27's referral functions (see "Website and server releases") |
+| Server | `main` | Live up to the security fixes of Wed 4 Nov, plus build 27's trip rules (Thu 5 Nov). Build 27's functions are not live yet (see "Website and server releases") |
 
 ## Next build: 22
 
@@ -644,8 +644,9 @@ was first agreed.
          confirm their email". Added to Terms section 12;
        - "Get WakaGuard" on a contact's page names the traveller only for 7 days after the trip.
        - Tests: 406 unit, 135 emulator, 145 rules checks.
-       - **Live:** the rules can go now, for phones on any build, on the owner's word. The referral part goes with
-         build 27's functions (item 13).
+       - **Live:** the rules went live on Thu 5 November, evening in Arizona (the owner: "deploy the trip rules,
+         then commit and push"), for phones on any build. The referral part goes with build 27's functions
+         (item 13).
        - Not planned before launch: checking each invited friend's phone number by text. The confirmed account, App
          Check (item 9) and the owner's check before each weekly payout cover it until there is abuse to answer.
 3. [x] **Say what is under "More options"** (below). Done 5 November.
@@ -2440,6 +2441,7 @@ Changes that went live without an app build.
 
 | Date | What |
 |---|---|
+| Thu 5 Nov (evening in Arizona) | **Build 27's trip rules**, on the owner's word ("deploy the trip rules, then commit and push"): the Firestore rules only, no functions, "released rules firestore.rules". Deployed before build 27's commits (`79196a6` to `b49c330`) were pushed, since this repository is public. The app may now write only the trip details it needs, with the server's clock; trip pages accept checkpoint stops from the server only; the "Reminder at my usual times" switch is allowed on a person's own profile. Checked beforehand against what builds 22 to 27 write, so no phone needs updating. Not deployed: build 27's functions (item 13) |
 | Wed 4 Nov (afternoon in Arizona) | **Security fixes**, on the owner's word ("deploy the security fixes, then commit and push"), deployed before `95c1fa5` was pushed, since this repository is public: the Firestore rules, then `checkOverdueTrips`, `checkQuietTrips`, `onSOSAlert`, `tripLocation`, `tripAction`, `stopTexts`, `onReportCreate`, `cleanupExpiredTrips` and `deleteMyAccount`, each by name, all "Successful update". What changed is in build 27's section ("Security fixes, server and rules"). The next runs of the overdue and quiet-trip checks were read in the logs and were fine. Not deployed: `onTripUpdated` and the other referral functions, which wait for build 27 |
 | Tue 3 Nov (late evening in Arizona) | **Morning weather fixes**, on the owner's word ("commit, push and deploy morningWeather"), from `acf4b95`: `morningWeather` by name. Each person's day is claimed before sending, so two runs at once send once, and a dead notification link is noted and skipped. Earlier the same day `heatSeasonNotice` was deleted from the live project ("yes delete the heat notice") |
 | Tue 3 Nov (evening in Arizona) | **Website from build 26**, on the owner's word ("deploy the website from build 26"), from `131b988` on branch `build-26`: the simpler screens, Privacy "Last Updated: November 4, 2026". Checked live on wakaguard.com |
