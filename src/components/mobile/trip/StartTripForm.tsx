@@ -693,7 +693,7 @@ export function StartTripForm({
               type="tel"
               value={newContactPhone}
               onChange={(e) => onNewContactPhoneChange(e.target.value)}
-              placeholder="0803 123 4567"
+              placeholder="Their phone number"
               autoComplete="off"
               className={`${inputClass} py-2.5 text-sm`}
             />

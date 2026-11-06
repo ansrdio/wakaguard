@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { 
   Shield, Users, Phone, X, Loader2,
   ChevronRight, Heart, Car, UserPlus, Trash2,
-  AlertCircle, Flame, Ambulance, ShieldCheck, Plus
+  AlertCircle, ShieldCheck, Plus
 } from 'lucide-react';
 import { useSafety } from '@/hooks/useSafety';
 import { useBackToClose } from '@/hooks/useBackToClose';
@@ -92,14 +92,17 @@ const moreIcon = 'w-10 h-10 rounded-full flex items-center justify-center flex-s
 const moreTitle = 'block font-semibold text-slate-900 dark:text-white';
 const moreSub = 'block text-sm text-slate-500 dark:text-slate-400';
 
-// Nigerian Emergency Numbers
+// Nigeria's emergency numbers, checked against official sources on 6 November 2026 (build 27 safety fixes; the
+// list had shown 199 for Fire as well as Police, and a Lagos ambulance for the whole country). 112 is the free
+// national number on every network, answered by emergency centres that pass each call to the police, fire service,
+// ambulance or FRSC (NCC; adopted as the national number by the Federal Government in April 2026). There is no one
+// fire or ambulance number for the whole country, so those go through 112. FRSC's 122 is on FRSC's own site.
+// `dial` is what the phone dials: a phone cannot dial letters, so "0800CALLNEMA" never worked.
 const EMERGENCY_CONTACTS = [
-  { name: 'General Emergency', number: '112', icon: Phone, color: 'red', description: 'National emergency line' },
-  { name: 'Police', number: '199', icon: ShieldCheck, color: 'blue', description: 'Nigeria Police Force' },
-  { name: 'FRSC', number: '122', icon: Car, color: 'green', description: 'Federal Road Safety Corps' },
-  { name: 'Fire Service', number: '199', icon: Flame, color: 'orange', description: 'Fire emergency' },
-  { name: 'Ambulance (LASAMBUS)', number: '112', icon: Ambulance, color: 'red', description: 'Lagos State Ambulance' },
-  { name: 'NEMA', number: '0800CALLNEMA', icon: AlertCircle, color: 'amber', description: 'Emergency Management Agency' },
+  { name: 'Emergency: police, fire, ambulance', number: '112', dial: '112', icon: Phone, color: 'red', description: 'Free from any network, anywhere in Nigeria' },
+  { name: 'Police', number: '199', dial: '199', icon: ShieldCheck, color: 'blue', description: 'Nigeria Police Force' },
+  { name: 'FRSC: road crashes', number: '122', dial: '122', icon: Car, color: 'green', description: 'Federal Road Safety Corps, free' },
+  { name: 'NEMA: floods and disasters', number: '0800 2255 6362', dial: '080022556362', icon: AlertCircle, color: 'amber', description: '0800 CALL NEMA, free' },
 ];
 
 export function SafetyScreen({ onReportRoad, notificationAction = null, onNotificationActionDone, usualPick = null, onUsualPickDone }: {
@@ -916,7 +919,7 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
             {EMERGENCY_CONTACTS.slice(0, 4).map((contact) => (
               <a
                 key={contact.name}
-                href={`tel:${contact.number}`}
+                href={`tel:${contact.dial}`}
                 className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 flex flex-col items-center text-center"
               >
                 <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-2 bg-${contact.color}-100`}>
@@ -1283,7 +1286,7 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
                 return (
                   <a
                     key={index}
-                    href={`tel:${contact.number}`}
+                    href={`tel:${contact.dial}`}
                     className="flex items-center gap-4 p-4 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors"
                   >
                     <div className={`w-12 h-12 rounded-full flex items-center justify-center bg-${contact.color}-100`}>

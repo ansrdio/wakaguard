@@ -858,6 +858,23 @@ was first agreed.
 13. [x] **The server functions for this build,** on the owner's word: `referrals`, `onTripUpdated` and
        `onTrustedContactWrite`, plus whatever items 2 to 12 add. Live Fri 6 Nov: see "Website and server releases".
 14. [ ] **Terms and Privacy dates** changed on the day the website goes out.
+16. [x] **Safety fixes** (the owner, 6 November, from my review of what is missing: "Safety fixes"). Done 6 November;
+       numbers confirmed by the owner ("keep 199"):
+       - The list is now: Emergency (police, fire, ambulance) 112; Police 199; FRSC (road crashes) 122; NEMA (floods
+         and disasters) 0800 2255 6362, "0800 CALL NEMA". Fire Service 199 and the Lagos ambulance are gone, as 112
+         covers fire and ambulance everywhere. Sources: NCC (112 free on every network); the Federal Government's
+         adoption of 112 as the national number (April 2026); FRSC's own services page (122); NEMA on Channels TV.
+         199 is widely listed but was not found on the Police's own site; the owner chose to keep it.
+       - Each number now dials digits (`dial`): "0800CALLNEMA" in letters never dialled on a phone.
+       - The contact box says "Their phone number", and the "number not complete" message describes the format in
+         words (11 digits starting with 0, or + and the country code).
+       - **Emergency numbers:** the screen showed 199 for Fire as well as Police, and a Lagos ambulance line for the
+         whole country (open since October, line "Emergency numbers corrected" above). Use numbers from official
+         Nigerian sources, for the owner to confirm before they ship.
+       - **No realistic example phone number** in the contact boxes: the grey example looked like a real Nigerian
+         number (a copied example got a real person a test text on 15 October). Words instead.
+       - Not chosen for build 27 (6 November): "Navigate with Google Maps", battery level on the contacts' page,
+         and the launch tasks (Africa's Talking switch, store updates and Data safety answers, go/no-go checklist).
 - Optional, if there is time: an 8-character minimum password.
 - Testing: on the owner's Galaxy and iPhone before upload, as with build 26.
 - **Release files made Fri 6 Nov** on the owner's word ("build the website and both apps for build 27"), from
@@ -882,6 +899,9 @@ was first agreed.
     the archive's app on the owner's iPhone 16 by cable over its TestFlight build 26 (owner: "install it on the
     iPhone too"). That copy is signed for development, so it uses Apple's sandbox for notifications, which Firebase
     has the current key for; TestFlight's build 27 replaces it once uploaded.
+  - **Made a third time the same day** with the safety fixes (item 16), from this commit's code; the second set is
+    kept as `…-27-superseded2…`. Checked inside each: NEMA dialled as digits, no example number, build 27, no test
+    settings. Installed on the owner's iPhone by cable; the Galaxy was unplugged, so its copy waits.
 
 
 The owner on 2 November: "we need to add a referral program too where people can earn from getting people on

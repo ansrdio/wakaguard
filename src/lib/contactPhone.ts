@@ -14,8 +14,10 @@ const FULL_NUMBER = /^\+[1-9]\d{6,14}$/;
 /** A Nigerian mobile number after the country code: ten digits starting 7, 8 or 9 */
 const NIGERIAN_MOBILE = /^[789]\d{9}$/;
 
+// Described in words, never shown as a real-looking number: on 15 October 2026 an example number that looked
+// real was copied and a real person got a test text (build 27 safety fixes)
 const NOT_COMPLETE =
-  'Enter the full mobile number, such as 0803 123 4567. For a number outside Nigeria, start with + and the country code.';
+  'Enter the full mobile number: 11 digits starting with 0, as it is saved in your phone. For a number outside Nigeria, start with + and the country code.';
 
 /** Whether the server will text this contact */
 export function canBeTexted(contact: { phoneE164?: string | null; smsOptedOut?: boolean }): boolean {
