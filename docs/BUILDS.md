@@ -878,7 +878,10 @@ was first agreed.
   - **Made again the same day** after the switch to Google's address look-up and the build number fix (item 15,
     "Everything Google"), from this commit's code. The first set is kept as `…-27-superseded…`. Checked inside each:
     "(build 27)", the "Where is it?" box, no Nominatim, the live project, no test settings. Android version code 27
-    with the upload key; iPhone 1.2.0 (27). The new cable copy was installed on the Galaxy at 11:22 (Arizona).
+    with the upload key; iPhone 1.2.0 (27). The new cable copy was installed on the Galaxy at 11:22 (Arizona), and
+    the archive's app on the owner's iPhone 16 by cable over its TestFlight build 26 (owner: "install it on the
+    iPhone too"). That copy is signed for development, so it uses Apple's sandbox for notifications, which Firebase
+    has the current key for; TestFlight's build 27 replaces it once uploaded.
 
 
 The owner on 2 November: "we need to add a referral program too where people can earn from getting people on
