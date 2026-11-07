@@ -968,6 +968,12 @@ was first agreed.
     upload it" ("Upload succeeded"). Xcode had updated itself to 27.2 overnight, which cleared its accounts and
     offered a 16.64 GB iPhone simulator download (skipped: not needed for uploads). The 27.1 archive was made
     before the update and was sent unchanged. TestFlight now has 27 and 27.1; 27.1 is the one for testers.
+  - **Review note in TestFlight** (owner: "sign in to app store connect, add the note", 7 Nov): the approved note
+    replaced the old one in Test Information, Beta App Review Information, Review Notes (2,493 characters, saved
+    and checked after reloading). Kept from the old note, as still true: "Please sign in with the account
+    provided" and the request not to place a 112 call. Dropped: the line that texts are off while the sender ID is
+    approved. 27.1 is in the internal group (2 testers, status Testing). External testers get it only after a
+    Beta App Review submission, which needs the owner's separate yes.
 
 
 The owner on 2 November: "we need to add a referral program too where people can earn from getting people on
