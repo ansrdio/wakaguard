@@ -983,7 +983,8 @@ was first agreed.
       bundle uploaded through the browser. Notes as approved, with "a clear offline message at sign-in" so they fit
       Play's 500 characters. Only Play's usual two warnings (no deobfuscation or debug symbol files). Sent for
       review at about 14:35 (Arizona); managed publishing is off, so it rolls out to Alpha testers once Google
-      passes it. The Internal testing draft started on 6 November was left as a draft.
+      passes it. The empty Internal testing draft started on 6 November was discarded on the owner's word ("discard
+      the internal testing draft"); Internal testing still shows build 23.
 
 
 The owner on 2 November: "we need to add a referral program too where people can earn from getting people on
