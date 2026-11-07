@@ -69,7 +69,7 @@ Mon 12 Oct and end about Mon 26 Oct; text alerts are to be on by Mon 2 Nov.
 |---|---|---|
 | Android | 26 | Google Play closed test (Alpha), published Tue 3 Nov. Play can take a day or two to offer it on each phone; clearing the Play Store's cache helps |
 | iPhone | 26 | TestFlight, both groups, since Tue 3 Nov (beta review passed at once) |
-| Website | 27 | wakaguard.com, released Fri 6 Nov from `1113b4f`: Google's maps everywhere, the place search, the 6 November Terms and Privacy, "You're offline" on the sign-in screens, and the rest of build 27. iPhone 27.1 is with TestFlight testers; Android 27 is in Google's review for Closed testing (Alpha) |
+| Website | 27 | wakaguard.com, released Fri 6 Nov from `1113b4f`: Google's maps everywhere, the place search, the 6 November Terms and Privacy, "You're offline" on the sign-in screens, and the rest of build 27. iPhone 27.1 is with TestFlight testers; Android 27 is with Closed testing (Alpha) testers since 7 Nov |
 | Server | `main` | Live up to build 27's functions (Fri 6 Nov, from `e887365`), `placeName` on Google (Fri 6 Nov) and the trip rules (Thu 5 Nov) |
 
 ## Next build: 22
@@ -983,7 +983,8 @@ was first agreed.
       bundle uploaded through the browser. Notes as approved, with "a clear offline message at sign-in" so they fit
       Play's 500 characters. Only Play's usual two warnings (no deobfuscation or debug symbol files). Sent for
       review at about 14:35 (Arizona); managed publishing is off, so it rolls out to Alpha testers once Google
-      passes it. The empty Internal testing draft started on 6 November was discarded on the owner's word ("discard
+      passes it. **Google passed it the same afternoon: "Available to selected testers", released Sat 7 Nov
+      16:12 (Arizona).** So build 27 is with testers on both phones. The empty Internal testing draft started on 6 November was discarded on the owner's word ("discard
       the internal testing draft"); Internal testing still shows build 23.
 
 
