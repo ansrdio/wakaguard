@@ -933,6 +933,11 @@ was first agreed.
     fourth set is kept as `…-27-superseded4…`. Checked inside each: the date, build 27, the live project, no test
     settings. Installed on the Moto and the iPhone at 16:59; the Galaxy had been unplugged, so its copy waits.
     These are the files for the stores.
+  - **Uploads, on the owner's "ok do all":** the iPhone archive was sent to App Store Connect at 17:01 (Arizona)
+    ("Upload succeeded"). Play: a new Internal testing release was started in the owner's Chrome, but sending the
+    6.6 MB bundle through the browser connection failed twice, so the owner drags it in. Internal testing uses the
+    "WakaGuard Testers" list (61 people, as the closed test), so it is not rolled out until the owner decides who gets
+    it. App Store Connect asked the owner to sign in before the approved review note can go in.
 
 
 The owner on 2 November: "we need to add a referral program too where people can earn from getting people on
