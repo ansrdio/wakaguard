@@ -2341,6 +2341,17 @@ From the roadmap, with its dates. None of these needs an app build.
       28 October; the settings check of 28 October is in "Website and server
       releases")
 - [ ] By Fri 6 Nov. The go or no-go checklist for Fri 13 Nov
+- [ ] **Play: public release ("production").** Sat 7 Nov, 16:20 Arizona, on the owner's "ok apply": the
+      application for production access was sent (all three closed-test conditions were met: a closed release,
+      12 or more testers opted in, for 14 days or more). The answers are kept with the store wording outside this
+      repository. Google: "usually takes 7 days or less". Then, each on the owner's word: turn on managed
+      publishing so nothing goes public before 1 December; a Production release of build 27 for Nigeria; check
+      the store listing; update the Data safety answers for build 27 (place search, Google maps, the referral
+      reward); send for review; publish on launch day. The same day the account's trader status was declared
+      (non-trader; the account has only WakaGuard, in Nigeria only).
+- [ ] **App Store: public release.** The App Store page is still the untouched "1.0 Prepare for Submission":
+      version 1.2.0, iPhone screenshots, description and keywords (never "emergency service"), support link,
+      App Privacy answers for build 27, build 27.1, the review note and a reviewer account; then App Review.
 - [ ] Launch day. "Get WakaGuard" on the page contacts see, and store links
       on the website
 - [x] Guidelines page (done in code 19 October): an example of reporting a checkpoint without accusing
