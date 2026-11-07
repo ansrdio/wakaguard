@@ -69,7 +69,7 @@ Mon 12 Oct and end about Mon 26 Oct; text alerts are to be on by Mon 2 Nov.
 |---|---|---|
 | Android | 26 | Google Play closed test (Alpha), published Tue 3 Nov. Play can take a day or two to offer it on each phone; clearing the Play Store's cache helps |
 | iPhone | 26 | TestFlight, both groups, since Tue 3 Nov (beta review passed at once) |
-| Website | 27 | wakaguard.com, released Fri 6 Nov from `ac38076`: Google's maps everywhere, the place search, and build 27's changes so far. The apps are still build 26 until the store uploads |
+| Website | 27 | wakaguard.com, released Fri 6 Nov from `1113b4f`: Google's maps everywhere, the place search, the 6 November Terms and Privacy, "You're offline" on the sign-in screens, and the rest of build 27. The apps are still build 26 until the store uploads |
 | Server | `main` | Live up to build 27's functions (Fri 6 Nov, from `e887365`), `placeName` on Google (Fri 6 Nov) and the trip rules (Thu 5 Nov) |
 
 ## Next build: 22
@@ -960,6 +960,10 @@ was first agreed.
     Installed by cable on the Galaxy and the Moto, and on the iPhone (sign-ins kept). The website in `out/` has it
     too, but is not released. **These are now the files for the stores:** the 27.1 archive replaces the 27 sent
     to App Store Connect (not yet uploaded), and the new `WakaGuard-1.2.0-27.aab` is the one to drag into Play.
+  - **On the owner's "upload 27.1 and release the website":** the website was released at 21:20 (Arizona) from
+    `1113b4f`, and the offline wording was checked in the live files. The iPhone upload was refused ("App Store
+    Connect access for the team is required"): Xcode's sign-in to the Apple Account had lapsed since the 17:01
+    upload. It goes once the owner signs in again in Xcode, Settings, Accounts.
 
 
 The owner on 2 November: "we need to add a referral program too where people can earn from getting people on
