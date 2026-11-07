@@ -716,8 +716,8 @@ was first agreed.
        - Still to do: once build 27 is on phones, watch the App Check numbers in Firebase for a week. Enforcing waits
          until phones on build 26 and older are gone. The website is not registered; it keeps reCAPTCHA v3, which
          needs its own key (optional before launch).
-10. [ ] **Search for where you are going** (Google place search), with a Privacy line (build 26 section,
-       28 October). Done in Google Cloud on 5 November in the owner's Chrome:
+10. [x] **Search for where you are going** (Google place search), with a Privacy line (build 26 section,
+       28 October). Live on the server and the website on 6 November, and in the build 27 apps. Done in Google Cloud on 5 November in the owner's Chrome:
        - **The key:** "WakaGuard place search (server)". It works only for Places API (New), which was already on, and
          has no app restriction because only our server uses it. It is kept in Secret Manager as `PLACES_API_KEY`;
          the owner pasted it into a hidden prompt.
@@ -753,7 +753,8 @@ was first agreed.
          - Tests: 437 unit (9 new), 142 emulator (1 new).
          - Open for the lawyer review: a "usual trip" button copies a past trip's spot into a new trip, so a searched
            spot can live on past 30 days through daily repeats.
-15. [ ] **Google Maps everywhere in place of OpenStreetMap and Mapbox** (the owner, 5 November: "switching to
+15. [x] **Google Maps everywhere in place of OpenStreetMap and Mapbox** (live on the website 6 November, and in the
+       build 27 apps; directions stay Mapbox) (the owner, 5 November: "switching to
        google maps will tremendously elevate the app let us build it"). The three maps are the trip map, also used by
        the pin picker and the contacts' page; the road-reports map; and the report pin picker.
        - **The test, 5 November:** a page served as the iPhone app serves it (`capacitor://localhost`, through
@@ -939,6 +940,10 @@ was first agreed.
     6.6 MB bundle through the browser connection failed twice, so the owner drags it in. Internal testing uses the
     "WakaGuard Testers" list (61 people, as the closed test), so it is not rolled out until the owner decides who gets
     it. App Store Connect asked the owner to sign in before the approved review note can go in.
+  - **Release notes drafted** for the owner's approval (`wording/build-27-release-notes.txt` in the session folder,
+    499 characters, the TestFlight copy without the Android-only SOS line). Not used anywhere yet.
+  - **The website released again** the same evening on the owner's "do every other thing", from the same code, so
+    the Terms and Privacy pages say "Last updated: 6 November 2026" (checked live).
 
 
 The owner on 2 November: "we need to add a referral program too where people can earn from getting people on
