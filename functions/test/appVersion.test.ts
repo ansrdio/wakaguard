@@ -11,9 +11,11 @@ test('the build shown on Profile is the build the phone apps carry', () => {
   assert.equal(/versionName "([^"]+)"/.exec(gradle)?.[1], APP_VERSION, 'android/app/build.gradle versionName');
 
   const xcode = read('ios/App/App.xcodeproj/project.pbxproj');
-  const builds = [...xcode.matchAll(/CURRENT_PROJECT_VERSION = (\d+);/g)].map((match) => Number(match[1]));
+  // A second iPhone upload of the same build is 27.1, as Apple will not take the same number twice
+  const builds = [...xcode.matchAll(/CURRENT_PROJECT_VERSION = (\d+(?:\.\d+)?);/g)].map((match) => match[1]);
   assert.ok(builds.length > 0);
-  assert.deepEqual([...new Set(builds)], [APP_BUILD], 'CURRENT_PROJECT_VERSION in the Xcode project');
+  assert.equal(new Set(builds).size, 1, 'one CURRENT_PROJECT_VERSION in the Xcode project');
+  assert.equal(Number(builds[0].split('.')[0]), APP_BUILD, 'CURRENT_PROJECT_VERSION in the Xcode project');
   const versions = [...xcode.matchAll(/MARKETING_VERSION = ([\d.]+);/g)].map((match) => match[1]);
   assert.deepEqual([...new Set(versions)], [APP_VERSION], 'MARKETING_VERSION in the Xcode project');
 });

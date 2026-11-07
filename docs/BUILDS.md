@@ -952,6 +952,14 @@ was first agreed.
     499 characters, the TestFlight copy without the Android-only SOS line). Not used anywhere yet.
   - **The website released again** the same evening on the owner's "do every other thing", from the same code, so
     the Terms and Privacy pages say "Last updated: 6 November 2026" (checked live).
+  - **Made a sixth time the same day** with item 18 ("You're offline"), on the owner's "yes commit, push and
+    rebuild everything"; the fifth set is kept as `…-27-superseded5…`. Android stays version code 27, as it is not
+    in Play yet. The iPhone is 1.2.0 (27.1), because App Store Connect already has 27 and will not take the same
+    number twice (as with 24.1); `appVersion.test.ts` now accepts a point build for the iPhone. Checked inside
+    each: the offline wording, the live project, no test settings; the Android files signed with the upload key.
+    Installed by cable on the Galaxy and the Moto, and on the iPhone (sign-ins kept). The website in `out/` has it
+    too, but is not released. **These are now the files for the stores:** the 27.1 archive replaces the 27 sent
+    to App Store Connect (not yet uploaded), and the new `WakaGuard-1.2.0-27.aab` is the one to drag into Play.
 
 
 The owner on 2 November: "we need to add a referral program too where people can earn from getting people on
