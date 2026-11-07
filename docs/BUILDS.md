@@ -964,6 +964,10 @@ was first agreed.
     `1113b4f`, and the offline wording was checked in the live files. The iPhone upload was refused ("App Store
     Connect access for the team is required"): Xcode's sign-in to the Apple Account had lapsed since the 17:01
     upload. It goes once the owner signs in again in Xcode, Settings, Accounts.
+  - **iPhone 1.2.0 (27.1) uploaded to App Store Connect** on Sat 7 Nov at 14:08 (Arizona), on the owner's "signed in,
+    upload it" ("Upload succeeded"). Xcode had updated itself to 27.2 overnight, which cleared its accounts and
+    offered a 16.64 GB iPhone simulator download (skipped: not needed for uploads). The 27.1 archive was made
+    before the update and was sent unchanged. TestFlight now has 27 and 27.1; 27.1 is the one for testers.
 
 
 The owner on 2 November: "we need to add a referral program too where people can earn from getting people on
