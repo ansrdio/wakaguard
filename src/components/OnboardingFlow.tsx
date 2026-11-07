@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { TermsAgreement, TERMS_NOT_AGREED } from '@/components/TermsAgreement';
-import { OrWithEmail, SocialSignInButtons, useSocialProviders } from '@/components/SocialSignIn';
+import { OfflineNotice, OrWithEmail, SocialSignInButtons, useSocialProviders } from '@/components/SocialSignIn';
 import { OnboardingTutorial } from './OnboardingTutorial';
 import { Bell, BellOff, Loader2, ChevronRight, Mail, Eye, EyeOff } from 'lucide-react';
 import Image from 'next/image';
@@ -241,6 +241,8 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
               <p className="text-sm text-green-600 dark:text-green-400">{authSuccess}</p>
             </div>
           )}
+
+          <OfflineNotice />
 
           {socialShown && (
             <div className="space-y-4 mb-4">

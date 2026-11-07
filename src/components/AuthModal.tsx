@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useKeyboardSafeOverlay } from '@/hooks/useKeyboardSafeOverlay';
 import { TermsAgreement, TERMS_NOT_AGREED } from '@/components/TermsAgreement';
-import { OrWithEmail, SocialSignInButtons, useSocialProviders } from '@/components/SocialSignIn';
+import { OfflineNotice, OrWithEmail, SocialSignInButtons, useSocialProviders } from '@/components/SocialSignIn';
 import { X, Mail, Loader2, Eye, EyeOff } from 'lucide-react';
 import { 
   signInWithEmailAndPassword, 
@@ -121,6 +121,8 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
             <p className="text-sm text-green-600 dark:text-green-400">{success}</p>
           </div>
         )}
+
+        <OfflineNotice />
 
         {socialShown && (
           <div className="space-y-4 mb-4">

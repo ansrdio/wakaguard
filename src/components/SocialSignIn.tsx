@@ -9,9 +9,10 @@
 
 import { useState } from 'react';
 import { Capacitor } from '@capacitor/core';
-import { Loader2 } from 'lucide-react';
+import { Loader2, WifiOff } from 'lucide-react';
 import { useAppConfig } from '@/hooks/useAppConfig';
-import { PROVIDER_NAMES, SOCIAL_PROBLEM_TEXT, SocialProvider, socialProvidersFor, signInWithSocial } from '@/lib/socialSignIn';
+import { useOnline } from '@/hooks/useOnline';
+import { offlineSignInText, PROVIDER_NAMES, SOCIAL_PROBLEM_TEXT, SocialProvider, socialProvidersFor, signInWithSocial } from '@/lib/socialSignIn';
 
 /** The sign-in buttons for this phone or browser; none until switched on in config/app */
 export function useSocialProviders(): SocialProvider[] {
@@ -88,6 +89,21 @@ export function SocialSignInButtons({
           Continue with {PROVIDER_NAMES[provider]}
         </button>
       ))}
+    </div>
+  );
+}
+
+/** "You're offline", at the top of the sign-in forms while there is no connection */
+export function OfflineNotice() {
+  const online = useOnline();
+  if (online) return null;
+  return (
+    <div role="status" className="mb-4 flex items-start gap-3 rounded-2xl border border-amber-300 bg-amber-50 p-3 dark:border-amber-700 dark:bg-amber-900/30">
+      <WifiOff className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-700 dark:text-amber-300" aria-hidden="true" />
+      <div>
+        <p className="text-sm font-semibold text-slate-900 dark:text-white">You&apos;re offline</p>
+        <p className="text-sm text-slate-700 dark:text-slate-200">{offlineSignInText(Capacitor.getPlatform())}</p>
+      </div>
     </div>
   );
 }

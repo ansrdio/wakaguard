@@ -897,6 +897,14 @@ was first agreed.
          used", then "All states" A to Z, in the first question, the Nearby state sheet and the computer's state menu
          (`MOST_USED_STATES` in `nigerianStates.ts`). Most people now find their state without scrolling, the likeliest
          moment for a stray touch. FCT shows as "Abuja (FCT)", so searching "Abuja" finds it.
+18. [x] **"You're offline" on the sign-in screens** (the owner, 6 November: "yes do the offline message"). Offline,
+       the Google and Apple buttons never appeared, as they wait for the server's switch (config/app), and nothing
+       said why (the Moto test: "How come gmail sign is no longer there"). Now a notice says the phone is offline,
+       to connect to Wi-Fi or mobile data, and that "Continue with Google" (on iPhone, Apple and Google) shows
+       once connected. The buttons come back by themselves when the connection does. In `SocialSignIn.tsx`
+       (`OfflineNotice`), `useOnline.ts` and `offlineSignInText` in `socialSignIn.ts`, on the first-run sign-in
+       and the sign-in box. Done 6 November, after build 27 was uploaded to App Store Connect, so the iPhone needs
+       a new upload (1.2.0 (27.1)) to carry it; the Android bundle was not in Play yet.
 - Optional, if there is time: an 8-character minimum password.
 - Testing: on the owner's Galaxy and iPhone before upload, as with build 26.
 - **Release files made Fri 6 Nov** on the owner's word ("build the website and both apps for build 27"), from
@@ -2365,7 +2373,24 @@ regulator and advert approval, the bank account and sponsor agreement.
 
 ## After launch
 
-Agreed as wanted, not yet given a build. Nothing here is started.
+Agreed as wanted, not yet given a build unless it says so. Nothing here is started.
+
+### Build 28, the first after launch (the owner, 6 November: "yes do the offline message and add them")
+
+In this order, from my suggestions after build 27 was complete (no new features before the 13 November freeze):
+
+1. [ ] **"Navigate with Google Maps"**: a button on the trip that opens Google Maps (the app, or the website)
+       with the destination already set. Cheap, allowed by Google's terms (handing off to Google Maps is not
+       building navigation on its content), and people want directions. Our own directions stay as they are.
+2. [ ] **Battery level on the contacts' page** (and in the alert text, the item "Battery level in the alert"
+       below): a dead battery is the commonest reason a phone goes quiet, and "battery 4%" helps a contact judge
+       whether to worry. Sent with each location update; a Privacy line is needed.
+3. [ ] **"Ask them to start a trip"**: someone (a parent, say) sends a link, and the person who opens it starts a
+       trip with the sender already added as a contact. The "request a trip" link from the deferred list of
+       5 October; it brings new users through the people who care about them. Needs its own Privacy and Terms
+       lines and thought about misuse (nobody can be made to share a trip; the traveller always starts it).
+
+After those: checking in by text message when there is no data (USSD or SMS).
 
 **First after launch: WakaGuard Pioneers** (the owner, 29 October: "that will be one of the first todos after
 launch… this will be especially good when we start adding places"). A founding group for the beta testers who

@@ -40,6 +40,19 @@ export type SocialProvider = 'google' | 'apple';
 export const PROVIDER_NAMES: Record<SocialProvider, string> = { google: 'Google', apple: 'Apple' };
 const PROVIDER_IDS: Record<SocialProvider, string> = { google: 'google.com', apple: 'apple.com' };
 
+/**
+ * Said on the sign-in screens while the phone is offline. The Google and Apple
+ * buttons wait for config/app from the server, so offline they never appeared
+ * and nothing said why (the owner's Moto, 6 November 2026: "How come gmail sign
+ * is no longer there").
+ */
+export function offlineSignInText(platform: string): string {
+  const first = 'Connect to Wi-Fi or mobile data to sign in or create an account.';
+  if (platform === 'ios') return `${first} Continue with Apple and Google show once you are connected.`;
+  if (platform === 'android') return `${first} Continue with Google shows once you are connected.`;
+  return first;
+}
+
 /** The buttons for this platform, as switched on in config/app */
 export function socialProvidersFor(platform: string, switchedOn: { google: boolean; apple: boolean }): SocialProvider[] {
   const list: SocialProvider[] = [];

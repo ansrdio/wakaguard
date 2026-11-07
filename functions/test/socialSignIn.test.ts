@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { accountProviders, readSocialProblem, socialProvidersFor } from '../../src/lib/socialSignIn';
+import { accountProviders, offlineSignInText, readSocialProblem, socialProvidersFor } from '../../src/lib/socialSignIn';
 import { readAppConfig } from '../../src/lib/appConfig';
 
 test('the buttons stay hidden until switched on in config/app', () => {
@@ -31,4 +31,12 @@ test('what went wrong is told plainly, and a cancel says nothing', () => {
   assert.equal(readSocialProblem({ code: 'auth/operation-not-allowed' }), 'not-switched-on');
   assert.equal(readSocialProblem({ code: 'auth/network-request-failed' }), 'offline');
   assert.equal(readSocialProblem(new Error('boom')), 'failed');
+});
+
+test('offline, the sign-in screens say why the Google and Apple buttons are missing', () => {
+  assert.match(offlineSignInText('android'), /^Connect to Wi-Fi or mobile data/);
+  assert.match(offlineSignInText('android'), /Continue with Google shows once you are connected/);
+  assert.match(offlineSignInText('ios'), /Continue with Apple and Google show once you are connected/);
+  // The website has no Google or Apple buttons yet, so it does not mention them
+  assert.equal(offlineSignInText('web'), 'Connect to Wi-Fi or mobile data to sign in or create an account.');
 });
