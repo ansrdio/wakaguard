@@ -931,7 +931,8 @@ was first agreed.
     and the Moto (sign-ins kept) and the iPhone, at 16:38 (Arizona).
   - **Made a fifth time the same day** with the Terms and Privacy date (item 14), on the owner's "ok do all"; the
     fourth set is kept as `…-27-superseded4…`. Checked inside each: the date, build 27, the live project, no test
-    settings. Installed on the Moto and the iPhone at 16:59; the Galaxy had been unplugged, so its copy waits.
+    settings. Installed on the Moto and the iPhone at 16:59, and on the Galaxy at 17:40. The owner then switched
+    the Galaxy's Fake GPS off (mock location denied), so it uses its real location again.
     These are the files for the stores.
   - **Uploads, on the owner's "ok do all":** the iPhone archive was sent to App Store Connect at 17:01 (Arizona)
     ("Upload succeeded"). Play: a new Internal testing release was started in the owner's Chrome, but sending the
