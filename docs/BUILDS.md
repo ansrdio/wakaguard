@@ -69,7 +69,7 @@ Mon 12 Oct and end about Mon 26 Oct; text alerts are to be on by Mon 2 Nov.
 |---|---|---|
 | Android | 26 | Google Play closed test (Alpha), published Tue 3 Nov. Play can take a day or two to offer it on each phone; clearing the Play Store's cache helps |
 | iPhone | 26 | TestFlight, both groups, since Tue 3 Nov (beta review passed at once) |
-| Website | 27 | wakaguard.com, released Fri 6 Nov from `1113b4f`: Google's maps everywhere, the place search, the 6 November Terms and Privacy, "You're offline" on the sign-in screens, and the rest of build 27. The apps are still build 26 until the store uploads |
+| Website | 27 | wakaguard.com, released Fri 6 Nov from `1113b4f`: Google's maps everywhere, the place search, the 6 November Terms and Privacy, "You're offline" on the sign-in screens, and the rest of build 27. iPhone 27.1 is with TestFlight testers; Android 27 is in Google's review for Closed testing (Alpha) |
 | Server | `main` | Live up to build 27's functions (Fri 6 Nov, from `e887365`), `placeName` on Google (Fri 6 Nov) and the trip rules (Thu 5 Nov) |
 
 ## Next build: 22
@@ -974,6 +974,16 @@ was first agreed.
     provided" and the request not to place a 112 call. Dropped: the line that texts are off while the sender ID is
     approved. 27.1 is in the internal group (2 testers, status Testing). External testers get it only after a
     Beta App Review submission, which needs the owner's separate yes.
+  - **Release notes approved and both stores submitted** (owner, 7 Nov: "yes submit 27.1 for beta review", then,
+    on the notes, "yes submit it for both stores"). The approved notes are kept with the store wording outside this
+    repository.
+    - **TestFlight:** 27.1 added to the external group (9 testers) with the notes as "What to Test" and "notify
+      testers" on. Apple passed it at once (status Testing), so internal and external testers have it.
+    - **Play:** a new Closed testing (Alpha) release, 27 (1.2.0), the track build 26 went out on; this time the
+      bundle uploaded through the browser. Notes as approved, with "a clear offline message at sign-in" so they fit
+      Play's 500 characters. Only Play's usual two warnings (no deobfuscation or debug symbol files). Sent for
+      review at about 14:35 (Arizona); managed publishing is off, so it rolls out to Alpha testers once Google
+      passes it. The Internal testing draft started on 6 November was left as a draft.
 
 
 The owner on 2 November: "we need to add a referral program too where people can earn from getting people on
