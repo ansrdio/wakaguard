@@ -2366,8 +2366,17 @@ From the roadmap, with its dates. None of these needs an app build.
       with a short caption each, made from the five App Store screenshots; the old ones stay in Play's asset
       library. The full description got the App Store corrections (15 minutes, not 5; "search for where you
       are going"; the battery line). Saved as a draft and checked after a reload; not yet sent for review.
-      Still to do for production: the Production release of build 27 for Nigeria, the Data safety update,
-      then send for review.
+      Then, on the owner's "yes do both": Production's country set to Nigeria; a Production release "27
+      (1.2.0)" made from the build 27 bundle already used for the closed test (full rollout, only the usual
+      two warnings: no deobfuscation file, no native debug symbols), with public release notes (the tester
+      notes without the problem-form line, the referral line without a naira amount); Data safety gained
+      Phone number and User payment info (collected, not shared, optional, app functionality; the referral
+      cash out), App interactions (collected, required, app functionality; points and invite trip counts) and
+      In-app search history (collected, processed only in passing, required, app functionality; place search
+      text goes through our server to Google and is not kept), 15 data types in all. On the listing's review
+      step the new icon, banner and five screenshots were labelled as made or edited with AI (they were made
+      by the assistant). Publishing overview now shows "Submit 7 changes for review"; not pressed. With
+      managed publishing on, approval will wait for someone to press Publish (planned for 1 December).
 - [ ] **App Store: public release.** Sat 7 Nov evening, on the owner's "start filling the App Store page",
       saved as a draft, nothing sent: name "WakaGuard: Travel Safety" (as on Play), subtitle "Alerts if you
       don't arrive", categories Travel and Navigation; version 1.2.0 with the Play description (corrected: contacts
