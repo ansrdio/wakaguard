@@ -2375,8 +2375,10 @@ From the roadmap, with its dates. None of these needs an app build.
       In-app search history (collected, processed only in passing, required, app functionality; place search
       text goes through our server to Google and is not kept), 15 data types in all. On the listing's review
       step the new icon, banner and five screenshots were labelled as made or edited with AI (they were made
-      by the assistant). Publishing overview now shows "Submit 7 changes for review"; not pressed. With
-      managed publishing on, approval will wait for someone to press Publish (planned for 1 December).
+      by the assistant). On the owner's "yes submit it", the 7 changes were sent for review at about 4:30 pm
+      Arizona on Sun 8 Nov (Google: "typically completed within 7 days"); Publishing overview reads "Changes
+      in review" (leave its "Remove changes" alone). With managed publishing on, approval waits for someone
+      to press Publish, planned for 1 December.
 - [ ] **App Store: public release.** Sat 7 Nov evening, on the owner's "start filling the App Store page",
       saved as a draft, nothing sent: name "WakaGuard: Travel Safety" (as on Play), subtitle "Alerts if you
       don't arrive", categories Travel and Navigation; version 1.2.0 with the Play description (corrected: contacts
