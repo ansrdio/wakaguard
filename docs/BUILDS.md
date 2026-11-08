@@ -2386,7 +2386,12 @@ From the roadmap, with its dates. None of these needs an app build.
       header (3840 x 1646, "If you don't arrive, they'll know." over two phones made from screenshots 2 and 4,
       kept with the store wording outside this repository) uploaded to the Asset Library, where Apple took it as
       a 21:9 product page header. Not sent for review. Apple's device preview only shows a header that is on a
-      product page, and the 1.2.0 page is locked while it waits for review.
+      product page, and the 1.2.0 page is locked while it waits for review, so a draft custom product page
+      ("Header preview (draft, not for submission)", never to be sent) was made to see it. The iPhone preview
+      put Apple's back and share buttons over the headline, so a version 2 (no side labels, headline lower,
+      bigger phones) was made and uploaded; the owner chose version 2. It goes on the main product page and to
+      Apple once 1.2.0's review is back. Switching the Apple account from the owner's name to Inskriba Limited
+      waits until after launch (the owner, 8 Nov).
 - [ ] Launch day. "Get WakaGuard" on the page contacts see, and store links
       on the website
 - [x] Guidelines page (done in code 19 October): an example of reporting a checkpoint without accusing
