@@ -43,7 +43,7 @@ const db = () => admin.firestore();
 
 /**
  * Accounts made from this moment count as invited. Only the local emulators
- * set REFERRALS_ACCOUNTS_FROM_MS, to try this out before 11 November; never
+ * set REFERRALS_ACCOUNTS_FROM_MS, to try this out before 1 December; never
  * set it on the live project.
  */
 const accountsFromMs = () => getNumberSetting('REFERRALS_ACCOUNTS_FROM_MS', ACCOUNTS_FROM_MS);

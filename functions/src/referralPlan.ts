@@ -39,11 +39,13 @@ export const MIN_POSITIONS = 3;
 /** How long after signing up someone can still say who invited them */
 export const JOIN_WINDOW_DAYS = 7;
 /**
- * Only accounts made from here count as invited: midnight starting Wednesday
- * 11 November 2026 in Nigeria, the day build 27 is due. Testers who joined
- * earlier cannot name each other.
+ * Only accounts made from here count as invited: midnight starting Tuesday
+ * 1 December 2026 in Nigeria, the public launch (the owner, 7 November: until
+ * then a friend on Android would first have to be added as a tester, so
+ * invites wait for the public apps, where the invite link records the
+ * inviter by itself). Anyone who joined earlier cannot name anyone.
  */
-export const ACCOUNTS_FROM_MS = Date.UTC(2026, 10, 10, 23, 0);
+export const ACCOUNTS_FROM_MS = Date.UTC(2026, 10, 30, 23, 0);
 /** Cash out opens at midnight starting Tuesday 15 December 2026 in Nigeria */
 export const CASH_OUT_OPENS_MS = Date.UTC(2026, 11, 14, 23, 0);
 

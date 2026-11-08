@@ -105,7 +105,7 @@ export function joinProblemText(problem: JoinProblem, name: string): string {
     case 'self': return 'That is your own username.';
     case 'already': return 'You already said who invited you.';
     case 'too_late': return 'Who invited you can only be added in your first 7 days.';
-    case 'too_early': return 'Only accounts made from 11 November 2026 can be invited.';
+    case 'too_early': return 'Only accounts made from 1 December 2026 can be invited.';
     default: return 'That did not work. Try again.';
   }
 }

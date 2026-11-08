@@ -905,6 +905,14 @@ was first agreed.
        (`OfflineNotice`), `useOnline.ts` and `offlineSignInText` in `socialSignIn.ts`, on the first-run sign-in
        and the sign-in box. Done 6 November, after build 27 was uploaded to App Store Connect, so the iPhone needs
        a new upload (1.2.0 (27.1)) to carry it; the Android bundle was not in Play yet.
+19. [x] **Invites start on 1 December** (the owner, 7 November: "it will be confusing to start the referral now because
+       they will have to be added to the sign up; we can avoid that step altogether if we just use the in-system
+       referral that will automatically record the referrer"). Until the apps are public, an Android friend could
+       not install from an invite link without first being added as a tester. So only accounts made from midnight
+       starting 1 December 2026 in Nigeria can be invited (`ACCOUNTS_FROM_MS` in `referralPlan.ts`, was 11
+       November), and the Terms (section 12, "Last updated: 7 November 2026") and the app's "too early" message say
+       so; a test holds the three equal. Phones on build 27 still show "from 11 November 2026" in that message until
+       the next app build. Cash out still opens 15 December.
 - Optional, if there is time: an 8-character minimum password.
 - Testing: on the owner's Galaxy and iPhone before upload, as with build 26.
 - **Release files made Fri 6 Nov** on the owner's word ("build the website and both apps for build 27"), from

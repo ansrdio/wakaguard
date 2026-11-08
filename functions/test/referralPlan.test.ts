@@ -5,6 +5,8 @@ import {
   lagosMonth, monthStart, nigerianMobile, paidDetails, placeReward, readPayTo, readUsername, refusalFor, tripProblem,
   tripsDone, TripFacts,
 } from '../src/referralPlan';
+import { joinProblemText } from '../../src/lib/referralWords';
+import { readFileSync } from 'node:fs';
 
 const MIN = 60 * 1000;
 const DAY = 24 * 60 * MIN;
@@ -25,11 +27,13 @@ test('a username typed into "Who invited you?" is read like the database rules r
 });
 
 test('someone can name who invited them only on a new account, once, and not themselves', () => {
-  const fine = { uid: 'friend', accountCreatedMs: JOINED, alreadyJoined: false, inviterUid: 'inviter', nowMs: JOINED + DAY };
+  const signedUp = ACCOUNTS_FROM_MS + DAY;
+  const fine = { uid: 'friend', accountCreatedMs: signedUp, alreadyJoined: false, inviterUid: 'inviter', nowMs: signedUp + DAY };
   assert.equal(joinProblem(fine), null);
   assert.equal(joinProblem({ ...fine, alreadyJoined: true }), 'already');
-  assert.equal(joinProblem({ ...fine, accountCreatedMs: ACCOUNTS_FROM_MS - 1 }), 'too_early', 'testers from before build 27 cannot name each other');
-  assert.equal(joinProblem({ ...fine, nowMs: JOINED + 7 * DAY + 1 }), 'too_late');
+  assert.equal(joinProblem({ ...fine, accountCreatedMs: ACCOUNTS_FROM_MS - 1 }), 'too_early', 'accounts from before the public launch cannot name anyone');
+  assert.equal(joinProblem({ ...fine, accountCreatedMs: ACCOUNTS_FROM_MS }), null);
+  assert.equal(joinProblem({ ...fine, nowMs: signedUp + 7 * DAY + 1 }), 'too_late');
   assert.equal(joinProblem({ ...fine, inviterUid: null }), 'not_found');
   assert.equal(joinProblem({ ...fine, inviterUid: 'friend' }), 'self');
 });
@@ -142,4 +146,13 @@ test('once paid, only the last 4 digits of where it went are kept', () => {
     paidDetails({ method: 'bank', bankName: 'Some Bank', accountNumber: '0000005678', accountName: 'Ada Obi' }),
     { method: 'bank', bankName: 'Some Bank', accountEnding: '5678' },
   );
+});
+
+test('invites start at midnight on 1 December 2026 in Nigeria, and the app and Terms say so', () => {
+  assert.equal(new Date(ACCOUNTS_FROM_MS).toISOString(), '2026-11-30T23:00:00.000Z');
+  assert.equal(lagosDay(ACCOUNTS_FROM_MS), '2026-12-01');
+  assert.equal(lagosDay(ACCOUNTS_FROM_MS - 1), '2026-11-30');
+  assert.match(joinProblemText('too_early', 'someone'), /from 1 December 2026/);
+  const terms = readFileSync(new URL('../../src/app/terms/page.tsx', import.meta.url), 'utf8');
+  assert.match(terms, /Only accounts created from 1 December 2026 can be invited/);
 });

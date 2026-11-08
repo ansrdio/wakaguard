@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 };
 
 /** Shown on the page and changed whenever the terms change */
-const LAST_UPDATED = '6 November 2026';
+const LAST_UPDATED = '7 November 2026';
 
 const SECTIONS: { id?: string; title: string; paragraphs: string[]; points?: string[] }[] = [
   {
@@ -104,7 +104,7 @@ const SECTIONS: { id?: string; title: string; paragraphs: string[]; points?: str
     title: '12. Invite friends',
     paragraphs: [
       'You can invite friends to WakaGuard with your invite name, which is your username, or your invite link. When a friend you invited signs up, makes 4 real trips on 4 different days within 30 days of signing up, adds a trusted contact, and has a confirmed account (an email address they confirmed, or sign-in with Google or Apple), we give you ₦500. A real trip is one that is not a test, lasts at least 15 minutes, moves about 1 km and is ended with "I\'ve arrived".',
-      'A friend counts as invited by you when they give your username under "Who invited you?" within 7 days of signing up, or sign up from your invite link or from the page of a trip you shared with them. Only accounts created from 11 November 2026 can be invited, and each person can name only one person who invited them.',
+      'A friend counts as invited by you when they give your username under "Who invited you?" within 7 days of signing up, or sign up from your invite link or from the page of a trip you shared with them. Only accounts created from 1 December 2026 can be invited, and each person can name only one person who invited them.',
       'A reward can be taken 7 days after your friend completes the last step, so that we can check it. From 15 December 2026 you can ask for your rewards as airtime or by bank transfer once they add up to ₦1,000 or more. We pay requests by hand, usually within a week.',
     ],
     points: [
