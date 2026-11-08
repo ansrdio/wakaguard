@@ -2358,9 +2358,15 @@ From the roadmap, with its dates. None of these needs an app build.
       the store listing; update the Data safety answers for build 27 (place search, Google maps, the referral
       reward); send for review; publish on launch day. The same day the account's trader status was declared
       (non-trader; the account has only WakaGuard, in Nigeria only).
-- [ ] **App Store: public release.** The App Store page is still the untouched "1.0 Prepare for Submission":
-      version 1.2.0, iPhone screenshots, description and keywords (never "emergency service"), support link,
-      App Privacy answers for build 27, build 27.1, the review note and a reviewer account; then App Review.
+- [ ] **App Store: public release.** Sat 7 Nov evening, on the owner's "start filling the App Store page",
+      saved as a draft, nothing sent: name "WakaGuard: Travel Safety" (as on Play), subtitle "Alerts if you
+      don't arrive", categories Travel and Navigation; version 1.2.0 with the Play description (corrected: contacts
+      are texted 15 minutes after the arrival time, not 5; "search for where you are going"; a battery line),
+      promotional text, keywords, support and marketing links, copyright Inskriba Limited, build 27.1, manual
+      release; the TestFlight review note plus one line on invites starting 1 December, and the same review
+      contact; five iPhone screenshots (1179 x 2556) made on the local emulators with test data, phone numbers
+      left out. Still to do: the reviewer account (the owner types it), price (free) and countries, the age
+      rating questions, content rights, a look at App Privacy for build 27; then Add for Review.
 - [ ] Launch day. "Get WakaGuard" on the page contacts see, and store links
       on the website
 - [x] Guidelines page (done in code 19 October): an example of reporting a checkpoint without accusing
