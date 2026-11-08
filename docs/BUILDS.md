@@ -2378,8 +2378,11 @@ From the roadmap, with its dates. None of these needs an app build.
       points and the trip days counted for invites are app activity (Product Interaction). The same day, on
       the owner's "yes add the three and publish": Phone Number, Payment Info and Product Interaction added, each
       for app functionality, linked to the person, not for tracking; published, 14 data types in all (checked
-      after a reload). Play's Data safety needs the same three at the Play production step. Still to do: the
-      reviewer account (the owner types it), then Add for Review.
+      after a reload). Play's Data safety needs the same three at the Play production step. The same morning
+      the owner typed the reviewer account into App Review Information, and on the owner's "add for review"
+      version 1.2.0 (build 27.1) was added for review and submitted at 9:32 am Arizona time: "Waiting for
+      Review", release still manual, so nothing goes public until the owner presses "Release This Version"
+      (planned for 1 December). Apple says up to 48 hours.
 - [ ] Launch day. "Get WakaGuard" on the page contacts see, and store links
       on the website
 - [x] Guidelines page (done in code 19 October): an example of reporting a checkpoint without accusing
