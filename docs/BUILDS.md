@@ -2357,7 +2357,17 @@ From the roadmap, with its dates. None of these needs an app build.
       publishing so nothing goes public before 1 December; a Production release of build 27 for Nigeria; check
       the store listing; update the Data safety answers for build 27 (place search, Google maps, the referral
       reward); send for review; publish on launch day. The same day the account's trader status was declared
-      (non-trader; the account has only WakaGuard, in Nigeria only).
+      (non-trader; the account has only WakaGuard, in Nigeria only). **Sun 8 Nov: Google granted production
+      access** (email at 12:40 pm Arizona; build 27 on the closed test had been published by Google on 7 Nov).
+      The same afternoon, on the owner's "yes": managed publishing turned on (nothing approved goes public until
+      someone presses Publish). The store listing still had the blue "W" icon, a banner with the blue "W" and
+      the October screenshots (old maps, "5 minutes"), so it now has the green pin icon (512 x 512), a new
+      banner (1024 x 500, "If you don't arrive, they'll know." over two phones) and five 1080 x 1920 screenshots
+      with a short caption each, made from the five App Store screenshots; the old ones stay in Play's asset
+      library. The full description got the App Store corrections (15 minutes, not 5; "search for where you
+      are going"; the battery line). Saved as a draft and checked after a reload; not yet sent for review.
+      Still to do for production: the Production release of build 27 for Nigeria, the Data safety update,
+      then send for review.
 - [ ] **App Store: public release.** Sat 7 Nov evening, on the owner's "start filling the App Store page",
       saved as a draft, nothing sent: name "WakaGuard: Travel Safety" (as on Play), subtitle "Alerts if you
       don't arrive", categories Travel and Navigation; version 1.2.0 with the Play description (corrected: contacts
