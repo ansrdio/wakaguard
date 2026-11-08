@@ -2369,9 +2369,15 @@ From the roadmap, with its dates. None of these needs an app build.
       only ("Available on App Release"); content rights "yes, with the necessary rights" (Google Maps); age
       rating answers (user content and social: yes, as road reports are shared with everyone in a state;
       contests: frequent, for the weekly points ranking; everything else none), calculated 13+ and set to
-      18+ because the Terms and sign-up require 18 or older, which Apple says the rating must match. Still to
-      do: the reviewer account (the owner types it), a look at App Privacy for build 27, whether to keep the
-      Mac and Vision Pro boxes Apple ticks by default; then Add for Review.
+      18+ because the Terms and sign-up require 18 or older, which Apple says the rating must match. Sun 8 Nov,
+      on the owner's "yes untick both and check app privacy": the app is no longer offered on Apple silicon Macs
+      or Apple Vision Pro (saved, checked after a reload). App Privacy (published 14 October, 11 data types)
+      checked against build 27: place search, Google maps, checkpoint stops and App Check fall under what is
+      listed (precise and coarse location, device ID); the cash out in "Invite friends" is not covered: a bank
+      name, account number and account name (Payment Info) or a phone number for airtime (Phone Number). The
+      points and the trip days counted for invites are app activity (Product Interaction). Changing App
+      Privacy waits for the owner's word. Still to do: the reviewer account (the owner types it), then Add for
+      Review.
 - [ ] Launch day. "Get WakaGuard" on the page contacts see, and store links
       on the website
 - [x] Guidelines page (done in code 19 October): an example of reporting a checkpoint without accusing
