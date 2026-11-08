@@ -2365,8 +2365,13 @@ From the roadmap, with its dates. None of these needs an app build.
       promotional text, keywords, support and marketing links, copyright Inskriba Limited, build 27.1, manual
       release; the TestFlight review note plus one line on invites starting 1 December, and the same review
       contact; five iPhone screenshots (1179 x 2556) made on the local emulators with test data, phone numbers
-      left out. Still to do: the reviewer account (the owner types it), price (free) and countries, the age
-      rating questions, content rights, a look at App Privacy for build 27; then Add for Review.
+      left out. Later the same evening, on the owner's "yes to 2–4, keep the points ranking": free; Nigeria
+      only ("Available on App Release"); content rights "yes, with the necessary rights" (Google Maps); age
+      rating answers (user content and social: yes, as road reports are shared with everyone in a state;
+      contests: frequent, for the weekly points ranking; everything else none), calculated 13+ and set to
+      18+ because the Terms and sign-up require 18 or older, which Apple says the rating must match. Still to
+      do: the reviewer account (the owner types it), a look at App Privacy for build 27, whether to keep the
+      Mac and Vision Pro boxes Apple ticks by default; then Add for Review.
 - [ ] Launch day. "Get WakaGuard" on the page contacts see, and store links
       on the website
 - [x] Guidelines page (done in code 19 October): an example of reporting a checkpoint without accusing
