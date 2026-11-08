@@ -2382,7 +2382,11 @@ From the roadmap, with its dates. None of these needs an app build.
       the owner typed the reviewer account into App Review Information, and on the owner's "add for review"
       version 1.2.0 (build 27.1) was added for review and submitted at 9:32 am Arizona time: "Waiting for
       Review", release still manual, so nothing goes public until the owner presses "Release This Version"
-      (planned for 1 December). Apple says up to 48 hours.
+      (planned for 1 December). Apple says up to 48 hours. Also 8 Nov, on the owner's word: a product page
+      header (3840 x 1646, "If you don't arrive, they'll know." over two phones made from screenshots 2 and 4,
+      kept with the store wording outside this repository) uploaded to the Asset Library, where Apple took it as
+      a 21:9 product page header. Not sent for review. Apple's device preview only shows a header that is on a
+      product page, and the 1.2.0 page is locked while it waits for review.
 - [ ] Launch day. "Get WakaGuard" on the page contacts see, and store links
       on the website
 - [x] Guidelines page (done in code 19 October): an example of reporting a checkpoint without accusing
