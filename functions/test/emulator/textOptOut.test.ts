@@ -11,8 +11,8 @@ import { getTrustedContacts } from '../../src/safetyDelivery';
 
 const db = () => admin.firestore();
 let seq = 0;
-// Made-up numbers in a range no network gives out
-const number = () => `+2340000${String(1000000 + seq++).slice(1)}`;
+// Made-up numbers in the shape of a Nigerian mobile, the only numbers WakaGuard texts; nothing is really sent
+const number = () => `+2348000${String(1000000 + seq++).slice(1)}`;
 
 /** A text logged the way safetyDelivery.ts logs one */
 async function logText(uid: string, body: string, results: Array<{ phoneE164: string; sid?: string | null; error?: string | null }>) {

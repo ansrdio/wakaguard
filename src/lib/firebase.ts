@@ -61,6 +61,16 @@ const firebaseConfig = {
 export const EMULATOR_HOST = '127.0.0.1';
 
 /**
+ * The emulators' ports: firebase.json's, unless set for a local run when one is taken by something else.
+ * Written out in full so Next.js can put the values into the build.
+ */
+export const EMULATOR_PORTS = {
+  auth: Number(process.env.NEXT_PUBLIC_EMULATOR_AUTH_PORT) || 9099,
+  firestore: Number(process.env.NEXT_PUBLIC_EMULATOR_FIRESTORE_PORT) || 8080,
+  storage: Number(process.env.NEXT_PUBLIC_EMULATOR_STORAGE_PORT) || 9199,
+};
+
+/**
  * True when the app should talk to the local Firebase emulators instead of a
  * real project. Needs NEXT_PUBLIC_USE_FIREBASE_EMULATORS=true and only ever
  * applies on a local address, so a mis-set flag cannot send real users to
@@ -141,9 +151,9 @@ if (typeof window !== 'undefined') {
 
   // Must happen before any other use of the services
   if (isFirstInit && usingEmulators()) {
-    connectAuthEmulator(auth, `http://${EMULATOR_HOST}:9099`, { disableWarnings: true });
-    connectFirestoreEmulator(db, EMULATOR_HOST, 8080);
-    connectStorageEmulator(storage, EMULATOR_HOST, 9199);
+    connectAuthEmulator(auth, `http://${EMULATOR_HOST}:${EMULATOR_PORTS.auth}`, { disableWarnings: true });
+    connectFirestoreEmulator(db, EMULATOR_HOST, EMULATOR_PORTS.firestore);
+    connectStorageEmulator(storage, EMULATOR_HOST, EMULATOR_PORTS.storage);
     console.info('Using the local Firebase emulators');
   }
 

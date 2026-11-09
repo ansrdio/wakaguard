@@ -202,6 +202,39 @@ test('only the contacts chosen for the trip are alerted', async () => {
   assert.equal(sent[0].recipients.length, 1);
 });
 
+// Texts go to Nigerian mobile numbers only (the owner, 8 November 2026). The number abroad is one set aside for
+// fiction (US 555-01xx), saved directly as an older app could have saved it.
+test('a contact with a number outside Nigeria is not texted, and the Nigerian one still is', async () => {
+  const { uid, contactIds } = await makeUser({ contacts: 1 });
+  await db().doc(`users/${uid}/trustedContacts/abroad`).set({
+    name: 'Abroad', phoneE164: '+12025550123', createdAt: ts(Date.now() - 200 * MIN),
+  });
+  const id = await makeTrip(uid, ['abroad', ...contactIds], { endsAt: ts(Date.now() - PAST_GRACE) });
+
+  await runMonitor();
+
+  const sent = await logs(uid, 'overdue');
+  assert.equal(sent.length, 1);
+  assert.deepEqual(sent[0].recipients.map((r: any) => r.name), ['Contact 0']);
+  assert.ok(!JSON.stringify(sent[0]).includes('+12025550123'), 'the number abroad is not in the log');
+  assert.equal((await trip(uid, id)).overdueAlertSent, 1);
+});
+
+test('a trip whose only contact is abroad says nobody was told, and an SOS sends nothing', async () => {
+  const { uid } = await makeUser({ contacts: 0 });
+  await db().doc(`users/${uid}/trustedContacts/abroad`).set({ name: 'Abroad', phoneE164: '+447700900123' });
+  const id = await makeTrip(uid, ['abroad'], { endsAt: ts(Date.now() - PAST_GRACE) });
+
+  await runMonitor();
+
+  assert.equal((await trip(uid, id)).overdueAlertState, 'no_contacts');
+  assert.equal((await logs(uid, 'overdue')).length, 0);
+
+  const sos = await createSos(uid, {});
+  await sos.fire();
+  assert.equal((await logs(uid, 'sos')).length, 0);
+});
+
 test('no more than five contacts are ever messaged', async () => {
   const { uid, contactIds } = await makeUser({ contacts: 8 });
   await makeTrip(uid, contactIds, { endsAt: ts(Date.now() - PAST_GRACE) });

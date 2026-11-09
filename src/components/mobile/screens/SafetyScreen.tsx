@@ -18,7 +18,7 @@ import { StartTripForm, StartTripRequest } from '@/components/mobile/trip/StartT
 import { ActiveTripCard } from '@/components/mobile/trip/ActiveTripCard';
 import { TripMapScreen } from '@/components/mobile/trip/TripMapScreen';
 import { getDeviceId, sendsTripLocation } from '@/lib/deviceId';
-import { askedForNoTexts, canBeTexted, readContactPhone } from '@/lib/contactPhone';
+import { askedForNoTexts, canBeTexted, hasNumberAbroad, readContactPhone } from '@/lib/contactPhone';
 import { describeTripAlert } from '@/lib/alertOutcome';
 import { registerForPush } from '@/lib/pushRegistration';
 import { 
@@ -186,7 +186,7 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
   const [savedAlertName, setSavedAlertName] = useState<string | null>(null);
 
   // Trusted contacts
-  const [trustedContacts, setTrustedContacts] = useState<{ id: string; name: string; phone?: string; phoneE164?: string; email?: string; smsOptedOut?: boolean }[]>([]);
+  const [trustedContacts, setTrustedContacts] = useState<{ id: string; name: string; phone?: string; phoneE164?: string; phoneE164Abroad?: string; email?: string; smsOptedOut?: boolean }[]>([]);
   // The server only texts contacts with a full number saved, so only these count as people who are told
   const textableContacts = trustedContacts.filter(canBeTexted);
   const untextableCount = trustedContacts.length - textableContacts.length;
@@ -1380,6 +1380,10 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
                           {askedForNoTexts(contact) ? (
                             <p className="text-xs font-medium text-slate-700 mt-0.5">
                               Asked WakaGuard not to text this number, so will not be told about your trips.
+                            </p>
+                          ) : hasNumberAbroad(contact) ? (
+                            <p className="text-xs font-medium text-slate-700 mt-0.5">
+                              WakaGuard can only text Nigerian mobile numbers, so {contact.name} will not be told about your trips.
                             </p>
                           ) : !canBeTexted(contact) && (
                             <p className="text-xs font-medium text-slate-700 mt-0.5">

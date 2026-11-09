@@ -384,9 +384,18 @@ service cloud.firestore {
     // Private per-user subcollections
     // -------------------------------------------------------------------------
 
+    // WakaGuard texts Nigerian mobile numbers only (the owner, 8 November 2026): +234 then ten digits starting
+    // 7, 8 or 9, the same test as isNigerianMobile in functions/src/sms.ts. A contact without phoneE164 is
+    // allowed: the server never texts it, and the app shows it as one that cannot be texted.
+    function isNigerianMobile(p) {
+      return p is string && p.matches('^[+]234[789][0-9]{9}$');
+    }
+
     match /users/{userId}/trustedContacts/{contactId} {
       allow read: if isOwner(userId);
-      allow write: if isOwner(userId) && isAuthenticated();
+      allow delete: if isOwner(userId) && isAuthenticated();
+      allow create, update: if isOwner(userId) && isAuthenticated()
+        && (!('phoneE164' in request.resource.data) || isNigerianMobile(request.resource.data.phoneE164));
     }
 
     match /users/{userId}/safetyTimers/{timerId} {

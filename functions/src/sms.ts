@@ -28,6 +28,19 @@ export interface SendSmsResult {
   provider?: string;
 }
 
+/**
+ * WakaGuard texts Nigerian mobile numbers only (the owner, 8 November 2026):
+ * +234, then ten digits starting 7, 8 or 9. The app's contact form applies the
+ * same test (canBeTexted in src/lib/contactPhone.ts), and so do the rules for
+ * saving a contact.
+ */
+export function isNigerianMobile(phone: unknown): phone is string {
+  return typeof phone === 'string' && /^\+234[789]\d{9}$/.test(phone);
+}
+
+/** The error given for a number WakaGuard does not text */
+export const NOT_NIGERIAN = 'Not a Nigerian mobile number';
+
 const mockProvider: SmsProvider = {
   name: 'mock',
   configError: () => null,
@@ -86,6 +99,11 @@ export function getFallbackProvider(): SmsProvider | null {
 }
 
 export async function sendSms(to: string, body: string): Promise<SendSmsResult> {
+  // A last check: contacts abroad are already left out by getTrustedContacts
+  if (!isNigerianMobile(to)) {
+    console.warn(`SMS not sent: ${NOT_NIGERIAN}`);
+    return { phoneE164: to, error: NOT_NIGERIAN };
+  }
   const providers = getProviders();
   if (providers.length === 0) {
     return { phoneE164: to, error: 'No SMS provider configured' };

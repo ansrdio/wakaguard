@@ -1,6 +1,6 @@
 import { test, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { getFallbackProvider, getProviders, sendSms, sendSmsBatch } from '../src/sms';
+import { getFallbackProvider, getProviders, isNigerianMobile, NOT_NIGERIAN, sendSms, sendSmsBatch } from '../src/sms';
 
 const ENV_KEYS = [
   'SMS_PROVIDER', 'SMS_FALLBACK_PROVIDER', 'TWILIO_MOCK',
@@ -146,6 +146,35 @@ test('a batch reports each recipient separately', async () => {
 
   assert.equal(results.filter((r) => r.sid).length, 1);
   assert.equal(results.filter((r) => r.error).length, 1);
+});
+
+test('a number outside Nigeria is never sent to any provider (texts are Nigerian only, 8 Nov 2026)', async () => {
+  useTermii();
+  process.env.SMS_FALLBACK_PROVIDER = 'mock';
+  mockFetch(() => ({ status: 200, body: { message_id: 'a' } }));
+
+  // Numbers set aside for fiction (US 555-01xx, UK 07700 900xxx), and Nigerian numbers that are not mobiles
+  for (const to of ['+12025550123', '+447700900123', '+2341234567890', '+234803123456', '08031234567', '']) {
+    const result = await sendSms(to, 'x');
+    assert.equal(result.error, NOT_NIGERIAN, to);
+    assert.equal(result.sid, undefined, to);
+  }
+  assert.equal(calls.length, 0, 'no provider was asked');
+
+  const results = await sendSmsBatch([
+    { phoneE164: '+2348000000001', body: 'x' },
+    { phoneE164: '+12025550123', body: 'x' },
+  ]);
+  assert.equal(results[0].sid, 'a');
+  assert.equal(results[1].error, NOT_NIGERIAN);
+  assert.equal(calls.length, 1);
+});
+
+test('isNigerianMobile: +234 then ten digits starting 7, 8 or 9', () => {
+  for (const ok of ['+2347012345678', '+2348031234567', '+2349161234567']) assert.equal(isNigerianMobile(ok), true, ok);
+  for (const no of ['+2346012345678', '+234803123456', '+23480312345678', '2348031234567', '+12025550123', null, undefined, 2348031234567]) {
+    assert.equal(isNigerianMobile(no), false, String(no));
+  }
 });
 
 // ---------------------------------------------------------------------------

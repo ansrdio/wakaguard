@@ -19,7 +19,7 @@ import {
   textContactsByDefault,
   validateTripPlan,
 } from '@/lib/tripPlanning';
-import { askedForNoTexts, canBeTexted } from '@/lib/contactPhone';
+import { askedForNoTexts, canBeTexted, hasNumberAbroad } from '@/lib/contactPhone';
 import { TRAVEL_MODES, TravelMode, isTravelMode, lastTravelMode, moreOptionsLabel, rememberTravelMode, tipBeforeSettingOff } from '@/lib/travelMode';
 import { routeCannotBeRight, type UsualTrip } from '@/lib/usualTrips';
 import { TravelPicture } from '@/components/pictures/Pictures';
@@ -48,6 +48,8 @@ export interface TripContact {
   phone?: string;
   /** They asked WakaGuard to stop texting their number (set by the server) */
   smsOptedOut?: boolean;
+  /** A number outside Nigeria saved before texts were limited to Nigerian numbers (8 November 2026) */
+  phoneE164Abroad?: string;
 }
 
 export interface StartTripRequest {
@@ -616,6 +618,13 @@ export function StartTripForm({
                         <span className="block text-sm text-slate-900 dark:text-slate-100 mt-1">
                           {contact.name} asked WakaGuard not to text their number, so they will not be told.
                           Only they can turn texts back on, from the link in an earlier WakaGuard text.
+                        </span>
+                      ) : hasNumberAbroad(contact) ? (
+                        <span className="block text-sm text-slate-900 dark:text-slate-100 mt-1">
+                          WakaGuard can only text Nigerian mobile numbers, so {contact.name} will not be told.{' '}
+                          <button type="button" onClick={onManageContacts} className="font-semibold underline">
+                            Change contacts
+                          </button>
                         </span>
                       ) : (
                         <span className="block text-sm text-slate-900 dark:text-slate-100 mt-1">

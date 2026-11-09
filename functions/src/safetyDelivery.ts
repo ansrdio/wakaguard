@@ -1,7 +1,7 @@
 import * as admin from 'firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { getSetting } from './config';
-import { getProviders, sendSmsBatch, SendSmsResult } from './sms';
+import { getProviders, isNigerianMobile, sendSmsBatch, SendSmsResult } from './sms';
 import { sanitizeName } from './smsText';
 import { addressTo } from './templates';
 import { isConfirmedAccount } from './confirmedAccount';
@@ -62,8 +62,8 @@ export async function stoppedNumbers(phones: string[]): Promise<Set<string>> {
 }
 
 /**
- * Load a user's trusted contacts that have a valid phone number and have not
- * asked for texts to stop, oldest first, capped at MAX_RECIPIENTS. If
+ * Load a user's trusted contacts that have a Nigerian mobile number and have
+ * not asked for texts to stop, oldest first, capped at MAX_RECIPIENTS. If
  * contactIds is non-empty, only those contacts are considered.
  */
 export async function getTrustedContacts(
@@ -75,14 +75,24 @@ export async function getTrustedContacts(
 
   const contacts: Array<TrustedContactDoc & { id: string; createdAtMs: number }> = [];
   const seenPhones = new Set<string>();
+  let abroad = 0;
   snap.forEach((doc) => {
     const c = doc.data() as TrustedContactDoc & { createdAt?: FirebaseFirestore.Timestamp };
     if (!c.phoneE164 || !isValidE164(c.phoneE164)) return;
     if (wanted && !wanted.has(doc.id)) return;
+    // Texts go to Nigerian mobile numbers only (the owner, 8 November 2026)
+    if (!isNigerianMobile(c.phoneE164)) {
+      abroad += 1;
+      return;
+    }
     if (seenPhones.has(c.phoneE164)) return;
     seenPhones.add(c.phoneE164);
     contacts.push({ ...c, id: doc.id, createdAtMs: c.createdAt?.toMillis?.() ?? 0 });
   });
+
+  if (abroad > 0) {
+    console.warn(`User ${uid}: ${abroad} contact(s) with a number outside Nigeria are left out; texts go to Nigerian numbers only`);
+  }
 
   const stopped = await stoppedNumbers(contacts.map((c) => c.phoneE164));
   const textable = contacts.filter((c) => !stopped.has(c.phoneE164));

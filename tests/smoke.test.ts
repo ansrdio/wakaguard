@@ -67,6 +67,13 @@ const originalConsole = {
   warn: console.warn
 };
 
+
+// The emulators' addresses, as `firebase emulators:exec` gives them (the defaults when run some other way), so the
+// suite can run on other ports when 8080 is taken
+const FIRESTORE_HOST = process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8080';
+const AUTH_HOST = process.env.FIREBASE_AUTH_EMULATOR_HOST || '127.0.0.1:9099';
+const STORAGE_HOST = (process.env.FIREBASE_STORAGE_EMULATOR_HOST || '127.0.0.1:9199').replace(/^https?:\/\//, '');
+
 function logToBuffer(level: keyof typeof originalConsole, args: unknown[]) {
   const message = args
     .map((arg) => (typeof arg === 'string' ? arg : JSON.stringify(arg)))
@@ -137,9 +144,9 @@ function initEmulatorApp(name: string): AppContext {
   const auth = getAuth(app);
   const db = getFirestore(app);
   const storage = getStorage(app);
-  connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
-  connectFirestoreEmulator(db, '127.0.0.1', 8080);
-  connectStorageEmulator(storage, '127.0.0.1', 9199);
+  connectAuthEmulator(auth, `http://${AUTH_HOST}`, { disableWarnings: true });
+  connectFirestoreEmulator(db, FIRESTORE_HOST.split(':')[0], Number(FIRESTORE_HOST.split(':')[1]));
+  connectStorageEmulator(storage, STORAGE_HOST.split(':')[0], Number(STORAGE_HOST.split(':')[1]));
   return { app, auth, db, storage };
 }
 
@@ -570,7 +577,7 @@ async function sharedTripUpdateWhileOverdue(ctx: AppContext, token: string) {
 // Written here as the Admin SDK would, bypassing rules.
 /** Changes a comment's status the way the server does when several people have reported it */
 async function adminSetCommentStatus(commentId: string, status: string) {
-  const url = `http://127.0.0.1:8080/v1/projects/${getProjectId()}/databases/(default)/documents/comments/${commentId}`
+  const url = `http://${FIRESTORE_HOST}/v1/projects/${getProjectId()}/databases/(default)/documents/comments/${commentId}`
     + '?updateMask.fieldPaths=status';
   const response = await fetch(url, {
     method: 'PATCH',
@@ -582,7 +589,7 @@ async function adminSetCommentStatus(commentId: string, status: string) {
 
 /** Puts how the traveller is travelling on the shared trip, as the server does when contacts are alerted */
 async function adminAddTravelMode(token: string) {
-  const url = `http://127.0.0.1:8080/v1/projects/${getProjectId()}/databases/(default)/documents/sharedTrips/${token}`
+  const url = `http://${FIRESTORE_HOST}/v1/projects/${getProjectId()}/databases/(default)/documents/sharedTrips/${token}`
     + '?updateMask.fieldPaths=travelMode';
   const response = await fetch(url, {
     method: 'PATCH',
@@ -594,7 +601,7 @@ async function adminAddTravelMode(token: string) {
 
 /** Puts the vehicle on the shared trip, as the server does when contacts are alerted */
 async function adminAddVehicle(token: string) {
-  const url = `http://127.0.0.1:8080/v1/projects/${getProjectId()}/databases/(default)/documents/sharedTrips/${token}`
+  const url = `http://${FIRESTORE_HOST}/v1/projects/${getProjectId()}/databases/(default)/documents/sharedTrips/${token}`
     + '?updateMask.fieldPaths=vehicle';
   const response = await fetch(url, {
     method: 'PATCH',
@@ -606,7 +613,7 @@ async function adminAddVehicle(token: string) {
 
 /** Puts the planned route on the shared trip, as the server does when directions (Beta) are on */
 async function adminAddRoute(token: string) {
-  const url = `http://127.0.0.1:8080/v1/projects/${getProjectId()}/databases/(default)/documents/sharedTrips/${token}`
+  const url = `http://${FIRESTORE_HOST}/v1/projects/${getProjectId()}/databases/(default)/documents/sharedTrips/${token}`
     + '?updateMask.fieldPaths=route';
   const route = {
     overview: { stringValue: 'gfo}EtohhUxD@bAxJmGF' },
@@ -647,7 +654,7 @@ async function sharedTripChangeVehicle(ctx: AppContext, token: string) {
 }
 
 async function adminAddPathAndName(token: string) {
-  const url = `http://127.0.0.1:8080/v1/projects/${getProjectId()}/databases/(default)/documents/sharedTrips/${token}`
+  const url = `http://${FIRESTORE_HOST}/v1/projects/${getProjectId()}/databases/(default)/documents/sharedTrips/${token}`
     + '?updateMask.fieldPaths=path&updateMask.fieldPaths=name';
   const point = (lat: number, lng: number, at: number) => ({
     mapValue: { fields: { lat: { doubleValue: lat }, lng: { doubleValue: lng }, at: { integerValue: String(at) } } }
@@ -670,7 +677,7 @@ async function adminAddPathAndName(token: string) {
 
 /** A checkpoint stop, as functions/src/checkpointStops.ts adds it (build 27) */
 async function adminAddCheckpointStop(token: string) {
-  const url = `http://127.0.0.1:8080/v1/projects/${getProjectId()}/databases/(default)/documents/sharedTrips/${token}`
+  const url = `http://${FIRESTORE_HOST}/v1/projects/${getProjectId()}/databases/(default)/documents/sharedTrips/${token}`
     + '?updateMask.fieldPaths=checkpoints';
   const stop = {
     mapValue: { fields: { atMs: { integerValue: String(Date.now()) }, lat: { doubleValue: 6.52 }, lng: { doubleValue: 3.42 } } }
@@ -868,7 +875,7 @@ async function userDocDelete(ctx: AppContext, uid: string) {
 // Writes as the Admin SDK would, bypassing rules ("Bearer owner" is the emulator's admin token)
 async function adminSetUserFields(uid: string, fields: Record<string, string>) {
   const mask = Object.keys(fields).map((k) => `updateMask.fieldPaths=${k}`).join('&');
-  const url = `http://127.0.0.1:8080/v1/projects/${getProjectId()}/databases/(default)/documents/users/${uid}?${mask}`;
+  const url = `http://${FIRESTORE_HOST}/v1/projects/${getProjectId()}/databases/(default)/documents/users/${uid}?${mask}`;
   const body = {
     fields: Object.fromEntries(Object.entries(fields).map(([k, v]) => [k, { stringValue: v }]))
   };
@@ -1361,6 +1368,29 @@ async function run() {
     await runStep('User: trigger SOS', () => safetyTriggerSOS(user, userUid));
     await runStep('User: quick check-in', () => safetyQuickCheckIn(user, userUid));
     await runStep('User: add trusted contact', () => safetyAddTrustedContact(user, userUid));
+
+    // ---- Trusted contacts: Nigerian mobile numbers only (the owner, 8 November 2026) ----
+    // Numbers abroad are ones set aside for fiction (US 555-01xx, UK 07700 900xxx)
+    const contactAt = (id: string) => doc(user.db, 'users', userUid, 'trustedContacts', id);
+    await runStep('User: add a contact with a Nigerian mobile number', () =>
+      setDoc(contactAt('ng'), { name: 'Tobi', phone: '0800 000 0001', phoneE164: '+2348000000001', createdAt: Timestamp.now() })
+    );
+    await runStep('User: add a contact with a US number denied', () =>
+      setDoc(contactAt('us'), { name: 'Abroad', phone: '+1 202 555 0123', phoneE164: '+12025550123', createdAt: Timestamp.now() }), true
+    );
+    await runStep('User: add a contact with a UK number denied', () =>
+      setDoc(contactAt('uk'), { name: 'Abroad', phoneE164: '+447700900123' }), true
+    );
+    await runStep('User: add a contact with a Nigerian number that is not a mobile denied', () =>
+      setDoc(contactAt('fixed'), { name: 'Office', phoneE164: '+2341234567890' }), true
+    );
+    await runStep('User: change a contact to a number abroad denied', () =>
+      setDoc(contactAt('ng'), { phoneE164: '+12025550123' }, { merge: true }), true
+    );
+    await runStep('User: rename a Nigerian contact', () =>
+      setDoc(contactAt('ng'), { name: 'Tobi A' }, { merge: true })
+    );
+    await runStep('User: remove a contact', () => deleteDoc(contactAt('ng')));
 
     await runStep('User: create push subscription', () => pushSubCreate(user, userUid));
     await runStep(

@@ -2349,6 +2349,26 @@ From the roadmap, with its dates. None of these needs an app build.
       check for the phone apps (App Check itself moved into build 26 on
       28 October; the settings check of 28 October is in "Website and server
       releases")
+- [ ] **Texts to Nigerian mobile numbers only** (the owner, 8 November: "limit texts to Nigerian numbers only").
+      Until now a contact could be any number in the world, with only 50 texts a day per account and no overall cap.
+      Server, rules and website now; the app's own wording with the next app build.
+      - **Server:** a contact is texted only if their number is +234 then ten digits starting 7, 8 or 9.
+        `getTrustedContacts` leaves any other number out, and `sendSms` and the delivery-report resend refuse it
+        as a last check.
+      - **Rules:** a contact can no longer be saved with any other number. Build 27 then says "Failed to add
+        contact"; the next app build says why.
+      - **Contacts already saved with a number abroad:** a one-off tool moves the number to `phoneE164Abroad`, so
+        build 27 shows them as "This number cannot be texted, so they will not be told" instead of promising a
+        text. Counted read-only first; changed only on the owner's word.
+      - **App and website wording:** the contact form asks for a Nigerian mobile number, and a contact abroad is
+        shown as "WakaGuard can only text Nigerian mobile numbers, so they will not be told."
+      - **Release, each on the owner's word, before pushing:** rules; then the functions that send texts by name;
+        then the website. Rules and the seven texting functions live Sun 8 Nov (see "Website and server releases").
+      - **Checked** in the browser against the emulators, at phone size: a contact saved abroad shows the new line on
+        the trip form and in Trusted contacts, a UK number is refused with the new message, and a Nigerian number is
+        added. Tests: 444 unit, 144 emulator, 157 smoke. The smoke test and the site's emulator mode
+        (`NEXT_PUBLIC_EMULATOR_AUTH_PORT`, `..._FIRESTORE_PORT`, `..._STORAGE_PORT`) can now use other ports when 8080
+        is taken by something else on the computer.
 - [ ] By Fri 6 Nov. The go or no-go checklist for Fri 13 Nov
 - [ ] **Play: public release ("production").** Sat 7 Nov, 16:20 Arizona, on the owner's "ok apply": the
       application for production access was sent (all three closed-test conditions were met: a closed release,
@@ -2772,6 +2792,7 @@ Changes that went live without an app build.
 
 | Date | What |
 |---|---|
+| Sun 8 Nov (evening in Arizona) | **Texts to Nigerian mobile numbers only**, on the owner's word ("yes do the count and deploy"): the rules (a contact can only be saved with a +234 mobile number or none), then by name `checkOverdueTrips`, `checkQuietTrips`, `onTripUpdated`, `onSafetyTimerUpdated`, `onSOSAlert`, `sendSafetySms` and `smsReport`, all "Successful update", with the same texting settings as before (Termii, "OE Alert"). Checked live: `checkOverdueTrips` runs on the new code with status ok and no errors in the log. Counted read-only the same evening: 1 of 50 saved contacts has a number abroad (+1), on one of the owner's own accounts; no tester's or user's. The website (the form's wording) comes next |
 | Sat 7 Nov (evening in Arizona) | **Invites start on 1 December**, on the owner's word ("deploy referrals and release the website"), from `d467a4a`: `referrals` by name ("Successful update"; no `REFERRALS_ACCOUNTS_FROM_MS` setting, so the new 1 December start applies), then the website (Hosting only). Checked live: the Terms say "Only accounts created from 1 December 2026 can be invited" and are dated 7 November 2026, and the website's "too early" message says 1 December. Testers were told the same day in the WhatsApp group |
 | Fri 6 Nov (afternoon in Arizona) | **The website at build 27**, on the owner's word ("go", after signing the Firebase tool back in), from `ac38076`: Hosting only, 207 files, with the live settings (the web config, `NEXT_PUBLIC_APP_URL`, the Mapbox token for directions only, the Google map key). Every map on wakaguard.com is now Google's (the owner had seen Mapbox and OpenStreetMap still there), with the place search, the start form kept across tabs, "Looking for places…" and the most used states first. Checked after: the live home page is the same file as the build, and its code has Google's map loader and the new wording. A browser that had the old site may need one more reload before its saved copy is replaced |
 | Fri 6 Nov (late morning in Arizona) | **`placeName` on Google**, on the owner's word ("approved, go"), by name: names a pin and finds the state with Google's reverse geocoding (Geocoding API, turned on and capped at 1,000 a day that morning) instead of OpenStreetMap's Nominatim. Phones on build 26 keep working: they read only the name, which now comes from Google, still with their old "© OpenStreetMap contributors" line under it until they update. The CLI again could not clean up the build images; the 1-day clean-up rule covers them |

@@ -22,8 +22,8 @@ import { deliverSafetySms, getTrustedContacts } from '../../src/safetyDelivery';
 const db = () => admin.firestore();
 const KEY = process.env.SMS_REPORT_KEY!;
 let seq = 0;
-// Made-up numbers in a range no network gives out
-const number = () => `+2340001${String(1000000 + seq++).slice(1)}`;
+// Made-up numbers in the shape of a Nigerian mobile, the only numbers WakaGuard texts; nothing is really sent
+const number = () => `+2348001${String(1000000 + seq++).slice(1)}`;
 
 // Every text the backup sends, from the mock provider's log line
 const resent: string[] = [];
@@ -123,6 +123,12 @@ test('a late report, a stopped number, or a text the backup sent are not sent ag
   await db().doc(`smsOptOuts/${stopped.phoneE164}`).set({ phoneE164: stopped.phoneE164, stopped: true });
   assert.deepEqual(await call({ id: stopped.sid, status: 'Failed' }), { status: 200, body: 'not_resent' });
   assert.equal((await stoppedRef.get()).data()!.resends[stopped.sid].reason, 'number stopped texts');
+
+  // A text logged to a number abroad before texts became Nigerian only (8 November 2026); set aside for fiction
+  const abroad = { name: 'Tobi', phoneE164: '+12025550123', sid: sid() };
+  const abroadRef = await makeLog([abroad]);
+  assert.deepEqual(await call({ id: abroad.sid, status: 'Failed' }), { status: 200, body: 'not_resent' });
+  assert.equal((await abroadRef.get()).data()!.resends[abroad.sid].reason, 'Not a Nigerian mobile number');
 
   const viaTermii = { name: 'Tobi', phoneE164: number(), sid: sid(), provider: 'termii' };
   const termiiRef = await makeLog([viaTermii]);

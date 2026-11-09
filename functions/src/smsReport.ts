@@ -21,7 +21,7 @@ import * as admin from 'firebase-admin';
 import { FieldPath, FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { getNumberSetting, getSetting } from './config';
 import { isSmsEnabled, OPT_OUTS, stoppedNumbers } from './safetyDelivery';
-import { getFallbackProvider } from './sms';
+import { getFallbackProvider, isNigerianMobile, NOT_NIGERIAN } from './sms';
 import { decideReport, DeliveryReport, LoggedText, OptOutNotice, readNotification, textFromLog } from './smsReportPlan';
 import { addressTo } from './templates';
 import { markEveryCopy } from './textOptOut';
@@ -48,6 +48,12 @@ async function resend(
     const reason = !isSmsEnabled() ? 'texts switched off' : !usable ? 'no backup provider' : 'no message in the log';
     await note({ state: 'not_sent', reason });
     console.error(`ALARM: texts not sent: ${why}, and it was not sent again (${reason})`);
+    return 'not_resent';
+  }
+  // Texts go to Nigerian mobile numbers only (the owner, 8 November 2026)
+  if (!isNigerianMobile(text.phoneE164)) {
+    await note({ state: 'not_sent', reason: NOT_NIGERIAN });
+    console.log(`${why}; not sent again: ${NOT_NIGERIAN}`);
     return 'not_resent';
   }
   // They may have asked for no more texts since
