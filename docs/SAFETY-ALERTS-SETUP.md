@@ -28,7 +28,7 @@ Copy `functions/.env.example` to `functions/.env` and fill it in. That file is g
 
 ### Africa's Talking, with Termii as the backup
 
-Africa's Talking registered the sender ID **WakaGuard** with all four Nigerian networks on 28 October 2026, so its texts show "WakaGuard" rather than Termii's "OE Alert". The plan is Africa's Talking first and Termii as the backup:
+Africa's Talking registered the sender ID **WakaGuard** with all four Nigerian networks on 28 October 2026, so its texts show "WakaGuard" rather than Termii's "OE Alert". Africa's Talking has been the main sender, with Termii as the backup, since 9 November 2026 (10 November in Nigeria). The set-up:
 
 1. In the Africa's Talking dashboard, use the live app (username `wakaguard`, not the sandbox), create an API key and top up the wallet.
 2. Set `AFRICASTALKING_USERNAME`, `AFRICASTALKING_API_KEY` and `AFRICASTALKING_SENDER_ID="WakaGuard"` (the owner's helper script asks for the key without showing it).
