@@ -19,13 +19,19 @@ test("only records inside someone's account are deleted, not the old top-level c
   assert.equal(isInAccount('users/u1/alerts/a1', 'checkIns'), false);
 });
 
-test('the text check warns when the wallet is low or texts jump, and is quiet otherwise', () => {
-  assert.deepEqual(textAlarms(9090.43, 2), []);
-  assert.deepEqual(textAlarms(null, 0), [], 'a wallet that could not be read is not an alarm');
-  assert.match(textAlarms(WALLET_LOW_NGN - 0.01, 0)[0], /wallet low/);
-  assert.deepEqual(textAlarms(WALLET_LOW_NGN, 0), []);
-  assert.match(textAlarms(5000, MAX_TEXTS_PER_HOUR + 1)[0], /texts jumped: 41/);
-  assert.equal(textAlarms(100, 100).length, 2);
+test('the text check warns when a wallet is low or texts jump, and is quiet otherwise', () => {
+  const at = (balanceNgn: number | null) => ({ name: "Africa's Talking", balanceNgn });
+  const termii = (balanceNgn: number | null) => ({ name: 'Termii', balanceNgn });
+  assert.deepEqual(textAlarms([at(40394.65), termii(6978.23)], 2), []);
+  assert.deepEqual(textAlarms([], 0), [], 'no wallet in use, nothing to warn about');
+  assert.deepEqual(textAlarms([at(null), termii(null)], 0), [], 'a wallet that could not be read is not an alarm');
+  assert.deepEqual(textAlarms([at(WALLET_LOW_NGN), termii(WALLET_LOW_NGN)], 0), []);
+  const low = textAlarms([at(WALLET_LOW_NGN - 0.01), termii(9000)], 0);
+  assert.equal(low.length, 1);
+  assert.match(low[0], /^text wallet low: Africa's Talking has NGN 2999\.99 left/);
+  assert.match(textAlarms([at(9000), termii(100)], 0)[0], /^text wallet low: Termii has NGN 100\.00 left/);
+  assert.match(textAlarms([at(5000)], MAX_TEXTS_PER_HOUR + 1)[0], /texts jumped: 41/);
+  assert.equal(textAlarms([at(100), termii(100)], 100).length, 3);
 });
 
 test('the deletion only runs with a backup from the last three days', () => {

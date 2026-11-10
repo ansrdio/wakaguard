@@ -123,7 +123,7 @@ test('without a recent backup nothing is deleted', async () => {
   assert.equal(await exists(`users/${uid}/trips/old`), false);
 });
 
-test('the text check warns when texts jump and when the Termii wallet is low', async () => {
+test('the text check warns when texts jump and when a text wallet is low', async () => {
   const uid = `${tag}_texts`;
   const recipients = (n: number) => Array.from({ length: n }, (_, i) => ({ name: `C${i}`, phoneE164: `+2340000000${String(i).padStart(3, '0')}` }));
   await db().doc(`safetyMessageLogs/${tag}_burst`).set({ uid, provider: 'termii', recipients: recipients(41), createdAt: at(1 / 48) });
@@ -132,19 +132,32 @@ test('the text check warns when texts jump and when the Termii wallet is low', a
   // Older than an hour: not counted
   await db().doc(`safetyMessageLogs/${tag}_earlier`).set({ uid, provider: 'termii', recipients: recipients(30), createdAt: at(1 / 12) });
 
-  const previous = process.env.SMS_PROVIDER;
-  process.env.SMS_PROVIDER = 'termii';
+  const previous = { main: process.env.SMS_PROVIDER, backup: process.env.SMS_FALLBACK_PROVIDER };
+  process.env.SMS_PROVIDER = 'africastalking';
+  process.env.SMS_FALLBACK_PROVIDER = 'termii';
   try {
-    const low = await runTextWatch(NOW, async () => 2500);
+    const low = await runTextWatch(NOW, { africastalking: async () => 2500, termii: async () => 6978.23 });
     assert.ok(low.texts >= 41 && low.texts < 71, `counted ${low.texts}`);
+    assert.deepEqual(low.wallets, [{ name: "Africa's Talking", balanceNgn: 2500 }, { name: 'Termii', balanceNgn: 6978.23 }]);
     assert.ok(low.alarms.some((a) => /texts jumped/.test(a)));
-    assert.ok(low.alarms.some((a) => /wallet low: NGN 2500\.00/.test(a)));
+    assert.ok(low.alarms.some((a) => /wallet low: Africa's Talking has NGN 2500\.00/.test(a)));
+    assert.ok(!low.alarms.some((a) => /Termii/.test(a)), 'the backup wallet is not low');
 
-    const unreadable = await runTextWatch(NOW, async () => { throw new Error('Termii is down'); });
-    assert.equal(unreadable.balance, null);
-    assert.ok(!unreadable.alarms.some((a) => /wallet/.test(a)), 'a wallet that cannot be read is not an alarm');
+    const unreadable = await runTextWatch(NOW, {
+      africastalking: async () => { throw new Error("Africa's Talking is down"); },
+      termii: async () => 100,
+    });
+    assert.equal(unreadable.wallets[0].balanceNgn, null);
+    assert.ok(!unreadable.alarms.some((a) => /Africa's Talking/.test(a)), 'a wallet that cannot be read is not an alarm');
+    assert.ok(unreadable.alarms.some((a) => /wallet low: Termii has NGN 100\.00/.test(a)), 'the other wallet is still checked');
+
+    process.env.SMS_PROVIDER = 'mock';
+    delete process.env.SMS_FALLBACK_PROVIDER;
+    assert.deepEqual((await runTextWatch(NOW)).wallets, [], 'no provider with a wallet, nothing read');
   } finally {
-    if (previous === undefined) delete process.env.SMS_PROVIDER;
-    else process.env.SMS_PROVIDER = previous;
+    for (const [key, value] of [['SMS_PROVIDER', previous.main], ['SMS_FALLBACK_PROVIDER', previous.backup]] as const) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
   }
 });

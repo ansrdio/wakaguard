@@ -60,17 +60,25 @@ export function backupIsRecent(newestBackupMs: number | null, nowMs: number): bo
   return newestBackupMs !== null && newestBackupMs <= nowMs && nowMs - newestBackupMs <= BACKUP_MAX_AGE_DAYS * DAY_MS;
 }
 
-/** Below this the Termii wallet is low (about 200 texts of two pages) */
+/** Below this a text wallet is low: about 200 texts of two pages through Termii, 270 through Africa's Talking */
 export const WALLET_LOW_NGN = 3000;
+
+/** A text provider's wallet as the hourly check read it; null when it could not be read */
+export interface WalletReading {
+  name: string;
+  balanceNgn: number | null;
+}
 
 /** More texts than this in an hour is a jump: a normal day has a handful */
 export const MAX_TEXTS_PER_HOUR = 40;
 
 /** What the hourly text check should warn about, if anything */
-export function textAlarms(balanceNgn: number | null, textsLastHour: number): string[] {
+export function textAlarms(wallets: WalletReading[], textsLastHour: number): string[] {
   const alarms: string[] = [];
-  if (balanceNgn !== null && balanceNgn < WALLET_LOW_NGN) {
-    alarms.push(`text wallet low: NGN ${balanceNgn.toFixed(2)} left (alarm under NGN ${WALLET_LOW_NGN})`);
+  for (const { name, balanceNgn } of wallets) {
+    if (balanceNgn !== null && balanceNgn < WALLET_LOW_NGN) {
+      alarms.push(`text wallet low: ${name} has NGN ${balanceNgn.toFixed(2)} left (alarm under NGN ${WALLET_LOW_NGN})`);
+    }
   }
   if (textsLastHour > MAX_TEXTS_PER_HOUR) {
     alarms.push(`texts jumped: ${textsLastHour} sent in the last hour (alarm over ${MAX_TEXTS_PER_HOUR})`);

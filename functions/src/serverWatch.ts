@@ -1,5 +1,6 @@
 /**
- * The hourly text check: warns when Termii's wallet is running low, or when
+ * The hourly text check: warns when the wallet of a text provider in use
+ * (Africa's Talking, Termii) is running low, or when
  * far more texts went out in the last hour than a normal day sends (a bug or
  * misuse spending the wallet). Limits in retentionPlan.ts.
  *
@@ -16,7 +17,16 @@ import * as admin from 'firebase-admin';
 import { Timestamp } from 'firebase-admin/firestore';
 import { getProviders } from './sms';
 import { termiiBalance } from './termii';
-import { textAlarms } from './retentionPlan';
+import { africasTalkingBalance } from './africasTalking';
+import { textAlarms, WalletReading } from './retentionPlan';
+
+type ReadBalance = () => Promise<number | null>;
+
+/** The providers whose wallet can be read, by provider name */
+const WALLETS: Record<string, { label: string; read: ReadBalance }> = {
+  africastalking: { label: "Africa's Talking", read: africasTalkingBalance },
+  termii: { label: 'Termii', read: termiiBalance },
+};
 
 const HOUR_MS = 60 * 60 * 1000;
 
@@ -34,22 +44,33 @@ async function textsInLastHour(nowMs: number): Promise<number> {
     }, 0);
 }
 
+/**
+ * Reads the wallet of each provider in use, main sender first, then warns as
+ * textAlarms says. `readers` stands in for a provider's wallet in tests.
+ */
 export async function runTextWatch(
   nowMs: number,
-  readBalance: () => Promise<number | null> = termiiBalance
-): Promise<{ texts: number; balance: number | null; alarms: string[] }> {
+  readers: Partial<Record<string, ReadBalance>> = {}
+): Promise<{ texts: number; wallets: WalletReading[]; alarms: string[] }> {
   const texts = await textsInLastHour(nowMs);
-  let balance: number | null = null;
-  if (getProviders().some((provider) => provider.name === 'termii')) {
-    balance = await readBalance().catch((error) => {
-      console.warn(`Text watch: could not read the Termii wallet: ${String(error)}`);
+  const wallets: WalletReading[] = [];
+  for (const provider of getProviders()) {
+    const wallet = WALLETS[provider.name];
+    if (!wallet) continue;
+    const read = readers[provider.name] ?? wallet.read;
+    const balanceNgn = await read().catch((error) => {
+      console.warn(`Text watch: could not read the ${wallet.label} wallet: ${String(error)}`);
       return null;
     });
+    wallets.push({ name: wallet.label, balanceNgn });
   }
-  const alarms = textAlarms(balance, texts);
+  const alarms = textAlarms(wallets, texts);
   alarms.forEach((alarm) => console.error(`ALARM: ${alarm}`));
-  console.log(`Text watch: ${texts} text(s) in the last hour; Termii wallet ${balance === null ? 'not read' : `NGN ${balance.toFixed(2)}`}`);
-  return { texts, balance, alarms };
+  const walletText = wallets.length === 0
+    ? 'no wallet to read'
+    : wallets.map((w) => `${w.name} wallet ${w.balanceNgn === null ? 'not read' : `NGN ${w.balanceNgn.toFixed(2)}`}`).join('; ');
+  console.log(`Text watch: ${texts} text(s) in the last hour; ${walletText}`);
+  return { texts, wallets, alarms };
 }
 
 export const watchTexts = functions.pubsub

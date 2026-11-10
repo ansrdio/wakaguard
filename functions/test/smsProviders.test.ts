@@ -1,6 +1,7 @@
 import { test, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { getFallbackProvider, getProviders, isNigerianMobile, NOT_NIGERIAN, sendSms, sendSmsBatch } from '../src/sms';
+import { africasTalkingBalance } from '../src/africasTalking';
 
 const ENV_KEYS = [
   'SMS_PROVIDER', 'SMS_FALLBACK_PROVIDER', 'TWILIO_MOCK',
@@ -229,3 +230,38 @@ test("Africa's Talking settings are checked before anything is sent", async () =
   assert.equal(calls.length, 0);
 });
 
+
+test("the Africa's Talking wallet is read from the user data endpoint, in naira", async () => {
+  process.env.AFRICASTALKING_USERNAME = 'wakaguard';
+  process.env.AFRICASTALKING_API_KEY = 'key_456';
+  const seen: Array<{ url: string; headers: Record<string, string> }> = [];
+  const answer = (status: number, body: unknown) => {
+    globalThis.fetch = (async (url: any, init: any) => {
+      seen.push({ url: String(url), headers: init.headers });
+      return new Response(typeof body === 'string' ? body : JSON.stringify(body), { status });
+    }) as typeof fetch;
+  };
+
+  answer(200, { UserData: { balance: 'NGN 40394.6480' } });
+  assert.equal(await africasTalkingBalance(), 40394.648);
+  assert.equal(seen[0].url, 'https://api.africastalking.com/version1/user?username=wakaguard');
+  assert.equal(seen[0].headers.apiKey, 'key_456');
+  assert.equal(seen[0].headers.Accept, 'application/json');
+  assert.ok(!seen[0].url.includes('key_456'), 'the key goes in a header, never in the address');
+
+  answer(200, { UserData: { balance: 'NGN 1,250.50' } });
+  assert.equal(await africasTalkingBalance(), 1250.5);
+
+  // Anything that is not a naira amount reads as "not read", never as zero
+  for (const body of [{ UserData: { balance: 'KES 500.00' } }, { UserData: {} }, {}, 'not json']) {
+    answer(200, body);
+    assert.equal(await africasTalkingBalance(), null, JSON.stringify(body));
+  }
+  answer(401, { message: 'The supplied authentication is invalid' });
+  assert.equal(await africasTalkingBalance(), null);
+
+  delete process.env.AFRICASTALKING_API_KEY;
+  seen.length = 0;
+  assert.equal(await africasTalkingBalance(), null);
+  assert.equal(seen.length, 0, 'no key, no request');
+});

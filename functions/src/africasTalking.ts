@@ -86,3 +86,26 @@ export const africasTalkingProvider: SmsProvider = {
     return String(recipient.messageId);
   },
 };
+
+/**
+ * What is left in the Africa's Talking wallet, in naira, for the hourly text
+ * check (serverWatch.ts), from the user data endpoint
+ * (https://developers.africastalking.com/docs/application), which answers
+ * { UserData: { balance: "NGN 40394.6480" } }. Null when it cannot be had or
+ * is not in naira; the key never leaves this call.
+ */
+export async function africasTalkingBalance(): Promise<number | null> {
+  const { username, apiKey, baseUrl, timeoutMs } = getConfig();
+  if (!username || !apiKey) return null;
+  const response = await fetch(`${baseUrl}/version1/user?username=${encodeURIComponent(username)}`, {
+    headers: { Accept: 'application/json', apiKey },
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+  if (!response.ok) return null;
+  const data = (await response.json().catch(() => null)) as { UserData?: { balance?: unknown } } | null;
+  const value = data?.UserData?.balance;
+  // A missing or foreign balance must not read as zero, which would sound the alarm
+  const match = typeof value === 'string' ? value.trim().match(/^NGN\s*([\d,]+(?:\.\d+)?)$/) : null;
+  const balance = match ? Number(match[1].replace(/,/g, '')) : NaN;
+  return Number.isFinite(balance) ? balance : null;
+}
