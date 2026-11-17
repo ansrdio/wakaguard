@@ -28,6 +28,7 @@ before the weekend. Android and iPhone go out on the same day.
 | 25 | Wed 4 Nov | Fixes after text alerts are switched on; one-tap "keep running" permissions on the first trip; 6, 8 and 12-hour trip choices; four fixes from problem reports (old Android WebView, notifications switch, full-screen pin map, "ending early is fine"); last of all, directions on the trip as a beta (the owner, 23 Oct: "It will be the last thing we add") | Out on both, Sun 25 Oct, ten days early; both stores approved it the same day |
 | 26 | Wed 4 Nov | What is done by then: seven small fixes and the simplification pass (one colour plus red for emergencies, fewer boxes and icons, a short start form with extras under "More options", plain labels). Moved a week early on 2 November (the owner: "Yes, upload Wed 4 Nov"), so testers use the simpler screens for a week before the freeze | Out on both, Tue 3 Nov evening (Arizona), a day early. Built from branch `build-26` (`131b988`, from `44746cf`, so no build 27 work), tested on the owner's Galaxy and iPhone. Android published to the closed test; iPhone in TestFlight for both groups (beta review passed at once); website released from the same commit; testers told in the group at 21:30 |
 | 27 | Wed 11 Nov | The launch version: the referral programme (see "Build 27" below) and the rest of the build 26 list: first trip on day one, checkpoint stops on the contacts' page, lock-screen SOS, App Check, place search, usual-time reminder, points card | Planned 2 November; started Thu 5 Nov (the owner: "let us start build 27"). The whole list is at the top of "Build 27" below. If time gets tight, the points card and usual-time reminder can move after launch (my suggestion, not yet agreed) |
+| 27.2 | as soon as it is tested | Fix only: wait for the sign-in check when the app opens, so a slow connection no longer looks like being signed out (see "Build 27.2" below) | Started Mon 16 Nov (the owner: "go ahead, start the fix"). Android first; iPhone as the first update after launch |
 
 | After the last build | Date |
 |---|---|
@@ -626,6 +627,49 @@ from the code, by name: five new (`checkQuietTrips`, `onCommentUpdate`,
 whose code was never in this repository (`onCommentCreate`,
 `onCommentDelete`, on Node 20 until now), and the rest brought up to date.
 `createReport` is left alone
+
+### Build 27.2: wait for the sign-in check (agreed Monday 16 November)
+
+Two testers said the app "logs them out" (16 November). The cause, found in the code and not yet seen on a phone:
+- each time the app opens, Firebase checks the saved sign-in with Google before it says who is signed in: a fresh
+  token if the last one is over an hour old, then the account itself. On slow mobile data that takes seconds, up
+  to 30 seconds a request;
+- the app waits for the answer for 5 seconds at most (`useAuthedUser`), then opens as if nobody were signed in:
+  on the map, with "Sign in to continue" on the Trip screen and "Guest User" on the profile. The account comes
+  back when the answer arrives, but the person is left on the map, and many sign in again;
+- the worst case is someone opening the app to tap "I've arrived" as their time runs out;
+- not the cause: App Check, which enforces nothing yet.
+
+Testers were told in the group on 16 November to wait about 30 seconds before signing in, and asked which phone
+they use and whether the account came back.
+
+**The whole list, written before starting** (the owner: "go ahead, start the fix"):
+1. [x] **Remember on the phone that an account is signed in there:** set when Firebase reports an account,
+       cleared when it reports none (signing out, deleting the account, or a sign-in that has really ended).
+       Done 16 November (`lib/signedInHint.ts`, set in `useAuthedUser`).
+2. [ ] **With that note, wait for Firebase's answer for up to 60 seconds instead of 5,** on a "Signing you in..."
+       screen. After 8 seconds it adds that this takes longer on a weak connection, with a "Call 112" button, so
+       nobody waits without help. Without the note (a new install, or signed out) nothing changes.
+       Done 16 November: the wait is counted once from the start (before, the whole-app check and the home
+       screen each waited 5 seconds of their own); `AppLoader` shows "Signing you in...", then "This takes
+       longer on a weak connection. You don't need to sign in again." and a red "Call 112".
+3. [x] **Tests** for the note and the waiting time: 9 new, 454 unit tests in all pass; lint and types clean.
+4. [x] **Tried with a slow connection** in the browser, 16 November, against the emulators on a phone-sized
+       screen, with each answer from the sign-in emulator held back on purpose:
+       - **the old code, answers 20 seconds late:** "Loading..." through two waits of 5 seconds, one after the other, then the
+         Nearby map, and the Trip tab said "Sign in to continue"; the account came back when the answer arrived.
+         This is the testers' "it logs me out", seen for the first time;
+       - **the fix, answers 20 seconds late:** "Signing you in...", then at 8 seconds the weak-connection line
+         and "Call 112"; the app opened signed in, on the Trip screen, when the answer came;
+       - **the fix, answers 70 seconds late:** Firebase gave up at 30 seconds and kept the account, so the app
+         opened signed in at about 30 seconds. The 60-second limit is only a safety net;
+       - **signed out:** the note was cleared at once, and the next start went straight to the signed-out app.
+       Still to do: the same on the Android phone with the build.
+
+**Release:** Android first, to the closed test; if it has been on testers' phones for a few days, it is the
+version released on 1 December. iPhone as version 1.2.1, the first update after launch, so build 27.1 keeps its
+place in Apple's review queue. Anyone signed in before updating gets the note the first time the new build opens.
+Version numbers are set at upload (Android needs a whole number above 27).
 
 ### Build 27: the launch version, with the referral programme (decided 2 November)
 

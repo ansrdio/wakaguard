@@ -5,13 +5,13 @@ import { useAuthedUser } from '@/hooks/useAuthedUser';
 import { useDrawsBeforeAppStarts } from '@/lib/plainPages';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const { ready } = useAuthedUser();
+  const { ready, restoring } = useAuthedUser();
   const drawAtOnce = useDrawsBeforeAppStarts();
 
   // A page drawn at once shows the same thing to everyone, or does its own
   // waiting, so it is not held back for sign-in
   if (!ready && !drawAtOnce) {
-    return <AppLoader />;
+    return <AppLoader signingIn={restoring} />;
   }
 
   return <>{children}</>;

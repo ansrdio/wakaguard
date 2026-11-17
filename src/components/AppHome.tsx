@@ -26,7 +26,7 @@ import { usePendingInvite } from '@/hooks/usePendingInvite';
  */
 export function AppHome() {
   const { selectedState, setSelectedState, isLoaded } = useSelectedState();
-  const { ready: authReady, uid, email, emailVerified, username, needsUsername } = useAuthedUser();
+  const { ready: authReady, restoring, uid, email, emailVerified, username, needsUsername } = useAuthedUser();
   const { checkDailyLogin } = useUserStats(uid);
   const { mounted, isDesktop } = useResponsiveLayout();
 
@@ -102,7 +102,7 @@ export function AppHome() {
 
   // Show onboarding if state not selected
   if (!isLoaded || !authReady || !onboardingChecked) {
-    return <AppLoader />;
+    return <AppLoader signingIn={restoring} />;
   }
 
   // Show onboarding flow for first-time users (tutorial + notifications + auth)
