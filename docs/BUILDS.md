@@ -2577,18 +2577,34 @@ Agreed as wanted, not yet given a build unless it says so. Nothing here is start
 
 ### Build 29, the first after launch (the owner, 6 November: "yes do the offline message and add them"; was build 28 until the sign-in fix took that number on 16 November)
 
-In this order, from my suggestions after build 27 was complete (no new features before the 13 November freeze):
+**Reordered on 17 November (the owner: "yes add them to build 29 … I like number 2").** Testers who stopped using
+WakaGuard were asked why (16-17 November): of the first answers, the most common was forgetting to start a trip before
+leaving, and several were still on old builds without the "Heading out?" reminder. Remembering at the moment of leaving is the hard part, so
+the first three items move that moment somewhere else. A poll in the tester group checks the order.
 
-1. [ ] **"Navigate with Google Maps"**: a button on the trip that opens Google Maps (the app, or the website)
+1. [ ] **Morning heads-up on your usual route, with one tap to start** (the owner's pick). At the time someone
+       usually leaves (from their usual trips, as the "Heading out?" reminder in build 27), one short notification:
+       the weather, plus road reports on or near their usual route since the night before (checkpoint, flooding,
+       accident, bad road), ending with "Start your trip to <place>" as a single tap that starts that usual trip.
+       Builds on the 28 October "morning heads-up" proposal (in the build 24-25 section) and the 6:30am weather
+       notification. Still only when there is something worth saying, at most once a day. Needs the Settings switch
+       renamed "Morning heads-up", and Privacy lines on using the usual route and rough area for road reports.
+2. [ ] **"Ask them to start a trip"** (moved up from 3): someone (a parent, say) sends a link, "Let me know you got
+       there safely", and the person who opens it starts a trip with the sender already added as a contact. The
+       remembering moves to the person who worries, and it brings new users through the people who care about
+       them. Needs its own Privacy and Terms lines and thought about misuse (nobody can be made to share a trip;
+       the traveller always starts it).
+3. [ ] **"Start my usual trip" from the home screen**: an app-icon shortcut (long-press) and a home-screen widget
+       on Android, and the same on iPhone (widget or Shortcuts), so a usual trip starts without opening the form.
+4. [ ] **"Navigate with Google Maps"**: a button on the trip that opens Google Maps (the app, or the website)
        with the destination already set. Cheap, allowed by Google's terms (handing off to Google Maps is not
        building navigation on its content), and people want directions. Our own directions stay as they are.
-2. [ ] **Battery level on the contacts' page** (and in the alert text, the item "Battery level in the alert"
+5. [ ] **Battery level on the contacts' page** (and in the alert text, the item "Battery level in the alert"
        below): a dead battery is the commonest reason a phone goes quiet, and "battery 4%" helps a contact judge
        whether to worry. Sent with each location update; a Privacy line is needed.
-3. [ ] **"Ask them to start a trip"**: someone (a parent, say) sends a link, and the person who opens it starts a
-       trip with the sender already added as a contact. The "request a trip" link from the deferred list of
-       5 October; it brings new users through the people who care about them. Needs its own Privacy and Terms
-       lines and thought about misuse (nobody can be made to share a trip; the traveller always starts it).
+
+Later, after these: a reminder triggered by actually leaving home at the usual time rather than by the clock. More
+accurate, but it needs location while no trip is running, so it needs its own privacy and battery work.
 
 After those: checking in by text message when there is no data (USSD or SMS).
 
