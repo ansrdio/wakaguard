@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
-  parseLagosTime, weekStartBefore, lagosDay, metresBetween, scoreWeek, formatReport, readArgs, readProblems,
+  parseLagosTime, weekStartBefore, lagosDay, metresBetween, scoreWeek, formatReport, readArgs, readProblems, readNameList,
   WEEK_MS, stillnessOf, drawFrom,
   // @ts-expect-error plain JavaScript module, run by hand as a script
 } from '../../scripts/weekly-numbers.mjs';
@@ -443,6 +443,11 @@ test('the health numbers follow people since the beta began', () => {
     sosInTestTrip: 1,
     reportsCreated: 0,
     reportsWithPhotos: 0,
+    // No list of past winners given, so not worked out
+    neverWonTrips: null,
+    neverWonPeople: null,
+    pastLimitTrips: 0,
+    pastLimitPeople: 0,
   });
 });
 
@@ -541,12 +546,57 @@ test('the printed report has usernames and counts, and nothing private', () => {
   }
 });
 
+test('trips by people who never won a prize are counted apart, from the list of past winners', () => {
+  const data = {
+    users: users('ada', 'tunde', 'bola', 'owner'),
+    trips: [
+      trip('uid-ada', MONDAY), trip('uid-ada', MONDAY + DAY),
+      trip('uid-tunde', MONDAY), trip('uid-tunde', MONDAY + DAY), trip('uid-tunde', MONDAY + 2 * DAY),
+      // Did not move, but still a trip someone took for its own sake
+      trip('uid-bola', MONDAY, { endLocation: NEAR_IKEJA }),
+      trip('uid-owner', MONDAY),
+    ],
+  };
+  const result = score(data, { pastWinners: ['ada', 'Nobody'], excluded: ['owner'] });
+  assert.equal(result.health.neverWonTrips, 4);
+  assert.equal(result.health.neverWonPeople, 2);
+  assert.ok(result.warnings.some((warning: string) => warning.includes('"Nobody" is on the past winners list')));
+  const text = formatReport(result, { fromMs: FROM, toMs: TO, nowMs: TO, source: 'a test' });
+  assert.match(text, /Real trips by people who never won a prize\s+4 \(from 2 people\)/);
+
+  // Without the list the number is not guessed
+  const withoutList = score(data, { excluded: ['owner'] });
+  assert.equal(withoutList.health.neverWonTrips, null);
+  assert.match(formatReport(withoutList, { fromMs: FROM, toMs: TO, nowMs: TO, source: 'a test' }),
+    /Real trips by people who never won a prize\s+not worked out: give --winners-file/);
+});
+
+test('proper trips past the two-a-day limit are counted: used with nothing to earn', () => {
+  const result = score({
+    users: users('ada', 'tunde'),
+    trips: [
+      // Four proper trips on Monday: two count, two are past the limit
+      trip('uid-ada', MONDAY), trip('uid-ada', MONDAY + HOUR), trip('uid-ada', MONDAY + 2 * HOUR),
+      trip('uid-ada', MONDAY + 3 * HOUR),
+      // A third on Tuesday that is too short is not a proper trip, so it is not counted here
+      trip('uid-tunde', MONDAY + DAY), trip('uid-tunde', MONDAY + DAY + HOUR),
+      trip('uid-tunde', MONDAY + DAY + 2 * HOUR, { endMs: MONDAY + DAY + 2 * HOUR + 2 * MIN }),
+    ],
+  });
+  assert.equal(result.health.pastLimitTrips, 2);
+  assert.equal(result.health.pastLimitPeople, 1);
+  const text = formatReport(result, { fromMs: FROM, toMs: TO, nowMs: TO, source: 'a test' });
+  assert.match(text, /Real trips past the 2-a-day points limit\s+2 \(from 1 person; proper trips that earned nothing\)/);
+});
+
 test('the command line is read strictly', () => {
   assert.deepEqual(
     readArgs(['--live', '--from', '2026-10-11', '--exclude', 'a,b']),
     { live: true, from: '2026-10-11', exclude: 'a,b' },
   );
   assert.deepEqual(readArgs(['--last-winners', 'a,b', '--draw', '2']), { 'last-winners': 'a,b', draw: '2' });
+  assert.deepEqual(readArgs(['--winners-file', 'ranking/prize-winners.txt']), { 'winners-file': 'ranking/prize-winners.txt' });
+  assert.deepEqual(readNameList('# weeks 1 to 5\nada\n\n  tunde  \n'), ['ada', 'tunde']);
   assert.throws(() => readArgs(['--frm', '2026-10-11']), /Did not understand/);
   assert.deepEqual(readProblems(['ada=2', 'tunde,1', 'ada: 1']), { ada: 3, tunde: 1 });
   assert.throws(() => readProblems(['ada']), /not a username and a count/);

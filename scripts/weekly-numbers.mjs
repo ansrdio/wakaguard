@@ -60,7 +60,9 @@ const groupBy = (items, keyOf) => {
  * @param options fromMs, toMs, sinceMs (when the beta began), excluded
  *   (usernames or uids to leave out), problems ({username: count}, judged by a
  *   person from the problem-report sheet), top (how many to check for cheating),
- *   lastWinners (usernames who won last week and sit out the prize places)
+ *   lastWinners (usernames who won last week and sit out the prize places),
+ *   pastWinners (usernames who won a prize in any earlier week; without it the
+ *   "never won a prize" number is not worked out)
  */
 export function scoreWeek(data, options) {
   const { fromMs, toMs, sinceMs = fromMs, top = 10 } = options;
@@ -185,6 +187,18 @@ export function scoreWeek(data, options) {
       counted: tripProblem(trip) === null,
     }));
 
+  // Two signs of use for its own sake rather than for points: trips by people
+  // who have never won a prize, and proper trips past the daily points limit,
+  // which earn nothing (the owner, 16 November 2026)
+  const pastWinners = new Set();
+  for (const entry of options.pastWinners || []) {
+    const uid = uidByUsername.get(entry.toLowerCase());
+    if (uid) pastWinners.add(uid);
+    else if (!leftOut.has(entry)) warnings.push(`"${entry}" is on the past winners list, but no account has that username. Check the spelling.`);
+  }
+  const neverWon = rows.filter((row) => !pastWinners.has(row.uid) && row.week.inThePeriod > 0);
+  const pastTheLimit = rows.filter((row) => (row.week.rejected[REASONS.overLimit] || 0) > 0);
+
   const health = {
     accounts: people.size,
     accountsWithUsername: withUsername.length,
@@ -205,6 +219,11 @@ export function scoreWeek(data, options) {
     sosInTestTrip: sos.filter((alert) => testTripIds.has(alert.tripId)).length,
     reportsCreated: reports.length,
     reportsWithPhotos: reports.filter((report) => report.hasPhotos).length,
+    // null when no list of past winners was given
+    neverWonTrips: options.pastWinners ? neverWon.reduce((sum, row) => sum + row.week.inThePeriod, 0) : null,
+    neverWonPeople: options.pastWinners ? neverWon.length : null,
+    pastLimitTrips: pastTheLimit.reduce((sum, row) => sum + row.week.rejected[REASONS.overLimit], 0),
+    pastLimitPeople: pastTheLimit.length,
   };
 
   // Two people who voted up each other's reports this week
@@ -339,6 +358,11 @@ export function formatReport(result, { fromMs, toMs, nowMs, source, drawn = [] }
     ['Test trips started this week', health.testStarted],
     ['SOS alerts', `${health.sos} (${health.sosInTestTrip} in a test trip)`],
     ['Road reports created', `${health.reportsCreated} (${health.reportsWithPhotos} with photos)`],
+    ['Real trips by people who never won a prize', health.neverWonTrips === null
+      ? 'not worked out: give --winners-file'
+      : `${health.neverWonTrips} (from ${health.neverWonPeople} ${health.neverWonPeople === 1 ? 'person' : 'people'})`],
+    [`Real trips past the ${DAILY_LIMIT.realTrips}-a-day points limit`,
+      `${health.pastLimitTrips} (from ${health.pastLimitPeople} ${health.pastLimitPeople === 1 ? 'person' : 'people'}; proper trips that earned nothing)`],
   ]));
 
   say();
@@ -422,7 +446,8 @@ export async function collect(db, { fromMs, toMs }) {
 // ---------------------------------------------------------------- command
 
 const FLAGS = ['emulator', 'live', 'help'];
-const VALUES = ['from', 'to', 'since', 'exclude', 'problems', 'problems-file', 'top', 'project', 'last-winners', 'draw'];
+const VALUES = ['from', 'to', 'since', 'exclude', 'problems', 'problems-file', 'top', 'project', 'last-winners', 'draw',
+  'winners-file'];
 
 export function readArgs(argv) {
   const args = {};
@@ -436,6 +461,10 @@ export function readArgs(argv) {
 }
 
 const splitList = (text) => (text || '').split(',').map((part) => part.trim()).filter(Boolean);
+
+/** Usernames from a file, one a line; blank lines and lines starting with # are skipped. */
+export const readNameList = (text) => text.split('\n').map((line) => line.trim())
+  .filter((line) => line && !line.startsWith('#'));
 
 /** Entries like "ada=2" (or "ada,2" from a file) as {ada: 2}. */
 export function readProblems(entries) {
@@ -460,6 +489,8 @@ const HELP = `Weekly numbers for the WakaGuard beta ranking. Read-only.
   --problems-file path  the same, one "username,count" a line
   --top 10              how many of the ranking to check for cheating
   --last-winners a,b    last week's prize winners, who sit out the prize places
+  --winners-file path   everyone who won a prize in an earlier week, one username a line,
+                        for "real trips by people who never won a prize" (kept private, in ranking/)
   --draw 2              how many to pick in the draw (default: list the entrants only)`;
 
 async function main() {
@@ -502,6 +533,7 @@ async function main() {
     problems,
     top: Number(args.top) || 10,
     lastWinners: splitList(args['last-winners']),
+    pastWinners: args['winners-file'] ? readNameList(readFileSync(args['winners-file'], 'utf8')) : undefined,
   });
   console.log(formatReport(result, {
     fromMs,
