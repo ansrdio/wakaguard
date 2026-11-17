@@ -678,8 +678,22 @@ place in Apple's review queue. Anyone signed in before updating gets the note th
        Made 16 November, evening in Arizona, from `d34bbfd` plus the number change (Android `versionCode 28` /
        `versionName "1.2.1"`, the Xcode project 28 / 1.2.1, `appVersion.ts`), with the live web settings: the
        Play bundle and a cable-install APK, both signed with the upload key (67:D3:78:CE). 454 unit tests pass.
-6. [ ] **Tried on the Android phone** with the build.
-7. [ ] **Uploaded to the Play closed test,** on the owner's word.
+6. [x] **Tried on the Android phone** with the build: the owner's Galaxy A15 on Wi-Fi, 16 November, installed by
+       cable over build 27 (no trip running). It opened signed in on the Trip screen, with the usual trips, and
+       Profile says "Version 1.2.1 (build 28)". Closed and opened again, it showed "Signing you in..." for about
+       half a second, then the Trip screen. A slow connection was not imitated on the phone (that would need
+       changes to its network settings); the browser test above covers it.
+7. [ ] **Sent to Google as the Android launch version.** Changed on 16 November: the closed test would have sat
+       in "ready to publish" next to the approved launch changes, and Play publishes those all at once, while
+       internal testing skips review. The owner chose to launch Android with build 28 instead of 27 ("Launch
+       with build 28"). The same evening a production release "28 (1.2.1)" was saved in Play Console (100%,
+       Nigeria; build 27 not included; the launch notes copied from 27 with "1.2.1"). Publishing overview:
+       the 7 approved changes (production 27 and the listing) still "ready to publish"; "28 (1.2.1)" under
+       "Changes not yet submitted for review", waiting for "Submit 1 change for review". Once 28 is approved it
+       takes 27's place; until then nothing can be published. iPhone stays 1.2.0 (27.1) at launch.
+       **Submitted 16 November, evening in Arizona** (the owner: "submit it"; when checked it was already under
+       "Changes in review", with Play's quick checks running, "up to 12 minutes remaining"). The 7 approved
+       changes are still "ready to publish".
 
 ### Build 27: the launch version, with the referral programme (decided 2 November)
 
