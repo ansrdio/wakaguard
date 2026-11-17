@@ -4,13 +4,17 @@ import { useState, useEffect, useRef } from 'react';
 import { 
   Shield, Users, Phone, X, Loader2,
   ChevronRight, Heart, Car, UserPlus, Trash2,
-  AlertCircle, ShieldCheck, Plus
+  AlertCircle, ShieldCheck, Plus, HeartHandshake
 } from 'lucide-react';
 import { useSafety } from '@/hooks/useSafety';
 import { useBackToClose } from '@/hooks/useBackToClose';
 import { useKeyboardSafeOverlay } from '@/hooks/useKeyboardSafeOverlay';
 import { hasSeenLocationExplanation, rememberLocationExplanation } from '@/lib/locationConsent';
 import { LocationExplanation } from '@/components/mobile/trip/LocationExplanation';
+import { AskToKnowSheet } from '@/components/mobile/trip/AskToKnowSheet';
+import { TripRequestCard } from '@/components/mobile/trip/TripRequestCard';
+import { ASK_EVENT, forgetAsk, pendingAsk, readProblemWords } from '@/lib/tripRequestLink';
+import { readTripRequest } from '@/lib/tripRequests';
 import { askToShowNotifications } from '@/lib/nativeNotifications';
 import { MAX_TRUSTED_CONTACTS, TEST_TRIP_MINUTES, formatDuration, joinNames } from '@/lib/tripPlanning';
 import { reachedServer, retryStuckSaves } from '@/lib/firestoreWrites';
@@ -278,6 +282,46 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
   // "Cancel trip", from the trip card or the trip map
   const [cancelOpen, setCancelOpen] = useState(false);
   const [checkpointOpen, setCheckpointOpen] = useState(false);
+  // "Let me know you got there" (build 29): making a link, and a link someone sent this person
+  const [askOpen, setAskOpen] = useState(false);
+  const [askRequest, setAskRequest] = useState<
+    { id: string; name: string; phone: string } | { id: string; problem: string } | null
+  >(null);
+  const [askAdding, setAskAdding] = useState(false);
+  const [askPick, setAskPick] = useState<{ contactId: string } | null>(null);
+  const [askArrivals, setAskArrivals] = useState(0);
+  // A link opened before signing in: kept on the phone, shown once there is an account
+  const [guestAsk, setGuestAsk] = useState(false);
+  useEffect(() => {
+    const onArrival = () => setAskArrivals((n) => n + 1);
+    window.addEventListener(ASK_EVENT, onArrival);
+    return () => window.removeEventListener(ASK_EVENT, onArrival);
+  }, []);
+  // Who asked is read once signed in and with no trip running; the traveller then chooses
+  useEffect(() => {
+    if (!uid || isAnonymous) {
+      setGuestAsk(pendingAsk() !== null);
+      return;
+    }
+    setGuestAsk(false);
+    if (activeTrip) return;
+    const id = pendingAsk();
+    if (!id || askRequest?.id === id) return;
+    let current = true;
+    readTripRequest(id)
+      .then((answer) => {
+        if (!current) return;
+        setAskRequest(answer.ok ? { id, name: answer.name, phone: answer.phone } : { id, problem: readProblemWords(answer.problem) });
+      })
+      .catch(() => {
+        // No connection: tried again when the screen opens or another link arrives
+      });
+    return () => {
+      current = false;
+    };
+    // Read again only for a new link, a sign-in, or a trip ending
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [uid, isAnonymous, activeTrip, askArrivals]);
   // A first trip on day one (build 27): offered once to an account with no trip yet
   const [guide, setGuide] = useState<{ hadContact: boolean; contactSkipped: boolean } | null>(null);
   const [guideTripRunning, setGuideTripRunning] = useState(false);
@@ -866,6 +910,51 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
     }
   };
 
+  // The person who asked becomes a contact (build 29), saved as handleAddContact saves one;
+  // someone already saved keeps the name the traveller gave them
+  const addAsker = async (name: string, phoneE164: string): Promise<string | null> => {
+    if (!uid || isAnonymous) return null;
+    const contactId = phoneE164.replace(/[^0-9]/g, '');
+    if (trustedContacts.some((c) => c.id === contactId)) return contactId;
+    if (trustedContacts.length >= MAX_TRUSTED_CONTACTS) {
+      showToast(`You can have up to ${MAX_TRUSTED_CONTACTS} trusted contacts. Remove one to add ${name}.`, 'error', 5000);
+      return null;
+    }
+    await reachedServer(setDoc(doc(db, 'users', uid, 'trustedContacts', contactId), {
+      name,
+      phone: phoneE164,
+      phoneE164,
+      notifyOnSOS: true,
+      notifyOnCheckIn: true,
+      notifyOnTripShare: true,
+      createdAt: serverTimestamp(),
+    }, { merge: true }));
+    setTrustedContacts((prev) => (prev.some((c) => c.id === contactId) ? prev : [...prev, { id: contactId, name, phone: phoneE164, phoneE164 }]));
+    return contactId;
+  };
+
+  const acceptAsk = async () => {
+    if (!askRequest || !('name' in askRequest)) return;
+    setAskAdding(true);
+    try {
+      const contactId = await addAsker(askRequest.name, askRequest.phone);
+      if (!contactId) return;
+      setAskPick({ contactId });
+      forgetAsk(askRequest.id);
+      setAskRequest(null);
+      showToast(`${askRequest.name} added. Choose where you're going, then start the trip.`, 'success', 5000);
+    } catch {
+      showToast(`Could not add ${askRequest.name}. Check your connection and try again.`, 'error');
+    } finally {
+      setAskAdding(false);
+    }
+  };
+
+  const dropAsk = () => {
+    if (askRequest) forgetAsk(askRequest.id);
+    setAskRequest(null);
+  };
+
   // Remove trusted contact
   const handleRemoveContact = async (contact: { id: string; name: string; phone?: string; phoneE164?: string }) => {
     if (!requireAccount('remove trusted contact')) return;
@@ -1041,6 +1130,9 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
           onSkipTest={() => closeGuide('skipped')}
         />
       )}
+      {askOpen && (
+        <AskToKnowSheet defaultName={savedAlertName || displayName || ''} onClose={() => setAskOpen(false)} />
+      )}
       {checkpointOpen && (
         <CheckpointStopSheet
           onTrip={!!activeTrip}
@@ -1064,6 +1156,12 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
       {activeTrip?.isTest && guideTripRunning && (
         <FirstTripNote onDone={() => setGuideTripRunning(false)} />
       )}
+      {guestAsk && <TripRequestCard guest onSignIn={openAuthModal} onLater={() => setGuestAsk(false)} />}
+      {!activeTrip && askRequest && ('name' in askRequest ? (
+        <TripRequestCard name={askRequest.name} busy={askAdding} onAdd={() => void acceptAsk()} onLater={dropAsk} />
+      ) : (
+        <TripRequestCard problem={askRequest.problem} onDone={dropAsk} />
+      ))}
       {activeTrip ? (
         <ActiveTripCard
           trip={activeTrip}
@@ -1105,6 +1203,8 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
           usualTrips={usualTrips}
           usualPick={usualPick}
           onUsualPickDone={onUsualPickDone}
+          askPick={askPick}
+          onAskPickDone={() => setAskPick(null)}
         />
       )}
 
@@ -1150,6 +1250,17 @@ export function SafetyScreen({ onReportRoad, notificationAction = null, onNotifi
             <ChevronRight className="w-5 h-5 text-slate-400" aria-hidden="true" />
           </button>
         )}
+
+        <button onClick={() => { if (requireAccount('ask someone to let you know')) setAskOpen(true); }} className={moreRow}>
+          <span className={`${moreIcon} bg-brand-100 text-brand-700 dark:bg-brand-900 dark:text-brand-200`}>
+            <HeartHandshake className="w-5 h-5" aria-hidden="true" />
+          </span>
+          <span className="flex-1 min-w-0">
+            <span className={moreTitle}>Let me know you got there</span>
+            <span className={moreSub}>Send someone a link to start a trip with you as their contact</span>
+          </span>
+          <ChevronRight className="w-5 h-5 text-slate-400" aria-hidden="true" />
+        </button>
 
         <button onClick={() => setActiveModal('emergency')} className={moreRow}>
           <span className={`${moreIcon} bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-200`}>

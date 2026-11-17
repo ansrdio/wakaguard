@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 };
 
 /** Shown on the page and changed whenever the terms change */
-const LAST_UPDATED = '7 November 2026';
+const LAST_UPDATED = '17 November 2026';
 
 const SECTIONS: { id?: string; title: string; paragraphs: string[]; points?: string[] }[] = [
   {
@@ -65,6 +65,7 @@ const SECTIONS: { id?: string; title: string; paragraphs: string[]; points?: str
     title: '7. Your trusted contacts',
     paragraphs: [
       'Only add people who have agreed to be your contact. They will receive text messages that carry your name and your location. By adding a contact you confirm that you have their permission to give us their name and phone number for this purpose.',
+      'A "Let me know you got there" link only asks. The person who opens it chooses whether to add you as a contact and start a trip, and can remove you at any time. The number in a link you make must be your own.',
     ],
   },
   {

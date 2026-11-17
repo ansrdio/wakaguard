@@ -7,6 +7,8 @@ test('the agreed times: trips, SOS and texts 90 days, the trip page 7, removed c
     endedTrip: 90, tripPage: 7, sosAndCheckIns: 90, textLog: 90, oldReport: 90, removedComment: 30, workingRecord: 2,
     // Google allows a spot from its place search to be kept 30 days at most (build 27)
     destinationSpot: 30,
+    // A "let me know you got there" link goes as soon as it stops working, 7 days after it was made (build 29)
+    tripRequest: 0,
   });
   assert.equal(cutoffMs(100 * DAY_MS, 90), 10 * DAY_MS);
 });

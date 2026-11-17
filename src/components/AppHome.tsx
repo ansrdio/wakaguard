@@ -18,6 +18,7 @@ import { AppLoader } from '@/components/AppLoader';
 import { AccountDeletionScreen } from '@/components/AccountDeletionScreen';
 import { useAccountDeletion } from '@/lib/accountDeletion';
 import { usePendingInvite } from '@/hooks/usePendingInvite';
+import { useAskLinks } from '@/hooks/useAskLinks';
 
 /**
  * The app itself: the first-run screens, then the trip, nearby and profile
@@ -46,6 +47,8 @@ export function AppHome() {
   // "Who invited you?", once the username is saved: not before, as it is
   // asked on the same screen and can still be changed there
   usePendingInvite(uid, !!emailVerified && !!username);
+  // "Let me know you got there" links, kept until the person is signed in and sees the request
+  useAskLinks();
   
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locating, setLocating] = useState(false);

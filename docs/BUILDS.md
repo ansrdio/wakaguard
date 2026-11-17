@@ -2629,6 +2629,29 @@ the first three items move that moment somewhere else. A poll in the tester grou
        remembering moves to the person who worries, and it brings new users through the people who care about
        them. Needs its own Privacy and Terms lines and thought about misuse (nobody can be made to share a trip;
        the traveller always starts it).
+       - **Done in the code, 17 November** ("go ahead with item 2"), called "Let me know you got there" in the app.
+         The asker taps "Let me know you got there" under More on the Trip screen, types their name (filled in) and
+         their own Nigerian mobile number, and sends the link from their phone (the share sheet, or copy). WakaGuard
+         texts nobody. The link is `wakaguard.com/open?ask=<16 letters and digits>`, the address the phone apps
+         already claim, so it opens the app where installed; elsewhere the /open page says "Someone asked you to let
+         them know when you get there" with "Open WakaGuard" (phones) and "use WakaGuard in this browser".
+         The link is kept on the phone until the person is signed in; then the Trip screen shows "<name> asked you to
+         let them know when you get there" with "Add <name> and plan the trip" or "Not now". Adding saves the asker as
+         a trusted contact (as "Add contact" does), selects them and ticks "Text them when I arrive"; the traveller
+         still chooses the place and starts the trip. A guest sees "Someone asked you…" with "Create an account".
+         Server: `functions/src/tripRequests.ts`, one callable `tripRequests` (make / read). Making needs a confirmed
+         account, at most 10 links a day; a link works 7 days, then the daily deletion removes it
+         (`deleteOldRecords`), and deleting the asker's account removes theirs at once (`deleteMyAccount`). The
+         number is shown only to a signed-in person with the link; opening your own link says so. Not readable
+         from the app directly (no database rule allows it). New plugin `@capacitor/app` 8.1.2 for links that open
+         the app (`hooks/useAskLinks.ts`), so this needs the new phone builds.
+       - Privacy page: a "Let me know you got there" Links paragraph; Terms 7: a line that a link only asks, the
+         traveller chooses, and the number must be your own; Terms "Last updated: 17 November 2026". Waiting for the
+         owner's yes on the wording.
+       - Tests: 11 new unit tests (482 in all) and 4 new emulator tests (148 in all) pass.
+       - **To go live, each on the owner's word:** release the website (Privacy, Terms, the /open page), then deploy
+         `tripRequests`, `deleteOldRecords` and `deleteMyAccount` by name. The button is in the app from the first
+         build 29 tester build.
 3. [ ] **"Start my usual trip" from the home screen**: an app-icon shortcut (long-press) and a home-screen widget
        on Android, and the same on iPhone (widget or Shortcuts), so a usual trip starts without opening the form.
 4. [x] **The trip length from the road time, filled in and easy to see** (the owner, 17 November: "add the auto

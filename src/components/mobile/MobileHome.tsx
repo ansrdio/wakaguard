@@ -24,6 +24,7 @@ import { useEffect } from 'react';
 import { useBackToClose } from '@/hooks/useBackToClose';
 import { Capacitor } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
+import { ASK_EVENT, pendingAsk } from '@/lib/tripRequestLink';
 import { firstTimePressed, pendingPress, readTripNotificationAction, rememberPendingPress, TripNotificationAction } from '@/lib/tripNotificationActions';
 
 interface MobileHomeProps {
@@ -58,7 +59,8 @@ export function MobileHome({
   );
   // A reminder's button pressed just before the app reloaded itself is carried out now
   const [pressAtStart] = useState<TripNotificationAction | null>(() => pendingPress());
-  const [activeTab, setActiveTab] = useState<MobileTab>(pressAtStart ? 'safety' : homeTab);
+  // A "Let me know you got there" link (build 29) opens the Trip screen, where the request is shown
+  const [activeTab, setActiveTab] = useState<MobileTab>(() => (pressAtStart || pendingAsk() ? 'safety' : homeTab));
   // Once opened, the Trip screen stays in place, hidden while another tab
   // shows, so a half-filled start form keeps its destination, pin, name and
   // contacts (the owner's Moto test, 6 November 2026: going to Nearby and
@@ -78,6 +80,15 @@ export function MobileHome({
   const [tripAction, setTripAction] = useState<TripNotificationAction | null>(pressAtStart);
   // "Heading out?" at a usual travel time (build 27), for the start form to fill in
   const [usualPick, setUsualPick] = useState<{ destination: string; minutes: number | null } | null>(null);
+
+  useEffect(() => {
+    const onAsk = () => {
+      setShowCreateModal(false);
+      setActiveTab('safety');
+    };
+    window.addEventListener(ASK_EVENT, onAsk);
+    return () => window.removeEventListener(ASK_EVENT, onAsk);
+  }, []);
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;

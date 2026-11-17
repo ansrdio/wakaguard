@@ -97,6 +97,9 @@ interface StartTripFormProps {
   /** "Heading out?" was tapped (build 27): the usual trip it named, to fill in once */
   usualPick?: { destination: string; minutes: number | null } | null;
   onUsualPickDone?: () => void;
+  /** "Let me know you got there" was accepted (build 29): the asker, just added, is told on arrival */
+  askPick?: { contactId: string } | null;
+  onAskPickDone?: () => void;
 }
 
 const CUSTOM_HOURS = Array.from({ length: MAX_TRIP_MINUTES / 60 + 1 }, (_, h) => h);
@@ -128,6 +131,8 @@ export function StartTripForm({
   usualTrips = [],
   usualPick = null,
   onUsualPickDone,
+  askPick = null,
+  onAskPickDone,
 }: StartTripFormProps) {
   const [destination, setDestination] = useState('');
   // "Set it on the map": optional, alongside the typed destination
@@ -307,6 +312,16 @@ export function StartTripForm({
     // Once per pick; chooseUsualTrip is redefined each render
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [usualPick, usualTrips]);
+
+  // The person who asked is one of the people told, and is texted on arrival as their link promised
+  useEffect(() => {
+    if (!askPick) return;
+    setDeselectedIds((prev) => prev.filter((id) => id !== askPick.contactId));
+    setTextOnArrival(true);
+    onAskPickDone?.();
+    // Once per pick
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [askPick]);
 
   const handleSubmit = () => {
     setSubmitted(true);

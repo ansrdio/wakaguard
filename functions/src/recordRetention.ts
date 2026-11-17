@@ -101,6 +101,10 @@ export const KINDS: Kind[] = [
     query: (db, nowMs) => db.collection('placeNameTries').where('startMs', '<', cutoffMs(nowMs, KEEP_DAYS.workingRecord)),
   },
   {
+    name: 'tripRequests',
+    query: (db, nowMs) => db.collection('tripRequests').where('expiresAt', '<', before(nowMs, KEEP_DAYS.tripRequest)),
+  },
+  {
     name: 'weatherForecasts',
     query: (db, nowMs) => db.collection('weatherForecasts').where('fetchedMs', '<', cutoffMs(nowMs, KEEP_DAYS.workingRecord)),
   },

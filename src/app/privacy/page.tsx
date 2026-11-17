@@ -129,6 +129,16 @@ export default function PrivacyPage() {
               Their phone numbers are used only to send the safety texts described below.
             </p>
 
+            <h3 className="text-xl font-semibold text-gray-800 mb-3">&quot;Let me know you got there&quot; Links</h3>
+            <p className="text-gray-700 leading-relaxed mb-6">
+              If you make a &quot;Let me know you got there&quot; link, we store the name and mobile number you
+              enter with it for 7 days, then delete them automatically, or sooner if you delete your account. We
+              text nobody when you make it: you send the link yourself. Someone who opens it and is signed in to
+              WakaGuard sees that name and number, so that they can choose to add you as a trusted contact and start
+              a trip. We do not tell you whether they opened it. A link opened before signing in is kept only on that
+              phone until they sign in.
+            </p>
+
             <h3 className="text-xl font-semibold text-gray-800 mb-3">Road Reports and Community Content</h3>
             <p className="text-gray-700 leading-relaxed mb-4">
               We collect and store content you create, including:

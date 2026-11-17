@@ -25,6 +25,7 @@ export { watchTexts } from './serverWatch';
 export { smsReport } from './smsReport';
 export { adminNumbers } from './adminNumbers';
 export { referrals } from './referrals';
+export { tripRequests } from './tripRequests';
 export { onCheckpointStop } from './checkpointStops';
 export { myWeek } from './myWeek';
 export { planUsualTimes, usualTimeReminders } from './usualTimes';

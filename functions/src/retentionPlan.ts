@@ -30,6 +30,11 @@ export const KEEP_DAYS = {
    * 14.3, build 27), and every spot goes, pinned or searched, so no record of which is needed.
    */
   destinationSpot: 30,
+  /**
+   * A "let me know you got there" link (tripRequests.ts), after it stopped working: it holds the asker's name
+   * and number and works for 7 days, then goes at the next daily run.
+   */
+  tripRequest: 0,
 } as const;
 
 /** Records deleted at once, and the most one run deletes of each kind */
