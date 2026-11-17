@@ -2682,6 +2682,19 @@ the first three items move that moment somewhere else. A poll in the tester grou
 6. [ ] **Battery level on the contacts' page** (and in the alert text, the item "Battery level in the alert"
        below): a dead battery is the commonest reason a phone goes quiet, and "battery 4%" helps a contact judge
        whether to worry. Sent with each location update; a Privacy line is needed.
+7. [ ] **Rain only when it is likely** (Gifted, a tester, 17 November: "It says rain will fall 3pm and it doesn't
+       even rain throughout the day"; the owner: "add the weather fix to build 29"). The weather comes from MET Norway's
+       "compact" forecast, which says only what each hour looks like, with no chance of rain; `kindOfHour` in
+       `functions/src/weather.ts` counts any hour whose symbol has "rain" in it, light showers included, so the
+       morning weather and the "Heading out?" heads-up say "Rain expected today" for a shower that may not come.
+       Instead:
+       - read MET Norway's "complete" forecast, which adds the chance of rain for each hour (same terms, same
+         named client);
+       - say "Rain expected" (or heavy rain, storms) only when the chance is high, and "A chance of showers" for a
+         lower chance or a light shower; nothing for a slight chance;
+       - keep thunderstorms and heavy rain as they are, as those matter most for travel.
+       A server change only (`morningWeather`, `usualTimeReminders`, `weatherAhead`), so it reaches every phone
+       without an app update. The exact cut-offs to be checked against a few days of Lagos and Abuja forecasts first.
 
 Later, after these: a reminder triggered by actually leaving home at the usual time rather than by the clock. More
 accurate, but it needs location while no trip is running, so it needs its own privacy and battery work.
