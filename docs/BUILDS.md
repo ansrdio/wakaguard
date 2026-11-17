@@ -2596,10 +2596,21 @@ the first three items move that moment somewhere else. A poll in the tester grou
        the traveller always starts it).
 3. [ ] **"Start my usual trip" from the home screen**: an app-icon shortcut (long-press) and a home-screen widget
        on Android, and the same on iPhone (widget or Shortcuts), so a usual trip starts without opening the form.
-4. [ ] **"Navigate with Google Maps"**: a button on the trip that opens Google Maps (the app, or the website)
+4. [ ] **The trip length from the road time, filled in and easy to see** (the owner, 17 November: "add the auto
+       time to build 29, also maybe it is not apparent enough"; a tester asked to type where they are going and have
+       the app work out how long it takes). Today the start form shows the road time as a small grey line under the
+       length buttons ("By road: about 25 min, 12 km", Beta) with an underlined "Use 35 min, with time for
+       traffic" link, so it is easy to miss and is only used if tapped. Instead:
+       - when a place is chosen (search or pin) and a route is found, set the trip length to the road time with its
+         traffic margin, unless the person has already picked a length themselves;
+       - show it as the first, selected choice in "How long will it take?" (for example "35 min, by road"), with
+         "About 25 min and 12 km by road, plus time for traffic" under it, so it is clear where the time came from;
+       - keep the route check from build 27: never fill in a length from a route that cannot be right;
+       - the other lengths stay one tap away.
+5. [ ] **"Navigate with Google Maps"**: a button on the trip that opens Google Maps (the app, or the website)
        with the destination already set. Cheap, allowed by Google's terms (handing off to Google Maps is not
        building navigation on its content), and people want directions. Our own directions stay as they are.
-5. [ ] **Battery level on the contacts' page** (and in the alert text, the item "Battery level in the alert"
+6. [ ] **Battery level on the contacts' page** (and in the alert text, the item "Battery level in the alert"
        below): a dead battery is the commonest reason a phone goes quiet, and "battery 4%" helps a contact judge
        whether to worry. Sent with each location update; a Privacy line is needed.
 
