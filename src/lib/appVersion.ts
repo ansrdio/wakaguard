@@ -8,8 +8,8 @@
  * @module appVersion
  */
 
-export const APP_VERSION = '1.2.0';
-export const APP_BUILD = 27;
+export const APP_VERSION = '1.2.1';
+export const APP_BUILD = 28;
 
 /**
  * "Version 1.2.0 (build 21)" in the phone apps, where a tester may be asked

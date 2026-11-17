@@ -28,7 +28,7 @@ before the weekend. Android and iPhone go out on the same day.
 | 25 | Wed 4 Nov | Fixes after text alerts are switched on; one-tap "keep running" permissions on the first trip; 6, 8 and 12-hour trip choices; four fixes from problem reports (old Android WebView, notifications switch, full-screen pin map, "ending early is fine"); last of all, directions on the trip as a beta (the owner, 23 Oct: "It will be the last thing we add") | Out on both, Sun 25 Oct, ten days early; both stores approved it the same day |
 | 26 | Wed 4 Nov | What is done by then: seven small fixes and the simplification pass (one colour plus red for emergencies, fewer boxes and icons, a short start form with extras under "More options", plain labels). Moved a week early on 2 November (the owner: "Yes, upload Wed 4 Nov"), so testers use the simpler screens for a week before the freeze | Out on both, Tue 3 Nov evening (Arizona), a day early. Built from branch `build-26` (`131b988`, from `44746cf`, so no build 27 work), tested on the owner's Galaxy and iPhone. Android published to the closed test; iPhone in TestFlight for both groups (beta review passed at once); website released from the same commit; testers told in the group at 21:30 |
 | 27 | Wed 11 Nov | The launch version: the referral programme (see "Build 27" below) and the rest of the build 26 list: first trip on day one, checkpoint stops on the contacts' page, lock-screen SOS, App Check, place search, usual-time reminder, points card | Planned 2 November; started Thu 5 Nov (the owner: "let us start build 27"). The whole list is at the top of "Build 27" below. If time gets tight, the points card and usual-time reminder can move after launch (my suggestion, not yet agreed) |
-| 27.2 | as soon as it is tested | Fix only: wait for the sign-in check when the app opens, so a slow connection no longer looks like being signed out (see "Build 27.2" below) | Started Mon 16 Nov (the owner: "go ahead, start the fix"). Android first; iPhone as the first update after launch |
+| 28 | as soon as it is tested | Fix only: wait for the sign-in check when the app opens, so a slow connection no longer looks like being signed out (see "Build 28" below; first called 27.2) | Started Mon 16 Nov (the owner: "go ahead, start the fix"). Android first; iPhone as the first update after launch |
 
 | After the last build | Date |
 |---|---|
@@ -628,7 +628,11 @@ whose code was never in this repository (`onCommentCreate`,
 `onCommentDelete`, on Node 20 until now), and the rest brought up to date.
 `createReport` is left alone
 
-### Build 27.2: wait for the sign-in check (agreed Monday 16 November)
+### Build 28 (version 1.2.1): wait for the sign-in check (agreed Monday 16 November)
+
+First called 27.2. Android build numbers must be whole numbers, and the build shown on Profile must match
+the phones' (`appVersion.test.ts`), so it is build 28, version 1.2.1, on both. The after-launch build that was
+called 28 is now build 29.
 
 Two testers said the app "logs them out" (16 November). The cause, found in the code and not yet seen on a phone:
 - each time the app opens, Firebase checks the saved sign-in with Google before it says who is signed in: a fresh
@@ -669,7 +673,13 @@ they use and whether the account came back.
 **Release:** Android first, to the closed test; if it has been on testers' phones for a few days, it is the
 version released on 1 December. iPhone as version 1.2.1, the first update after launch, so build 27.1 keeps its
 place in Apple's review queue. Anyone signed in before updating gets the note the first time the new build opens.
-Version numbers are set at upload (Android needs a whole number above 27).
+
+5. [x] **Android release files,** build 28, version 1.2.1 (the owner, 16 November: "make the android build").
+       Made 16 November, evening in Arizona, from `d34bbfd` plus the number change (Android `versionCode 28` /
+       `versionName "1.2.1"`, the Xcode project 28 / 1.2.1, `appVersion.ts`), with the live web settings: the
+       Play bundle and a cable-install APK, both signed with the upload key (67:D3:78:CE). 454 unit tests pass.
+6. [ ] **Tried on the Android phone** with the build.
+7. [ ] **Uploaded to the Play closed test,** on the owner's word.
 
 ### Build 27: the launch version, with the referral programme (decided 2 November)
 
@@ -2551,7 +2561,7 @@ regulator and advert approval, the bank account and sponsor agreement.
 
 Agreed as wanted, not yet given a build unless it says so. Nothing here is started.
 
-### Build 28, the first after launch (the owner, 6 November: "yes do the offline message and add them")
+### Build 29, the first after launch (the owner, 6 November: "yes do the offline message and add them"; was build 28 until the sign-in fix took that number on 16 November)
 
 In this order, from my suggestions after build 27 was complete (no new features before the 13 November freeze):
 
