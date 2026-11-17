@@ -683,7 +683,7 @@ place in Apple's review queue. Anyone signed in before updating gets the note th
        Profile says "Version 1.2.1 (build 28)". Closed and opened again, it showed "Signing you in..." for about
        half a second, then the Trip screen. A slow connection was not imitated on the phone (that would need
        changes to its network settings); the browser test above covers it.
-7. [ ] **Sent to Google as the Android launch version.** Changed on 16 November: the closed test would have sat
+7. [x] **Sent to Google as the Android launch version.** Changed on 16 November: the closed test would have sat
        in "ready to publish" next to the approved launch changes, and Play publishes those all at once, while
        internal testing skips review. The owner chose to launch Android with build 28 instead of 27 ("Launch
        with build 28"). The same evening a production release "28 (1.2.1)" was saved in Play Console (100%,
@@ -694,6 +694,10 @@ place in Apple's review queue. Anyone signed in before updating gets the note th
        **Submitted 16 November, evening in Arizona** (the owner: "submit it"; when checked it was already under
        "Changes in review", with Play's quick checks running, "up to 12 minutes remaining"). The 7 approved
        changes are still "ready to publish".
+       **Approved by Google (seen Tue 17 November, late morning in Arizona):** Publishing overview shows nothing in
+       review and "Publish 7 changes", with Production "28 (1.2.1)", full rollout, in place of 27, plus Nigeria, the
+       listing, icon, screenshots, feature graphic and Data safety. Nothing pressed; it is published on 1 December,
+       on the owner's word.
 
 ### Build 27: the launch version, with the referral programme (decided 2 November)
 
@@ -2577,18 +2581,48 @@ Agreed as wanted, not yet given a build unless it says so. Nothing here is start
 
 ### Build 29, the first after launch (the owner, 6 November: "yes do the offline message and add them"; was build 28 until the sign-in fix took that number on 16 November)
 
+**Built now and launched with, decided 17 November** (the owner: "let us build the whole … let users test now and we
+can launch with it"). Google approved build 28 for launch within a day, so build 29 aims to replace it before
+1 December. Testers get each part as soon as it is ready through Play internal testing, which is not covered by
+managed publishing and does not touch the approved launch set. The plan, in Arizona time:
+- Tue 17 to Sat 21 Nov: build the six items below, smallest app-only ones first so testers have something early;
+  each Privacy or Terms line goes to the owner first, each server deploy and each upload on the owner's word.
+- Sun 22 to Mon 23 Nov: testers use it; fixes.
+- Tue 24 Nov: send build 29 to Google's production review and to Apple.
+- The risk, agreed: once build 29 is sent to production it replaces the approved build 28 in "ready to publish",
+  and nothing can be published until Google has reviewed it. If it is not approved in time, launch waits for it.
+- App Store Connect: the owner gets an error signing in (17 November); needed for the iPhone upload and the
+  fast-review request.
+
 **Reordered on 17 November (the owner: "yes add them to build 29 … I like number 2").** Testers who stopped using
 WakaGuard were asked why (16-17 November): of the first answers, the most common was forgetting to start a trip before
 leaving, and several were still on old builds without the "Heading out?" reminder. Remembering at the moment of leaving is the hard part, so
 the first three items move that moment somewhere else. A poll in the tester group checks the order.
 
-1. [ ] **Morning heads-up on your usual route, with one tap to start** (the owner's pick). At the time someone
+1. [x] **Morning heads-up on your usual route, with one tap to start** (the owner's pick). At the time someone
        usually leaves (from their usual trips, as the "Heading out?" reminder in build 27), one short notification:
        the weather, plus road reports on or near their usual route since the night before (checkpoint, flooding,
        accident, bad road), ending with "Start your trip to <place>" as a single tap that starts that usual trip.
        Builds on the 28 October "morning heads-up" proposal (in the build 24-25 section) and the 6:30am weather
        notification. Still only when there is something worth saying, at most once a day. Needs the Settings switch
        renamed "Morning heads-up", and Privacy lines on using the usual route and rough area for road reports.
+       - **Done in the code, 17 November** (the owner approved the message and the Privacy line: "yes go ahead
+         with item 1"). Built into the existing "Heading out?" reminder rather than a new notification, so it
+         needs no new switch and reaches phones on build 27 too (a server change): `functions/src/headsUp.ts`
+         and `usualTimes.ts`. Each night the usual time also keeps where the latest trip to the usual place
+         started and the place set on the map, rounded to about a kilometre. At the reminder: the day's weather
+         for the rough area where they set off (one forecast per area per run), and road reports still up from
+         the last 14 hours that are not hidden, flagged or posted from far away, within 2 km of the straight line
+         from start to destination (or 3 km of either end; 5 km of the start with no place on the map). Example:
+         "Heading to Yaba?" "Rain likely from about 4 pm. On your way: a checkpoint was reported near Ojota at
+         7:10 am. Tap to start your trip." Nothing to say: the plain reminder as before. Tapping it opens the
+         start form with the usual trip, as before. Settings line: "… with the weather and road reports on your
+         way." Privacy page: the approved line, plus a sentence that the start of those trips and the place on
+         the map are used, rounded to about a kilometre; "Last Updated: 17 November 2026".
+       - Tests: 9 new unit tests (471 in all) and the 144 emulator tests pass.
+       - **To go live, each on the owner's word:** release the website first (the Privacy page), then deploy
+         `planUsualTimes` and `usualTimeReminders` by name. The heads-up starts after the next nightly plan
+         (2:30 am Nigeria time), unless the plan is run once by hand.
 2. [ ] **"Ask them to start a trip"** (moved up from 3): someone (a parent, say) sends a link, "Let me know you got
        there safely", and the person who opens it starts a trip with the sender already added as a contact. The
        remembering moves to the person who worries, and it brings new users through the people who care about
@@ -2596,7 +2630,7 @@ the first three items move that moment somewhere else. A poll in the tester grou
        the traveller always starts it).
 3. [ ] **"Start my usual trip" from the home screen**: an app-icon shortcut (long-press) and a home-screen widget
        on Android, and the same on iPhone (widget or Shortcuts), so a usual trip starts without opening the form.
-4. [ ] **The trip length from the road time, filled in and easy to see** (the owner, 17 November: "add the auto
+4. [x] **The trip length from the road time, filled in and easy to see** (the owner, 17 November: "add the auto
        time to build 29, also maybe it is not apparent enough"; a tester asked to type where they are going and have
        the app work out how long it takes). Today the start form shows the road time as a small grey line under the
        length buttons ("By road: about 25 min, 12 km", Beta) with an underlined "Use 35 min, with time for
@@ -2607,9 +2641,18 @@ the first three items move that moment somewhere else. A poll in the tester grou
          "About 25 min and 12 km by road, plus time for traffic" under it, so it is clear where the time came from;
        - keep the route check from build 27: never fill in a length from a route that cannot be right;
        - the other lengths stay one tap away.
-5. [ ] **"Navigate with Google Maps"**: a button on the trip that opens Google Maps (the app, or the website)
+       - **Done in the code, 17 November** (`lib/tripLength.ts`, `StartTripForm.tsx`): the length follows the road
+         time until the person picks one themselves (a length button, "Other", a usual trip or "Heading out?"); the
+         road time is a full-width button above the lengths, "35 min, by road", selected when used, with "About 25 min
+         and 12 km by road, plus time for traffic · Beta" under it; clearing the place puts the usual 30 min back. The
+         old grey line and "Use …" link are gone. 5 new tests. To be tried on a phone with the first tester build.
+5. [x] **"Navigate with Google Maps"**: a button on the trip that opens Google Maps (the app, or the website)
        with the destination already set. Cheap, allowed by Google's terms (handing off to Google Maps is not
        building navigation on its content), and people want directions. Our own directions stay as they are.
+       - **Done in the code, 17 November** (`navigateUrl` in `lib/mapsLink.ts`, `ActiveTripCard.tsx`): a full-width
+         "Navigate with Google Maps" button under "Trip to …", only when the trip has a place on the map and not
+         during an SOS. It opens Google Maps directions to that place, driving (walking for a trip on foot), in the
+         Google Maps app where installed, else the website. 1 new test. To be tried on a phone.
 6. [ ] **Battery level on the contacts' page** (and in the alert text, the item "Battery level in the alert"
        below): a dead battery is the commonest reason a phone goes quiet, and "battery 4%" helps a contact judge
        whether to worry. Sent with each location update; a Privacy line is needed.

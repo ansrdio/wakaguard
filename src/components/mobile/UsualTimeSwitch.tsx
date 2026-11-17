@@ -41,7 +41,8 @@ export function UsualTimeSwitch({ uid }: { uid: string }) {
         <div>
           <span className="font-medium text-slate-900 block">Reminder at my usual times</span>
           <span className="text-xs text-slate-500">
-            &quot;Heading out?&quot; shortly before the time you usually set off, if no trip is running. Once a day at most.
+            &quot;Heading out?&quot; shortly before the time you usually set off, with the weather and road reports on
+            your way. Only when no trip is running, once a day at most.
           </span>
         </div>
       </div>

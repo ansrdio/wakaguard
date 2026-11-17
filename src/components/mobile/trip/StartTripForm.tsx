@@ -39,6 +39,7 @@ import { hoursToLookAhead } from '@/lib/weatherWords';
 import { useAppConfig } from '@/hooks/useAppConfig';
 import { useRoutePreview } from '@/hooks/useRoutePreview';
 import { formatDistance, Route, suggestedTripMinutes } from '@/lib/directions';
+import { LengthSource, lengthForRoute } from '@/lib/tripLength';
 
 export interface TripContact {
   id: string;
@@ -159,6 +160,12 @@ export function StartTripForm({
     setPinName(name);
   };
   const [durationMinutes, setDurationMinutes] = useState<number>(DEFAULT_TRIP_MINUTES);
+  // Where the length came from: a length the person picks is never replaced by the road time (build 29)
+  const [lengthSource, setLengthSource] = useState<LengthSource>('default');
+  const chooseLength = (minutes: number) => {
+    setDurationMinutes(minutes);
+    setLengthSource('chosen');
+  };
   const [customOpen, setCustomOpen] = useState(false);
   // Starts on last time's answer, so most trips need no tap here at all
   const [travelMode, setTravelMode] = useState<TravelMode | null>(() => lastTravelMode());
@@ -179,6 +186,18 @@ export function StartTripForm({
   const route = routePreview.state === 'found' && !routeCannotBeRight(routePreview.route, null, destinationPoint, usualTrips)
     ? routePreview.route
     : null;
+  // The length from the road time, with its margin for traffic
+  const routeMinutes = route ? suggestedTripMinutes(route.durationS) : null;
+  // A place chosen and its road time known: the length follows it, unless the person picked one (build 29)
+  useEffect(() => {
+    const next = lengthForRoute(routeMinutes, lengthSource, durationMinutes, DEFAULT_TRIP_MINUTES);
+    if (!next) return;
+    setDurationMinutes(next.minutes);
+    setLengthSource(next.source);
+    // Only when the road time changes, or when the person's own choice is undone
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeMinutes, lengthSource]);
+  const routeSelected = routeMinutes !== null && lengthSource !== 'chosen' && durationMinutes === routeMinutes;
   // Contacts are selected unless switched off, so one added a moment ago is included
   const [deselectedIds, setDeselectedIds] = useState<string[]>([]);
   const [name, setName] = useState(alertName);
@@ -209,7 +228,8 @@ export function StartTripForm({
     .filter((c) => canBeTexted(c) && !deselectedIds.includes(c.id))
     .map((c) => c.id);
   const isPreset = ARRIVAL_PRESETS.some((p) => p.minutes === durationMinutes);
-  const showCustom = customOpen || !isPreset;
+  // A length from the road time is shown on its own button, not as "Other"
+  const showCustom = customOpen || (!isPreset && !routeSelected);
   const showAddForm = contacts.length === 0 || addOpenAtCount === contacts.length
     || !!newContactName || !!newContactPhone;
   const canAddMore = contacts.length < MAX_TRUSTED_CONTACTS;
@@ -257,7 +277,7 @@ export function StartTripForm({
     setSearchName(null);
     setDestination(usualText(trip));
     setDestinationPoint(trip.point);
-    setDurationMinutes(trip.minutes);
+    chooseLength(trip.minutes);
     setCustomOpen(false);
     if (isTravelMode(trip.travelMode)) setTravelMode(trip.travelMode);
     setChosenUsual(trip.key);
@@ -273,7 +293,7 @@ export function StartTripForm({
       if (match) chooseUsualTrip(match);
       else {
         if (wanted) setDestination(usualPick.destination);
-        if (usualPick.minutes) setDurationMinutes(usualPick.minutes);
+        if (usualPick.minutes) chooseLength(usualPick.minutes);
       }
       onUsualPickDone?.();
     };
@@ -451,16 +471,51 @@ export function StartTripForm({
       {/* When */}
       <div>
         <p className={labelClass} id="trip-duration-label">How long will it take?</p>
+
+        {/* Directions (Beta): the road time to the chosen place, as the first choice and filled in (build 29) */}
+        {routePreview.state === 'finding' && (
+          <p className="mb-2 flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400">
+            <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />
+            Finding the time by road&hellip;
+          </p>
+        )}
+        {route && routeMinutes !== null && (
+          <button
+            type="button"
+            aria-pressed={routeSelected}
+            onClick={() => {
+              setDurationMinutes(routeMinutes);
+              setLengthSource('route');
+              setCustomOpen(false);
+            }}
+            className={`w-full mb-2 min-h-12 px-4 py-2.5 rounded-xl text-left transition-colors ${
+              routeSelected
+                ? 'bg-brand-600 text-white'
+                : 'bg-brand-50 dark:bg-brand-900/40 text-brand-800 dark:text-brand-100 border border-brand-200 dark:border-brand-800'
+            }`}
+          >
+            <span className="flex items-center gap-2 text-base font-semibold">
+              <Navigation className="w-4 h-4 shrink-0" aria-hidden="true" />
+              {formatDuration(routeMinutes)}, {route.profile === 'walking' ? 'on foot' : 'by road'}
+              {routeSelected && <Check className="w-4 h-4 ml-auto shrink-0" aria-label="Chosen" />}
+            </span>
+            <span className={`block mt-0.5 text-xs ${routeSelected ? 'text-white/85' : 'text-brand-700 dark:text-brand-200'}`}>
+              About {formatDuration(Math.max(1, Math.round(route.durationS / 60)))} and {formatDistance(route.distanceM)}
+              {route.profile === 'walking' ? ' on foot, with time to spare' : ' by road, plus time for traffic'} · Beta
+            </span>
+          </button>
+        )}
+
         <div className="grid grid-cols-5 gap-2" role="group" aria-labelledby="trip-duration-label">
           {ARRIVAL_PRESETS.map((preset) => {
-            const selected = !showCustom && durationMinutes === preset.minutes;
+            const selected = !showCustom && !routeSelected && durationMinutes === preset.minutes;
             return (
               <button
                 key={preset.minutes}
                 type="button"
                 aria-pressed={selected}
                 onClick={() => {
-                  setDurationMinutes(preset.minutes);
+                  chooseLength(preset.minutes);
                   setCustomOpen(false);
                 }}
                 className={`min-h-12 py-2.5 px-1 rounded-xl text-sm font-medium transition-colors ${
@@ -476,7 +531,10 @@ export function StartTripForm({
           <button
             type="button"
             aria-pressed={showCustom}
-            onClick={() => setCustomOpen(true)}
+            onClick={() => {
+              setCustomOpen(true);
+              setLengthSource('chosen');
+            }}
             className={`min-h-12 py-2.5 px-1 rounded-xl text-sm font-medium transition-colors ${
               showCustom
                 ? 'bg-brand-600 text-white'
@@ -496,7 +554,7 @@ export function StartTripForm({
                   key={preset.minutes}
                   type="button"
                   aria-pressed={selected}
-                  onClick={() => setDurationMinutes(preset.minutes)}
+                  onClick={() => chooseLength(preset.minutes)}
                   className={`min-h-12 py-2.5 px-1 rounded-xl text-sm font-medium transition-colors ${
                     selected
                       ? 'bg-brand-600 text-white'
@@ -516,7 +574,7 @@ export function StartTripForm({
             <select
               id="trip-hours"
               value={Math.floor(durationMinutes / 60)}
-              onChange={(e) => setDurationMinutes(Number(e.target.value) * 60 + (durationMinutes % 60))}
+              onChange={(e) => chooseLength(Number(e.target.value) * 60 + (durationMinutes % 60))}
               className={`${inputClass} py-2.5`}
             >
               {CUSTOM_HOURS.map((h) => <option key={h} value={h}>{h} h</option>)}
@@ -525,7 +583,7 @@ export function StartTripForm({
             <select
               id="trip-minutes"
               value={durationMinutes % 60}
-              onChange={(e) => setDurationMinutes(Math.floor(durationMinutes / 60) * 60 + Number(e.target.value))}
+              onChange={(e) => chooseLength(Math.floor(durationMinutes / 60) * 60 + Number(e.target.value))}
               className={`${inputClass} py-2.5`}
             >
               {CUSTOM_MINUTES.map((m) => <option key={m} value={m}>{m} min</option>)}
@@ -543,40 +601,6 @@ export function StartTripForm({
           </p>
         )}
 
-        {/* Directions (Beta): Mapbox's time leaves out traffic, so the length offered has a margin */}
-        {routePreview.state === 'finding' && (
-          <p className="mt-2 flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400">
-            <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />
-            Finding the route by road&hellip;
-          </p>
-        )}
-        {route && (() => {
-          const suggested = suggestedTripMinutes(route.durationS);
-          const margin = route.profile === 'walking' ? 'with time to spare' : 'with time for traffic';
-          return (
-            <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-slate-700 dark:text-slate-200">
-              <span>
-                {route.profile === 'walking' ? 'On foot' : 'By road'}: about{' '}
-                <span className="font-semibold">{formatDuration(Math.max(1, Math.round(route.durationS / 60)))}</span>,{' '}
-                {formatDistance(route.distanceM)}
-              </span>
-              <span className="px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700 text-[11px] font-semibold text-slate-600 dark:text-slate-300">Beta</span>
-              {durationMinutes === suggested ? (
-                <span className="flex items-center gap-1 text-brand-700 dark:text-brand-300 font-medium">
-                  <Check className="w-4 h-4" aria-hidden="true" /> Using {formatDuration(suggested)}, {margin}
-                </span>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setDurationMinutes(suggested)}
-                  className="font-semibold text-brand-700 dark:text-brand-300 underline underline-offset-2"
-                >
-                  Use {formatDuration(suggested)}, {margin}
-                </button>
-              )}
-            </div>
-          );
-        })()}
       </div>
 
       {/* Who */}

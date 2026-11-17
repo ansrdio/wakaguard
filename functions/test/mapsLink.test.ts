@@ -1,6 +1,17 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { showInMapsUrl } from '../../src/lib/mapsLink';
+import { navigateUrl, showInMapsUrl } from '../../src/lib/mapsLink';
+
+test('"Navigate with Google Maps" sets the destination and always says how they travel', () => {
+  assert.equal(
+    navigateUrl(6.5244, 3.3792, false),
+    'https://www.google.com/maps/dir/?api=1&destination=6.5244,3.3792&travelmode=driving',
+  );
+  assert.equal(
+    navigateUrl(6.5244, 3.3792, true),
+    'https://www.google.com/maps/dir/?api=1&destination=6.5244,3.3792&travelmode=walking',
+  );
+});
 
 const ANDROID = 'Mozilla/5.0 (Linux; Android 11; Infinix X688B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36';
 const IPHONE = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148';

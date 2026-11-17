@@ -24,7 +24,7 @@ export default function PrivacyPage() {
           </div>
 
           <p className="text-gray-600 mb-8">
-            Last Updated: 6 November 2026
+            Last Updated: 17 November 2026
           </p>
 
           <section className="mb-8">
@@ -167,7 +167,11 @@ export default function PrivacyPage() {
               day on at least 3 of the last 14 days, we send &quot;Heading out?&quot; shortly before that time, at
               most once a day and never while a trip is running. To do this we use the start times, and the
               destination you typed, of your past trips, worked out again each night; switch it off with
-              Reminder at my usual times in Settings.
+              Reminder at my usual times in Settings. To make the reminder before your usual trips more useful,
+              it can include the weather where you usually set off (a rough area of about 10 km) and road reports
+              other travellers posted near your usual route. For this we also use where those trips started and
+              the place you set on the map, rounded to about a kilometre. Nothing about your trips is shared with
+              anyone.
             </p>
 
             <h3 className="text-xl font-semibold text-gray-800 mb-3">Invite Friends</h3>

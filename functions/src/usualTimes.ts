@@ -22,6 +22,9 @@ import * as admin from 'firebase-admin';
 import type { TokenMessage } from 'firebase-admin/messaging';
 import { believedBuild, PushSubscription } from './reminderPush';
 import { isDeadToken, noteIfDead } from './pushTokens';
+import { HeadsUp, headsUpMessage, REPORTS_SINCE_HOURS, RoadReport, reportsNearRoute, roundSpot, Spot } from './headsUp';
+import { DayOutlook, forecastFor, inServiceArea, readDay, roughArea } from './weather';
+import { endOfLagosDay } from './morningWeather';
 
 export const USUAL_FROM_BUILD = 27;
 export const LOOK_BACK_DAYS = 14;
@@ -41,6 +44,9 @@ export interface PastStart {
   atMs: number;
   destination?: string | null;
   minutes?: number | null;
+  /** Where the trip started and the place set on the map, rounded to about a kilometre (headsUp.ts) */
+  from?: Spot | null;
+  to?: Spot | null;
 }
 
 export interface UsualTime {
@@ -49,6 +55,9 @@ export interface UsualTime {
   days: number;
   destination: string | null;
   minutes: number | null;
+  /** For the heads-up (build 29): the usual start and destination, rounded; null when unknown */
+  from?: Spot | null;
+  to?: Spot | null;
 }
 
 export const lagosMinute = (ms: number) => Math.floor(((ms + LAGOS_OFFSET_MS) % DAY_MS) / MIN_MS);
@@ -81,7 +90,18 @@ export function usualTimes(starts: PastStart[], nowMs: number): UsualTime[] {
     const sorted = bestNear.map((n) => n.minute).sort((a, b) => a - b);
     const destination = mostCommon(bestNear.map((n) => (n.destination ?? '').trim()).filter(Boolean));
     const minutes = mostCommon(bestNear.map((n) => n.minutes).filter((m): m is number => typeof m === 'number' && m > 0));
-    found.push({ minute: sorted[Math.floor((sorted.length - 1) / 2)], days: bestDays, destination, minutes });
+    // The latest trip to the usual destination that says where it started, for the heads-up
+    const latest = [...bestNear]
+      .filter((n) => n.from && (!destination || (n.destination ?? '').trim() === destination))
+      .sort((a, b) => b.atMs - a.atMs)[0];
+    found.push({
+      minute: sorted[Math.floor((sorted.length - 1) / 2)],
+      days: bestDays,
+      destination,
+      minutes,
+      from: latest?.from ?? null,
+      to: latest?.to ?? null,
+    });
     pool = pool.filter((o) => !bestNear.includes(o));
   }
   return found.sort((a, b) => a.minute - b.minute);
@@ -125,7 +145,7 @@ export async function planUsual(nowMs: number): Promise<number> {
   const trips = await db.collectionGroup('trips')
     .where('status', '==', 'completed')
     .where('expiresAt', '>=', admin.firestore.Timestamp.fromMillis(nowMs - LOOK_BACK_DAYS * DAY_MS))
-    .select('startTime', 'isTest', 'destination', 'expectedDurationMinutes')
+    .select('startTime', 'isTest', 'destination', 'expectedDurationMinutes', 'startLocation', 'destinationPoint')
     .get();
 
   const byPerson = new Map<string, PastStart[]>();
@@ -140,6 +160,8 @@ export async function planUsual(nowMs: number): Promise<number> {
       atMs,
       destination: typeof destination === 'string' ? destination : null,
       minutes: typeof minutes === 'number' ? minutes : null,
+      from: roundSpot(doc.get('startLocation')),
+      to: roundSpot(doc.get('destinationPoint')),
     }]);
   }
 
@@ -165,8 +187,71 @@ export async function planUsual(nowMs: number): Promise<number> {
 // ---------------------------------------------------------------- quarter-hourly reminders
 
 type Send = (message: TokenMessage) => Promise<unknown>;
+/** The weather and road reports for one person's usual trip; replaced in tests */
+export type LookUp = (usual: UsualTime) => Promise<HeadsUp>;
 
-export async function sendUsualReminders(nowMs: number, send: Send = (m) => admin.messaging().send(m)): Promise<number> {
+/** Road reports still up, created since REPORTS_SINCE_HOURS ago, not hidden and not posted from far away */
+async function recentReports(nowMs: number): Promise<RoadReport[]> {
+  const db = admin.firestore();
+  const snap = await db.collection('reports')
+    .where('createdAt', '>=', admin.firestore.Timestamp.fromMillis(nowMs - REPORTS_SINCE_HOURS * 60 * MIN_MS))
+    .select('type', 'status', 'location', 'createdAt', 'expiresAt', 'postedFarAway', 'flagCount')
+    .get();
+  const reports: RoadReport[] = [];
+  for (const doc of snap.docs) {
+    if (doc.get('status') !== 'active' || doc.get('postedFarAway') === true || Number(doc.get('flagCount') || 0) > 0) continue;
+    const expiresMs = doc.get('expiresAt')?.toMillis?.();
+    if (typeof expiresMs === 'number' && expiresMs <= nowMs) continue;
+    const location = doc.get('location');
+    const createdMs = doc.get('createdAt')?.toMillis?.();
+    if (typeof location?.lat !== 'number' || typeof location?.lng !== 'number' || typeof createdMs !== 'number') continue;
+    reports.push({
+      type: String(doc.get('type') || 'other'),
+      lat: location.lat,
+      lng: location.lng,
+      address: typeof location.address === 'string' ? location.address : null,
+      createdMs,
+    });
+  }
+  return reports;
+}
+
+/**
+ * Looks up the heads-up for each person in one run: the day's weather where
+ * they usually set off (one forecast per rough area) and the road reports near
+ * their usual route (one read of the recent reports for the whole run).
+ */
+export function headsUpLookUp(nowMs: number): LookUp {
+  const outlooks = new Map<string, Promise<DayOutlook | null>>();
+  let reports: Promise<RoadReport[]> | null = null;
+  return async (usual) => {
+    if (!usual.from) return { weather: null, reports: [] };
+    const area = roughArea(usual.from.lat, usual.from.lng);
+    let weather: DayOutlook | null = null;
+    if (area && inServiceArea(area)) {
+      if (!outlooks.has(area.key)) {
+        outlooks.set(area.key, forecastFor(area, nowMs)
+          .then((forecast) => readDay(forecast, nowMs, endOfLagosDay(nowMs)))
+          .catch((error) => {
+            functions.logger.warn('No forecast for the heads-up', { area: area.key, error: String(error) });
+            return null;
+          }));
+      }
+      weather = await outlooks.get(area.key)!;
+    }
+    reports ??= recentReports(nowMs).catch((error) => {
+      functions.logger.warn('No road reports for the heads-up', { error: String(error) });
+      return [];
+    });
+    return { weather, reports: reportsNearRoute(await reports, usual.from, usual.to ?? null) };
+  };
+}
+
+export async function sendUsualReminders(
+  nowMs: number,
+  send: Send = (m) => admin.messaging().send(m),
+  lookUp: LookUp = headsUpLookUp(nowMs),
+): Promise<number> {
   const db = admin.firestore();
   const slot = (await db.doc(`${USUAL_TIME_SLOTS}/${slotAt(nowMs)}`).get()).get('people') as Record<string, UsualTime> | undefined;
   if (!slot) return 0;
@@ -191,7 +276,16 @@ export async function sendUsualReminders(nowMs: number, send: Send = (m) => admi
     });
     if (!claimed) continue;
 
-    const message = usualMessage(usual);
+    // With the weather and road reports when there is something to say (build 29); tapping it still opens this trip
+    const plain = usualMessage(usual);
+    let message = plain;
+    try {
+      const where = usual.destination ? usual.destination.slice(0, 40) : null;
+      const headsUp = headsUpMessage(where, await lookUp(usual), nowMs);
+      if (headsUp) message = { ...plain, ...headsUp };
+    } catch (error) {
+      functions.logger.warn('Heads-up left out of the usual time reminder', { uid, error: String(error) });
+    }
     try {
       await send({
         token: subscription.fcmToken,

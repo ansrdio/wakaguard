@@ -14,6 +14,8 @@ import { storedVehicle, vehicleSummary } from '@/lib/vehicle';
 import { WeatherLine } from '@/components/mobile/trip/WeatherLine';
 import { useWeatherAhead } from '@/hooks/useWeatherAhead';
 import { hoursToLookAhead } from '@/lib/weatherWords';
+import { readPoint } from '@/lib/destinationPoint';
+import { navigateUrl } from '@/lib/mapsLink';
 
 interface ActiveTripCardProps {
   trip: Trip;
@@ -136,6 +138,8 @@ export function ActiveTripCard({
   // What the server recorded about texting this trip's contacts; the card says that and no more
   const alert = describeTripAlert(trip);
   const vehicle = storedVehicle(trip.vehicle);
+  // Only for a place set on the map or found by search; not during an emergency, when SOS comes first
+  const goingTo = isEmergency ? null : readPoint(trip.destinationPoint);
 
   return (
     <div className="space-y-3">
@@ -156,6 +160,20 @@ export function ActiveTripCard({
           </div>
           <span className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${tone.pill}`}>{tone.label}</span>
         </div>
+
+        {/* Directions in Google Maps, to the place set for this trip (build 29) */}
+        {goingTo && (
+          <div className="px-5 pb-4 -mt-1">
+            <button
+              type="button"
+              onClick={() => window.open(navigateUrl(goingTo.lat, goingTo.lng, trip.travelMode === 'foot'), '_blank')}
+              className="w-full min-h-12 inline-flex items-center justify-center gap-2 rounded-xl border border-brand-200 dark:border-brand-800 bg-brand-50 dark:bg-brand-900/40 text-brand-800 dark:text-brand-100 font-semibold hover:bg-brand-100 dark:hover:bg-brand-900/60 transition-colors"
+            >
+              <MapIcon className="w-5 h-5" aria-hidden="true" />
+              Navigate with Google Maps
+            </button>
+          </div>
+        )}
 
         {trip.isTest && (
           <div className="mx-5 mb-4 bg-slate-100 border border-slate-200 dark:bg-slate-700 dark:border-slate-600 rounded-xl p-3 text-sm text-slate-700 dark:text-slate-200">
