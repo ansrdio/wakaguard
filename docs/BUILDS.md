@@ -2616,6 +2616,26 @@ Announced in the tester group with that link the same evening (21:04 WhatsApp ti
 this Mac from the same web build (`builds/WakaGuard-1.3.0-29.xcarchive`, CFBundleVersion 29, 1.3.0), exported and
 uploaded with Xcode ("Upload succeeded", `builds/upload-29.log`), which needs no App Store Connect web sign-in. Apple
 then processes it; TestFlight testers outside the team need Apple's beta review for 1.3.0, asked for on the website.
+**Wed 18 November, about 1 pm Arizona** (the owner signed in to App Store Connect; "do both Apple steps"): build 29
+had processed ("Ready to Submit", 2 internal invites). (1) Added to the external TestFlight group "waka" (9 testers,
+public link) with the same tester notes as Play, "Automatically notify testers" on, and submitted: "Waiting for Review".
+(2) iOS 1.2.0 (27.1), the launch version, had been "Waiting for Review" since 7 November, so an expedited review was
+requested on developer.apple.com (topic "request an expedited app review", app WakaGuard: Travel Safety, iOS); Apple
+answered "We'll expedite review for WakaGuard: Travel Safety."
+**Sent to Google's production review, Wed 18 November, about 1:30 pm Arizona** (the owner: "let us just submit now,
+why wait"): a production release "29 (1.3.0)", full rollout, from the bundle already in the library (28 not carried
+over), launch notes copied from 28 and updated ("WakaGuard 1.3.0, the version we launch with" plus the new parts, 449
+characters). Play's two usual warnings; device support unchanged (12,320 phones). Play's quick check flagged that the
+app requires GPS (`android.hardware.location.gps`), which leaves out devices without it; ignored with the reason that
+GPS is essential to a trip-safety app and unchanged from the previous release. "Submit 1 change for review", then "Send
+changes for review": now under "Changes in review" (quick checks first, then Google's review, "typically within 7
+days"). The approved launch set (production 28, Nigeria, listing, Data safety) still shows "Publish 7 changes"; not
+pressed. Once 29 is approved it takes 28's place in that set.
+**iPhone plan, decided 18 November** (the owner: "go with option 1"): 1.2.0 (27.1) stays in its expedited App Store
+review; it has neither build 28's sign-in wait nor build 29's features (server-side changes reach it). As soon as
+Apple approves it, version 1.3.0 is made in App Store Connect with build 29 and sent for review, with another
+expedite request citing the 1 December launch if needed. The iPhone launches with whichever version is approved by
+then. Not yet known: whether App Store Connect lets 1.3.0 be sent while an approved 1.2.0 waits unreleased.
 
 **Reordered on 17 November (the owner: "yes add them to build 29 … I like number 2").** Testers who stopped using
 WakaGuard were asked why (16-17 November): of the first answers, the most common was forgetting to start a trip before
