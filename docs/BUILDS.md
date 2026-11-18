@@ -2636,6 +2636,17 @@ review; it has neither build 28's sign-in wait nor build 29's features (server-s
 Apple approves it, version 1.3.0 is made in App Store Connect with build 29 and sent for review, with another
 expedite request citing the 1 December launch if needed. The iPhone launches with whichever version is approved by
 then. Not yet known: whether App Store Connect lets 1.3.0 be sent while an approved 1.2.0 waits unreleased.
+**1.2.0 (27.1) approved by Apple, Wed 18 November (seen early afternoon, Arizona), a few hours after the expedite:**
+"Pending Developer Release", with "Release This Version" (not pressed; release is manual). App Store Connect offers no
+way to start 1.3.0 while it waits: only "cancel this release" (which would undo the approval) or releasing it. TestFlight
+1.3.0 (29) still "Waiting for Review" (11 invites).
+**Quiet iPhone release and 1.3.0 sent, Wed 18 November, about 1:20 pm Arizona** (the owner: "what if we launch without
+telling people", then "go"): 1.2.0 released ("Release This Version", Nigeria only): "Ready for Distribution", live
+on the App Store without any announcement (wakaguard.com was already open to anyone). Version 1.3.0 then created with
+build 29, "What's New" written for the update (road time and Navigate, the links, battery, the heads-up, showers, a
+smoother sign-in on slow connections), the description and review notes carried over, release set to "Automatically
+release this version", phased release off; added for review and "Submit for Review" (the submission held only iOS App
+1.3.0 (29)): "Waiting for Review", Apple says up to 48 hours. Public announcement stays on 1 December.
 
 **Reordered on 17 November (the owner: "yes add them to build 29 … I like number 2").** Testers who stopped using
 WakaGuard were asked why (16-17 November): of the first answers, the most common was forgetting to start a trip before
