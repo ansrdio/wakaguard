@@ -2605,6 +2605,12 @@ iPhone build waits for the App Store Connect sign-in.
 trip running anywhere: it opened signed in on the Trip screen with the usual trips; "Let me know you got there" is
 under More and opens its screen with the name filled in (no link made, as that would be a real one); Profile says
 "Version 1.3.0 (build 29)". Not tried: a trip (the battery on the page, Navigate), left to the owner.
+**Uploaded to Play internal testing** the same evening (the owner: "upload Android", then "just do it"): release
+"29 (1.3.0)", 1 version code, build 23 not carried over, tester notes listing the new parts, the "WakaGuard Testers"
+list (65); the bundle went through the Chrome connection this time. Play's two usual warnings (no deobfuscation file,
+no native debug symbols), no devices lost. "Available to internal testers", released 17 Nov 8:30 PM Arizona.
+Publishing overview afterwards: still "Publish 7 changes" with Production "28 (1.2.1)", untouched. Testers who only
+joined closed testing must accept the internal test once: https://play.google.com/apps/internaltest/4700894268020553937
 
 **Reordered on 17 November (the owner: "yes add them to build 29 … I like number 2").** Testers who stopped using
 WakaGuard were asked why (16-17 November): of the first answers, the most common was forgetting to start a trip before
