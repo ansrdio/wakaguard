@@ -2594,6 +2594,18 @@ managed publishing and does not touch the approved launch set. The plan, in Ariz
 - App Store Connect: the owner gets an error signing in (17 November); needed for the iPhone upload and the
   fast-review request.
 
+**First tester build, version 1.3.0 (build 29), made Tue 17 November, evening in Arizona** (the owner: "make the
+build 29 tester build"), from `ff68436` plus the number change (Android `versionCode 29` / `versionName "1.3.0"`, the
+Xcode project 29 / 1.3.0, `appVersion.ts`; 1.3.0 as it adds features after launch), with the live web settings: the
+Play bundle and a cable-install APK, both signed with the upload key (67:D3:78:CE), version code 29 checked, with the
+two new plugins (`@capacitor/app`, `@capacitor/device`). 489 unit tests pass. It holds items 1, 2, 4, 5, 6 and 7.
+Next, each on the owner's word: try it on the Galaxy, then upload to Play internal testing for the testers. The
+iPhone build waits for the App Store Connect sign-in.
+**Tried on the owner's Galaxy A15** the same evening ("galaxy plugged in"), installed by cable over build 28 with no
+trip running anywhere: it opened signed in on the Trip screen with the usual trips; "Let me know you got there" is
+under More and opens its screen with the name filled in (no link made, as that would be a real one); Profile says
+"Version 1.3.0 (build 29)". Not tried: a trip (the battery on the page, Navigate), left to the owner.
+
 **Reordered on 17 November (the owner: "yes add them to build 29 … I like number 2").** Testers who stopped using
 WakaGuard were asked why (16-17 November): of the first answers, the most common was forgetting to start a trip before
 leaving, and several were still on old builds without the "Heading out?" reminder. Remembering at the moment of leaving is the hard part, so
