@@ -2703,6 +2703,8 @@ the first three items move that moment somewhere else. A poll in the tester grou
        - **To go live, each on the owner's word:** the Firestore rules, then `tripLocation`, `checkOverdueTrips`,
          `checkQuietTrips` and `onSOSAlert` by name (the ones that build alert texts or keep positions), and the
          website (the trip page and Privacy). Phones send the battery from the build 29 tester build.
+       - **Live Tue 17 November** (website, rules, then the functions; see "Website and server releases"). The owner's
+         "release the website" took the Privacy line as approved.
 7. [ ] **Rain only when it is likely** (Gifted, a tester, 17 November: "It says rain will fall 3pm and it doesn't
        even rain throughout the day"; the owner: "add the weather fix to build 29"). The weather comes from MET Norway's
        "compact" forecast, which says only what each hour looks like, with no chance of rain; `kindOfHour` in
@@ -2731,6 +2733,7 @@ the first three items move that moment somewhere else. A poll in the tester grou
        - Tests: 3 new unit tests and 5 updated.
        - **To go live, on the owner's word:** `morningWeather`, `usualTimeReminders` and `weatherAhead` by name; the
          trip line's new words come with the website and the build 29 apps.
+       - **Live Tue 17 November**; the first morning message on the new reading is 6:30 am Nigeria time on 18 November.
 
 After launch: **"Start my usual trip" from the home screen** (was build 29 item 3, moved 17 November): an app-icon
 shortcut (long-press) and a home-screen widget on Android, and the same on iPhone (widget or Shortcuts), so a usual
@@ -3016,6 +3019,7 @@ Changes that went live without an app build.
 
 | Date | What |
 |---|---|
+| Tue 17 Nov (evening in Arizona) | **Battery level and "rain only when it is likely"** (build 29 items 6 and 7), on the owner's word ("commit and push, release the website and deploy all"), from `cb89dac`. (1) The website (Hosting only): the trip page's battery line and the Privacy paragraph on the battery; checked live on wakaguard.com/privacy. (2) The Firestore rules ("released rules"), before any function writes a battery, so the app's own writes to a trip page with one still pass. (3) By name, all "Successful update": `morningWeather`, `usualTimeReminders`, `weatherAhead`, `tripLocation`, `checkOverdueTrips`, `checkQuietTrips`, `onSOSAlert`. Checked live: `tripLocation` answers 405, 400 and 403 as before; `checkOverdueTrips` ran twice on the new code with status ok. Phones send the battery from the build 29 tester build; the weather change reaches every phone now. The CLI again could not clean up the build images; the 1-day clean-up rule covers them. |
 | Tue 17 Nov (afternoon in Arizona) | **"Let me know you got there"**, on the owner's word ("commit and push, release the website and deploy"), from `55d84d7`. The website first (Hosting only): Privacy's "Let me know you got there" Links paragraph, Terms 7's new line and "Last updated: 17 November 2026", the /open page for a link opened in a browser, and the button under More in the web app. Checked live: both pages carry the new lines, /open answers 200. Then by name `tripRequests` ("Successful create"), `deleteOldRecords` and `deleteMyAccount` ("Successful update"). Checked live: `tripRequests` answers UNAUTHENTICATED to a caller who is not signed in. Phones get the button with the first build 29 tester build. The CLI again could not clean up the build images; the 1-day clean-up rule covers them. |
 | Tue 17 Nov (midday in Arizona) | **Website from `7957b2c`, then the heads-up in "Heading out?"**, on the owner's word ("commit and push, release the website and deploy the heads-up"). Hosting first, so the Privacy page ("Last Updated: 17 November 2026", the weather and road reports in the usual-time reminder) was live before the server change; checked live on wakaguard.com/privacy. The website also carries build 28's sign-in wait and build 29's road time and "Navigate with Google Maps". Then `planUsualTimes` and `usualTimeReminders` deployed by name at 20:52 Nigeria time. The heads-up starts after the next nightly plan (2:30 am); until then the reminder is the plain one. The Firebase CLI sign-in had expired and the owner signed in again. |
 | Mon 9 Nov (late evening in Arizona) | **The hourly text check reads the Africa's Talking wallet too**, on the owner's word ("yes add the balance to the hourly check", then "deploy watchTexts"): `africasTalkingBalance` (the user data endpoint, key in a header, a non-naira or missing balance reads as "not read", never zero); `textAlarms` takes every wallet in use and the "text wallet low" alarm names the one under NGN 3,000. `watchTexts` deployed by name ("Successful update"). Tests: 445 unit (one new), 144 emulator. |
