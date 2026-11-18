@@ -39,13 +39,22 @@ export const FEELS_HOT_FROM = 41;
 export const FEELS_DANGEROUS_FROM = 46;
 /** An hour with this much rain or more, in mm, is heavy rain whatever its symbol says */
 export const HEAVY_RAIN_MM = 4;
+/**
+ * An hour with less rain than this, in mm, is not worth a word (build 29). A
+ * tester was told "Rain expected from about 3 pm" and it stayed dry all day
+ * (17 November 2026): MET Norway marks an hour as a light shower for 0.1 mm,
+ * and in Nigeria those often never come. Its chance of rain is only given for
+ * the Nordic countries, so the amount stands in for it.
+ */
+export const RAIN_FROM_MM = 0.5;
 /** A forecast kept past its expiry, for when MET Norway cannot be reached */
 const STALE_LIMIT_MS = 6 * 60 * 60 * 1000;
 const HOUR_MS = 60 * 60 * 1000;
 
-export type WeatherKind = 'storm' | 'heavy-rain' | 'rain' | 'fog' | 'heat';
+/** 'showers' (build 29): passing showers, said as "a chance of showers" rather than "rain expected" */
+export type WeatherKind = 'storm' | 'heavy-rain' | 'rain' | 'showers' | 'fog' | 'heat';
 /** Most serious first */
-const SERIOUSNESS: WeatherKind[] = ['storm', 'heavy-rain', 'rain', 'fog', 'heat'];
+const SERIOUSNESS: WeatherKind[] = ['storm', 'heavy-rain', 'rain', 'showers', 'fog', 'heat'];
 
 export interface ForecastHour {
   time?: string;
@@ -64,6 +73,11 @@ export interface Ahead {
   hottest: number | null;
   /** How many hours were looked at */
   hours: number;
+}
+
+/** Apps before build 29 drop a forecast with a kind they do not know, so showers are "rain" to them */
+export function kindForApp(kind: WeatherKind | null, knowsShowers: boolean): WeatherKind | null {
+  return kind === 'showers' && !knowsShowers ? 'rain' : kind;
 }
 
 /** A rough area for a position, or null when it is not a position */
@@ -122,9 +136,11 @@ export function kindOfHour(hour: ForecastHour): WeatherKind | null {
   const symbol = hour.data?.next_1_hours?.summary?.symbol_code ?? '';
   const rain = hour.data?.next_1_hours?.details?.precipitation_amount ?? 0;
   const temperature = hour.data?.instant?.details?.air_temperature;
+  const showers = symbol.includes('showers');
   if (symbol.includes('thunder')) return 'storm';
-  if (symbol.includes('heavyrain') || rain >= HEAVY_RAIN_MM) return 'heavy-rain';
-  if (symbol.includes('rain') || symbol.includes('sleet')) return 'rain';
+  if (rain >= HEAVY_RAIN_MM || (symbol.includes('heavyrain') && !showers)) return 'heavy-rain';
+  // Showers come and go, and a trace of rain is not worth a word
+  if ((symbol.includes('rain') || symbol.includes('sleet')) && rain >= RAIN_FROM_MM) return showers ? 'showers' : 'rain';
   if (symbol.includes('fog')) return 'fog';
   if (typeof temperature === 'number' && temperature >= HOT_FROM) return 'heat';
   if ((feelsLikeOfHour(hour) ?? 0) >= FEELS_HOT_FROM) return 'heat';
@@ -325,6 +341,8 @@ export const weatherAhead = functions.https.onCall(async (data, context) => {
   if (!area) throw new functions.https.HttpsError('invalid-argument', 'A position is needed');
   if (!inServiceArea(area)) throw new functions.https.HttpsError('out-of-range', 'Weather is only given for Nigeria');
   const hours = typeof data?.hours === 'number' && Number.isFinite(data.hours) ? data.hours : 3;
+  // Apps from build 29 say "a chance of showers"; older ones only know "rain"
+  const knowsShowers = data?.showers === true;
   const nowMs = Date.now();
   // The rough area is kept for the morning weather, unless it is switched off
   // in Settings (guests have no notifications to send it to)
@@ -335,7 +353,8 @@ export const weatherAhead = functions.https.onCall(async (data, context) => {
   try {
     const forecast = await forecastFor(area, nowMs);
     // The hours are for the weather icon (build 24); older apps ignore them
-    return { ...readAhead(forecast, nowMs, hours), next: readHours(forecast, nowMs, MAX_HOURS), credit: 'Data from MET Norway' };
+    const ahead = readAhead(forecast, nowMs, hours);
+    return { ...ahead, kind: kindForApp(ahead.kind, knowsShowers), next: readHours(forecast, nowMs, MAX_HOURS), credit: 'Data from MET Norway' };
   } catch (error) {
     functions.logger.warn('Weather could not be had', { area: area.key, error: String(error) });
     throw new functions.https.HttpsError('unavailable', 'No forecast just now');

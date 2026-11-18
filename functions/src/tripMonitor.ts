@@ -26,6 +26,7 @@ import { buildTravellerPush, TravellerMessage } from './reminderPush';
 import { isDeadToken, noteIfDead } from './pushTokens';
 import { isOwnPage, ownPage } from './tripPage';
 import { plateForText, readTripVehicle, vehicleForContacts } from './vehicle';
+import { batteryForText } from './battery';
 import { readStoredRoute, sameRoute } from './tripRoute';
 import { countReferralTrip } from './referrals';
 import {
@@ -467,6 +468,7 @@ async function alertContacts(ref: DocRef, kind: Kind): Promise<void> {
         lastUpdateMs: toMillis(claimed.lastUpdate),
         token: kind === 'trip' ? ref.id : null,
         plate: kind === 'trip' ? plateForText(claimed) : null,
+        battery: kind === 'trip' ? batteryForText(claimed.battery, Date.now()) : null,
       }), claimed.isTest === true);
 
       const recipients: Recipient[] = contacts.map((c) => ({
@@ -997,6 +999,7 @@ export const onSOSAlert = functions
       // Only link to a trip the contacts can actually open
       token: trip ? tripId : null,
       plate: plateForText(trip),
+      battery: batteryForText(trip?.battery, Date.now()),
     }), trip?.isTest === true);
     const recipients: Recipient[] = contacts.map((c) => ({ id: c.id, name: c.name, phoneE164: c.phoneE164 }));
 

@@ -15,7 +15,8 @@
 
 import type { TravelMode } from './travelMode';
 
-export type WeatherKind = 'storm' | 'heavy-rain' | 'rain' | 'fog' | 'heat';
+/** 'showers' from build 29: passing showers, which may not come */
+export type WeatherKind = 'storm' | 'heavy-rain' | 'rain' | 'showers' | 'fog' | 'heat';
 
 export interface WeatherAhead {
   kind: WeatherKind | null;
@@ -79,7 +80,7 @@ export interface WeatherLine {
 /** MET Norway's data is free on condition that it is credited */
 export const WEATHER_CREDIT = 'Data from MET Norway';
 
-const KINDS: readonly WeatherKind[] = ['storm', 'heavy-rain', 'rain', 'fog', 'heat'];
+const KINDS: readonly WeatherKind[] = ['storm', 'heavy-rain', 'rain', 'showers', 'fog', 'heat'];
 
 /** What the server answered, checked. Null for anything that is not a forecast. */
 export function readWeatherAhead(value: unknown): WeatherAhead | null {
@@ -117,6 +118,8 @@ export function weatherLine(ahead: WeatherAhead | null, travelMode?: TravelMode 
       return { tone: 'warn', kind: 'heavy-rain', text: withWet(`Heavy rain expected here ${at}. Allow extra time; low roads may flood.`) };
     case 'rain':
       return { tone: 'warn', kind: 'rain', text: withWet(`Rain expected here ${at}. Allow extra time.`) };
+    case 'showers':
+      return { tone: 'calm', kind: 'showers', text: withWet(`A chance of showers here ${at}. They may not come.`) };
     case 'fog':
       return { tone: 'warn', kind: 'fog', text: `Fog expected here ${at}. Slow down and keep your lights on.` };
     case 'heat':

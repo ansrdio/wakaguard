@@ -28,6 +28,7 @@ import {
 import { getDeviceId, sendsTripLocation } from '@/lib/deviceId';
 import { Trip } from '@/lib/types';
 import { armLockScreenSos, disarmLockScreenSos } from '@/lib/tripSos';
+import { readBattery } from '@/lib/battery';
 
 const BackgroundGeolocation = registerPlugin<BackgroundGeolocationPlugin>('BackgroundGeolocation');
 
@@ -55,11 +56,16 @@ async function writeViaNativeHttp(uid: string, tripId: string, key: string, fix:
     ? `http://${EMULATOR_HOST}:5001/${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}/us-central1/tripLocation`
     : tripLocationEndpoint();
   if (!url) throw new Error('tripLocation endpoint not configured');
+  // The battery goes with each position, for the contacts' page and the alert texts (build 29)
+  const battery = await readBattery();
 
   const response = await CapacitorHttp.post({
     url,
     headers: { 'Content-Type': 'application/json' },
-    data: { uid, tripId, key, lat: fix.lat, lng: fix.lng, accuracy: fix.accuracy ?? null },
+    data: {
+      uid, tripId, key, lat: fix.lat, lng: fix.lng, accuracy: fix.accuracy ?? null,
+      ...(battery ? { battery: battery.level, charging: battery.charging } : {}),
+    },
     connectTimeout: 15000,
     readTimeout: 15000,
   });

@@ -1,6 +1,6 @@
 'use client';
 
-import { CloudFog, CloudLightning, CloudRain, CloudSun, Thermometer } from 'lucide-react';
+import { CloudDrizzle, CloudFog, CloudLightning, CloudRain, CloudSun, Thermometer } from 'lucide-react';
 import type { TravelMode } from '@/lib/travelMode';
 import { WEATHER_CREDIT, WeatherAhead, WeatherKind, weatherLine } from '@/lib/weatherWords';
 
@@ -8,6 +8,7 @@ const ICONS: Record<WeatherKind, typeof CloudRain> = {
   storm: CloudLightning,
   'heavy-rain': CloudRain,
   rain: CloudRain,
+  showers: CloudDrizzle,
   fog: CloudFog,
   heat: Thermometer,
 };

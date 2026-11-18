@@ -54,6 +54,27 @@ test('valid update is written to the private and public trip documents', async (
   assert.equal(pub.lastKeptAtMs, undefined, 'bookkeeping stays private');
 });
 
+test('the battery sent with a position is kept on the trip and its page (build 29)', async () => {
+  const { uid, tripId } = await makeTrip();
+  const res = await post({ uid, tripId, key: KEY, lat: 6.51, lng: 3.31, accuracy: 12, battery: 8, charging: false });
+  assert.equal(res.status, 200);
+  const pub = await shared(tripId);
+  assert.equal(pub.battery.level, 8);
+  assert.equal(pub.battery.charging, false);
+  assert.ok(Math.abs(pub.battery.atMs - Date.now()) < 60 * 1000);
+  const priv = (await db().doc(`users/${uid}/trips/${tripId}`).get()).data()!;
+  assert.equal(priv.battery.level, 8);
+});
+
+test('a phone that sends no battery, or nonsense, leaves none', async () => {
+  const { uid, tripId } = await makeTrip();
+  await post({ uid, tripId, key: KEY, lat: 6.51, lng: 3.31, battery: 150 });
+  assert.equal((await shared(tripId)).battery, undefined);
+  const other = await makeTrip();
+  await post({ uid: other.uid, tripId: other.tripId, key: KEY, lat: 6.51, lng: 3.31 });
+  assert.equal((await shared(other.tripId)).battery, undefined);
+});
+
 const AWAY = { lat: 6.7, lng: 4.9 };
 
 /** As if the last position came five minutes ago, so the next is not refused as too fast */

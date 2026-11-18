@@ -64,6 +64,7 @@ test('the weather in a few words, only when it is worth saying', () => {
   const rainAt4 = { kind: 'rain' as const, startsAtMs: Date.UTC(2026, 10, 17, 15), hottest: 31 };
   assert.equal(weatherWords(rainAt4, MORNING), 'Rain likely from about 4 pm.');
   assert.equal(weatherWords({ kind: 'storm', startsAtMs: MORNING + 10 * MIN, hottest: 30 }, MORNING), 'Thunderstorms likely soon.');
+  assert.equal(weatherWords({ kind: 'showers', startsAtMs: Date.UTC(2026, 10, 17, 14), hottest: 31 }, MORNING), 'A chance of showers from about 3 pm.');
   assert.equal(weatherWords({ kind: 'heat', startsAtMs: null, hottest: 38, feelsLike: 44 }, MORNING), 'Very hot today: it will feel like 44°C.');
   assert.equal(weatherWords({ kind: null, startsAtMs: null, hottest: 30 }, MORNING), null);
   assert.equal(weatherWords(null, MORNING), null);

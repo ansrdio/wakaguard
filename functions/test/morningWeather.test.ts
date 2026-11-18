@@ -33,6 +33,10 @@ test('a notification only on a day worth one, in the approved style', () => {
   assert.match(morningMessage({ kind: 'rain', startsAtMs: MORNING, hottest: 30 }, MORNING)!.body, /^Starting soon where you are\./);
   assert.match(morningMessage({ kind: 'heat', startsAtMs: Date.UTC(2026, 9, 19, 12), hottest: 40 }, MORNING)!.body, /Up to 40°C/);
   assert.equal(morningMessage({ kind: null, startsAtMs: null, hottest: 30 }, MORNING), null);
+  // Showers are a chance, not a promise (build 29)
+  const showers = morningMessage({ kind: 'showers', startsAtMs: Date.UTC(2026, 9, 19, 14), hottest: 31 }, MORNING)!;
+  assert.equal(showers.title, 'A chance of showers today');
+  assert.equal(showers.body, 'From about 3 pm where you are. They may not come, but carry an umbrella.');
 });
 
 test('a hot day says how hot it will feel, and when, with what to do', () => {

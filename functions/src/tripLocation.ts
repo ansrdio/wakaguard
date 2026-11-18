@@ -16,6 +16,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { timingSafeEqual } from 'crypto';
 import { isWildPosition, MAX_WILD_IN_A_ROW } from './tripPath';
 import { ownPage } from './tripPage';
+import { batteryFromPhone } from './battery';
 
 /** Updates arriving faster than this are acknowledged but not written. */
 const MIN_WRITE_INTERVAL_MS = 10 * 1000;
@@ -40,7 +41,7 @@ export const tripLocation = functions.https.onRequest(async (req, res) => {
     return;
   }
 
-  const { uid, tripId, key, lat, lng, accuracy } = req.body || {};
+  const { uid, tripId, key, lat, lng, accuracy, battery: level, charging } = req.body || {};
 
   if (typeof uid !== 'string' || !ID_PATTERN.test(uid)
     || typeof tripId !== 'string' || !ID_PATTERN.test(tripId)
@@ -81,6 +82,9 @@ export const tripLocation = functions.https.onRequest(async (req, res) => {
     ...(isNumberInRange(accuracy, 0, 100000) ? { accuracy } : {}),
   };
   const nowMs = Date.now();
+  // Apps from build 29 send the battery too; kept with the trip and shown to contacts
+  const battery = batteryFromPhone(level, charging, nowMs);
+  const withBattery = battery ? { battery } : {};
   const wildInARow = typeof trip.wildInARow === 'number' ? trip.wildInARow : 0;
   const lastKept = trip.lastLocation ? { ...trip.lastLocation, at: trip.lastKeptAtMs ?? lastUpdateMs } : null;
 
@@ -90,7 +94,7 @@ export const tripLocation = functions.https.onRequest(async (req, res) => {
     // Kept for the record on the private trip, away from the map, the path and
     // the farthest distance. lastUpdate still moves: the phone is sending, and
     // its silence is what alerts and "No location received" go by
-    const heard = { lastUpdate: FieldValue.serverTimestamp() };
+    const heard = { lastUpdate: FieldValue.serverTimestamp(), ...withBattery };
     const page = await ownPage(uid, tripId);
     await Promise.all([
       tripRef.update({
@@ -108,6 +112,7 @@ export const tripLocation = functions.https.onRequest(async (req, res) => {
   const update = {
     lastLocation,
     lastUpdate: FieldValue.serverTimestamp(),
+    ...withBattery,
   };
   const privateUpdate = { ...update, lastKeptAtMs: nowMs, wildInARow: 0 };
 

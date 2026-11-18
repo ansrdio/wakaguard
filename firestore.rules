@@ -491,7 +491,7 @@ service cloud.firestore {
             'farthestFromStartM', 'distanceM', 'lastKeptAtMs', 'wildPosition', 'wildPositionCount', 'wildInARow',
             'overdueAt', 'overdueWarnedAt', 'overdueLastWarnedAt', 'overdueAlertState', 'overdueAlertSent',
             'overdueAlertTotal', 'overdueAlertAttempts', 'overdueAlertClaimedAt', 'allClearSentAt',
-            'sosAlertState', 'sosAlertSent', 'sosAlertTotal', 'quietNudges', 'arrivalReminders'
+            'sosAlertState', 'sosAlertSent', 'sosAlertTotal', 'quietNudges', 'arrivalReminders', 'battery'
           ]);
       }
 
@@ -537,7 +537,7 @@ service cloud.firestore {
         return d.keys().hasOnly([
           'uid','tripId','status','expiresAt','lastLocation','lastUpdate','destination','createdAt',
           'endsAt','overdueAt','path','name','isTest','travelMode','vehicle','destinationPoint','route',
-          'checkpoints'
+          'checkpoints','battery'
         ])
         && d.uid is string
         && d.tripId is string
@@ -566,6 +566,8 @@ service cloud.firestore {
           && d.vehicle.get('details', '') is string && d.vehicle.get('details', '').size() <= 60
         ))
         && (!('path' in d) || (d.path is list && d.path.size() <= 300))
+        // The phone's battery (build 29), added by the server (functions/src/tripLocation.ts)
+        && (!('battery' in d) || d.battery is map)
         // Checkpoint stops (build 27), added by the server (functions/src/checkpointStops.ts)
         && (!('checkpoints' in d) || (d.checkpoints is list && d.checkpoints.size() <= 20))
         // The planned route (directions Beta, build 25), copied by the server
@@ -597,7 +599,8 @@ service cloud.firestore {
           && request.resource.data.get('name', null) == resource.data.get('name', null)
           && request.resource.data.get('vehicle', null) == resource.data.get('vehicle', null)
           && request.resource.data.get('route', null) == resource.data.get('route', null)
-          && request.resource.data.get('checkpoints', null) == resource.data.get('checkpoints', null);
+          && request.resource.data.get('checkpoints', null) == resource.data.get('checkpoints', null)
+          && request.resource.data.get('battery', null) == resource.data.get('battery', null);
       }
 
       allow create: if isAuthenticated()
@@ -607,7 +610,8 @@ service cloud.firestore {
         && !('name' in request.resource.data)
         && !('vehicle' in request.resource.data)
         && !('route' in request.resource.data)
-        && !('checkpoints' in request.resource.data);
+        && !('checkpoints' in request.resource.data)
+        && !('battery' in request.resource.data);
 
       allow update: if isAuthenticated()
         && ('uid' in resource.data)

@@ -8,6 +8,7 @@ test('each kind of weather has its line, saying when', () => {
   assert.equal(weatherLine(ahead({ kind: 'storm', startsInHours: 0 }))?.text, 'Thunderstorms expected here in the next hour. If you can, wait until they pass.');
   assert.equal(weatherLine(ahead({ kind: 'heavy-rain', startsInHours: 2 }))?.text, 'Heavy rain expected here in about 2 hours. Allow extra time; low roads may flood.');
   assert.equal(weatherLine(ahead({ kind: 'rain', startsInHours: 1 }))?.text, 'Rain expected here in about an hour. Allow extra time.');
+  assert.deepEqual(weatherLine(ahead({ kind: 'showers', startsInHours: 2 })), { tone: 'calm', kind: 'showers', text: 'A chance of showers here in about 2 hours. They may not come.' });
   assert.equal(weatherLine(ahead({ kind: 'fog', startsInHours: 0 }))?.text, 'Fog expected here in the next hour. Slow down and keep your lights on.');
   assert.equal(weatherLine(ahead({ kind: 'heat', startsInHours: 3, hottest: 39 }))?.text, 'Very hot here in about 3 hours (39°C). Carry water.');
   for (const kind of ['storm', 'heavy-rain', 'rain', 'fog', 'heat'] as const) assert.equal(weatherLine(ahead({ kind, startsInHours: 0 }))?.tone, 'warn');

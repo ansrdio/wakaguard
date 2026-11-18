@@ -60,7 +60,7 @@ export function useWeatherAhead(enabled: boolean, hours: number): WeatherAhead |
       const place = await roughPlace();
       if (!place || !current) return;
       try {
-        const answer = await httpsCallable(functions, 'weatherAhead', { timeout: 15000 })({ ...place, hours });
+        const answer = await httpsCallable(functions, 'weatherAhead', { timeout: 15000 })({ ...place, hours, showers: true });
         if (current) setAhead(readWeatherAhead(answer.data));
       } catch {
         // No forecast just now: the line stays as it was, or absent

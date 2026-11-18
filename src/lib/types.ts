@@ -245,6 +245,8 @@ export interface SharedTrip {
   vehicle?: { plate?: string; details?: string };
   /** Where the trip is going, if the traveller set it on the map (lib/destinationPoint.ts) */
   destinationPoint?: { lat: number; lng: number };
+  /** The phone's battery at the last update (build 29), written by the server (lib/battery.ts) */
+  battery?: { level?: unknown; charging?: unknown; atMs?: unknown };
   /** The planned route (directions Beta). Copied by the server from the trip and removed when the trip ends */
   route?: { overview: string; distanceM: number; durationS: number; profile: string };
   /** Checkpoint stops while the trip runs (build 27), added by the server (functions/src/checkpointStops.ts) */

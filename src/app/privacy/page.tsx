@@ -85,6 +85,12 @@ export default function PrivacyPage() {
               and deleted when the trip ends.
             </p>
             <p className="text-gray-700 leading-relaxed mb-4">
+              In the phone app, your phone&apos;s battery level, and whether it is charging, is sent with each
+              location update during a trip. It is stored with the trip, shown to your contacts on the trip page and
+              included in alert texts, because a flat battery is the most common reason a phone stops sending its
+              location.
+            </p>
+            <p className="text-gray-700 leading-relaxed mb-4">
               You can also add vehicle details to a trip: a plate number, and the bus company, the driver&apos;s
               name or the vehicle&apos;s colour. They are stored with the trip and are optional. Add someone
               else&apos;s name only as you would tell it to your contacts yourself.

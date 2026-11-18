@@ -692,6 +692,27 @@ async function adminAddCheckpointStop(token: string) {
   }
 }
 
+/** The phone's battery, as functions/src/tripLocation.ts keeps it (build 29) */
+async function adminAddBattery(token: string) {
+  const url = `http://${FIRESTORE_HOST}/v1/projects/${getProjectId()}/databases/(default)/documents/sharedTrips/${token}`
+    + '?updateMask.fieldPaths=battery';
+  const battery = {
+    mapValue: { fields: { level: { integerValue: '8' }, charging: { booleanValue: false }, atMs: { integerValue: String(Date.now()) } } }
+  };
+  const response = await fetch(url, {
+    method: 'PATCH',
+    headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fields: { battery } })
+  });
+  if (!response.ok) {
+    throw new Error(`Admin write failed: ${response.status} ${await response.text()}`);
+  }
+}
+
+async function sharedTripChangeBattery(ctx: AppContext, token: string) {
+  await updateDoc(doc(ctx.db, 'sharedTrips', token), { battery: { level: 100, charging: true, atMs: Date.now() } });
+}
+
 async function sharedTripChangeCheckpoints(ctx: AppContext, token: string) {
   await updateDoc(doc(ctx.db, 'sharedTrips', token), { checkpoints: [] });
 }
@@ -1294,6 +1315,12 @@ async function run() {
     );
     await runStep('User: change the checkpoint stops on shared trip denied', () =>
       sharedTripChangeCheckpoints(user, ids.tripId), true);
+    await runStep('Server: add the battery to shared trip', () => adminAddBattery(ids.tripId));
+    await runStep('User: update shared trip after the server added the battery', () =>
+      sharedTripUpdateAfterServerFields(user, ids.tripId)
+    );
+    await runStep('User: change the battery on shared trip denied', () =>
+      sharedTripChangeBattery(user, ids.tripId), true);
     await runStep('Server: add the vehicle to shared trip', () => adminAddVehicle(ids.tripId));
     await runStep('User: update shared trip after the server added the vehicle', () =>
       sharedTripUpdateAfterServerFields(user, ids.tripId)

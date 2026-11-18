@@ -18,6 +18,8 @@ PODS:
   - CapacitorCommunityBackgroundGeolocation (1.2.26):
     - Capacitor
   - CapacitorCordova (8.5.3)
+  - CapacitorDevice (8.0.3):
+    - Capacitor
   - CapacitorFirebaseAppCheck (8.5.2):
     - Capacitor
     - FirebaseAppCheck (~> 12.7)
@@ -134,6 +136,7 @@ DEPENDENCIES:
   - "CapacitorApp (from `../../node_modules/@capacitor/app`)"
   - "CapacitorCommunityBackgroundGeolocation (from `../../node_modules/@capacitor-community/background-geolocation`)"
   - "CapacitorCordova (from `../../node_modules/@capacitor/ios`)"
+  - "CapacitorDevice (from `../../node_modules/@capacitor/device`)"
   - "CapacitorFirebaseAppCheck (from `../../node_modules/@capacitor-firebase/app-check`)"
   - "CapacitorFirebaseAuthentication (from `../../node_modules/@capacitor-firebase/authentication`)"
   - "CapacitorFirebaseAuthentication/Google (from `../../node_modules/@capacitor-firebase/authentication`)"
@@ -177,6 +180,8 @@ EXTERNAL SOURCES:
     :path: "../../node_modules/@capacitor-community/background-geolocation"
   CapacitorCordova:
     :path: "../../node_modules/@capacitor/ios"
+  CapacitorDevice:
+    :path: "../../node_modules/@capacitor/device"
   CapacitorFirebaseAppCheck:
     :path: "../../node_modules/@capacitor-firebase/app-check"
   CapacitorFirebaseAuthentication:
@@ -199,6 +204,7 @@ SPEC CHECKSUMS:
   CapacitorApp: 7b7e43debe505bc61beedb83796aa1368c86078b
   CapacitorCommunityBackgroundGeolocation: 750523ec6dd1cc94cf4e2bf7787605106753f73c
   CapacitorCordova: 0b7326439c7a09fc5d20eced5e0dab986327a493
+  CapacitorDevice: 708e742b60a61572cd593e44c809592e8f31da14
   CapacitorFirebaseAppCheck: dc17b4d8a1fa7a2da92483288ee6987ce75e46be
   CapacitorFirebaseAuthentication: 826e1dae433819492daff947f3d674d1579a6ee7
   CapacitorGeolocation: 8a405e707de9aff6ac9eca7f408966a370f7ca33
@@ -226,6 +232,6 @@ SPEC CHECKSUMS:
   PromisesSwift: 9d77319bbe72ebf6d872900551f7eeba9bce2851
   RecaptchaInterop: 11e0b637842dfb48308d242afc3f448062325aba
 
-PODFILE CHECKSUM: a1803c7ddc7b96f42aa14e57c7d06da55868317d
+PODFILE CHECKSUM: 24031fb3258681bdf53ff43841bfb4aed14a9026
 
 COCOAPODS: 1.16.2

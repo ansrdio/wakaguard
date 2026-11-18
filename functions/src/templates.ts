@@ -122,11 +122,18 @@ export interface SosPayload {
   token?: string | null;
   /** The vehicle's plate, if the traveller gave one (functions/src/vehicle.ts) */
   plate?: string | null;
+  /** The phone's battery at its last update, 0 to 100 (build 29) */
+  battery?: number | null;
+}
+
+/** ", battery 8%" after when the phone was last seen (build 29) */
+function batteryPart(battery: number | null | undefined): string {
+  return typeof battery === 'number' && Number.isFinite(battery) ? `, battery ${Math.round(battery)}%` : '';
 }
 
 export function buildSosMessage(p: SosPayload): string {
   const where = hasLocation(p)
-    ? [p.locationAtMs ? `Last seen ${formatLagosTime(p.locationAtMs)}` : 'Location', buildMapsLink(p.lat, p.lng)] as [string, string]
+    ? [`${p.locationAtMs ? `Last seen ${formatLagosTime(p.locationAtMs)}` : 'Location'}${batteryPart(p.battery)}`, buildMapsLink(p.lat, p.lng)] as [string, string]
     : null;
   return inParts(`WakaGuard SOS: ${p.userName} needs help.${platePart(p.plate)} Call them or 112.`, [
     where,
@@ -178,14 +185,20 @@ export interface OverduePayload {
   token?: string | null;
   /** The vehicle's plate, if the traveller gave one (functions/src/vehicle.ts) */
   plate?: string | null;
+  /** The phone's battery at its last update, 0 to 100 (build 29) */
+  battery?: number | null;
 }
 
 /** Pages an alert may take. The plate is left out of a text it would push past this; it is on the page anyway */
 const MAX_ALERT_SEGMENTS = 2;
 
 export function buildOverdueMessage(p: OverduePayload): string {
-  const withPlate = overdueText(p);
-  return p.plate && countSmsSegments(withPlate) > MAX_ALERT_SEGMENTS ? overdueText({ ...p, plate: null }) : withPlate;
+  // Left out in turn to keep within two pages: the plate, then the battery (both are on the page)
+  for (const tried of [p, { ...p, plate: null }, { ...p, plate: null, battery: null }]) {
+    const text = overdueText(tried);
+    if (countSmsSegments(text) <= MAX_ALERT_SEGMENTS) return text;
+  }
+  return overdueText({ ...p, plate: null, battery: null });
 }
 
 function overdueText(p: OverduePayload): string {
@@ -203,7 +216,7 @@ function overdueText(p: OverduePayload): string {
   message += ' Please call them.';
 
   const where = hasLocation(p)
-    ? [p.lastUpdateMs ? `Last seen ${formatLagosTime(p.lastUpdateMs)}` : 'Last location', buildMapsLink(p.lat, p.lng)] as [string, string]
+    ? [`${p.lastUpdateMs ? `Last seen ${formatLagosTime(p.lastUpdateMs)}` : 'Last location'}${batteryPart(p.battery)}`, buildMapsLink(p.lat, p.lng)] as [string, string]
     : null;
   return inParts(message, [where, p.token ? ['Follow their trip', buildShareLink(p.token)] : null]);
 }

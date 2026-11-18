@@ -66,6 +66,8 @@ export function morningMessage(day: DayOutlook, nowMs: number): TravellerMessage
       return { title: 'Heavy rain expected today', body: `${from} Allow extra time; low roads may flood.`, data };
     case 'rain':
       return { title: 'Rain expected today', body: `${from} Allow extra time on the road.`, data };
+    case 'showers':
+      return { title: 'A chance of showers today', body: `${from} They may not come, but carry an umbrella.`, data };
     case 'fog':
       return { title: 'Fog expected today', body: `${from} Slow down and keep your lights on.`, data };
     case 'heat': {

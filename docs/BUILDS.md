@@ -2624,7 +2624,7 @@ the first three items move that moment somewhere else. A poll in the tester grou
          `planUsualTimes` and `usualTimeReminders` by name. The heads-up starts after the next nightly plan
          (2:30 am Nigeria time), unless the plan is run once by hand.
        - **Live Tue 17 November**, website then the two functions (see "Website and server releases").
-2. [ ] **"Ask them to start a trip"** (moved up from 3): someone (a parent, say) sends a link, "Let me know you got
+2. [x] **"Ask them to start a trip"** (moved up from 3): someone (a parent, say) sends a link, "Let me know you got
        there safely", and the person who opens it starts a trip with the sender already added as a contact. The
        remembering moves to the person who worries, and it brings new users through the people who care about
        them. Needs its own Privacy and Terms lines and thought about misuse (nobody can be made to share a trip;
@@ -2654,8 +2654,9 @@ the first three items move that moment somewhere else. A poll in the tester grou
          build 29 tester build.
        - **Live Tue 17 November**, website then the three functions (see "Website and server releases"). The owner's
          "release the website" took the Privacy and Terms wording as approved.
-3. [ ] **"Start my usual trip" from the home screen**: an app-icon shortcut (long-press) and a home-screen widget
-       on Android, and the same on iPhone (widget or Shortcuts), so a usual trip starts without opening the form.
+3. [-] ~~**"Start my usual trip" from the home screen**~~ **moved to after launch** (the owner, 17 November: "yes
+       move 3 after launch"): the heaviest item (native code on both phones, an iPhone widget extension) and 1 vote
+       in the tester poll of 17 November. Now under "After launch" below.
 4. [x] **The trip length from the road time, filled in and easy to see** (the owner, 17 November: "add the auto
        time to build 29, also maybe it is not apparent enough"; a tester asked to type where they are going and have
        the app work out how long it takes). Today the start form shows the road time as a small grey line under the
@@ -2682,6 +2683,26 @@ the first three items move that moment somewhere else. A poll in the tester grou
 6. [ ] **Battery level on the contacts' page** (and in the alert text, the item "Battery level in the alert"
        below): a dead battery is the commonest reason a phone goes quiet, and "battery 4%" helps a contact judge
        whether to worry. Sent with each location update; a Privacy line is needed.
+       - **Done in the code, 17 November** ("do 6 and 7"). The phone apps read the battery with `@capacitor/device`
+         8.0.3 (new plugin, so it needs the new builds; `lib/battery.ts`) and send the level (0 to 100) and whether it
+         is charging with each position to `tripLocation` (`hooks/useTripLocationSync.ts`). The server keeps
+         `battery: { level, charging, atMs }` on the trip and its page (`functions/src/battery.ts`), also when a
+         position is set aside as wild, as the phone was still heard. The browser sends none (its positions go
+         straight to the database).
+       - The trip page, under "Last location received": "Battery 57%", "Battery 45%, charging", or in red "Battery
+         low: 8%. Their phone may switch off soon." (15% or less, not charging). With no update for a while: "Battery
+         was 6% then. Their phone may have switched off."
+       - Alert texts (overdue and SOS): "Last seen Tue 3:50 pm, battery 8%:" above the map link, only when the
+         reading is under an hour old. To stay within two text pages the plate is left out first, then the battery.
+       - Rules: `battery` is a server-only field on the trip page (allowed, kept as it is by the app's own writes,
+         refused from the app) and may not be set by the app when a trip is made. **Deploy the rules before
+         `tripLocation`**, or the app's own writes to a page with a battery on it would be refused.
+       - Privacy page: a paragraph under "Location During a Trip" (the battery level and charging, with each update,
+         stored with the trip, shown on the trip page and in alert texts). Waiting for the owner's yes.
+       - Tests: 6 new unit tests, 2 new emulator tests (150), 3 new rule checks (smoke test 160/160).
+       - **To go live, each on the owner's word:** the Firestore rules, then `tripLocation`, `checkOverdueTrips`,
+         `checkQuietTrips` and `onSOSAlert` by name (the ones that build alert texts or keep positions), and the
+         website (the trip page and Privacy). Phones send the battery from the build 29 tester build.
 7. [ ] **Rain only when it is likely** (Gifted, a tester, 17 November: "It says rain will fall 3pm and it doesn't
        even rain throughout the day"; the owner: "add the weather fix to build 29"). The weather comes from MET Norway's
        "compact" forecast, which says only what each hour looks like, with no chance of rain; `kindOfHour` in
@@ -2695,6 +2716,25 @@ the first three items move that moment somewhere else. A poll in the tester grou
        - keep thunderstorms and heavy rain as they are, as those matter most for travel.
        A server change only (`morningWeather`, `usualTimeReminders`, `weatherAhead`), so it reaches every phone
        without an app update. The exact cut-offs to be checked against a few days of Lagos and Abuja forecasts first.
+       - **Done in the code, 17 November** ("do 6 and 7"). The "complete" forecast turned out to give the chance of
+         rain only for the Nordic countries (checked on Lagos that evening), so the amount stands in for it
+         (`kindOfHour` in `functions/src/weather.ts`): an hour under 0.5 mm is not worth a word (`RAIN_FROM_MM`);
+         showers of 0.5 mm or more are a new kind, `showers`; steady rain of 0.5 mm or more stays "rain"; 4 mm or
+         more, or MET Norway's "heavy rain" (not "heavy showers"), stays heavy rain; thunder stays a storm. That
+         evening's Lagos forecast (light showers of 0.1 to 0.4 mm from 8 am, a 0.5 mm shower at 2 pm and 1.6 mm
+         "heavy showers" at 4 pm) now reads "A chance of showers" instead of "Rain expected".
+       - Words: morning notification "A chance of showers today" / "From about 3 pm where you are. They may not
+         come, but carry an umbrella."; heads-up "A chance of showers from about 3 pm."; Trip screen (build 29
+         apps) "A chance of showers here in about 2 hours. They may not come." Apps before build 29 only know
+         "rain", so `weatherAhead` tells them "rain" for showers unless the app says it knows showers
+         (`kindForApp`); they still gain the 0.5 mm cut-off.
+       - Tests: 3 new unit tests and 5 updated.
+       - **To go live, on the owner's word:** `morningWeather`, `usualTimeReminders` and `weatherAhead` by name; the
+         trip line's new words come with the website and the build 29 apps.
+
+After launch: **"Start my usual trip" from the home screen** (was build 29 item 3, moved 17 November): an app-icon
+shortcut (long-press) and a home-screen widget on Android, and the same on iPhone (widget or Shortcuts), so a usual
+trip starts without opening the form.
 
 Later, after these: a reminder triggered by actually leaving home at the usual time rather than by the clock. More
 accurate, but it needs location while no trip is running, so it needs its own privacy and battery work.
@@ -2721,8 +2761,8 @@ From the first week of testing (agreed 12 October):
 
 - [ ] One-tap road reports: "Checkpoint", "Accident", "Bad road", "Flooding"
       as buttons that report where the traveller is
-- [ ] Battery level in the alert, so contacts know when a phone was about to
-      go off
+- [x] Battery level in the alert, so contacts know when a phone was about to
+      go off (build 29 item 6)
 - [ ] Check-ins on long trips: "Still okay?" every couple of hours
 - [ ] Nigerian languages for the alert texts and the main screens: Pidgin,
       Yoruba, Hausa, Igbo

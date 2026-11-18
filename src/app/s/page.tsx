@@ -19,6 +19,7 @@ import { storedVehicle, vehicleSummary } from '@/lib/vehicle';
 import { readPoint } from '@/lib/destinationPoint';
 import { readRouteOutline } from '@/lib/directions';
 import { inviterFromTrip } from '@/lib/referrals';
+import { batteryLine, keptBattery } from '@/lib/battery';
 
 // Leaflet needs the browser, so the map is left out of the prerendered page
 // Google's map when the key is set (build 27), else the old one for tests against the emulators
@@ -167,6 +168,8 @@ function SharedTripContent() {
   // Updates normally arrive at least every 2 minutes while the phone has signal
   const isStale = !!latest && lastUpdateMs !== null && nowMs - lastUpdateMs > STALE_AFTER_MS;
   const path = readTripPath(trip.path);
+  // The phone's battery at the last update, from phones on build 29 and later
+  const battery = latest ? batteryLine(keptBattery(trip.battery), isStale) : null;
   // The route the app planned, when the traveller has directions (Beta) on
   const route = readRouteOutline(trip.route);
   // Checkpoint stops (build 27), added by the server when the traveller logs one
@@ -259,6 +262,9 @@ function SharedTripContent() {
                   {latest && lastUpdateMs !== null ? agoText(nowMs - lastUpdateMs) : 'None yet'}
                   {latest && lastUpdateMs !== null && isStale ? ` (${formatClock(lastUpdateMs, nowMs)})` : ''}
                 </p>
+                {battery && (
+                  <p className={`text-sm mt-1 ${battery.low ? 'font-semibold text-red-700' : 'text-slate-600'}`}>{battery.text}</p>
+                )}
                 {isStale && (
                   <p className="text-sm text-slate-900 mt-1">
                     Their phone may be off, out of coverage, or the app may be closed. The map shows where they were,

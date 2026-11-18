@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  FEELS_HOT_FROM, feelsLike, feelsLikeOfHour, ForecastHour, inServiceArea, keepWhatIsUsed, kindOfHour, readAhead, roughArea,
+  FEELS_HOT_FROM, feelsLike, feelsLikeOfHour, ForecastHour, inServiceArea, keepWhatIsUsed, kindForApp, kindOfHour, readAhead, roughArea,
 } from '../src/weather';
 
 const NOW = Date.UTC(2026, 9, 14, 12, 20);
@@ -22,11 +22,29 @@ test('each hour is read for the one thing worth saying', () => {
   assert.equal(kindOfHour(hour(0, 'heavyrainandthunder', 9)), 'storm');
   assert.equal(kindOfHour(hour(0, 'heavyrain', 2)), 'heavy-rain');
   assert.equal(kindOfHour(hour(0, 'rain', 5)), 'heavy-rain');
-  assert.equal(kindOfHour(hour(0, 'lightrainshowers_day', 0.2)), 'rain');
+  assert.equal(kindOfHour(hour(0, 'lightrain', 0.6)), 'rain');
   assert.equal(kindOfHour(hour(0, 'fog')), 'fog');
   assert.equal(kindOfHour(hour(0, 'clearsky_day', 0, 39)), 'heat');
   assert.equal(kindOfHour(hour(0, 'clearsky_day', 0, 35)), null);
   assert.equal(kindOfHour({}), null);
+});
+
+test('showers are a chance, and a trace of rain is not worth a word (build 29)', () => {
+  // A tester was told "Rain expected from about 3 pm" for 0.1 mm light showers, and it stayed dry
+  assert.equal(kindOfHour(hour(0, 'lightrainshowers_day', 0.2)), null);
+  assert.equal(kindOfHour(hour(0, 'lightrain', 0.4)), null);
+  assert.equal(kindOfHour(hour(0, 'rainshowers_day', 0.5)), 'showers');
+  // MET Norway's "heavy showers" for 1.6 mm in an hour is still a shower
+  assert.equal(kindOfHour(hour(0, 'heavyrainshowers_day', 1.6)), 'showers');
+  assert.equal(kindOfHour(hour(0, 'heavyrainshowers_day', 4)), 'heavy-rain');
+  // Thunder is always worth a word, and so is fog or heat on a dry hour
+  assert.equal(kindOfHour(hour(0, 'lightrainshowersandthunder_day', 0.1)), 'storm');
+  assert.equal(kindOfHour(hour(0, 'lightrainshowers_day', 0.1, 39)), 'heat');
+  // A real day in Lagos: light showers from 8 am, a shower at 2 pm and "heavy" showers at 4 pm
+  const day = [hour(-4, 'lightrainshowers_day', 0.1), hour(-1, 'lightrainshowers_day', 0.3), hour(1, 'rainshowers_day', 0.5),
+    hour(2, 'lightrainshowers_day', 0.4), hour(3, 'heavyrainshowers_day', 1.6), hour(4, 'lightrainshowers_day', 0.3)];
+  // (it is 12:20; the 1 pm shower is within the hour)
+  assert.deepEqual(readAhead(day, NOW, 6), { kind: 'showers', startsInHours: 0, hottest: 30, hours: 6 });
 });
 
 test('how hot it feels follows the US weather service heat index', () => {
@@ -53,7 +71,7 @@ test('humid heat is worth a word even below 38°C', () => {
 });
 
 test('the most serious thing in the hours ahead is chosen, with when it starts', () => {
-  const series = [hour(-2, 'heavyrain'), hour(0), hour(1, 'rain'), hour(2, 'rainandthunder'), hour(5, 'heavyrain')];
+  const series = [hour(-2, 'heavyrain'), hour(0), hour(1, 'rain', 1), hour(2, 'rainandthunder'), hour(5, 'heavyrain')];
   assert.deepEqual(readAhead(series, NOW, 3), { kind: 'storm', startsInHours: 1, hottest: 30, hours: 3 });
   // A trip of an hour and a half is read for two hours, which reaches the storm
   assert.deepEqual(readAhead(series, NOW, 1.5), { kind: 'storm', startsInHours: 1, hottest: 30, hours: 2 });
@@ -62,8 +80,15 @@ test('the most serious thing in the hours ahead is chosen, with when it starts',
 });
 
 test('the hour already under way still counts, and nothing coming says so', () => {
-  assert.equal(readAhead([hour(0, 'rain')], NOW, 2).startsInHours, 0);
+  assert.equal(readAhead([hour(0, 'rain', 1)], NOW, 2).startsInHours, 0);
   assert.deepEqual(readAhead([hour(0), hour(1), hour(2)], NOW, 3), { kind: null, startsInHours: null, hottest: 30, hours: 3 });
+});
+
+test('apps before build 29 are told "rain" for showers, as they know no other word', () => {
+  assert.equal(kindForApp('showers', false), 'rain');
+  assert.equal(kindForApp('showers', true), 'showers');
+  assert.equal(kindForApp('storm', false), 'storm');
+  assert.equal(kindForApp(null, false), null);
 });
 
 test('it never looks further ahead than six hours, nor less than one', () => {

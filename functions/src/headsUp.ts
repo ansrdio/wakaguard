@@ -143,6 +143,7 @@ export function weatherWords(day: DayOutlook | null, nowMs: number): string | nu
       : `Very hot today: up to ${day.hottest ?? 38}°C.`;
   }
   const when = day.startsAtMs === null || day.startsAtMs < nowMs + HOUR_MS ? 'soon' : `from about ${hourAt(day.startsAtMs)}`;
+  if (day.kind === 'showers') return `A chance of showers ${when}.`;
   return `${WEATHER_WORDS[day.kind] ?? 'Bad weather'} likely ${when}.`;
 }
 
