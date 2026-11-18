@@ -2611,6 +2611,11 @@ list (65); the bundle went through the Chrome connection this time. Play's two u
 no native debug symbols), no devices lost. "Available to internal testers", released 17 Nov 8:30 PM Arizona.
 Publishing overview afterwards: still "Publish 7 changes" with Production "28 (1.2.1)", untouched. Testers who only
 joined closed testing must accept the internal test once: https://play.google.com/apps/internaltest/4700894268020553937
+Announced in the tester group with that link the same evening (21:04 WhatsApp time, on the owner's "post it").
+**iPhone build 29 (1.3.0) uploaded to App Store Connect** the same evening (the owner: "upload iPhone"): archived on
+this Mac from the same web build (`builds/WakaGuard-1.3.0-29.xcarchive`, CFBundleVersion 29, 1.3.0), exported and
+uploaded with Xcode ("Upload succeeded", `builds/upload-29.log`), which needs no App Store Connect web sign-in. Apple
+then processes it; TestFlight testers outside the team need Apple's beta review for 1.3.0, asked for on the website.
 
 **Reordered on 17 November (the owner: "yes add them to build 29 … I like number 2").** Testers who stopped using
 WakaGuard were asked why (16-17 November): of the first answers, the most common was forgetting to start a trip before
