@@ -2647,6 +2647,12 @@ build 29, "What's New" written for the update (road time and Navigate, the links
 smoother sign-in on slow connections), the description and review notes carried over, release set to "Automatically
 release this version", phased release off; added for review and "Submit for Review" (the submission held only iOS App
 1.3.0 (29)): "Waiting for Review", Apple says up to 48 hours. Public announcement stays on 1 December.
+**Google approved build 29 (1.3.0) for production, Wed 18 November (seen early afternoon, Arizona), within hours:**
+Publishing overview shows nothing in review and "Publish 7 changes" with Production "29 (1.3.0)", full rollout, in
+place of 28, plus Nigeria, the listing and Data safety. Not pressed; it is published on the owner's word.
+**Apple approved iOS 1.3.0 (29), seen Thu 19 November:** "iOS 1.3.0 Ready for Distribution", released automatically
+in Nigeria in place of 1.2.0 (still no announcement). TestFlight 1.3.0 (29) also approved: "Testing" for the external
+group (11 invites). Both stores now have 1.3.0: live on the App Store, approved and waiting to publish on Google Play.
 
 **Reordered on 17 November (the owner: "yes add them to build 29 … I like number 2").** Testers who stopped using
 WakaGuard were asked why (16-17 November): of the first answers, the most common was forgetting to start a trip before
